@@ -1,0 +1,40 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+LOG_HOME_IS_UNDEFINED/
+crmeb_front_log/
+crmeb_admin_log/
+crmeb/*/LOG_HOME_IS_UNDEFINED/
+
+# Java / Maven
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
+
+# Node
+**/node_modules/
+**/dist/
+**/.cache/
+npm-debug.log*
+yarn-error.log*
+
+# Uni-app / HBuilder
+app/unpackage/
+app/.hbuilderx/
+
+# Local env / secrets (keep example configs if any)
+.env
+.env.local
+*.local.yml.bak
+
+# Temp scripts
+_copy_*.ps1
+
+# OS
+desktop.ini
