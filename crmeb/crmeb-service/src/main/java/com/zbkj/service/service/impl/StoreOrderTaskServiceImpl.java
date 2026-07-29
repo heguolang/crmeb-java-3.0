@@ -705,10 +705,10 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
         List<UserIntegralRecord> userIntegralRecordList = CollUtil.newArrayList();
         if (integralOnPay) {
             // 支付到账模式下，收货节点对仍为 CREATE 的记录进入冻结（兼容旧数据）
-            userIntegralRecordList = integralRecordList.stream()
+            userIntegralRecordList.addAll(integralRecordList.stream()
                     .filter(e -> e.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD))
                     .filter(e -> e.getStatus().equals(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_CREATE))
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toList()));
             for (UserIntegralRecord record : userIntegralRecordList) {
                 record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_FROZEN);
                 Long thawTime = cn.hutool.core.date.DateUtil.current(false);
