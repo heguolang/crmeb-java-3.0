@@ -20,7 +20,7 @@
                 }}</view>
                 <view class="level" :style="[numTextStyle]"
                   >{{ userSubText }}<text
-                    class="id-chip"
+                    class="id-text"
                     v-if="showIdChip"
                     @click.stop="copyMemberId"
                     >ID:{{ memberUid }}<text
@@ -69,7 +69,7 @@
                 }}</view>
                 <view class="level" :style="[numTextStyle]"
                   >{{ userSubTextPlain }}<text
-                    class="id-chip"
+                    class="id-text"
                     v-if="showIdChip"
                     @click.stop="copyMemberId"
                     >ID:{{ memberUid }}<text
@@ -105,7 +105,7 @@
                 }}</view>
                 <view class="level" :style="[numTextStyle]"
                   >{{ userSubText }}<text
-                    class="id-chip"
+                    class="id-text"
                     v-if="showIdChip"
                     @click.stop="copyMemberId"
                     >ID:{{ memberUid }}<text
@@ -158,7 +158,7 @@
                   }}</view>
                   <view class="level" :style="[numTextStyle]"
                     >{{ userSubTextPlain }}<text
-                      class="id-chip"
+                      class="id-text"
                       v-if="showIdChip"
                       @click.stop="copyMemberId"
                       >ID:{{ memberUid }}<text
@@ -296,7 +296,7 @@
                   }}</view>
                   <view class="level" :style="[numTextStyle]"
                     >{{ userSubTextPlain }}<text
-                      class="id-chip"
+                      class="id-text"
                       v-if="showIdChip"
                       @click.stop="copyMemberId"
                       >ID:{{ memberUid }}<text
@@ -1258,22 +1258,13 @@ export default {
   position: relative;
   overflow: hidden;
 
-  /* 手机号右侧的会员ID徽标（可点击复制） */
-  .id-chip {
-    display: inline-block;
-    margin-left: 10rpx;
-    padding: 0 10rpx;
-    height: 30rpx;
-    line-height: 30rpx;
-    border-radius: 15rpx;
-    font-size: 18rpx;
-    color: #ffffff;
-    background-color: rgba(0, 0, 0, 0.25);
-    vertical-align: middle;
+  /* 手机号右侧的会员ID：与手机号同字号同颜色（纯文本，可点击复制） */
+  .id-text {
+    margin-left: 16rpx;
 
     .iconfont {
-      margin-left: 4rpx;
-      font-size: 18rpx;
+      margin-left: 6rpx;
+      font-size: 0.85em;
       line-height: 1;
       vertical-align: middle;
     }
