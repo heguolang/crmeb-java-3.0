@@ -387,7 +387,7 @@ export function getDiy(id) {
  * 获取版权信息
  */
 export function getCrmebCopyRight() {
-  return request.get("copyright", {}, { noAuth: true });
+  return request.get("copyright/info", {}, { noAuth: true });
 }
 
 /**

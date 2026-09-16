@@ -577,9 +577,11 @@ export default {
     },
     // 拼团数据（拼团人数头部图片）
     pink: function () {
-      pink().then((res) => {
-        this.pinkInfo = res.data;
-      });
+      pink()
+        .then((res) => {
+          this.pinkInfo = res.data;
+        })
+        .catch(() => {});
     },
   },
 };

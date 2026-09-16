@@ -79,6 +79,7 @@ import emptyPage from "@/components/emptyPage.vue";
 import Loading from "@/components/Loading/index.vue";
 import { getCrmebCopyRight } from "@/api/api.js";
 import { goShopDetail } from "@/libs/order.js";
+import { orderData } from "@/api/order.js";
 import PageDesign from "@/subpackage/diyComponents/pageDesign.vue";
 import { applyTheme } from "@/utils/theme.js";
 
@@ -154,7 +155,6 @@ export default {
       duration: 500,
       isAuto: false, //没有授权的不会自动授权
       isShowAuth: false, //是否隐藏授权
-      orderStatusNum: {},
       userInfo: {},
       MyMenus: [],
       sysHeight: sysHeight,
@@ -384,11 +384,11 @@ export default {
       Auth.isWeixin() && Auth.toAuth("snsapi_userinfo", "/pages/user/index");
       //#endif
     },
-    // 记录会员访问
+    // 记录会员访问（统计类接口，失败静默忽略，不影响页面）
     setVisit() {
       setVisit({
         url: "/pages/user/index",
-      }).then((res) => {});
+      }).catch(() => {});
     },
     // 打开授权
     openAuto() {
@@ -453,27 +453,33 @@ export default {
         that.userInfo = res.data;
         this.$store.commit("UPDATE_USERINFO", res.data);
         that.$store.commit("SETUID", res.data.uid);
-        that.orderMenu.forEach((item, index) => {
-          switch (item.title) {
-            case "待付款":
-              item.num = res.data.orderStatusNum.unpaid_count;
-              break;
-            case "待发货":
-              item.num = res.data.orderStatusNum.unshipped_count;
-              break;
-            case "待收货":
-              item.num = res.data.orderStatusNum.received_count;
-              break;
-            case "待评价":
-              item.num = res.data.orderStatusNum.evaluated_count;
-              break;
-            case "售后/退款":
-              item.num = res.data.orderStatusNum.refunding_count;
-              break;
-          }
-        });
         uni.stopPullDownRefresh();
       });
+      // 订单角标数量走独立接口 /api/front/order/data（字段为驼峰命名）
+      orderData()
+        .then((res) => {
+          const d = res.data || {};
+          that.orderMenu.forEach((item) => {
+            switch (item.title) {
+              case "待付款":
+                item.num = d.unPaidCount || 0;
+                break;
+              case "待发货":
+                item.num = d.unShippedCount || 0;
+                break;
+              case "待收货":
+                item.num = d.receivedCount || 0;
+                break;
+              case "待评价":
+                item.num = d.evaluatedCount || 0;
+                break;
+              case "售后/退款":
+                item.num = d.refundCount || 0;
+                break;
+            }
+          });
+        })
+        .catch(() => {});
     },
     //小程序授权api替换 getUserInfo
     getUserProfile() {
@@ -578,10 +584,12 @@ export default {
       });
     },
     getCopyRight() {
-      getCrmebCopyRight().then((res) => {
-        if (res.data.copyrightImage)
-          this.copyRightPic = res.data.copyrightImage;
-      });
+      getCrmebCopyRight()
+        .then((res) => {
+          if (res.data && res.data.copyrightImage)
+            this.copyRightPic = res.data.copyrightImage;
+        })
+        .catch(() => {});
     },
   },
 };
