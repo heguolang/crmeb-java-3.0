@@ -141,6 +141,9 @@ public class OrderPayServiceImpl implements OrderPayService {
     private TeamBrokerageService teamBrokerageService;
 
     @Autowired
+    private AgentService agentService;
+
+    @Autowired
     private SystemUserLevelService systemUserLevelService;
 
     @Autowired
@@ -304,11 +307,14 @@ public class OrderPayServiceImpl implements OrderPayService {
         List<UserBrokerageRecord> recordList = assignCommission(storeOrder);
         recordList.addAll(assignSelfBrokerage(storeOrder, user, brokerageLevelId, matchedBrokerageLevel));
         recordList.addAll(teamBrokerageService.assignTeamBrokerage(storeOrder));
+        // 区域代理奖励
+        recordList.addAll(agentService.assignAgentBrokerage(storeOrder));
 
         // 到账方式：1-支付到账，2-订单完成到账
         boolean integralOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_INTEGRAL_CREDIT_TIMING);
         boolean brokerageOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_BROKERAGE_CREDIT_TIMING);
         boolean teamOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_TEAM_BROKERAGE_CREDIT_TIMING);
+        boolean agentOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_AGENT_CREDIT_TIMING);
 
         // 按配置决定积分是否支付即到账（3.0 积分为 Integer）
         final Integer integralBeforeCredit = ObjectUtil.defaultIfNull(user.getIntegral(), 0);
@@ -338,7 +344,8 @@ public class OrderPayServiceImpl implements OrderPayService {
             Map<Integer, BigDecimal> brokerageBalanceMap = new HashMap<>();
             for (UserBrokerageRecord brokerageRecord : recordList) {
                 boolean isTeam = isTeamBrokerageRecord(brokerageRecord);
-                boolean onPay = isTeam ? teamOnPay : brokerageOnPay;
+                boolean isAgent = isAgentBrokerageRecord(brokerageRecord);
+                boolean onPay = isAgent ? agentOnPay : (isTeam ? teamOnPay : brokerageOnPay);
                 if (!onPay) {
                     continue;
                 }
@@ -427,6 +434,9 @@ public class OrderPayServiceImpl implements OrderPayService {
                     brokerageCursor.put(br.getUid(), before.add(br.getPrice()));
                 }
             }
+
+            // 区域代理奖励明细状态同步
+            agentService.syncRewardStatus(storeOrder.getOrderId());
 
             // 如果是拼团订单进行拼团后置处理
             if (storeOrder.getCombinationId() > 0) {
@@ -1500,6 +1510,10 @@ public class OrderPayServiceImpl implements OrderPayService {
         Integer level = record.getBrokerageLevel();
         return BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_DIFF.equals(level)
                 || BrokerageRecordConstants.BROKERAGE_LEVEL_TEAM_PEER.equals(level);
+    }
+
+    private boolean isAgentBrokerageRecord(UserBrokerageRecord record) {
+        return BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT.equals(record.getBrokerageLevel());
     }
 
     /**

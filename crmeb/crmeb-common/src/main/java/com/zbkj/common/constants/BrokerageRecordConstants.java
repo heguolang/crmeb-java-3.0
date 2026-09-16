@@ -68,6 +68,12 @@ public class BrokerageRecordConstants {
     /** 佣金记录标题—团队平级奖 */
     public static final String BROKERAGE_RECORD_TITLE_TEAM_PEER = "获得团队平级奖";
 
+    /** 分销等级—区域代理奖励 */
+    public static final Integer BROKERAGE_LEVEL_AGENT = 12;
+
+    /** 佣金记录标题—区域代理奖励 */
+    public static final String BROKERAGE_RECORD_TITLE_AGENT = "获得区域代理奖励";
+
     /** 佣金记录标题—提现申请 */
     public static final String BROKERAGE_RECORD_TITLE_WITHDRAW_APPLY = "提现申请";
 

@@ -69,6 +69,12 @@ public class SysConfigConstants {
     public static final String CONFIG_KEY_BROKERAGE_BINDIND = "brokerage_bindind";
     /** 分销佣金分账节点:pay:订单支付后，receipt:订单收货后，complete:订单完成后 */
     public static final String RETAIL_STORE_BROKERAGE_SHARE_NODE = "store_brokerage_share_node";
+    /** 区域代理功能开关：1-开启，0-关闭 */
+    public static final String CONFIG_KEY_AGENT_FUNC_STATUS = "agent_func_status";
+    /** 区域代理申请开关：1-开放申请，0-仅后台设置 */
+    public static final String CONFIG_KEY_AGENT_APPLY_STATUS = "agent_apply_status";
+    /** 区域代理奖励到账方式：1-支付订单到账，2-订单完成后到账 */
+    public static final String CONFIG_KEY_AGENT_CREDIT_TIMING = "agent_credit_timing";
 
 
 

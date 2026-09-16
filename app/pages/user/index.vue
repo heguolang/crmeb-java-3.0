@@ -47,6 +47,16 @@
       @changeBarg="changeBarg"
       @goDetail="goDetail"
     ></PageDesign>
+    <view class="agent-entry acea-row row-between-wrapper" v-if="isLogin" @click="goAgentCenter">
+      <view class="left acea-row row-middle">
+        <text class="iconfont icon-huangguan4 agent-entry-icon"></text>
+        <view>
+          <view class="agent-entry-title">代理中心</view>
+          <view class="agent-entry-sub">查看我的代理区域与奖励明细</view>
+        </view>
+      </view>
+      <text class="iconfont icon-xiangyou agent-entry-arrow"></text>
+    </view>
     <pageFooter :style="colorStyle"></pageFooter>
   </view>
 </template>
@@ -282,6 +292,9 @@ export default {
     uni.$emit("scroll");
   },
   methods: {
+    goAgentCenter() {
+      uni.navigateTo({ url: "/pages/users/agent/index" });
+    },
     bindSortId(item, data) {
       if (item.dataType.tabVal == 1) {
         uni.navigateTo({
@@ -631,5 +644,33 @@ export default {
 
 .noRepeat {
   background-repeat: no-repeat;
+}
+
+.agent-entry {
+  margin: 20rpx 24rpx;
+  padding: 26rpx 30rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  .left {
+    .agent-entry-icon {
+      font-size: 44rpx;
+      color: #e93323;
+      margin-right: 20rpx;
+    }
+    .agent-entry-title {
+      font-size: 28rpx;
+      color: #282828;
+      font-weight: 600;
+    }
+    .agent-entry-sub {
+      margin-top: 4rpx;
+      font-size: 22rpx;
+      color: #999;
+    }
+  }
+  .agent-entry-arrow {
+    font-size: 24rpx;
+    color: #bbb;
+  }
 }
 </style>

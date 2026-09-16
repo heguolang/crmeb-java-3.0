@@ -155,6 +155,19 @@
 					}
 				},
 				{
+					"path": "agent/index",
+					"style": {
+						"navigationBarTitleText": "代理中心",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
 					"path": "user_money/index",
 					"style": {
 						"navigationBarTitleText": "我的账户",

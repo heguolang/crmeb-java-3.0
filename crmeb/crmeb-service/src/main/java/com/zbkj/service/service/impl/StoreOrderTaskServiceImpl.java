@@ -130,6 +130,9 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
     private UserTeamLevelService userTeamLevelService;
 
     @Autowired
+    private AgentService agentService;
+
+    @Autowired
     private SystemUserLevelService systemUserLevelService;
 
     @Autowired
@@ -298,6 +301,8 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
 
             userLevelService.processLevelOnOrderComplete(storeOrder);
             userTeamLevelService.processTeamLevelOnOrderComplete(storeOrder);
+            // 区域代理奖励明细状态同步
+            agentService.syncRewardStatus(storeOrder.getOrderId());
             return Boolean.TRUE;
         });
         // 入账后剩余 CREATE 才会被 complete 节点冻结；通常已无 CREATE

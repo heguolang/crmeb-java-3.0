@@ -516,3 +516,24 @@ export function copyrightApi(){
 export function getRandCode() {
   return Promise.resolve({ data: { code: '' } });
 }
+
+/**
+ * 区域代理：我的代理中心信息
+ */
+export function getAgentInfo() {
+  return request.get("agent/info");
+}
+
+/**
+ * 区域代理：申请成为代理
+ */
+export function agentApply(data) {
+  return request.post("agent/apply", data);
+}
+
+/**
+ * 区域代理：我的奖励明细
+ */
+export function getAgentRewardList(data) {
+  return request.get("agent/reward/list", data);
+}
