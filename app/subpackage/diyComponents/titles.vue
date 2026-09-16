@@ -81,25 +81,37 @@ export default {
       };
     },
     titleWrapStyle() {
-      let borderRadius = `${this.dataConfig.fillet.val * 2}rpx`;
-      if (this.dataConfig.fillet.type) {
-        borderRadius = `${this.dataConfig.fillet.valList[0].val * 2}rpx ${
-          this.dataConfig.fillet.valList[1].val * 2
-        }rpx ${this.dataConfig.fillet.valList[3].val * 2}rpx ${
-          this.dataConfig.fillet.valList[2].val * 2
+      const fillet = this.dataConfig.fillet || {};
+      let borderRadius = `${(fillet.val || 0) * 2}rpx`;
+      if (fillet.type && Array.isArray(fillet.valList)) {
+        borderRadius = `${(fillet.valList[0] ? fillet.valList[0].val : 0) * 2}rpx ${
+          (fillet.valList[1] ? fillet.valList[1].val : 0) * 2
+        }rpx ${(fillet.valList[3] ? fillet.valList[3].val : 0) * 2}rpx ${
+          (fillet.valList[2] ? fillet.valList[2].val : 0) * 2
         }rpx`;
       }
+      // 兜底：moduleColor 缺失或结构不完整时使用主题默认色，避免整页渲染崩溃
+      let moduleColor = this.dataConfig.moduleColor;
+      if (!moduleColor || !moduleColor.color || !moduleColor.color.length) {
+        moduleColor = { color: [{ item: "#FFFFFF" }, { item: "#FFFFFF" }] };
+      }
+      const c0 = moduleColor.color[0] ? moduleColor.color[0].item : "#FFFFFF";
+      const c1 = moduleColor.color[1]
+        ? moduleColor.color[1].item
+        : c0 || "#FFFFFF";
       return {
         "border-radius": borderRadius,
-        background: `linear-gradient(90deg, ${this.dataConfig.moduleColor.color[0].item} 0%, ${this.dataConfig.moduleColor.color[1].item} 100%)`,
+        background: `linear-gradient(90deg, ${c0} 0%, ${c1} 100%)`,
       };
     },
     titleStyle() {
+      const fontSize = this.dataConfig.fontSize || {};
       let style = {
-        "font-size": `${this.dataConfig.fontSize.val * 2}rpx`,
-        color: this.dataConfig.themeColor.color[0].item,
+        "font-size": `${(fontSize.val || 16) * 2}rpx`,
+        color: this._firstColor(this.dataConfig.themeColor, "#333333"),
       };
-      switch (this.dataConfig.textStyle.tabVal) {
+      const textStyle = this.dataConfig.textStyle || {};
+      switch (textStyle.tabVal) {
         case 1:
           style["font-style"] = "italic";
           break;
@@ -110,9 +122,10 @@ export default {
       return style;
     },
     titleLocation() {
-      if (this.dataConfig.buttonConfig.tabVal) {
+      if (this.dataConfig.buttonConfig && this.dataConfig.buttonConfig.tabVal) {
         let style = {};
-        switch (this.dataConfig.textPosition.tabVal) {
+        const textPosition = this.dataConfig.textPosition || {};
+        switch (textPosition.tabVal) {
           case 1:
             style["justify-content"] = "center";
             break;
@@ -124,13 +137,24 @@ export default {
       }
     },
     moreStyle() {
+      const buttonText = this.dataConfig.buttonText || {};
       return {
-        "font-size": `${this.dataConfig.buttonText.val * 2}rpx`,
-        color: this.dataConfig.buttonColor.color[0].item,
+        "font-size": `${(buttonText.val || 12) * 2}rpx`,
+        color: this._firstColor(this.dataConfig.buttonColor, "#999999"),
       };
     },
   },
   methods: {
+    // 安全取色：兼容 字段缺失 / color 为空 / item 缺失 三种情况
+    _firstColor(obj, fallback) {
+      if (obj && Array.isArray(obj.color) && obj.color.length && obj.color[0]) {
+        return obj.color[0].item || fallback;
+      }
+      if (obj && obj.default && obj.default.length && obj.default[0]) {
+        return obj.default[0].item || fallback;
+      }
+      return fallback;
+    },
     goLink() {
       this.$util.JumpPath(this.dataConfig.linkConfig.value);
     },
