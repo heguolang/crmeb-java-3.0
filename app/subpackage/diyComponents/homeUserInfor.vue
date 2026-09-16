@@ -18,9 +18,15 @@
                 <view class="name line1" :style="[nameTextStyle]">{{
                   userName
                 }}</view>
-                <view class="level line1" :style="[numTextStyle]">{{
-                  userSubText
-                }}</view>
+                <view class="level" :style="[numTextStyle]"
+                  >{{ userSubText }}<text
+                    class="id-chip"
+                    v-if="showIdChip"
+                    @click.stop="copyMemberId"
+                    >ID:{{ memberUid }}<text
+                      class="iconfont icon-fuzhi1"
+                    ></text></text
+                ></view>
               </view>
             </view>
             <view class="menu-entry" v-if="menuList.length">
@@ -61,9 +67,15 @@
                 <view class="name line1" :style="[nameTextStyle]">{{
                   userName
                 }}</view>
-                <view class="level line1" :style="[numTextStyle]">{{
-                  userSubTextPlain
-                }}</view>
+                <view class="level" :style="[numTextStyle]"
+                  >{{ userSubTextPlain }}<text
+                    class="id-chip"
+                    v-if="showIdChip"
+                    @click.stop="copyMemberId"
+                    >ID:{{ memberUid }}<text
+                      class="iconfont icon-fuzhi1"
+                    ></text></text
+                ></view>
               </view>
               <view class="avatar">
                 <image v-if="avatarUrl" :src="avatarUrl" mode="aspectFill" />
@@ -91,9 +103,15 @@
                 <view class="name line1" :style="[nameTextStyle]">{{
                   userName
                 }}</view>
-                <view class="level line1" :style="[numTextStyle]">{{
-                  userSubText
-                }}</view>
+                <view class="level" :style="[numTextStyle]"
+                  >{{ userSubText }}<text
+                    class="id-chip"
+                    v-if="showIdChip"
+                    @click.stop="copyMemberId"
+                    >ID:{{ memberUid }}<text
+                      class="iconfont icon-fuzhi1"
+                    ></text></text
+                ></view>
               </view>
             </view>
             <view class="menu-entry" v-if="menuList.length">
@@ -138,9 +156,15 @@
                   <view class="name line1" :style="[nameTextStyle]">{{
                     userName
                   }}</view>
-                  <view class="level line1" :style="[numTextStyle]">{{
-                    userSubTextPlain
-                  }}</view>
+                  <view class="level" :style="[numTextStyle]"
+                    >{{ userSubTextPlain }}<text
+                      class="id-chip"
+                      v-if="showIdChip"
+                      @click.stop="copyMemberId"
+                      >ID:{{ memberUid }}<text
+                        class="iconfont icon-fuzhi1"
+                      ></text></text
+                  ></view>
                 </view>
               </view>
               <view
@@ -270,9 +294,15 @@
                   <view class="name line1" :style="[nameTextStyle]">{{
                     userName
                   }}</view>
-                  <view class="level line1" :style="[numTextStyle]">{{
-                    userSubTextPlain
-                  }}</view>
+                  <view class="level" :style="[numTextStyle]"
+                    >{{ userSubTextPlain }}<text
+                      class="id-chip"
+                      v-if="showIdChip"
+                      @click.stop="copyMemberId"
+                      >ID:{{ memberUid }}<text
+                        class="iconfont icon-fuzhi1"
+                      ></text></text
+                  ></view>
                 </view>
               </view>
               <view class="menu-entry" v-if="menuList.length">
@@ -913,6 +943,15 @@ export default {
       if (!this.isLogin) return "请点击登录";
       return (this.userInfo && this.userInfo.nickname) || "";
     },
+    // 会员ID（兼容 uid / id 两种字段）
+    memberUid() {
+      if (!this.isLogin) return "";
+      return (this.userInfo && (this.userInfo.uid || this.userInfo.id)) || "";
+    },
+    // 展示内容选「手机号」时，在手机号右侧额外挂一个会员ID徽标（可点击复制）
+    showIdChip() {
+      return this.isLogin && this.userInfoConfig == 0 && !!this.memberUid;
+    },
     userSubText() {
       if (!this.isLogin) return "";
       if (this.userInfoConfig == 0)
@@ -1094,6 +1133,39 @@ export default {
     },
   },
   methods: {
+    // 点击复制会员ID
+    copyMemberId() {
+      const uid = this.memberUid;
+      if (!uid) return;
+      const text = String(uid);
+      const tip = () => {
+        uni.showToast({ title: "会员ID已复制", icon: "none" });
+      };
+      // #ifdef H5
+      try {
+        const input = document.createElement("textarea");
+        input.value = text;
+        input.style.position = "fixed";
+        input.style.top = "-9999px";
+        document.body.appendChild(input);
+        input.select();
+        input.setSelectionRange(0, text.length);
+        document.execCommand("copy");
+        document.body.removeChild(input);
+        tip();
+        return;
+      } catch (e) {
+        // 复制失败则降级走 uni API
+      }
+      // #endif
+      uni.setClipboardData({
+        data: text,
+        success: tip,
+        fail: () => {
+          uni.showToast({ title: "复制失败，请手动复制", icon: "none" });
+        },
+      });
+    },
     radiusFromConfig(cfg) {
       if (!cfg) return "0rpx";
       let type = Number(cfg.type) || 0;
@@ -1185,6 +1257,28 @@ export default {
 .member-card {
   position: relative;
   overflow: hidden;
+
+  /* 手机号右侧的会员ID徽标（可点击复制） */
+  .id-chip {
+    display: inline-block;
+    margin-left: 10rpx;
+    padding: 0 10rpx;
+    height: 30rpx;
+    line-height: 30rpx;
+    border-radius: 15rpx;
+    font-size: 18rpx;
+    color: #ffffff;
+    background-color: rgba(0, 0, 0, 0.25);
+    vertical-align: middle;
+
+    .iconfont {
+      margin-left: 4rpx;
+      font-size: 18rpx;
+      line-height: 1;
+      vertical-align: middle;
+    }
+  }
+
   .left-card {
     .label {
       font-size: 22rpx;
