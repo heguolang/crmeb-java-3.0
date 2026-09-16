@@ -156,6 +156,7 @@
 
 <script>
 import { agentListApi, agentSaveApi, agentUpdateApi, agentAuditApi, agentDeleteApi, cityTreeApi } from '@/api/daili';
+import { checkPermi } from '@/utils/permission'; // 权限判断函数
 import { Debounce } from '@/utils/validate';
 
 export default {
@@ -200,6 +201,7 @@ export default {
     this.getCityList();
   },
   methods: {
+    checkPermi,
     levelLabel(level) {
       const map = { 1: '省级', 2: '市级', 3: '区级' };
       return map[level] || '-';

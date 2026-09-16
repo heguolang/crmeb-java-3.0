@@ -36,6 +36,7 @@
 
 <script>
 import { agentSettingApi, agentSettingSaveApi } from '@/api/daili';
+import { checkPermi } from '@/utils/permission'; // 权限判断函数
 
 export default {
   name: 'AgentSetting',
@@ -54,6 +55,7 @@ export default {
     this.getSetting();
   },
   methods: {
+    checkPermi,
     getSetting() {
       this.loading = true;
       agentSettingApi()

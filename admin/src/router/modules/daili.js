@@ -2,6 +2,7 @@
 // | 区域代理路由
 // +----------------------------------------------------------------------
 
+// rebuild-trigger
 import Layout from '@/layout';
 
 const dailiRouter = {
