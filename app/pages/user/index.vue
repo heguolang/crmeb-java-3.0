@@ -47,7 +47,6 @@
       @changeBarg="changeBarg"
       @goDetail="goDetail"
     ></PageDesign>
-    <image :src="copyRightPic" alt="" class="support"></image>
     <pageFooter :style="colorStyle"></pageFooter>
   </view>
 </template>
@@ -77,7 +76,6 @@ import couponWindow from "@/components/couponWindow/index";
 import waterfallsFlow from "@/components/WaterfallsFlow/WaterfallsFlow.vue";
 import emptyPage from "@/components/emptyPage.vue";
 import Loading from "@/components/Loading/index.vue";
-import { getCrmebCopyRight } from "@/api/api.js";
 import { goShopDetail } from "@/libs/order.js";
 import { orderData } from "@/api/order.js";
 import PageDesign from "@/subpackage/diyComponents/pageDesign.vue";
@@ -177,7 +175,6 @@ export default {
       member_style: 0,
       my_banner_status: 0,
       is_diy: uni.getStorageSync("is_diy"),
-      copyRightPic: require("static/images/support.png"), //版权图片
       belongIndex: 0,
       isScrolled: false,
       isFixed: false,
@@ -249,7 +246,6 @@ export default {
     let routes = getCurrentPages(); // 获取当前打开过的页面路由数组
     let curRoute = routes[routes.length - 1].route; //获取当前页面路由
     this.activeRouter = "/" + curRoute;
-    this.getCopyRight();
   },
   onReady() {
     let self = this;
@@ -278,7 +274,6 @@ export default {
     }
     // this.getMyMenus();
     this.getDiyData();
-    this.getCopyRight();
   },
   onPullDownRefresh() {
     this.onLoadFun();
@@ -583,14 +578,6 @@ export default {
         this.MyMenus = myMenu;
       });
     },
-    getCopyRight() {
-      getCrmebCopyRight()
-        .then((res) => {
-          if (res.data && res.data.copyrightImage)
-            this.copyRightPic = res.data.copyrightImage;
-        })
-        .catch(() => {});
-    },
   },
 };
 </script>
@@ -628,12 +615,6 @@ export default {
       height: 100%;
       z-index: 5;
     }
-  }
-  .support {
-    width: 219rpx;
-    height: 74rpx;
-    margin: 54rpx auto;
-    display: block;
   }
 }
 .ysize {

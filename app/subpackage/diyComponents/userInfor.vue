@@ -53,13 +53,23 @@
             v-if="isLogin && diyInfo.level <= 0 && diyInfo.phone"
           >
             <text>{{ diyInfo.phone }}</text>
-            <text class="memberId" v-if="diyInfo.uid">ID:{{ diyInfo.uid }}</text>
+            <view
+              class="memberId acea-row row-middle"
+              v-if="diyInfo.uid"
+              @click.stop="copyMemberId"
+            >
+              <text>ID:{{ diyInfo.uid }}</text>
+              <text class="iconfont icon-fuzhi1"></text>
+            </view>
           </view>
           <view
             class="phone acea-row row-middle"
             v-else-if="isLogin && diyInfo.uid"
           >
-            <text class="memberId">ID:{{ diyInfo.uid }}</text>
+            <view class="memberId acea-row row-middle" @click.stop="copyMemberId">
+              <text>ID:{{ diyInfo.uid }}</text>
+              <text class="iconfont icon-fuzhi1"></text>
+            </view>
           </view>
         </view>
         <view v-if="isLogin" class="right acea-row row-bottom">
@@ -422,6 +432,39 @@ export default {
         this.$emit("changeLogin");
       }
     },
+    // 点击复制会员ID
+    copyMemberId() {
+      const uid = this.diyInfo && this.diyInfo.uid;
+      if (!uid) return;
+      const text = String(uid);
+      const tip = () => {
+        uni.showToast({ title: "会员ID已复制", icon: "none" });
+      };
+      // #ifdef H5
+      try {
+        const input = document.createElement("textarea");
+        input.value = text;
+        input.style.position = "fixed";
+        input.style.top = "-9999px";
+        document.body.appendChild(input);
+        input.select();
+        input.setSelectionRange(0, text.length);
+        document.execCommand("copy");
+        document.body.removeChild(input);
+        tip();
+        return;
+      } catch (e) {
+        // 复制失败则降级走 uni API
+      }
+      // #endif
+      uni.setClipboardData({
+        data: text,
+        success: tip,
+        fail: () => {
+          uni.showToast({ title: "复制失败，请手动复制", icon: "none" });
+        },
+      });
+    },
     getDiyUserInfo() {
       getUserInfo()
         .then((res) => {
@@ -627,14 +670,22 @@ export default {
         }
 
         .memberId {
+          display: flex;
+          align-items: center;
           margin-left: 12rpx;
-          padding: 0 8rpx;
-          height: 26rpx;
-          line-height: 26rpx;
-          border-radius: 13rpx;
+          padding: 0 10rpx;
+          height: 30rpx;
+          line-height: 30rpx;
+          border-radius: 15rpx;
           font-size: 18rpx;
           color: #ffffff;
           background-color: rgba(0, 0, 0, 0.25);
+
+          .iconfont {
+            margin-left: 4rpx;
+            font-size: 18rpx;
+            line-height: 1;
+          }
         }
       }
     }

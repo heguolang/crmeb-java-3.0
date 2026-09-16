@@ -22,7 +22,7 @@ export default {
   name: 'i-copyright',
   data() {
     return {
-      copyright: 'Copyright © 2025 西安众邦网络科技有限公司',
+      copyright: '黔序科技',
       copyrightNew: '',
     };
   },

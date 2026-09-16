@@ -307,7 +307,7 @@
                 <el-dropdown-item
                   @click.native="setExtension(scope.row)"
                   v-if="checkPermi(['admin:user:update:spread'])"
-                  >修改上级推广人</el-dropdown-item
+                  >选择推荐人账户</el-dropdown-item
                 >
                 <el-dropdown-item
                   @click.native="clearSpread(scope.row)"
@@ -345,24 +345,33 @@
         </el-checkbox-group>
       </template>
     </div>
-    <!--修改推广人-->
-    <el-dialog title="修改推广人" :visible.sync="extensionVisible" width="540px" :before-close="handleCloseExtension">
+    <!--选择推荐人账户-->
+    <el-dialog title="选择推荐人账户" :visible.sync="extensionVisible" width="540px" :before-close="handleCloseExtension">
       <el-form
         class="formExtension"
         ref="formExtension"
         :model="formExtension"
         :rules="ruleInline"
-        label-width="75px"
+        label-width="95px"
         @submit.native.prevent
         v-loading="loading"
       >
-        <el-form-item label="用户头像：" prop="image">
-          <div class="upLoadPicBox" @click="modalPicTap">
-            <div v-if="formExtension.image" class="pictrue"><img :src="formExtension.image" /></div>
-            <div v-else class="upLoad">
-              <i class="el-icon-camera cameraIconfont" />
+        <el-form-item label="推荐人账户：" prop="spreadUid">
+          <div v-if="formExtension.spreadUid" class="spread-selected">
+            <img v-if="formExtension.image" class="spread-avatar" :src="formExtension.image" />
+            <div v-else class="spread-avatar spread-avatar--empty">
+              <i class="el-icon-user" />
+            </div>
+            <div class="spread-info">
+              <div class="spread-nick">{{ formExtension.spreadNickname || '未命名用户' }}</div>
+              <div class="spread-uid">ID：{{ formExtension.spreadUid }}</div>
+            </div>
+            <div class="spread-ops">
+              <el-button type="text" @click="openUserPicker">重新选择</el-button>
+              <el-button type="text" class="danger-text" @click="clearSpreadUid">清除</el-button>
             </div>
           </div>
+          <el-button v-else icon="el-icon-search" @click="openUserPicker">点击选择推荐人账户</el-button>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
@@ -370,8 +379,8 @@
         <el-button type="primary" @click="onSubExtension('formExtension')">确定</el-button>
       </span>
     </el-dialog>
-    <!--用户列表-->
-    <el-dialog class="user-dialog" title="用户列表" :visible.sync="userVisible" width="900px">
+    <!--选择推荐人账户-->
+    <el-dialog class="user-dialog" title="选择推荐人账户" :visible.sync="userVisible" width="900px">
       <user-list @closeDialog="userVisible = false" v-if="userVisible" @getTemplateRow="getTemplateRow"></user-list>
     </el-dialog>
     <!--批量设置-->
@@ -516,6 +525,12 @@ import * as logistics from '@/api/logistics.js';
 import Cookies from 'js-cookie';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 import { Debounce } from '@/utils/validate';
+
+// 后端 UserUpdateSpreadRequest.image 标注了 @NotBlank，但 editSpread 实现里并未使用该字段。
+// 所选推荐人没有头像时补一个 1x1 透明 PNG 占位，避免后端校验失败。
+const DEFAULT_AVATAR_PLACEHOLDER =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
 export default {
   name: 'UserIndex',
   components: { editFrom, userDetails, userList, levelEdit, teamLevelEdit },
@@ -535,9 +550,12 @@ export default {
       formExtension: {
         image: '',
         spreadUid: '',
+        spreadNickname: '',
         userId: '',
       },
-      ruleInline: {},
+      ruleInline: {
+        spreadUid: [{ required: true, message: '请选择推荐人账户', trigger: 'change' }],
+      },
       extensionVisible: false,
       userVisible: false,
       levelInfo: {},
@@ -722,9 +740,21 @@ export default {
       });
     },
     onSubExtension(formName) {
+      if (!this.formExtension.spreadUid) {
+        this.$message.warning('请选择推荐人账户');
+        return;
+      }
+      if (this.formExtension.spreadUid === this.formExtension.userId) {
+        this.$message.warning('推荐人不能是用户本人');
+        return;
+      }
       this.$refs[formName].validate((valid) => {
         if (valid) {
-          updateSpreadApi(this.formExtension).then((res) => {
+          updateSpreadApi({
+            userId: this.formExtension.userId,
+            image: this.formExtension.image || DEFAULT_AVATAR_PLACEHOLDER,
+            spreadUid: this.formExtension.spreadUid,
+          }).then((res) => {
             this.$message.success('设置成功');
             this.extensionVisible = false;
             this.getList();
@@ -734,23 +764,43 @@ export default {
         }
       });
     },
+    // 选人弹窗回填推荐人
     getTemplateRow(row) {
-      this.formExtension.image = row.avatar;
+      this.formExtension.image = row.avatar || '';
       this.formExtension.spreadUid = row.uid;
+      this.formExtension.spreadNickname = row.nickname || '未命名用户';
+      this.userVisible = false;
+      this.$nextTick(() => {
+        this.$refs.formExtension && this.$refs.formExtension.validateField('spreadUid');
+      });
     },
     setExtension(row) {
       this.formExtension = {
         image: '',
         spreadUid: '',
+        spreadNickname: '',
         userId: row.uid,
       };
       this.extensionVisible = true;
+      this.$nextTick(() => {
+        this.$refs.formExtension && this.$refs.formExtension.clearValidate();
+      });
     },
     handleCloseExtension() {
       this.extensionVisible = false;
     },
-    modalPicTap() {
+    // 打开「选择推荐人账户」选人弹窗
+    openUserPicker() {
       this.userVisible = true;
+    },
+    // 清除已选推荐人
+    clearSpreadUid() {
+      this.formExtension.image = '';
+      this.formExtension.spreadUid = '';
+      this.formExtension.spreadNickname = '';
+      this.$nextTick(() => {
+        this.$refs.formExtension && this.$refs.formExtension.clearValidate('spreadUid');
+      });
     },
     resetForm() {
       this.visible = false;
@@ -1297,5 +1347,61 @@ export default {
 }
 .flex-between {
   justify-content: space-between;
+}
+
+/* 选择推荐人账户 —— 已选中的账户卡片 */
+.spread-selected {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  background: #fafafa;
+
+  .spread-avatar {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    margin-right: 10px;
+    border-radius: 50%;
+    object-fit: cover;
+
+    &--empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #c0c4cc;
+      background: #f0f0f0;
+    }
+  }
+
+  .spread-info {
+    flex: 1;
+    min-width: 0;
+    line-height: 20px;
+
+    .spread-nick {
+      font-size: 14px;
+      color: #303133;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .spread-uid {
+      font-size: 12px;
+      color: #909399;
+    }
+  }
+
+  .spread-ops {
+    flex-shrink: 0;
+    margin-left: 10px;
+  }
+}
+
+.danger-text {
+  color: #f56c6c !important;
 }
 </style>
