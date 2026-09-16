@@ -412,6 +412,17 @@ export function updatePhoneApi(params) {
 }
 
 /**
+ * @description 修改会员登录密码
+ */
+export function updatePasswordApi(data) {
+  return request({
+    url: `/admin/user/update/password`,
+    method: 'post',
+    data,
+  });
+}
+
+/**
  * 查询是否需要开启图形验证码
  * @returns {*}
  */

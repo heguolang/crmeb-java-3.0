@@ -1684,6 +1684,33 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     /**
+     * 后台修改会员登录密码
+     * @param id 用户uid
+     * @param password 新登录密码（明文）
+     * @return Boolean
+     */
+    @Override
+    public Boolean updateUserPassword(Integer id, String password) {
+        if (StrUtil.isBlank(password)) {
+            throw new CrmebException("请输入新登录密码");
+        }
+        if (password.length() < 6 || password.length() > 18) {
+            throw new CrmebException("密码长度需为6-18位");
+        }
+        User user = getById(id);
+        if (ObjectUtil.isNull(user)) {
+            throw new CrmebException("对应用户不存在");
+        }
+        // 密码以用户手机号为密钥进行 DES 加密，与注册/登录保持一致
+        String key = StrUtil.isNotBlank(user.getPhone()) ? user.getPhone() : user.getAccount();
+        User newUser = new User();
+        newUser.setUid(id);
+        newUser.setPwd(CrmebUtil.encryptPassword(password, key));
+        newUser.setUpdateTime(DateUtil.date());
+        return userDao.updateById(newUser) > 0;
+    }
+
+    /**
      * 根据昵称匹配用户，返回id集合
      * @param nikeName 需要匹配得昵称
      * @return List

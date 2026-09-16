@@ -254,6 +254,11 @@ public class IndexServiceImpl implements IndexService {
         CopyrightConfigInfoResponse response = new CopyrightConfigInfoResponse();
         response.setCompanyName(copyrightCompanyName);
         response.setCompanyImage(copyrightCompanyImage);
+        // 未登录访问首页提示登录弹窗
+        String loginNoticeSwitch = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_LOGIN_NOTICE_SWITCH);
+        String loginNoticeText = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_LOGIN_NOTICE_TEXT);
+        response.setLoginNoticeSwitch(StrUtil.isBlank(loginNoticeSwitch) ? "0" : loginNoticeSwitch);
+        response.setLoginNoticeText(loginNoticeText);
         return response;
     }
 

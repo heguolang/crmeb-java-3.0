@@ -300,13 +300,18 @@
                   >修改团队等级</el-dropdown-item
                 >
                 <el-dropdown-item
+                  @click.native="setPassword(scope.row)"
+                  v-if="checkPermi(['admin:user:update:password'])"
+                  >修改登录密码</el-dropdown-item
+                >
+                <el-dropdown-item
                   @click.native="setExtension(scope.row)"
                   v-if="checkPermi(['admin:user:update:spread'])"
                   >修改上级推广人</el-dropdown-item
                 >
                 <el-dropdown-item
                   @click.native="clearSpread(scope.row)"
-                  v-if="scope.row.spreadUid && scope.row.spreadUid > 0 && checkPermi(['admin:retail:spread:clean'])"
+                  v-if="checkPermi(['admin:retail:spread:clean'])"
                   >清除上级推广人</el-dropdown-item
                 >
               </el-dropdown-menu>
@@ -498,6 +503,7 @@ import {
   foundsApi,
   updateSpreadApi,
   updatePhoneApi,
+  updatePasswordApi,
 } from '@/api/user';
 import { teamLevelAllApi } from '@/api/teamLevel';
 import { spreadClearApi } from '@/api/distribution';
@@ -674,6 +680,31 @@ export default {
         .then(({ value }) => {
           updatePhoneApi({ id: row.uid, phone: value }).then(() => {
             this.$message.success('编辑成功');
+            this.getList();
+          });
+        })
+        .catch(() => {
+          this.$message.info('取消输入');
+        });
+    },
+    // 修改登录密码（管理员直接设置新密码）
+    setPassword(row) {
+      this.$prompt('', '修改【' + (row.nickname || row.phone || row.uid) + '】的登录密码', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        inputErrorMessage: '请输入6-18位新密码',
+        inputType: 'password',
+        inputValue: '',
+        inputPlaceholder: '请输入6-18位新密码',
+        closeOnClickModal: false,
+        inputValidator: (value) => {
+          if (!value) return '请填写新密码';
+          if (value.length < 6 || value.length > 18) return '密码长度需为6-18位';
+        },
+      })
+        .then(({ value }) => {
+          updatePasswordApi({ uid: row.uid, password: value }).then(() => {
+            this.$message.success('修改成功');
             this.getList();
           });
         })

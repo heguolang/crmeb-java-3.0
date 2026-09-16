@@ -116,6 +116,11 @@ public class SysConfigConstants {
     /** 版权-授权地址 */
     public static final String CONFIG_COPYRIGHT_AUTH_HOST = "authHost";
 
+    /** 未登录访问首页提示登录弹窗开关 1-开启 0-关闭 */
+    public static final String CONFIG_LOGIN_NOTICE_SWITCH = "login_notice_switch";
+    /** 未登录访问首页提示登录弹窗文案 */
+    public static final String CONFIG_LOGIN_NOTICE_TEXT = "login_notice_text";
+
     /** 主题测配置 */
     public static final String CONFIG_CHANGE_COLOR = "change_color_config";
 

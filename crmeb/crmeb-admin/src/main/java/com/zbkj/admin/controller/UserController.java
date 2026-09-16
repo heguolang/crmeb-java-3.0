@@ -93,6 +93,19 @@ public class UserController {
     }
 
     /**
+     * 修改会员登录密码
+     */
+    @PreAuthorize("hasAuthority('admin:user:update:password')")
+    @ApiOperation(value = "修改会员登录密码")
+    @RequestMapping(value = "/update/password", method = RequestMethod.POST)
+    public CommonResult<String> updatePassword(@Validated @RequestBody UserUpdatePasswordRequest request) {
+        if (userService.updateUserPassword(request.getUid(), request.getPassword())) {
+            return CommonResult.success("修改成功");
+        }
+        return CommonResult.failed("修改失败");
+    }
+
+    /**
      * 用户详情
      * @param id Integer
      */

@@ -53,6 +53,13 @@
             v-if="isLogin && diyInfo.level <= 0 && diyInfo.phone"
           >
             <text>{{ diyInfo.phone }}</text>
+            <text class="memberId" v-if="diyInfo.uid">ID:{{ diyInfo.uid }}</text>
+          </view>
+          <view
+            class="phone acea-row row-middle"
+            v-else-if="isLogin && diyInfo.uid"
+          >
+            <text class="memberId">ID:{{ diyInfo.uid }}</text>
           </view>
         </view>
         <view v-if="isLogin" class="right acea-row row-bottom">
@@ -617,6 +624,17 @@ export default {
         .icon-shouji2 {
           margin-right: 4rpx;
           font-size: 20rpx;
+        }
+
+        .memberId {
+          margin-left: 12rpx;
+          padding: 0 8rpx;
+          height: 26rpx;
+          line-height: 26rpx;
+          border-radius: 13rpx;
+          font-size: 18rpx;
+          color: #ffffff;
+          background-color: rgba(0, 0, 0, 0.25);
         }
       }
     }

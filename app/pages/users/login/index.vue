@@ -24,6 +24,12 @@
 							<input type="password" class="texts" placeholder="确认登录密码" maxlength="18" v-model="passwordConfirm" required />
 						</div>
 					</div>
+					<div class="item" v-if="isRegister">
+						<div class="acea-row row-middle">
+							<image :src="urlDomain+'crmebimage/perset/staticImg/phone_1.png'" style="width: 24rpx; height: 34rpx;"></image>
+							<input type="number" class="texts" placeholder="绑定推荐人ID（选填）" maxlength="11" v-model="spreadId" />
+						</div>
+					</div>
 				</form>
 			</div>
 			<div class="list" v-if="appLoginStatus || appleLoginStatus">
@@ -112,6 +118,7 @@
 				account: "",
 				password: "",
 				passwordConfirm: "",
+				spreadId: "",
 				isRegister: false,
 				captcha: "",
 				formItem: 1,
@@ -374,12 +381,14 @@
 				this.isRegister = true;
 				this.password = '';
 				this.passwordConfirm = '';
+				this.spreadId = '';
 			},
 			// 切换到登录
 			switchLogin() {
 				this.isRegister = false;
 				this.password = '';
 				this.passwordConfirm = '';
+				this.spreadId = '';
 			},
 			//手机号密码登录 / 注册（H5 会员端已统一为手机号 + 密码）
 			submit:Debounce(function() {
@@ -404,6 +413,10 @@
 					if (that.password !== that.passwordConfirm) return that.$util.Tips({
 						title: '两次输入的密码不一致'
 					});
+					// 绑定推荐人ID 为选填项，填写了才校验格式
+					if (that.spreadId && !/^\d+$/.test(String(that.spreadId).trim())) return that.$util.Tips({
+						title: '推荐人ID必须为数字'
+					});
 				}
 				if (!that.isAgree) return that.$util.Tips({
 					title: '请勾选用户隐私协议'
@@ -415,7 +428,7 @@
 					register({
 						account: that.account,
 						password: that.password,
-						spread_spid: that.$Cache.get("spread")
+						spread_spid: (that.spreadId && String(that.spreadId).trim()) || that.$Cache.get("spread")
 					}).then(({data}) => {
 						this.$store.commit("LOGIN", {
 							'token': data.token

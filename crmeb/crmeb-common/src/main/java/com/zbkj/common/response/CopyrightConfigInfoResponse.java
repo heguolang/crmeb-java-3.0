@@ -33,4 +33,10 @@ public class CopyrightConfigInfoResponse implements Serializable {
 
     @ApiModelProperty(value = "公司图片")
     private String companyImage;
+
+    @ApiModelProperty(value = "未登录访问首页提示登录弹窗开关 1-开启 0-关闭")
+    private String loginNoticeSwitch;
+
+    @ApiModelProperty(value = "未登录访问首页提示登录弹窗文案")
+    private String loginNoticeText;
 }

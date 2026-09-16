@@ -114,6 +114,22 @@
     <view v-if="isPreview" class="exit-preview" @click="exitPreview">
       退出预览
     </view>
+    <!-- 未登录提示登录弹窗 -->
+    <view
+      v-if="showLoginNotice"
+      class="login-notice-mask"
+      @click.stop="closeLoginNotice"
+      @touchmove.stop.prevent
+    >
+      <view class="login-notice-box" @click.stop>
+        <view class="login-notice-title">温馨提示</view>
+        <view class="login-notice-content">{{ loginNoticeText }}</view>
+        <view class="login-notice-btns">
+          <view class="btn cancel" @click.stop="closeLoginNotice">暂不</view>
+          <view class="btn confirm" @click.stop="goLoginNotice">去登录</view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -241,6 +257,9 @@ export default {
       currentDiyData: {},
       isPreview: false,
       themeId: 0,
+      // 未登录访问首页提示登录弹窗
+      showLoginNotice: false,
+      loginNoticeText: "登录后即可享受完整服务，是否前往登录？",
     };
   },
   onLoad(options) {
@@ -397,6 +416,8 @@ export default {
           }
           uni.setStorageSync("copyNameInfo", data.copyrightContext);
           uni.setStorageSync("copyImageInfo", data.copyrightImage);
+          // 未登录访问首页提示登录
+          this.handleLoginNotice(data);
           // #ifdef MP
           uni.setStorageSync(
             "MPSiteData",
@@ -412,6 +433,28 @@ export default {
             title: err.msg,
           });
         });
+    },
+    // 未登录访问首页提示登录：后台开关控制，同一会话只提示一次
+    handleLoginNotice(data) {
+      if (!data) return;
+      if (String(data.loginNoticeSwitch) !== "1") return;
+      if (this.isLogin) return;
+      // 已在本次会话提示过，不再重复弹出
+      if (uni.getStorageSync("loginNoticeShown")) return;
+      if (data.loginNoticeText) {
+        this.loginNoticeText = data.loginNoticeText;
+      }
+      this.showLoginNotice = true;
+    },
+    closeLoginNotice() {
+      this.showLoginNotice = false;
+      // 记录已提示，避免用户继续浏览时反复弹出
+      uni.setStorageSync("loginNoticeShown", 1);
+    },
+    goLoginNotice() {
+      this.showLoginNotice = false;
+      uni.setStorageSync("loginNoticeShown", 1);
+      this.getIsLogin();
     },
     getOptions(options) {
       let that = this;
@@ -942,5 +985,67 @@ export default {
 }
 .select {
   border: 1px solid var(--view-theme);
+}
+
+/* 未登录提示登录弹窗 */
+.login-notice-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99999;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .login-notice-box {
+    width: 560rpx;
+    padding: 40rpx 40rpx 0;
+    background-color: #fff;
+    border-radius: 16rpx;
+    overflow: hidden;
+  }
+
+  .login-notice-title {
+    font-size: 32rpx;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+  }
+
+  .login-notice-content {
+    padding: 30rpx 0 40rpx;
+    font-size: 28rpx;
+    line-height: 42rpx;
+    color: #666;
+    text-align: center;
+  }
+
+  .login-notice-btns {
+    display: flex;
+    align-items: center;
+    height: 96rpx;
+    border-top: 1rpx solid #eee;
+    margin: 0 -40rpx;
+
+    .btn {
+      flex: 1;
+      text-align: center;
+      font-size: 30rpx;
+      line-height: 96rpx;
+    }
+
+    .cancel {
+      color: #999;
+      border-right: 1rpx solid #eee;
+    }
+
+    .confirm {
+      color: var(--view-theme);
+      font-weight: bold;
+    }
+  }
 }
 </style>
