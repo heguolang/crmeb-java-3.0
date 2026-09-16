@@ -11,6 +11,7 @@ import com.zbkj.common.constants.Constants;
 import com.zbkj.common.constants.SysConfigConstants;
 import com.zbkj.common.constants.SysGroupDataConstants;
 import com.zbkj.common.exception.CrmebException;
+import com.zbkj.common.model.log.AdminLoginLog;
 import com.zbkj.common.model.system.SystemAdmin;
 import com.zbkj.common.model.system.SystemMenu;
 import com.zbkj.common.model.system.SystemPermissions;
@@ -22,8 +23,10 @@ import com.zbkj.common.response.SystemAdminResponse;
 import com.zbkj.common.response.SystemGroupDataAdminLoginBannerResponse;
 import com.zbkj.common.response.SystemLoginResponse;
 import com.zbkj.common.result.CommonResultCode;
+import com.zbkj.common.utils.ClientInfoUtil;
 import com.zbkj.common.utils.CrmebUtil;
 import com.zbkj.common.utils.RedisUtil;
+import com.zbkj.common.utils.RequestUtil;
 import com.zbkj.common.utils.SecurityUtil;
 import com.zbkj.common.vo.LoginUserVo;
 import com.zbkj.common.vo.MenuTree;
@@ -85,6 +88,10 @@ public class AdminLoginServiceImpl implements AdminLoginService {
 
     @Autowired
     private SafetyService safetyService;
+
+    @Autowired
+    private AdminLoginLogService adminLoginLogService;
+
     /**
      * PC登录
      */
@@ -93,6 +100,7 @@ public class AdminLoginServiceImpl implements AdminLoginService {
         Integer errorNum = accountDetection(systemAdminLoginRequest.getAccount());
         if (errorNum > 3) {
             if (ObjectUtil.isNull(systemAdminLoginRequest.getCaptchaVO())) {
+                recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "验证码信息不存在");
                 throw new CrmebException("验证码信息不存在");
             }
             // 校验验证码
@@ -100,6 +108,7 @@ public class AdminLoginServiceImpl implements AdminLoginService {
             if (!responseModel.getRepCode().equals("0000")) {
                 logger.error("验证码登录失败，repCode = {}, repMsg = {}", responseModel.getRepCode(), responseModel.getRepMsg());
                 accountErrorNumAdd(systemAdminLoginRequest.getAccount());
+                recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "验证码校验失败");
                 throw new CrmebException("验证码校验失败");
             }
         }
@@ -112,11 +121,14 @@ public class AdminLoginServiceImpl implements AdminLoginService {
         } catch (AuthenticationException e) {
             accountErrorNumAdd(systemAdminLoginRequest.getAccount());
             if (e instanceof BadCredentialsException) {
+                recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "用户不存在或密码错误");
                 throw new CrmebException("用户不存在或密码错误");
             }
+            recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, e.getMessage());
             throw new CrmebException(e.getMessage());
         }catch (CrmebException e){
             accountErrorNumAdd(systemAdminLoginRequest.getAccount());
+            recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "账号或密码不正确");
             throw new CrmebException("账号或密码不正确");
         }
         LoginUserVo loginUser = (LoginUserVo) authentication.getPrincipal();
@@ -133,7 +145,40 @@ public class AdminLoginServiceImpl implements AdminLoginService {
         systemAdmin.setLastIp(ip);
         systemAdminService.updateById(systemAdmin);
         accountErrorNumClear(systemAdminLoginRequest.getAccount());
+        recordLoginLog(systemAdmin.getAccount(), systemAdmin.getId(), ip, 1, "登录成功");
         return systemAdminResponse;
+    }
+
+    /**
+     * 记录管理员登录日志（成功/失败）
+     *
+     * @param account 登录账号
+     * @param adminId 管理员id，登录失败时传 null
+     * @param ip      登录IP
+     * @param status  状态 1成功 0失败
+     * @param msg     提示信息
+     */
+    private void recordLoginLog(String account, Integer adminId, String ip, Integer status, String msg) {
+        try {
+            String userAgent = "";
+            if (RequestUtil.getRequest() != null) {
+                userAgent = RequestUtil.getRequest().getHeader("User-Agent");
+            }
+            AdminLoginLog loginLog = new AdminLoginLog();
+            loginLog.setAdminId(adminId == null ? 0 : adminId);
+            loginLog.setAdminAccount(account);
+            loginLog.setIp(ip);
+            loginLog.setLocation(ClientInfoUtil.getLocation(ip));
+            loginLog.setBrowser(ClientInfoUtil.getBrowser(userAgent));
+            loginLog.setOs(ClientInfoUtil.getOs(userAgent));
+            loginLog.setStatus(status);
+            loginLog.setMsg(msg);
+            loginLog.setCreateTime(DateUtil.date());
+            adminLoginLogService.addLog(loginLog);
+        } catch (Exception e) {
+            // 日志记录失败不影响正常登录流程
+            logger.error("记录管理员登录日志失败，account = {}, msg = {}", account, e.getMessage());
+        }
     }
 
 

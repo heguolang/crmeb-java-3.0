@@ -194,6 +194,52 @@ export function sensitiveListApi(params) {
     params,
   });
 }
+
+/**
+ * 管理员登录日志列表
+ * @param data
+ */
+export function loginLogListApi(params) {
+  return request({
+    url: `/admin/log/login/list`,
+    method: 'get',
+    params,
+  });
+}
+
+/**
+ * 删除管理员登录日志
+ * @param data
+ */
+export function loginLogDeleteApi(params) {
+  return request({
+    url: `/admin/log/login/delete`,
+    method: 'get',
+    params,
+  });
+}
+
+/**
+ * 清空管理员登录日志
+ * @param data
+ */
+export function loginLogClearApi() {
+  return request({
+    url: `/admin/log/login/clear`,
+    method: 'get',
+  });
+}
+
+/**
+ * 清空管理员操作日志
+ * @param data
+ */
+export function sensitiveClearApi() {
+  return request({
+    url: `/admin/log/sensitive/clear`,
+    method: 'get',
+  });
+}
 /**
  * 修改登录用户信息
  * @param data

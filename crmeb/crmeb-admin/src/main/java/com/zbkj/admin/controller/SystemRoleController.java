@@ -1,11 +1,13 @@
 package com.zbkj.admin.controller;
 
 import com.zbkj.common.model.system.SystemRole;
+import com.zbkj.common.annotation.LogControllerAnnotation;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.SystemRoleRequest;
 import com.zbkj.common.request.SystemRoleSearchRequest;
 import com.zbkj.common.response.RoleInfoResponse;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.SystemRoleService;
 import io.swagger.annotations.Api;
@@ -57,6 +59,7 @@ public class SystemRoleController {
      */
     @PreAuthorize("hasAuthority('admin:system:role:save')")
     @ApiOperation(value = "新增身份")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增身份")
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     public CommonResult<String> save(@RequestBody @Validated SystemRoleRequest systemRoleRequest) {
         if (systemRoleService.add(systemRoleRequest)) {
@@ -71,6 +74,7 @@ public class SystemRoleController {
      */
     @PreAuthorize("hasAuthority('admin:system:role:delete')")
     @ApiOperation(value = "删除")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "删除身份")
     @RequestMapping(value = "/delete", method = RequestMethod.GET)
     public CommonResult<String> delete(@RequestParam(value = "id") Integer id) {
         if (systemRoleService.delete(id)) {
@@ -85,6 +89,7 @@ public class SystemRoleController {
      */
     @PreAuthorize("hasAuthority('admin:system:role:update')")
     @ApiOperation(value = "修改")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改身份")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestBody @Validated SystemRoleRequest systemRoleRequest) {
         if (systemRoleService.edit(systemRoleRequest)) {
@@ -109,6 +114,7 @@ public class SystemRoleController {
      */
     @PreAuthorize("hasAuthority('admin:system:role:update:status')")
     @ApiOperation(value = "修改身份状态")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改身份状态")
     @RequestMapping(value = "/updateStatus", method = RequestMethod.GET)
     public CommonResult<Object> updateStatus(@Validated @RequestParam(value = "id") Integer id, @Validated @RequestParam(value = "status") Boolean status) {
         if (systemRoleService.updateStatus(id, status)) {

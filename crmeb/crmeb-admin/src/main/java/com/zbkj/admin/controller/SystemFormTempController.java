@@ -3,10 +3,12 @@ package com.zbkj.admin.controller;
 import cn.hutool.core.util.ObjectUtil;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.system.SystemFormTemp;
+import com.zbkj.common.annotation.LogControllerAnnotation;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.SystemFormTempRequest;
 import com.zbkj.common.request.SystemFormTempSearchRequest;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.common.result.SystemConfigResultCode;
 import com.zbkj.service.service.SystemFormTempService;
@@ -62,6 +64,7 @@ public class SystemFormTempController {
      */
     @PreAuthorize("hasAuthority('admin:system:form:save')")
     @ApiOperation(value = "新增")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增表单模板")
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     public CommonResult<String> save(@RequestBody @Validated SystemFormTempRequest systemFormTempRequest) {
         if (systemFormTempService.add(systemFormTempRequest)) {
@@ -77,6 +80,7 @@ public class SystemFormTempController {
      */
     @PreAuthorize("hasAuthority('admin:system:form:update')")
     @ApiOperation(value = "修改")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改表单模板")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestParam Integer id, @RequestBody @Validated SystemFormTempRequest systemFormTempRequest) {
         if (systemFormTempService.edit(id, systemFormTempRequest)) {

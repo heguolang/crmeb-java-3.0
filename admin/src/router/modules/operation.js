@@ -97,6 +97,30 @@ const operationRouter = {
       ],
     },
     {
+      path: 'logManager',
+      name: 'LogManager',
+      component: () => import('@/views/systemSetting/logManager'),
+      meta: {
+        title: '日志管理',
+        icon: 'clipboard',
+        roles: ['admin'],
+      },
+      children: [
+        {
+          path: 'adminLoginLog',
+          component: () => import('@/views/systemSetting/logManager/adminLoginLog'),
+          name: 'adminLoginLog',
+          meta: { title: '管理员登录日志', icon: '' },
+        },
+        {
+          path: 'adminOperateLog',
+          component: () => import('@/views/systemSetting/logManager/adminOperateLog'),
+          name: 'adminOperateLog',
+          meta: { title: '管理员操作日志', icon: '' },
+        },
+      ],
+    },
+    {
       path: 'systemSms',
       component: () => import('@/views/sms'),
       name: 'systemSms',

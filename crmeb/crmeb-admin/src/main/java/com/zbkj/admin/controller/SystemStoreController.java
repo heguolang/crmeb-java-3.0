@@ -1,10 +1,12 @@
 package com.zbkj.admin.controller;
 
 import com.zbkj.common.model.system.SystemStore;
+import com.zbkj.common.annotation.LogControllerAnnotation;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.SystemStoreRequest;
 import com.zbkj.common.request.SystemStoreSearchRequest;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.SystemStoreService;
 import io.swagger.annotations.Api;
@@ -68,6 +70,7 @@ public class SystemStoreController {
      */
     @PreAuthorize("hasAuthority('admin:system:store:save')")
     @ApiOperation(value = "新增")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增自提点")
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     public CommonResult<String> save(@RequestBody @Validated SystemStoreRequest request) {
         if (systemStoreService.create(request)) {
@@ -83,6 +86,7 @@ public class SystemStoreController {
      */
     @PreAuthorize("hasAuthority('admin:system:store:delete')")
     @ApiOperation(value = "删除")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "删除自提点")
     @RequestMapping(value = "/delete", method = RequestMethod.GET)
     public CommonResult<String> delete(@RequestParam(value = "id") Integer id) {
         if (systemStoreService.delete(id)) {
@@ -98,6 +102,7 @@ public class SystemStoreController {
      */
     @PreAuthorize("hasAuthority('admin:system:store:update')")
     @ApiOperation(value = "修改")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改自提点")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestParam Integer id, @RequestBody @Validated SystemStoreRequest request) {
         if (systemStoreService.update(id, request)) {

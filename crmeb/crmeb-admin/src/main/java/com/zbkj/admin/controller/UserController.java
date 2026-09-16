@@ -2,10 +2,12 @@ package com.zbkj.admin.controller;
 
 
 import com.zbkj.common.model.user.User;
+import com.zbkj.common.annotation.LogControllerAnnotation;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.*;
 import com.zbkj.common.response.TopDetail;
 import com.zbkj.common.response.UserResponse;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.UserService;
 import com.zbkj.service.service.UserTeamLevelService;
@@ -68,6 +70,7 @@ public class UserController {
      */
     @PreAuthorize("hasAuthority('admin:user:update')")
     @ApiOperation(value = "修改")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员信息")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestParam Integer id, @RequestBody @Validated UserUpdateRequest userRequest) {
         userRequest.setUid(id);
@@ -84,6 +87,7 @@ public class UserController {
      */
     @PreAuthorize("hasAuthority('admin:user:update:phone')")
     @ApiOperation(value = "修改用户手机号")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员手机号")
     @RequestMapping(value = "/update/phone", method = RequestMethod.GET)
     public CommonResult<String> updatePhone(@RequestParam(name = "id") Integer id, @RequestParam(name = "phone") String phone) {
         if (userService.updateUserPhone(id, phone)) {
@@ -97,6 +101,7 @@ public class UserController {
      */
     @PreAuthorize("hasAuthority('admin:user:update:password')")
     @ApiOperation(value = "修改会员登录密码")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员登录密码")
     @RequestMapping(value = "/update/password", method = RequestMethod.POST)
     public CommonResult<String> updatePassword(@Validated @RequestBody UserUpdatePasswordRequest request) {
         if (userService.updateUserPassword(request.getUid(), request.getPassword())) {
@@ -151,6 +156,7 @@ public class UserController {
      */
     @PreAuthorize("hasAuthority('admin:user:operate:founds')")
     @ApiOperation(value = "积分余额")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "操作会员积分余额")
     @RequestMapping(value = "/operate/founds", method = RequestMethod.GET)
     public CommonResult<Object> founds(@Validated UserOperateIntegralMoneyRequest request) {
         if (userService.updateIntegralMoney(request)) {
@@ -166,6 +172,7 @@ public class UserController {
      */
     @PreAuthorize("hasAuthority('admin:user:group')")
     @ApiOperation(value = "分组")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员分组")
     @RequestMapping(value = "/group", method = RequestMethod.POST)
     public CommonResult<String> group(@RequestParam String id, @RequestParam String groupId) {
         if (userService.group(id, groupId)) {
@@ -181,6 +188,7 @@ public class UserController {
      */
     @PreAuthorize("hasAuthority('admin:user:tag')")
     @ApiOperation(value = "标签")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员标签")
     @RequestMapping(value = "/tag", method = RequestMethod.POST)
     public CommonResult<String> tag(@RequestParam String id, @RequestParam String tagId) {
         if (userService.tag(id, tagId)) {
@@ -194,6 +202,7 @@ public class UserController {
      */
     @PreAuthorize("hasAuthority('admin:user:update:spread')")
     @ApiOperation(value = "修改上级推广人")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员上级推广人")
     @RequestMapping(value = "/update/spread", method = RequestMethod.POST)
     public CommonResult<String> editSpread(@Validated @RequestBody UserUpdateSpreadRequest request) {
         if (userService.editSpread(request)) {
@@ -207,6 +216,7 @@ public class UserController {
      */
     @PreAuthorize("hasAuthority('admin:user:update:level')")
     @ApiOperation(value = "更新用户会员等级")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员等级")
     @RequestMapping(value = "/update/level", method = RequestMethod.POST)
     public CommonResult<Object> updateUserLevel(@Validated @RequestBody UpdateUserLevelRequest request) {
         if (userService.updateUserLevel(request)) {
@@ -220,6 +230,7 @@ public class UserController {
      */
     @PreAuthorize("hasAuthority('admin:user:update:level')")
     @ApiOperation(value = "更新用户团队等级")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员团队等级")
     @RequestMapping(value = "/update/team/level", method = RequestMethod.POST)
     public CommonResult<Object> updateUserTeamLevel(@Validated @RequestBody UpdateUserTeamLevelRequest request) {
         if (userTeamLevelService.adminUpdateTeamLevel(request.getUid(), request.getTeamLevelId())) {

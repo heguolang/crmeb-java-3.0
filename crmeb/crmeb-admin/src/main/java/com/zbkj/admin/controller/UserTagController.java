@@ -1,9 +1,11 @@
 package com.zbkj.admin.controller;
 
 import com.zbkj.common.model.user.UserTag;
+import com.zbkj.common.annotation.LogControllerAnnotation;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.UserTagRequest;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.UserTagService;
 import io.swagger.annotations.Api;
@@ -54,6 +56,7 @@ public class UserTagController {
      */
     @PreAuthorize("hasAuthority('admin:user:tag:save')")
     @ApiOperation(value = "新增")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增用户标签")
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     public CommonResult<String> save(@RequestBody @Validated UserTagRequest userTagRequest) {
         if (userTagService.create(userTagRequest)) {
@@ -68,6 +71,7 @@ public class UserTagController {
      */
     @PreAuthorize("hasAuthority('admin:user:tag:delete')")
     @ApiOperation(value = "删除")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "删除用户标签")
     @RequestMapping(value = "/delete", method = RequestMethod.GET)
     public CommonResult<String> delete(@RequestParam(value = "id") Integer id) {
         if (userTagService.delete(id)) {
@@ -83,6 +87,7 @@ public class UserTagController {
      */
     @PreAuthorize("hasAuthority('admin:user:tag:update')")
     @ApiOperation(value = "修改")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改用户标签")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestParam Integer id, @RequestBody @Validated UserTagRequest userTagRequest) {
         if (userTagService.updateTag(id, userTagRequest)) {

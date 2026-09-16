@@ -4,6 +4,8 @@ import com.zbkj.common.model.system.SystemTeamLevel;
 import com.zbkj.common.request.SystemTeamLevelRequest;
 import com.zbkj.common.request.SystemTeamLevelUpdateShowRequest;
 import com.zbkj.common.response.SystemTeamLevelInfoResponse;
+import com.zbkj.common.annotation.LogControllerAnnotation;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.SystemTeamLevelService;
 import io.swagger.annotations.Api;
@@ -51,6 +53,7 @@ public class SystemTeamLevelController {
 
     @PreAuthorize("hasAuthority('admin:system:team:level:save')")
     @ApiOperation(value = "新增团队等级", notes = "可同时配置团队极差比例、平级奖比例；升级判定逻辑暂未接入")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增团队等级")
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     public CommonResult<Object> save(@RequestBody @Validated SystemTeamLevelRequest request) {
         if (systemTeamLevelService.create(request)) {
@@ -61,6 +64,7 @@ public class SystemTeamLevelController {
 
     @PreAuthorize("hasAuthority('admin:system:team:level:delete')")
     @ApiOperation(value = "删除团队等级")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "删除团队等级")
     @RequestMapping(value = "/delete/{id}", method = RequestMethod.POST)
     public CommonResult<Object> delete(@PathVariable(value = "id") Integer id) {
         if (systemTeamLevelService.delete(id)) {
@@ -71,6 +75,7 @@ public class SystemTeamLevelController {
 
     @PreAuthorize("hasAuthority('admin:system:team:level:update')")
     @ApiOperation(value = "更新团队等级")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "更新团队等级")
     @RequestMapping(value = "/update/{id}", method = RequestMethod.POST)
     public CommonResult<Object> update(@PathVariable(value = "id") Integer id,
                                        @RequestBody @Validated SystemTeamLevelRequest request) {
@@ -82,6 +87,7 @@ public class SystemTeamLevelController {
 
     @PreAuthorize("hasAuthority('admin:system:team:level:use')")
     @ApiOperation(value = "团队等级使用/禁用")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "启用/禁用团队等级")
     @RequestMapping(value = "/use", method = RequestMethod.POST)
     public CommonResult<Object> use(@RequestBody @Validated SystemTeamLevelUpdateShowRequest request) {
         if (systemTeamLevelService.updateShow(request)) {

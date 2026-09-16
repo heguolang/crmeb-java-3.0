@@ -1,10 +1,12 @@
 package com.zbkj.admin.controller;
 
 import com.zbkj.common.model.system.SystemAttachment;
+import com.zbkj.common.annotation.LogControllerAnnotation;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.SystemAttachmentMoveRequest;
 import com.zbkj.common.request.SystemAttachmentRequest;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.common.utils.CrmebUtil;
 import com.zbkj.service.service.SystemAttachmentService;
@@ -62,6 +64,7 @@ public class SystemAttachmentController {
      */
     @PreAuthorize("hasAuthority('admin:system:attachment:save')")
     @ApiOperation(value = "新增")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增附件")
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     public CommonResult<String> save(@RequestBody @Validated SystemAttachmentRequest systemAttachmentRequest) {
         if (systemAttachmentService.add(systemAttachmentRequest)) {
@@ -76,6 +79,7 @@ public class SystemAttachmentController {
      */
     @PreAuthorize("hasAuthority('admin:system:attachment:delete')")
     @ApiOperation(value = "删除")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "删除附件")
     @RequestMapping(value = "/delete/{ids}", method = RequestMethod.GET)
     public CommonResult<String> delete(@PathVariable String ids) {
         if (systemAttachmentService.removeByIds(CrmebUtil.stringToArray(ids))) {
@@ -91,6 +95,7 @@ public class SystemAttachmentController {
      */
     @PreAuthorize("hasAuthority('admin:system:attachment:update')")
     @ApiOperation(value = "修改")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改附件")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestParam Integer id,
                                        @RequestBody @Validated SystemAttachmentRequest systemAttachmentRequest) {
@@ -107,6 +112,7 @@ public class SystemAttachmentController {
      */
     @PreAuthorize("hasAuthority('admin:system:attachment:move')")
     @ApiOperation(value = "更改图片目录")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "更改附件目录")
     @RequestMapping(value = "/move", method = RequestMethod.POST)
     public CommonResult<String> updateAttrId(@RequestBody @Validated SystemAttachmentMoveRequest move) {
         if (systemAttachmentService.updateAttrId(move)) {

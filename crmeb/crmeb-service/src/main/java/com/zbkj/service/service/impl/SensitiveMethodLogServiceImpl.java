@@ -57,5 +57,16 @@ public class SensitiveMethodLogServiceImpl extends ServiceImpl<SensitiveMethodLo
         List<SensitiveMethodLog> list = dao.selectList(lqw);
         return CommonPage.copyPageInfo(logPage, list);
     }
+
+    /**
+     * 清空全部操作日志
+     * @return Boolean
+     */
+    @Override
+    public Boolean clearAll() {
+        LambdaQueryWrapper<SensitiveMethodLog> lqw = Wrappers.lambdaQuery();
+        lqw.gt(SensitiveMethodLog::getId, 0);
+        return dao.delete(lqw) >= 0;
+    }
 }
 

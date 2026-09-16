@@ -4,6 +4,8 @@ import com.zbkj.common.model.system.SystemConfig;
 import com.zbkj.common.request.SaveConfigRequest;
 import com.zbkj.common.request.SystemFormCheckRequest;
 import com.zbkj.common.response.AdminSiteLogoResponse;
+import com.zbkj.common.annotation.LogControllerAnnotation;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.SystemConfigService;
 import io.swagger.annotations.Api;
@@ -47,6 +49,7 @@ public class SystemConfigController {
 
     @PreAuthorize("hasAuthority('admin:system:config:save:form')")
     @ApiOperation(value = "整体保存表单数据")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "保存系统配置")
     @RequestMapping(value = "/save/form", method = RequestMethod.POST)
     public CommonResult<String> saveFrom(@RequestBody @Validated SystemFormCheckRequest systemFormCheckRequest) {
         if (systemConfigService.saveForm(systemFormCheckRequest)) {
@@ -92,6 +95,7 @@ public class SystemConfigController {
 
     @PreAuthorize("hasAuthority('admin:system:config:home:page:list:style:save')")
     @ApiOperation(value = "保存移动端首页列表样式")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "保存移动端首页列表样式")
     @RequestMapping(value = "/save/home/page/list/style", method = RequestMethod.POST)
     public CommonResult<String> saveHomePageSaleListStyle(@RequestBody SaveConfigRequest request) {
         if (systemConfigService.saveHomePageSaleListStyle(request)) {
@@ -116,6 +120,7 @@ public class SystemConfigController {
 
     @PreAuthorize("hasAuthority('admin:system:config:change:color:save')")
     @ApiOperation(value = "保存主题色")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "保存主题色")
     @RequestMapping(value = "/save/change/color", method = RequestMethod.POST)
     public CommonResult<String> saveChangeColor(@RequestBody SaveConfigRequest request) {
         if (systemConfigService.saveChangeColor(request)) {
@@ -126,6 +131,7 @@ public class SystemConfigController {
 
     @PreAuthorize("hasAuthority('admin:system:config:clear:cache')")
     @ApiOperation(value = "清除config缓存")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "清除系统配置缓存")
     @RequestMapping(value = "/clear/cache", method = RequestMethod.POST)
     public CommonResult<String> clearCache() {
         if (systemConfigService.clearCache()) {

@@ -1,12 +1,14 @@
 package com.zbkj.admin.controller;
 
 import com.zbkj.common.model.system.SystemAdmin;
+import com.zbkj.common.annotation.LogControllerAnnotation;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.SystemAdminAddRequest;
 import com.zbkj.common.request.SystemAdminRequest;
 import com.zbkj.common.request.SystemAdminUpdateRequest;
 import com.zbkj.common.response.SystemAdminResponse;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.SystemAdminService;
 import io.swagger.annotations.Api;
@@ -61,6 +63,7 @@ public class SystemAdminController {
      */
     @PreAuthorize("hasAuthority('admin:system:admin:save')")
     @ApiOperation(value = "新增后台管理员")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增后台管理员")
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     public CommonResult<SystemAdminResponse> save(@RequestBody SystemAdminAddRequest systemAdminAddRequest) {
         if (systemAdminService.saveAdmin(systemAdminAddRequest)) {
@@ -75,6 +78,7 @@ public class SystemAdminController {
      */
     @PreAuthorize("hasAuthority('admin:system:admin:delete')")
     @ApiOperation(value = "删除")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "删除后台管理员")
     @RequestMapping(value = "/delete", method = RequestMethod.GET)
     public CommonResult<String> delete(@RequestParam(value = "id") Integer id) {
         if (systemAdminService.removeById(id)) {
@@ -90,6 +94,7 @@ public class SystemAdminController {
      */
     @PreAuthorize("hasAuthority('admin:system:admin:update')")
     @ApiOperation(value = "修改")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改后台管理员")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestBody SystemAdminUpdateRequest systemAdminRequest) {
         if (systemAdminService.updateAdmin(systemAdminRequest)) {
@@ -116,6 +121,7 @@ public class SystemAdminController {
      */
     @PreAuthorize("hasAuthority('admin:system:admin:update:status')")
     @ApiOperation(value = "修改后台管理员状态")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改后台管理员状态")
     @RequestMapping(value = "/updateStatus", method = RequestMethod.GET)
     public CommonResult<Object> updateStatus(@RequestParam(value = "id") @Valid Integer id, @RequestParam(value = "status") @Valid Boolean status) {
         if (systemAdminService.updateStatus(id, status)) {
@@ -129,6 +135,7 @@ public class SystemAdminController {
      */
     @PreAuthorize("hasAuthority('admin:system:admin:update:sms')")
     @ApiOperation(value = "修改后台管理员是否接收状态")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改后台管理员短信接收状态")
     @RequestMapping(value = "/update/isSms", method = RequestMethod.GET)
     public CommonResult<Object> updateIsSms(@RequestParam(value = "id") @Valid Integer id) {
         if (systemAdminService.updateIsSms(id)) {

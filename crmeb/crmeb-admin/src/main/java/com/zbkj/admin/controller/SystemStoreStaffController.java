@@ -1,10 +1,12 @@
 package com.zbkj.admin.controller;
 
 import com.zbkj.common.model.system.SystemStoreStaff;
+import com.zbkj.common.annotation.LogControllerAnnotation;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.SystemStoreStaffRequest;
 import com.zbkj.common.response.SystemStoreStaffResponse;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.SystemStoreStaffService;
 import io.swagger.annotations.Api;
@@ -57,6 +59,7 @@ public class SystemStoreStaffController {
      */
     @PreAuthorize("hasAuthority('admin:system:staff:save')")
     @ApiOperation(value = "新增")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增门店店员")
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     public CommonResult<String> save(@RequestBody @ModelAttribute SystemStoreStaffRequest systemStoreStaffRequest) {
         if (systemStoreStaffService.saveUnique(systemStoreStaffRequest)) {
@@ -71,6 +74,7 @@ public class SystemStoreStaffController {
      */
     @PreAuthorize("hasAuthority('admin:system:staff:delete')")
     @ApiOperation(value = "删除")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "删除门店店员")
     @RequestMapping(value = "/delete", method = RequestMethod.GET)
     public CommonResult<String> delete(@RequestParam(value = "id") Integer id) {
         if (systemStoreStaffService.removeById(id)) {
@@ -86,6 +90,7 @@ public class SystemStoreStaffController {
      */
     @PreAuthorize("hasAuthority('admin:system:staff:update')")
     @ApiOperation(value = "修改")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改门店店员")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestParam Integer id, @RequestBody @ModelAttribute SystemStoreStaffRequest systemStoreStaffRequest) {
         if (systemStoreStaffService.edit(id, systemStoreStaffRequest)) {

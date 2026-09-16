@@ -4,6 +4,8 @@ package com.zbkj.admin.controller;
 import com.zbkj.common.model.system.SystemMenu;
 import com.zbkj.common.request.SystemMenuRequest;
 import com.zbkj.common.request.SystemMenuSearchRequest;
+import com.zbkj.common.annotation.LogControllerAnnotation;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.common.vo.MenuCheckVo;
 import com.zbkj.service.service.SystemMenuService;
@@ -56,6 +58,7 @@ public class SystemMenuController {
      */
     @PreAuthorize("hasAuthority('admin:system:menu:add')")
     @ApiOperation(value = "新增菜单")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增权限菜单")
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     public CommonResult<String> add(@RequestBody @Validated SystemMenuRequest systemMenuRequest) {
         if (systemMenuService.add(systemMenuRequest)) {
@@ -70,6 +73,7 @@ public class SystemMenuController {
      */
     @PreAuthorize("hasAuthority('admin:system:menu:delete')")
     @ApiOperation(value = "删除菜单")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "删除菜单")
     @RequestMapping(value = "/delete/{id}", method = RequestMethod.POST)
     public CommonResult<String> delete(@PathVariable(value = "id") Integer id) {
         if (systemMenuService.deleteById(id)) {
@@ -83,6 +87,7 @@ public class SystemMenuController {
      */
     @PreAuthorize("hasAuthority('admin:system:menu:update')")
     @ApiOperation(value = "修改菜单")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改权限菜单")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestBody @Validated SystemMenuRequest systemMenuRequest) {
         if (systemMenuService.edit(systemMenuRequest)) {
@@ -106,6 +111,7 @@ public class SystemMenuController {
      */
     @PreAuthorize("hasAuthority('admin:system:menu:show:status')")
     @ApiOperation(value = "修改菜单显示状态")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改菜单显示状态")
     @RequestMapping(value = "/updateShowStatus/{id}", method = RequestMethod.POST)
     public CommonResult<Object> updateShowStatus(@PathVariable(value = "id") Integer id) {
         if (systemMenuService.updateShowStatus(id)) {

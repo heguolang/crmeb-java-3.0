@@ -5,6 +5,8 @@ import com.zbkj.common.model.system.SystemUserLevel;
 import com.zbkj.common.request.SystemUserLevelRequest;
 import com.zbkj.common.request.SystemUserLevelUpdateShowRequest;
 import com.zbkj.common.response.SystemUserLevelInfoResponse;
+import com.zbkj.common.annotation.LogControllerAnnotation;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.SystemUserLevelService;
 import io.swagger.annotations.Api;
@@ -77,6 +79,7 @@ public class SystemUserLevelController {
     @ApiOperation(value = "新增等级", notes = "upgradeType决定升级条件：1=experience消费金额，2=upgradeValue订单数，3=两者同时满足；" +
             "consumptionTriggerType/orderCountTriggerType决定统计时机：1=已付款，2=交易完成；giveIntegral为每单固定赠送积分；" +
             "brokerage可配置自购/一级/二级返佣比例(%)。")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增会员等级")
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     public CommonResult<Object> save(@RequestBody @Validated SystemUserLevelRequest request) {
         if (systemUserLevelService.create(request)) {
@@ -91,6 +94,7 @@ public class SystemUserLevelController {
      */
     @PreAuthorize("hasAuthority('admin:system:user:level:delete')")
     @ApiOperation(value = "删除等级")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "删除会员等级")
     @RequestMapping(value = "/delete/{id}", method = RequestMethod.POST)
     public CommonResult<Object> delete(@PathVariable(value = "id") Integer id) {
         if (systemUserLevelService.delete(id)) {
@@ -106,6 +110,7 @@ public class SystemUserLevelController {
     @ApiOperation(value = "更新等级", notes = "upgradeType决定升级条件：1=experience消费金额，2=upgradeValue订单数，3=两者同时满足；" +
             "consumptionTriggerType/orderCountTriggerType决定统计时机：1=已付款，2=交易完成；giveIntegral为每单固定赠送积分；" +
             "brokerage可配置自购/一级/二级返佣比例(%)。")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "更新会员等级")
     @RequestMapping(value = "/update/{id}", method = RequestMethod.POST)
     public CommonResult<Object> update(@PathVariable(value = "id") Integer id,
                                        @RequestBody @Validated SystemUserLevelRequest request) {
@@ -120,6 +125,7 @@ public class SystemUserLevelController {
      */
     @PreAuthorize("hasAuthority('admin:system:user:level:use')")
     @ApiOperation(value = "使用/禁用")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "启用/禁用会员等级")
     @RequestMapping(value = "/use", method = RequestMethod.POST)
     public CommonResult<Object> use(@RequestBody @Validated SystemUserLevelUpdateShowRequest request) {
         if (systemUserLevelService.updateShow(request)) {

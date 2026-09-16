@@ -1,9 +1,11 @@
 package com.zbkj.admin.controller;
 
 import com.zbkj.common.model.user.UserGroup;
+import com.zbkj.common.annotation.LogControllerAnnotation;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.UserGroupRequest;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.service.service.UserGroupService;
 import io.swagger.annotations.Api;
@@ -54,6 +56,7 @@ public class UserGroupController {
      */
     @PreAuthorize("hasAuthority('admin:user:group:save')")
     @ApiOperation(value = "新增")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.ADD, description = "新增用户分组")
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     public CommonResult<String> save(@RequestBody @Validated UserGroupRequest userGroupRequest) {
         if (userGroupService.create(userGroupRequest)) {
@@ -68,6 +71,7 @@ public class UserGroupController {
      */
     @PreAuthorize("hasAuthority('admin:user:group:delete')")
     @ApiOperation(value = "删除")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "删除用户分组")
     @RequestMapping(value = "/delete", method = RequestMethod.GET)
     public CommonResult<String> delete(@RequestParam(value = "id") Integer id) {
         if (userGroupService.removeById(id)) {
@@ -83,6 +87,7 @@ public class UserGroupController {
      */
     @PreAuthorize("hasAuthority('admin:user:group:update')")
     @ApiOperation(value = "修改")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改用户分组")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestParam Integer id, @RequestBody @Validated UserGroupRequest userGroupRequest) {
         if (userGroupService.edit(id, userGroupRequest)) {

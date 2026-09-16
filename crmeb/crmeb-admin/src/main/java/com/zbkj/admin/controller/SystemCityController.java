@@ -3,6 +3,8 @@ package com.zbkj.admin.controller;
 import com.zbkj.common.model.system.SystemCity;
 import com.zbkj.common.request.SystemCityRequest;
 import com.zbkj.common.request.SystemCitySearchRequest;
+import com.zbkj.common.annotation.LogControllerAnnotation;
+import com.zbkj.common.enums.MethodType;
 import com.zbkj.common.result.CommonResult;
 import com.zbkj.common.vo.SystemCityTreeVo;
 import com.zbkj.service.service.SystemCityService;
@@ -59,6 +61,7 @@ public class SystemCityController {
      */
     @PreAuthorize("hasAuthority('admin:system:city:update')")
     @ApiOperation(value = "修改")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改城市")
     @RequestMapping(value = "/update", method = RequestMethod.POST)
     public CommonResult<String> update(@RequestParam Integer id, @Validated SystemCityRequest request) {
         if (systemCityService.update(id, request)) {
@@ -74,6 +77,7 @@ public class SystemCityController {
      */
     @PreAuthorize("hasAuthority('admin:system:city:update:status')")
     @ApiOperation(value = "修改状态")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改城市状态")
     @RequestMapping(value = "/update/status", method = RequestMethod.POST)
     public CommonResult<String> updateStatus(@RequestParam Integer id, @RequestParam Boolean status) {
         if (systemCityService.updateStatus(id, status)) {
