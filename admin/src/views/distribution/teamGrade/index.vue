@@ -15,7 +15,7 @@
         class="mb15"
         type="info"
         :closable="false"
-        title="说明：团队等级独立于会员等级。升级门槛为自购订单金额与团队订单金额；自购门槛须不低于上一级，团队门槛须高于上一级；团队极差比例须随等级序号递增。"
+        title="说明：团队等级独立于会员等级。升级门槛为自购订单金额、团队订单金额、直推订单金额、直推等级人数、团队级别人数（等级来源于会员等级配置），按「自购 与/或 团队金额 与/或 直推金额 与/或 直推等级人数 与/或 团队级别人数」的顺序组合判定（门槛为 0 的条件视为自动满足，用「或」连接时等同于跳过该条件）。自购门槛须不低于上一级，团队门槛须高于上一级；团队奖比例须随等级序号递增。"
         show-icon
       />
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini">
@@ -42,7 +42,17 @@
             {{ scope.row.teamOrderAmount != null ? scope.row.teamOrderAmount : 0 }}
           </template>
         </el-table-column>
-        <el-table-column label="极差/平级(%)" min-width="100">
+        <el-table-column label="直推门槛(元)" min-width="100">
+          <template slot-scope="scope">
+            {{ scope.row.directOrderAmount != null ? scope.row.directOrderAmount : 0 }}
+          </template>
+        </el-table-column>
+        <el-table-column label="条件组合" min-width="120">
+          <template slot-scope="scope">
+            {{ formatRelation(scope.row) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="团队奖/平级(%)" min-width="100">
           <template slot-scope="scope">
             {{ getConfigRate(scope.row, 'teamBrokerageRate') }} / {{ getConfigRate(scope.row, 'peerAwardRate') }}
           </template>
@@ -83,6 +93,7 @@ import {
   teamLevelDeleteApi,
 } from '@/api/teamLevel';
 import creatTeamGrade from './creatTeamGrade';
+import { levelListApi } from '@/api/user';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -91,6 +102,7 @@ export default {
   data() {
     return {
       listLoading: true,
+      userLevelOptions: [],
       tableData: {
         data: [],
       },
@@ -98,14 +110,44 @@ export default {
   },
   mounted() {
     this.getList();
+    this.loadUserLevels();
   },
   methods: {
     checkPermi,
+    loadUserLevels() {
+      levelListApi()
+        .then((res) => {
+          this.userLevelOptions = res || [];
+        })
+        .catch(() => {
+          this.userLevelOptions = [];
+        });
+    },
     getConfigRate(row, field) {
       if (row.config && row.config[field] != null) {
         return row.config[field];
       }
       return 0;
+    },
+    // 自购 [与/或] 团队金额 [与/或] 直推金额 [与/或] 直推XX等级人数 [与/或] 团队XX级别人数
+    formatRelation(row) {
+      const rel = (v) => (Number(v) === 2 ? '或' : '与');
+      let text = `自购 ${rel(row.selfTeamRelation)} 团队金额 ${rel(row.teamDirectRelation)} 直推金额`;
+      const dCount = row.directLevelCount != null ? Number(row.directLevelCount) : 0;
+      const dLevelId = row.directLevelId != null ? Number(row.directLevelId) : 0;
+      if (dCount > 0 && dLevelId > 0) {
+        text += ` ${rel(row.directLevelRelation)} 直推${this.levelName(dLevelId)}人数≥${dCount}`;
+      }
+      const tCount = row.teamLevelCount != null ? Number(row.teamLevelCount) : 0;
+      const tLevelId = row.teamLevelId != null ? Number(row.teamLevelId) : 0;
+      if (tCount > 0 && tLevelId > 0) {
+        text += ` ${rel(row.teamLevelRelation)} 团队${this.levelName(tLevelId)}人数≥${tCount}`;
+      }
+      return text;
+    },
+    levelName(levelId) {
+      const hit = (this.userLevelOptions || []).find((item) => item.id === levelId);
+      return hit ? hit.name : `等级${levelId}`;
     },
     add() {
       this.$refs.teamGrades.openCreate();

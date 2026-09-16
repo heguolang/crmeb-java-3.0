@@ -20,14 +20,11 @@
 				<button form-type="submit" class="confirmBnt">确认修改</button>
 			</form>
 		</view>
-		<Verify @success="handlerOnVerSuccess" :captchaType="'clickWord'" :imgSize="{ width: '330px', height: '155px' }"
-		        ref="verify"></Verify>
 	</view>
 </template>
 
 <script>
 	import sendVerifyCode from "@/mixins/SendVerifyCode";
-	import Verify from '@/pages/users/components/verifition/verify.vue';
 	import {
 		phoneRegisterReset,
 		registerVerify
@@ -43,9 +40,6 @@
 	const app = getApp();
 	export default {
 		mixins: [sendVerifyCode],
-		components: {
-			Verify,
-		},
 		data() {
 			return {
 				userInfo: {},
@@ -92,12 +86,8 @@
 				if (!/^[a-zA-Z]\w{5,17}$/i.test(that.password)) return that.$util.Tips({
 					title: '密码格式错误，密码必须以字母开头，长度在6～18之间，只能包含字符、数字和下划线'
 				});
-				this.$refs.verify.show();
-			},
-			//滑块验证成功后
-			handlerOnVerSuccess(data) {
-				this.$refs.verify.hide();
-				this.code();
+				// 滑块验证已取消，直接发送验证码
+				that.code();
 			},
 			/**
 			 * 授权回调

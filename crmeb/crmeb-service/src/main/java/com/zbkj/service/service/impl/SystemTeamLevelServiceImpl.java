@@ -3,6 +3,7 @@ package com.zbkj.service.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -145,9 +146,22 @@ public class SystemTeamLevelServiceImpl extends ServiceImpl<SystemTeamLevelDao, 
     private SystemTeamLevel buildLevelEntity(SystemTeamLevelRequest request) {
         SystemTeamLevel teamLevel = new SystemTeamLevel();
         BeanUtils.copyProperties(request, teamLevel);
-        teamLevel.setIcon(systemAttachmentService.clearPrefix(request.getIcon()));
+        teamLevel.setIcon(StrUtil.isBlank(request.getIcon()) ? "" : systemAttachmentService.clearPrefix(request.getIcon()));
         teamLevel.setSelfOrderAmount(ObjectUtil.defaultIfNull(request.getSelfOrderAmount(), BigDecimal.ZERO));
         teamLevel.setTeamOrderAmount(ObjectUtil.defaultIfNull(request.getTeamOrderAmount(), BigDecimal.ZERO));
+        teamLevel.setDirectOrderAmount(ObjectUtil.defaultIfNull(request.getDirectOrderAmount(), BigDecimal.ZERO));
+        teamLevel.setSelfOrderTriggerType(ObjectUtil.defaultIfNull(request.getSelfOrderTriggerType(), 2));
+        teamLevel.setTeamOrderTriggerType(ObjectUtil.defaultIfNull(request.getTeamOrderTriggerType(), 2));
+        teamLevel.setDirectOrderTriggerType(ObjectUtil.defaultIfNull(request.getDirectOrderTriggerType(), 2));
+        // 条件关系默认「与」，兼容旧的“自购 且 团队 且 直推”判定
+        teamLevel.setSelfTeamRelation(ObjectUtil.defaultIfNull(request.getSelfTeamRelation(), 1));
+        teamLevel.setTeamDirectRelation(ObjectUtil.defaultIfNull(request.getTeamDirectRelation(), 1));
+        teamLevel.setDirectLevelRelation(ObjectUtil.defaultIfNull(request.getDirectLevelRelation(), 1));
+        teamLevel.setDirectLevelId(ObjectUtil.defaultIfNull(request.getDirectLevelId(), 0));
+        teamLevel.setDirectLevelCount(ObjectUtil.defaultIfNull(request.getDirectLevelCount(), 0));
+        teamLevel.setTeamLevelRelation(ObjectUtil.defaultIfNull(request.getTeamLevelRelation(), 1));
+        teamLevel.setTeamLevelId(ObjectUtil.defaultIfNull(request.getTeamLevelId(), 0));
+        teamLevel.setTeamLevelCount(ObjectUtil.defaultIfNull(request.getTeamLevelCount(), 0));
         teamLevel.setIsDel(false);
         return teamLevel;
     }

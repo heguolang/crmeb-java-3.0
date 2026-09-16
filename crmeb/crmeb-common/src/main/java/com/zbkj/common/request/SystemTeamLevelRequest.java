@@ -9,6 +9,7 @@ import org.hibernate.validator.constraints.Length;
 
 import javax.validation.Valid;
 import javax.validation.constraints.DecimalMin;
+import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -49,6 +50,58 @@ public class SystemTeamLevelRequest implements Serializable {
     @DecimalMin(value = "0", message = "团队订单金额不能小于0")
     private BigDecimal teamOrderAmount;
 
+    @ApiModelProperty(value = "直推订单金额门槛(元)", example = "2000.00")
+    @NotNull(message = "直推订单金额不能为空")
+    @DecimalMin(value = "0", message = "直推订单金额不能小于0")
+    private BigDecimal directOrderAmount;
+
+    @ApiModelProperty(value = "直推订单统计时机：1=支付成功，2=订单完成", example = "2")
+    private Integer directOrderTriggerType;
+
+    @ApiModelProperty(value = "自购与团队条件关系：1=与，2=或", example = "1")
+    @NotNull(message = "自购与团队条件关系不能为空")
+    @Min(value = 1, message = "条件关系参数不合法")
+    @Max(value = 2, message = "条件关系参数不合法")
+    private Integer selfTeamRelation;
+
+    @ApiModelProperty(value = "团队与直推条件关系：1=与，2=或", example = "1")
+    @NotNull(message = "团队与直推条件关系不能为空")
+    @Min(value = 1, message = "条件关系参数不合法")
+    @Max(value = 2, message = "条件关系参数不合法")
+    private Integer teamDirectRelation;
+
+    @ApiModelProperty(value = "直推金额与直推等级人数条件关系：1=与，2=或", example = "1")
+    @NotNull(message = "直推金额与直推等级人数条件关系不能为空")
+    @Min(value = 1, message = "条件关系参数不合法")
+    @Max(value = 2, message = "条件关系参数不合法")
+    private Integer directLevelRelation;
+
+    @ApiModelProperty(value = "直推等级人数-目标用户等级id，0=未启用", example = "0")
+    @NotNull(message = "目标用户等级不能为空")
+    @Min(value = 0, message = "目标用户等级参数不合法")
+    private Integer directLevelId;
+
+    @ApiModelProperty(value = "直推达到目标用户等级的人数门槛，0=未启用", example = "0")
+    @NotNull(message = "直推等级人数门槛不能为空")
+    @Min(value = 0, message = "直推等级人数门槛不能小于0")
+    private Integer directLevelCount;
+
+    @ApiModelProperty(value = "直推等级人数与团队级别人数条件关系：1=与，2=或", example = "1")
+    @NotNull(message = "直推等级人数与团队级别人数条件关系不能为空")
+    @Min(value = 1, message = "条件关系参数不合法")
+    @Max(value = 2, message = "条件关系参数不合法")
+    private Integer teamLevelRelation;
+
+    @ApiModelProperty(value = "团队级别人数-目标用户等级id，0=未启用", example = "0")
+    @NotNull(message = "团队目标用户等级不能为空")
+    @Min(value = 0, message = "团队目标用户等级参数不合法")
+    private Integer teamLevelId;
+
+    @ApiModelProperty(value = "团队中达到目标用户等级的人数门槛，0=未启用", example = "0")
+    @NotNull(message = "团队级别人数门槛不能为空")
+    @Min(value = 0, message = "团队级别人数门槛不能小于0")
+    private Integer teamLevelCount;
+
     @ApiModelProperty(value = "自购订单统计时机：1=支付成功，2=订单完成", example = "2")
     private Integer selfOrderTriggerType;
 
@@ -60,7 +113,6 @@ public class SystemTeamLevelRequest implements Serializable {
     private String description;
 
     @ApiModelProperty(value = "等级图标")
-    @NotBlank(message = "等级图标不能为空")
     private String icon;
 
     @ApiModelProperty(value = "是否显示")

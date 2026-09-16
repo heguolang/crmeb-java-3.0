@@ -30,6 +30,14 @@ public interface LoginService {
     LoginResponse login(LoginRequest loginRequest);
 
     /**
+     * 手机号密码注册（不依赖短信验证码）
+     *
+     * @param loginRequest 手机号、密码、推广人
+     * @return LoginResponse 注册成功直接返回登录态
+     */
+    LoginResponse register(LoginRequest loginRequest);
+
+    /**
      * 手机号验证码登录
      */
     LoginResponse phoneLogin(LoginMobileRequest loginRequest);

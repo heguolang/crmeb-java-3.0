@@ -167,11 +167,11 @@ public class SystemTeamLevelConfigServiceImpl extends ServiceImpl<SystemTeamLeve
             }
             Integer existRate = ObjectUtil.defaultIfNull(config.getTeamBrokerageRate(), 0);
             if (level.getGrade() < currentLevel.getGrade() && existRate > teamBrokerageRate) {
-                throw new CrmebException(StrUtil.format("团队极差比例不能低于低等级【{}】的{}%",
+                throw new CrmebException(StrUtil.format("团队奖比例不能低于低等级【{}】的{}%",
                         level.getName(), existRate));
             }
             if (level.getGrade() > currentLevel.getGrade() && existRate < teamBrokerageRate) {
-                throw new CrmebException(StrUtil.format("团队极差比例不能高于高等级【{}】的{}%",
+                throw new CrmebException(StrUtil.format("团队奖比例不能高于高等级【{}】的{}%",
                         level.getName(), existRate));
             }
         }

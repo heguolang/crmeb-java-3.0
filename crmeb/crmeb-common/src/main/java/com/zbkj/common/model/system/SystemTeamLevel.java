@@ -41,6 +41,36 @@ public class SystemTeamLevel implements Serializable {
     @ApiModelProperty(value = "团队订单金额门槛(元)")
     private BigDecimal teamOrderAmount;
 
+    @ApiModelProperty(value = "直推订单金额门槛(元)")
+    private BigDecimal directOrderAmount;
+
+    @ApiModelProperty(value = "直推订单统计时机：1=支付成功，2=订单完成")
+    private Integer directOrderTriggerType;
+
+    @ApiModelProperty(value = "自购与团队条件关系：1=与，2=或")
+    private Integer selfTeamRelation;
+
+    @ApiModelProperty(value = "团队与直推条件关系：1=与，2=或")
+    private Integer teamDirectRelation;
+
+    @ApiModelProperty(value = "直推金额与直推等级人数条件关系：1=与，2=或")
+    private Integer directLevelRelation;
+
+    @ApiModelProperty(value = "直推等级人数-目标用户等级id(来源用户级别)，0=未启用")
+    private Integer directLevelId;
+
+    @ApiModelProperty(value = "直推达到目标用户等级的人数门槛，0=未启用")
+    private Integer directLevelCount;
+
+    @ApiModelProperty(value = "直推等级人数与团队级别人数条件关系：1=与，2=或")
+    private Integer teamLevelRelation;
+
+    @ApiModelProperty(value = "团队级别人数-目标用户等级id(来源用户级别)，0=未启用")
+    private Integer teamLevelId;
+
+    @ApiModelProperty(value = "团队中达到目标用户等级的人数门槛，0=未启用")
+    private Integer teamLevelCount;
+
     @ApiModelProperty(value = "自购订单统计时机：1=支付成功，2=订单完成")
     private Integer selfOrderTriggerType;
 

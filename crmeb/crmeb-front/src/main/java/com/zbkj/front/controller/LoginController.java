@@ -61,6 +61,16 @@ public class LoginController {
         return CommonResult.success(loginService.login(loginRequest));
     }
 
+    /**
+     * 手机号密码注册（不依赖短信验证码）
+     * 说明：H5 会员端注册入口，注册成功直接返回登录态
+     */
+    @ApiOperation(value = "手机号密码注册")
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
+    public CommonResult<LoginResponse> register(@RequestBody @Validated LoginRequest loginRequest) {
+        return CommonResult.success(loginService.register(loginRequest));
+    }
+
 
     /**
      * 退出登录
@@ -74,6 +84,8 @@ public class LoginController {
 
     /**
      * 发送短信登录验证码
+     * 说明：H5 会员端已改为仅手机号+密码登录，短信验证码登录已下线，
+     * 此处直接拦截，防止绕过前端直接调用接口发送短信。
      *
      * @param phone 手机号码
      * @return 发送是否成功
@@ -84,6 +96,13 @@ public class LoginController {
             @ApiImplicitParam(name = "phone", value = "手机号码", required = true)
     })
     public CommonResult<Object> sendCode(@RequestParam String phone) {
+        return CommonResult.failed("短信验证码登录已关闭，请使用手机号密码登录");
+    }
+
+    /**
+     * 发送短信登录验证码（原有逻辑，如需恢复验证码登录请启用）
+     */
+    public CommonResult<Object> sendCodeOriginal(String phone) {
         if (smsService.sendCommonCode(phone)) {
             return CommonResult.success("发送成功");
         } else {

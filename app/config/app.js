@@ -8,8 +8,8 @@
 // | Author: CRMEB Team <admin@crmeb.com>
 // +----------------------------------------------------------------------
 //移动端商城API
-// 开发站
-let domain = 'https://apif.java.crmeb.net'
+// 本地开发：crmeb-front (8081)
+let domain = 'http://127.0.0.1:8081'
 // 演示站
 // let domain = 'https://apif.java.crmeb.net'
 // 深度演示站

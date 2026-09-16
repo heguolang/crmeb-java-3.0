@@ -38,3 +38,6 @@ _copy_*.ps1
 
 # OS
 desktop.ini
+
+# Temp commit message
+_COMMIT_MSG*

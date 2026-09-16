@@ -16,6 +16,8 @@
             stat.self_complete_amount  AS selfCompleteAmount,
             stat.team_paid_amount      AS teamPaidAmount,
             stat.team_complete_amount  AS teamCompleteAmount,
+            stat.direct_paid_amount    AS directPaidAmount,
+            stat.direct_complete_amount AS directCompleteAmount,
             stat.update_time           AS updateTime
         FROM eb_user u
             LEFT JOIN eb_user_team_level_stat stat ON stat.uid = u.uid

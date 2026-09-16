@@ -48,6 +48,8 @@
         <el-table-column prop="selfCompleteAmount" label="自购已完成(元)" min-width="120" />
         <el-table-column prop="teamPaidAmount" label="团队已支付(元)" min-width="120" />
         <el-table-column prop="teamCompleteAmount" label="团队已完成(元)" min-width="120" />
+        <el-table-column prop="directPaidAmount" label="直推已支付(元)" min-width="120" />
+        <el-table-column prop="directCompleteAmount" label="直推已完成(元)" min-width="120" />
         <el-table-column prop="updateTime" label="更新时间" min-width="160" />
       </el-table>
       <div class="block">
@@ -121,6 +123,8 @@ export default {
           '自购已完成(元)',
           '团队已支付(元)',
           '团队已完成(元)',
+          '直推已支付(元)',
+          '直推已完成(元)',
           '更新时间',
         ],
         filterVal: [
@@ -133,6 +137,8 @@ export default {
           'selfCompleteAmount',
           'teamPaidAmount',
           'teamCompleteAmount',
+          'directPaidAmount',
+          'directCompleteAmount',
           'updateTime',
         ],
         mapRow: (row) => ({
@@ -145,6 +151,8 @@ export default {
           selfCompleteAmount: row.selfCompleteAmount,
           teamPaidAmount: row.teamPaidAmount,
           teamCompleteAmount: row.teamCompleteAmount,
+          directPaidAmount: row.directPaidAmount,
+          directCompleteAmount: row.directCompleteAmount,
           updateTime: row.updateTime || '',
         }),
       });

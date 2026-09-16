@@ -246,15 +246,74 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         return new PageInfo<>(userTeamLevelDao.getTeamRecordPage(keywords, teamLevelId, status));
     }
 
+    /**
+     * 判断用户是否满足该团队等级的升级条件。
+     *
+     * <p>共五个条件：自购业绩、团队业绩、直推业绩、直推等级人数、团队级别人数，按链式组合：
+     * <pre>自购 [selfTeamRelation] 团队 [teamDirectRelation] 直推金额 [directLevelRelation] 直推等级人数 [teamLevelRelation] 团队级别人数</pre>
+     * 关系值：1=与，2=或。注意门槛为 0 的条件视为「自动满足」，
+     * 用「或」连接时等同于跳过该条件。等级人数条件：等级与人数均 > 0 才启用，
+     * 按会员等级(level)实时统计——直推只统计一级推荐人，团队统计整条推荐链的所有下级。
+     */
     private boolean meetsTeamLevelCondition(SystemTeamLevel level, UserTeamLevelStat stat) {
         if (ObjectUtil.isNull(level) || ObjectUtil.isNull(stat)) {
             return false;
         }
-        BigDecimal selfValue = selectSelfAmount(level, stat);
-        BigDecimal teamValue = selectTeamAmount(level, stat);
         BigDecimal selfThreshold = ObjectUtil.defaultIfNull(level.getSelfOrderAmount(), BigDecimal.ZERO);
         BigDecimal teamThreshold = ObjectUtil.defaultIfNull(level.getTeamOrderAmount(), BigDecimal.ZERO);
-        return selfValue.compareTo(selfThreshold) >= 0 && teamValue.compareTo(teamThreshold) >= 0;
+        BigDecimal directThreshold = ObjectUtil.defaultIfNull(level.getDirectOrderAmount(), BigDecimal.ZERO);
+
+        boolean selfPass = selectSelfAmount(level, stat).compareTo(selfThreshold) >= 0;
+        boolean teamPass = selectTeamAmount(level, stat).compareTo(teamThreshold) >= 0;
+        boolean directPass = selectDirectAmount(level, stat).compareTo(directThreshold) >= 0;
+        boolean directLevelPass = checkDirectLevelPass(level, stat.getUid());
+        boolean teamLevelPass = checkTeamLevelPass(level, stat.getUid());
+
+        // 自购 [r1] 团队，结果 [r2] 直推金额，再 [r3] 直推等级人数，最后 [r4] 团队级别人数
+        boolean result = combine(level.getSelfTeamRelation(), selfPass, teamPass);
+        result = combine(level.getTeamDirectRelation(), result, directPass);
+        result = combine(level.getDirectLevelRelation(), result, directLevelPass);
+        return combine(level.getTeamLevelRelation(), result, teamLevelPass);
+    }
+
+    /**
+     * 直推等级人数条件：目标等级id与人数门槛均 > 0 才启用（否则视为自动满足）。
+     * 统计直接推荐人（spread_uid = 当前用户）中，会员等级等于目标等级的实时人数。
+     */
+    private boolean checkDirectLevelPass(SystemTeamLevel level, Integer uid) {
+        Integer targetLevelId = ObjectUtil.defaultIfNull(level.getDirectLevelId(), 0);
+        int countThreshold = ObjectUtil.defaultIfNull(level.getDirectLevelCount(), 0);
+        if (targetLevelId <= 0 || countThreshold <= 0 || ObjectUtil.isNull(uid) || uid <= 0) {
+            return true;
+        }
+        LambdaQueryWrapper<User> lqw = Wrappers.lambdaQuery();
+        lqw.eq(User::getSpreadUid, uid);
+        lqw.eq(User::getLevel, targetLevelId);
+        long count = userService.count(lqw);
+        return count >= countThreshold;
+    }
+
+    /**
+     * 团队级别人数条件：目标等级id与人数门槛均 > 0 才启用（否则视为自动满足）。
+     * 统计团队（整条推荐链的所有下级）中，会员等级等于目标等级的实时人数。
+     */
+    private boolean checkTeamLevelPass(SystemTeamLevel level, Integer uid) {
+        Integer targetLevelId = ObjectUtil.defaultIfNull(level.getTeamLevelId(), 0);
+        int countThreshold = ObjectUtil.defaultIfNull(level.getTeamLevelCount(), 0);
+        if (targetLevelId <= 0 || countThreshold <= 0 || ObjectUtil.isNull(uid) || uid <= 0) {
+            return true;
+        }
+        return userTeamLevelDao.countTeamLevelUsers(uid, targetLevelId) >= countThreshold;
+    }
+
+    /**
+     * 按关系组合两个条件：1=与(都满足)，2=或(满足其一)，空/其他值按「与」处理。
+     */
+    private boolean combine(Integer relation, boolean left, boolean right) {
+        if (ObjectUtil.defaultIfNull(relation, 1) == 2) {
+            return left || right;
+        }
+        return left && right;
     }
 
     private BigDecimal selectSelfAmount(SystemTeamLevel level, UserTeamLevelStat stat) {
@@ -273,11 +332,21 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         return ObjectUtil.defaultIfNull(stat.getTeamCompleteAmount(), BigDecimal.ZERO);
     }
 
+    private BigDecimal selectDirectAmount(SystemTeamLevel level, UserTeamLevelStat stat) {
+        Integer trigger = ObjectUtil.defaultIfNull(level.getDirectOrderTriggerType(), 2);
+        if (trigger == 1) {
+            return ObjectUtil.defaultIfNull(stat.getDirectPaidAmount(), BigDecimal.ZERO);
+        }
+        return ObjectUtil.defaultIfNull(stat.getDirectCompleteAmount(), BigDecimal.ZERO);
+    }
+
     private List<Integer> applyPaidStats(StoreOrder storeOrder, BigDecimal amount) {
         Set<Integer> affected = new HashSet<>();
         // buyer self paid
         affected.add(storeOrder.getUid());
         addSelfPaid(storeOrder.getUid(), amount);
+        // 直推业绩：只归到直接推荐人（一级上级）
+        affected.addAll(addDirectPaidToUpline(storeOrder.getUid(), amount));
         // uplines team paid
         affected.addAll(addTeamPaidToUplines(storeOrder.getUid(), amount));
         return affected.stream().collect(Collectors.toList());
@@ -287,6 +356,7 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         Set<Integer> affected = new HashSet<>();
         affected.add(storeOrder.getUid());
         addSelfComplete(storeOrder.getUid(), amount);
+        affected.addAll(addDirectCompleteToUpline(storeOrder.getUid(), amount));
         affected.addAll(addTeamCompleteToUplines(storeOrder.getUid(), amount));
         return affected.stream().collect(Collectors.toList());
     }
@@ -295,6 +365,7 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         Set<Integer> affected = new HashSet<>();
         affected.add(storeOrder.getUid());
         addSelfPaid(storeOrder.getUid(), amount.negate());
+        affected.addAll(addDirectPaidToUpline(storeOrder.getUid(), amount.negate()));
         affected.addAll(addTeamPaidToUplines(storeOrder.getUid(), amount.negate()));
         return affected.stream().collect(Collectors.toList());
     }
@@ -303,6 +374,7 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         Set<Integer> affected = new HashSet<>();
         affected.add(storeOrder.getUid());
         addSelfComplete(storeOrder.getUid(), amount.negate());
+        affected.addAll(addDirectCompleteToUpline(storeOrder.getUid(), amount.negate()));
         affected.addAll(addTeamCompleteToUplines(storeOrder.getUid(), amount.negate()));
         return affected.stream().collect(Collectors.toList());
     }
@@ -319,6 +391,37 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         stat.setSelfCompleteAmount(nonNegative(ObjectUtil.defaultIfNull(stat.getSelfCompleteAmount(), BigDecimal.ZERO).add(delta)));
         stat.setUpdateTime(DateUtil.date());
         userTeamLevelStatDao.updateById(stat);
+    }
+
+    private Set<Integer> addDirectPaidToUpline(Integer buyerUid, BigDecimal delta) {
+        return addDirectToUpline(buyerUid, delta, true);
+    }
+
+    private Set<Integer> addDirectCompleteToUpline(Integer buyerUid, BigDecimal delta) {
+        return addDirectToUpline(buyerUid, delta, false);
+    }
+
+    /**
+     * 直推业绩：只累计到「直接推荐人」（一级上级）。
+     * 与团队业绩（沿推荐链累计给所有上级）区分，二者对同一个上级都会生效。
+     */
+    private Set<Integer> addDirectToUpline(Integer buyerUid, BigDecimal delta, boolean isPaid) {
+        Set<Integer> affected = new HashSet<>();
+        User buyer = userService.getById(buyerUid);
+        if (ObjectUtil.isNull(buyer) || ObjectUtil.defaultIfNull(buyer.getSpreadUid(), 0) <= 0) {
+            return affected;
+        }
+        Integer directUid = buyer.getSpreadUid();
+        affected.add(directUid);
+        UserTeamLevelStat stat = getOrInitStat(directUid);
+        if (isPaid) {
+            stat.setDirectPaidAmount(nonNegative(ObjectUtil.defaultIfNull(stat.getDirectPaidAmount(), BigDecimal.ZERO).add(delta)));
+        } else {
+            stat.setDirectCompleteAmount(nonNegative(ObjectUtil.defaultIfNull(stat.getDirectCompleteAmount(), BigDecimal.ZERO).add(delta)));
+        }
+        stat.setUpdateTime(DateUtil.date());
+        userTeamLevelStatDao.updateById(stat);
+        return affected;
     }
 
     private Set<Integer> addTeamPaidToUplines(Integer buyerUid, BigDecimal delta) {
@@ -389,6 +492,8 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
             stat.setSelfCompleteAmount(ObjectUtil.defaultIfNull(stat.getSelfCompleteAmount(), BigDecimal.ZERO));
             stat.setTeamPaidAmount(ObjectUtil.defaultIfNull(stat.getTeamPaidAmount(), BigDecimal.ZERO));
             stat.setTeamCompleteAmount(ObjectUtil.defaultIfNull(stat.getTeamCompleteAmount(), BigDecimal.ZERO));
+            stat.setDirectPaidAmount(ObjectUtil.defaultIfNull(stat.getDirectPaidAmount(), BigDecimal.ZERO));
+            stat.setDirectCompleteAmount(ObjectUtil.defaultIfNull(stat.getDirectCompleteAmount(), BigDecimal.ZERO));
             return stat;
         }
         UserTeamLevelStat init = new UserTeamLevelStat();
@@ -397,6 +502,8 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         init.setSelfCompleteAmount(BigDecimal.ZERO);
         init.setTeamPaidAmount(BigDecimal.ZERO);
         init.setTeamCompleteAmount(BigDecimal.ZERO);
+        init.setDirectPaidAmount(BigDecimal.ZERO);
+        init.setDirectCompleteAmount(BigDecimal.ZERO);
         init.setCreateTime(DateUtil.date());
         init.setUpdateTime(DateUtil.date());
         userTeamLevelStatDao.insert(init);

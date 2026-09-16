@@ -43,6 +43,12 @@ public class UserTeamLevelStat implements Serializable {
     @ApiModelProperty(value = "团队已完成累计金额(元)")
     private BigDecimal teamCompleteAmount;
 
+    @ApiModelProperty(value = "直推已支付累计金额(元)")
+    private BigDecimal directPaidAmount;
+
+    @ApiModelProperty(value = "直推已完成累计金额(元)")
+    private BigDecimal directCompleteAmount;
+
     @ApiModelProperty(value = "创建时间")
     private Date createTime;
 

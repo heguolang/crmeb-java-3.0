@@ -18,9 +18,15 @@
 							<input type="password" class="texts" placeholder="填写登录密码" maxlength="18" v-model="password" required />
 						</div>
 					</div>
+					<div class="item" v-if="isRegister">
+						<div class="acea-row row-middle">
+							<image :src="urlDomain+'crmebimage/perset/staticImg/code_2.png'" style="width: 28rpx; height: 32rpx;"></image>
+							<input type="password" class="texts" placeholder="确认登录密码" maxlength="18" v-model="passwordConfirm" required />
+						</div>
+					</div>
 				</form>
 			</div>
-			<div class="list" v-if="current !== 0 || appLoginStatus || appleLoginStatus">
+			<div class="list" v-if="appLoginStatus || appleLoginStatus">
 				<div class="item">
 					<div class="acea-row row-middle">
 						<image :src="urlDomain+'crmebimage/perset/staticImg/phone_1.png'" style="width: 24rpx; height: 34rpx;"></image>
@@ -36,13 +42,6 @@
 						</button>
 					</div>
 				</div>
-				<div class="item" v-if="isShowCode">
-					<div class="acea-row row-middle">
-						<image :src="urlDomain+'crmebimage/perset/staticImg/code_2.png'" style="width: 28rpx; height: 32rpx;"></image>
-						<input type="number" placeholder="填写验证码" class="codeIput" v-model="codeVal" maxlength="6"/>
-						<div class="code" @click="again"><img :src="codeUrl" /></div>
-					</div>
-				</div>
 			</div>
 			<view class="protocol acea-row row-between-wrapper">
 				<checkbox-group class="checkgroup acea-row" @change='isAgree=!isAgree'  style="align-items: end;">
@@ -52,12 +51,12 @@
 							class="font_pro">《隐私政策》</text></text>
 				</checkbox-group>
 			</view>
-			<div class="logon bg_color" @click="loginMobile" v-if="current !== 0">登录</div>
-			<div class="logon bg_color" @click="submit" v-if="current === 0">登录</div>
+			<div class="logon bg_color" @click="loginMobile" v-if="appLoginStatus || appleLoginStatus">登录</div>
+			<div class="logon bg_color" @click="submit" v-else>{{ isRegister ? '注册并登录' : '登录' }}</div>
 			<!-- #ifndef APP-PLUS -->
-			<div class="tips">
-				<div v-if="current==0" @click="current = 1">快速登录</div>
-				<div v-if="current==1" @click="current = 0">账号登录</div>
+			<div class="tips" v-if="!appLoginStatus && !appleLoginStatus">
+				<div v-if="!isRegister" @click="switchRegister">注册账号</div>
+				<div v-else @click="switchLogin">已有账号，去登录</div>
 			</div>
 			<!-- #endif -->
 			<!-- #ifdef APP-PLUS -->
@@ -71,12 +70,6 @@
 					<view class="btn wx" @click="wxLogin">
 						<span class="iconfont icon-s-weixindenglu1"></span>
 					</view>
-					<view class="btn mima" v-if="current == 1" @click="current =0">
-						<span class="iconfont icon-s-mimadenglu1"></span>
-					</view>
-					<view class="btn yanzheng" v-if="current == 0" @click="current =1">
-						<span class="iconfont icon-s-yanzhengmadenglu1"></span>
-					</view>
 					<view class="btn apple-btn" @click="appleLogin" v-if="appleShow">
 						<view class="iconfont icon-s-pingguo"></view>
 					</view>
@@ -85,14 +78,10 @@
 			<!-- #endif -->
 		</div>
 		<div class="bottom"></div>
-		<Verify @success="handlerOnVerSuccess" :captchaType="'clickWord'" :imgSize="{ width: '330px', height: '155px' }"
-		        ref="verify"></Verify>
 	</div>
 </template>
 <script>
 	import dayjs from "@/plugin/dayjs/dayjs.min.js";
-	import sendVerifyCode from "@/mixins/SendVerifyCode";
-	import Verify from '../components/verifition/verify.vue';
 	import {
 		loginH5,
 		loginMobile,
@@ -105,7 +94,6 @@
 	import attrs, {required,alpha_num,chs_phone} from "@/utils/validate";
 	import {validatorDefaultCatch} from "@/utils/dialog";
 	import {appAuth, appleLogin} from "@/api/public";
-	import {VUE_APP_API_URL} from "@/utils";
 	import Routine from '@/libs/routine';
 	import {Debounce} from '@/utils/validate.js'
 	import {
@@ -115,25 +103,19 @@
 
 	export default {
 		name: "Login",
-		mixins: [sendVerifyCode],
-		components: {
-			Verify,
-		},
 		data: function() {
 			return {
 				isAgree: false,
 				urlDomain: this.$Cache.get("imgHost"),
 				navList: ["快速登录", "账号登录"],
-				current: 1,
+				current: 0,
 				account: "",
 				password: "",
+				passwordConfirm: "",
+				isRegister: false,
 				captcha: "",
 				formItem: 1,
 				type: "login",
-				keyCode: "",
-				codeUrl: "",
-				codeVal: "",
-				isShowCode: false,
 				platform: '',
 				appLoginStatus: false, // 微信登录强制绑定手机号码状态
 				appUserInfo: null, // 微信登录保存的用户信息
@@ -166,11 +148,6 @@
 			});
 		},
 		methods: {
-			//滑块验证成功后
-			handlerOnVerSuccess(data) {
-				this.$refs.verify.hide();
-				this.codeSend();
-			},
 			//发送验证码
 			codeSend() {
 				let that = this;
@@ -331,14 +308,6 @@
 					});
 				});
 			},
-			again() {
-				this.codeUrl =
-					VUE_APP_API_URL +
-					"/sms_captcha?" +
-					"key=" +
-					this.keyCode +
-					Date.parse(new Date());
-			},
 			//手机号验证码登录
 			loginMobile:Debounce(function() {
 				let that = this;
@@ -382,48 +351,6 @@
 						});
 					});
 			}),
-			async register() {
-				let that = this;
-				if (!that.account) return that.$util.Tips({
-					title: '请填写手机号码'
-				});
-				if (!/^1(3|4|5|7|8|9|6)\d{9}$/i.test(that.account)) return that.$util.Tips({
-					title: '请输入正确的手机号码'
-				});
-				if (!that.isAgree) return that.$util.Tips({
-					title: '请勾选用户隐私协议'
-				});
-				if (!that.captcha) return that.$util.Tips({
-					title: '请填写验证码'
-				});
-				if (!/^[\w\d]+$/i.test(that.captcha)) return that.$util.Tips({
-					title: '请输入正确的验证码'
-				});
-				if (!that.password) return that.$util.Tips({
-					title: '请填写密码'
-				});
-				if (!/^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$/i.test(that.password)) return that.$util.Tips({
-					title: '您输入的密码过于简单'
-				});
-				register({
-						account: that.account,
-						captcha: that.captcha,
-						password: that.password,
-						spread_spid: that.$Cache.get("spread")
-						// spread_spid: uni.getStorageSync('spid') || 0
-					})
-					.then(res => {
-						that.$util.Tips({
-							title: res
-						});
-						that.formItem = 1;
-					})
-					.catch(res => {
-						that.$util.Tips({
-							title: res
-						});
-					});
-			},
 			async code() {
 				let that = this;
 				if (!that.account) return that.$util.Tips({
@@ -436,29 +363,76 @@
 					title: '请输入正确的手机号码'
 				});
 				if (that.formItem == 2) that.type = "register";
-				that.$refs.verify.show();
+				// 滑块验证已取消，直接发送验证码
+				that.codeSend();
 			},
 			navTap: function(index) {
 				this.current = index;
 			},
-			//账号密码登录
+			// 切换到注册
+			switchRegister() {
+				this.isRegister = true;
+				this.password = '';
+				this.passwordConfirm = '';
+			},
+			// 切换到登录
+			switchLogin() {
+				this.isRegister = false;
+				this.password = '';
+				this.passwordConfirm = '';
+			},
+			//手机号密码登录 / 注册（H5 会员端已统一为手机号 + 密码）
 			submit:Debounce(function() {
 				let that = this;
 				if (!that.account) return that.$util.Tips({
-					title: '请填写账号'
+					title: '请填写手机号码'
 				});
-				if (!/^[\w\d]{5,16}$/i.test(that.account)) return that.$util.Tips({
-					title: '请输入正确的账号'
+				if (!/^1(3|4|5|7|8|9|6)\d{9}$/i.test(that.account)) return that.$util.Tips({
+					title: '请输入正确的手机号码'
 				});
 				if (!that.password) return that.$util.Tips({
 					title: '请填写密码'
 				});
+				if (that.isRegister) {
+					// 注册需二次确认密码
+					if (!/^\S{6,18}$/.test(that.password)) return that.$util.Tips({
+						title: '密码长度需为6-18位'
+					});
+					if (!that.passwordConfirm) return that.$util.Tips({
+						title: '请再次填写密码'
+					});
+					if (that.password !== that.passwordConfirm) return that.$util.Tips({
+						title: '两次输入的密码不一致'
+					});
+				}
 				if (!that.isAgree) return that.$util.Tips({
 					title: '请勾选用户隐私协议'
 				});
 				uni.showLoading({
-					title: '登录中'
+					title: that.isRegister ? '注册中' : '登录中'
 				})
+				if (that.isRegister) {
+					register({
+						account: that.account,
+						password: that.password,
+						spread_spid: that.$Cache.get("spread")
+					}).then(({data}) => {
+						this.$store.commit("LOGIN", {
+							'token': data.token
+						});
+						uni.hideLoading();
+						this.$util.Tips({
+							title: '注册成功'
+						});
+						that.getUserInfo(data);
+					}).catch(e => {
+						uni.hideLoading();
+						that.$util.Tips({
+							title: e
+						});
+					});
+					return;
+				}
 				loginH5({
 						account: that.account,
 						password: that.password,

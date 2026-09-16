@@ -100,6 +100,55 @@ public class LoginServiceImpl implements LoginService {
     }
 
     /**
+     * 手机号密码注册（不依赖短信验证码）
+     * 说明：沿用 registerPhone 的注册流程（新人优惠券、默认等级、推广关系），
+     * 仅把密码由默认手机号改为用户自定义密码。
+     *
+     * @param loginRequest 手机号、密码、推广人
+     * @return LoginResponse 注册成功直接返回登录态
+     */
+    @Override
+    public LoginResponse register(LoginRequest loginRequest) {
+        String phone = loginRequest.getPhone();
+        String password = loginRequest.getPassword();
+        if (StrUtil.isBlank(password)) {
+            throw new CrmebException("密码不能为空");
+        }
+
+        // 手机号已注册则不允许重复注册
+        User existUser = userService.getByPhone(phone);
+        if (ObjectUtil.isNotNull(existUser)) {
+            throw new CrmebException("该手机号已注册，请直接登录");
+        }
+
+        Integer spreadPid = Optional.ofNullable(loginRequest.getSpreadPid()).orElse(0);
+
+        // 复用注册主流程创建用户（含新人券/默认等级/推广关系）
+        User user = userService.registerPhone(phone, spreadPid);
+        if (ObjectUtil.isNull(user)) {
+            throw new CrmebException("注册失败，请稍后重试");
+        }
+
+        // 覆盖为自定义密码（registerPhone 默认用的是手机号加密）
+        user.setPwd(CrmebUtil.encryptPassword(password, phone));
+        user.setUpdateTime(DateUtil.date());
+        boolean update = userService.updateById(user);
+        if (!update) {
+            logger.error("注册设置密码失败, uid = " + user.getUid());
+            throw new CrmebException("注册失败，请稍后重试");
+        }
+
+        // 直接返回登录态，前端注册后免登录进入
+        LoginResponse loginResponse = new LoginResponse();
+        String token = tokenComponent.createToken(user);
+        loginResponse.setToken(token);
+        loginResponse.setUid(user.getUid());
+        loginResponse.setNikeName(user.getNickname());
+        loginResponse.setPhone(user.getPhone());
+        return loginResponse;
+    }
+
+    /**
      * 手机号验证码登录
      *
      * @param loginRequest 登录请求信息
