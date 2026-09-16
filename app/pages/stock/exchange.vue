@@ -1,0 +1,151 @@
+<template>
+  <view class="exchange-page">
+    <view v-if="canApply" class="apply-card">
+      <view class="card-title">提交换货申请</view>
+      <view class="form-item">
+        <text class="f-label">原订货单ID</text>
+        <input v-model="form.orderId" type="number" class="f-input" placeholder="从订单列表点【申请换货】自动带入" />
+      </view>
+      <view class="form-item">
+        <text class="f-label">商品ID</text>
+        <input v-model="form.productId" type="number" class="f-input" placeholder="原订单中的商品ID" />
+      </view>
+      <view class="form-item">
+        <text class="f-label">换货数量</text>
+        <input v-model="form.num" type="number" class="f-input" placeholder="1" />
+      </view>
+      <view class="form-item">
+        <text class="f-label">换货原因</text>
+        <textarea v-model="form.reason" class="f-textarea" placeholder="请描述换货原因" />
+      </view>
+      <button class="submit-btn" @click="submit">提交申请</button>
+    </view>
+
+    <view class="list-title">换货记录</view>
+    <view v-for="e in list" :key="e.id" class="ex-card">
+      <view class="row-1">
+        <text class="ex-no">{{ e.exchangeNo }}</text>
+        <text class="ex-status" :class="'st' + e.status">{{ statusText(e.status) }}</text>
+      </view>
+      <view class="ex-row">{{ e.productName }} × {{ e.num }}（原单 {{ e.orderNo }}）</view>
+      <view class="ex-row grey">原因：{{ e.reason }}</view>
+      <view v-if="e.status === -1" class="ex-row red">驳回原因：{{ e.rejectReason }}</view>
+      <view v-if="e.backExpressNum" class="ex-row blue">旧品退回：{{ e.backExpressName }} {{ e.backExpressNum }}</view>
+      <view v-if="e.newExpressNum" class="ex-row blue">新品发出：{{ e.newExpressName }} {{ e.newExpressNum }}</view>
+      <view class="row-op" v-if="e.status === 2">
+        <button class="op-btn primary" size="mini" @click="fillBack(e)">填写旧品退回快递</button>
+      </view>
+      <view class="row-op" v-if="e.status === 0">
+        <button class="op-btn primary" size="mini" @click="audit(e, 1)">上级通过</button>
+        <button class="op-btn danger" size="mini" @click="audit(e, -1)">驳回</button>
+      </view>
+    </view>
+    <view v-if="!list.length && loaded" class="empty">暂无换货记录</view>
+  </view>
+</template>
+
+<script>
+	import { getMyExchanges, applyStockExchange, fillExchangeBackExpress, auditStockExchange } from '@/api/stock.js';
+	export default {
+		data() {
+			return {
+				list: [],
+				loaded: false,
+				canApply: false,
+				form: { orderId: '', productId: '', num: '1', reason: '' }
+			};
+		},
+		onLoad(opt) {
+			if (opt.orderId) {
+				this.form.orderId = opt.orderId;
+				this.canApply = true;
+			}
+			this.load();
+		},
+		methods: {
+			statusText(s) {
+				return { 0: '待上级审核', 1: '待总部审核', 2: '待旧品退回', 3: '待发新品', 4: '已完成', '-1': '已驳回' }[s] || s;
+			},
+			load() {
+				getMyExchanges({ page: 1, limit: 30 }).then(res => {
+					this.list = res.data.list || [];
+					this.loaded = true;
+				}).catch(() => { this.loaded = true; });
+			},
+			submit() {
+				if (!this.form.orderId || !this.form.productId) return this.$util.Tips({ title: '请填写原订单与商品ID' });
+				if (!this.form.reason) return this.$util.Tips({ title: '请填写换货原因' });
+				applyStockExchange({
+					orderId: Number(this.form.orderId),
+					productId: Number(this.form.productId),
+					num: Number(this.form.num || 1),
+					reason: this.form.reason
+				}).then(() => {
+					this.$util.Tips({ title: '申请已提交' });
+					this.load();
+				});
+			},
+			fillBack(e) {
+				uni.showModal({
+					title: '旧品退回快递',
+					editable: true,
+					placeholderText: '快递公司 快递单号（空格分隔）',
+					success: (m) => {
+						if (!m.confirm || !m.content) return;
+						const parts = m.content.trim().split(/\s+/);
+						fillExchangeBackExpress(e.id, { backExpressName: parts[0] || '', backExpressNum: parts[1] || '' }).then(() => {
+							uni.showToast({ title: '已保存', icon: 'success' });
+							this.load();
+						});
+					}
+				});
+			},
+			audit(e, result) {
+				const doAudit = (data) => {
+					auditStockExchange(e.id, data).then(() => {
+						uni.showToast({ title: '已操作', icon: 'success' });
+						this.load();
+					});
+				};
+				if (result === -1) {
+					uni.showModal({
+						title: '驳回换货',
+						editable: true,
+						placeholderText: '请填写驳回原因',
+						success: (m) => { if (m.confirm) doAudit({ status: -1, reason: m.content || '' }); }
+					});
+				} else {
+					uni.showModal({
+						title: '通过审核',
+						content: '通过后流转总部审核。',
+						success: (m) => { if (m.confirm) doAudit({ status: 1 }); }
+					});
+				}
+			}
+		}
+	};
+</script>
+
+<style lang="scss" scoped>
+.exchange-page { min-height: 100vh; background: #f5f6f8; padding: 24rpx; }
+.apply-card, .ex-card { background: #fff; border-radius: 16rpx; padding: 26rpx; margin-bottom: 20rpx; }
+.card-title, .list-title { font-size: 30rpx; font-weight: 600; color: #333; margin-bottom: 20rpx; }
+.list-title { margin: 10rpx 4rpx; }
+.form-item { display: flex; align-items: flex-start; margin-bottom: 18rpx; }
+.f-label { width: 170rpx; font-size: 26rpx; color: #666; padding-top: 10rpx; flex-shrink: 0; }
+.f-input { flex: 1; background: #f5f6f8; border-radius: 10rpx; height: 70rpx; padding: 0 20rpx; font-size: 26rpx; }
+.f-textarea { flex: 1; background: #f5f6f8; border-radius: 10rpx; padding: 16rpx 20rpx; font-size: 26rpx; height: 130rpx; }
+.submit-btn { background: #2b6fe3; color: #fff; border-radius: 40rpx; font-size: 28rpx; margin-top: 10rpx; }
+.row-1 { display: flex; justify-content: space-between; margin-bottom: 10rpx; }
+.ex-no { font-size: 26rpx; font-weight: 600; color: #333; }
+.ex-status { font-size: 24rpx; }
+.st0 { color: #ff9a3c; } .st1 { color: #ff9a3c; } .st2 { color: #2b6fe3; } .st3 { color: #2b6fe3; }
+.st4 { color: #5cc45c; } .st-1 { color: #f56c6c; }
+.ex-row { font-size: 25rpx; color: #333; margin-bottom: 8rpx; }
+.grey { color: #999; } .red { color: #f56c6c; } .blue { color: #2b6fe3; }
+.row-op { display: flex; justify-content: flex-end; margin-top: 12rpx; gap: 16rpx; }
+.op-btn { border-radius: 30rpx; font-size: 24rpx; background: #f2f3f5; color: #666; }
+.op-btn.primary { background: #2b6fe3; color: #fff; }
+.op-btn.danger { background: #f56c6c; color: #fff; }
+.empty { text-align: center; color: #999; padding: 100rpx 0; font-size: 26rpx; }
+</style>

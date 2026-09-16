@@ -1,0 +1,66 @@
+// +----------------------------------------------------------------------
+// | 订货系统路由
+// +----------------------------------------------------------------------
+// force-rebuild-20260917a
+import Layout from '@/layout';
+
+export default {
+  path: '/stock',
+  component: Layout,
+  redirect: '/stock/agent',
+  name: 'Stock',
+  meta: {
+    title: '订货',
+    icon: 'clipboard'
+  },
+  children: [
+    {
+      path: 'agent',
+      component: () => import('@/views/stock/agent/index'),
+      name: 'StockAgent',
+      meta: { title: '订货代理', icon: '' }
+    },
+    {
+      path: 'product',
+      component: () => import('@/views/stock/product/index'),
+      name: 'StockProduct',
+      meta: { title: '商品与库存', icon: '' }
+    },
+    {
+      path: 'order',
+      component: () => import('@/views/stock/order/index'),
+      name: 'StockOrder',
+      meta: { title: '订货订单', icon: '' }
+    },
+    {
+      path: 'exchange',
+      component: () => import('@/views/stock/exchange/index'),
+      name: 'StockExchange',
+      meta: { title: '换货管理', icon: '' }
+    },
+    {
+      path: 'reward',
+      component: () => import('@/views/stock/reward/index'),
+      name: 'StockReward',
+      meta: { title: '奖金明细', icon: '' }
+    },
+    {
+      path: 'withdraw',
+      component: () => import('@/views/stock/withdraw/index'),
+      name: 'StockWithdraw',
+      meta: { title: '提现管理', icon: '' }
+    },
+    {
+      path: 'setting',
+      component: () => import('@/views/stock/setting/index'),
+      name: 'StockSetting',
+      meta: { title: '奖励规则', icon: '' }
+    },
+    {
+      path: 'report',
+      component: () => import('@/views/stock/report/index'),
+      name: 'StockReport',
+      meta: { title: '数据报表', icon: '' }
+    }
+  ]
+};

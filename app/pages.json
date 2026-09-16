@@ -156,17 +156,66 @@
 				},
 				{
 					"path": "agent/index",
-					"style": {
-						"navigationBarTitleText": "代理中心",
-						"app-plus": {
-							// #ifdef APP-PLUS
-							"titleNView": {
-								"type": "default"
-							}
-							// #endif
+				"path": "agent/index",
+				"style": {
+					"navigationBarTitleText": "代理中心",
+					"app-plus": {
+						// #ifdef APP-PLUS
+						"titleNView": {
+							"type": "default"
 						}
+						// #endif
 					}
-				},
+				}
+			},
+			{
+				"path": "stock/index",
+				"style": {
+					"navigationBarTitleText": "订货中心"
+				}
+			},
+			{
+				"path": "stock/goods",
+				"style": {
+					"navigationBarTitleText": "商品中心"
+				}
+			},
+			{
+				"path": "stock/order-list",
+				"style": {
+					"navigationBarTitleText": "订货订单"
+				}
+			},
+			{
+				"path": "stock/exchange",
+				"style": {
+					"navigationBarTitleText": "换货管理"
+				}
+			},
+			{
+				"path": "stock/team",
+				"style": {
+					"navigationBarTitleText": "我的团队"
+				}
+			},
+			{
+				"path": "stock/performance",
+				"style": {
+					"navigationBarTitleText": "业绩中心"
+				}
+			},
+			{
+				"path": "stock/bonus",
+				"style": {
+					"navigationBarTitleText": "奖金中心"
+				}
+			},
+			{
+				"path": "stock/notice",
+				"style": {
+					"navigationBarTitleText": "消息通知"
+				}
+			},
 				{
 					"path": "user_money/index",
 					"style": {
