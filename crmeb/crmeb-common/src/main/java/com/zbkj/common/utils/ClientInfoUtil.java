@@ -93,7 +93,9 @@ public class ClientInfoUtil {
             return "Android " + getVersion(ua, "Android ");
         }
         if (ua.contains("iPhone") || ua.contains("iPad") || ua.contains("iPod")) {
-            return "iOS " + getVersion(ua, "OS ");
+            // iOS 的 UA 用下划线表示版本（如 CPU iPhone OS 17_1），展示时转成点号
+            String iosVersion = getVersion(ua, "OS ").replace('_', '.').trim();
+            return iosVersion.isEmpty() ? "iOS" : "iOS " + iosVersion;
         }
         if (ua.contains("Mac OS X")) {
             return "macOS " + getVersion(ua, "Mac OS X ");
