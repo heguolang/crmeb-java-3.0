@@ -307,7 +307,7 @@
                 <el-dropdown-item
                   @click.native="setExtension(scope.row)"
                   v-if="checkPermi(['admin:user:update:spread'])"
-                  >选择推荐人账户</el-dropdown-item
+                  >修改推荐人</el-dropdown-item
                 >
                 <el-dropdown-item
                   @click.native="clearSpread(scope.row)"
@@ -345,8 +345,8 @@
         </el-checkbox-group>
       </template>
     </div>
-    <!--选择推荐人账户-->
-    <el-dialog title="选择推荐人账户" :visible.sync="extensionVisible" width="540px" :before-close="handleCloseExtension">
+    <!--修改推荐人-->
+    <el-dialog title="修改推荐人" :visible.sync="extensionVisible" width="540px" :before-close="handleCloseExtension">
       <el-form
         class="formExtension"
         ref="formExtension"
