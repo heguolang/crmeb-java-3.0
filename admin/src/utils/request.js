@@ -19,6 +19,22 @@ const service = axios.create({
   timeout: 60000, // 过期时间
 });
 
+/**
+ * 判断是否为「一号通未配置」类错误，这类错误无需打扰用户，仅控制台记录。
+ * 场景：本地未登录/未配置一号通（accessKey、secretKey），商家寄件、电子面单等
+ * 依赖云平台的功能会返回此类错误。属于可选功能未开通，不影响系统正常使用。
+ */
+function isOnePassDisabledMessage(msg) {
+  if (!msg) return false;
+  const text = String(msg);
+  return (
+    text.indexOf('accessKey') > -1 ||
+    text.indexOf('secretKey') > -1 ||
+    text.indexOf('一号通') > -1 ||
+    text.indexOf('平台接口') > -1
+  );
+}
+
 // request interceptor
 service.interceptors.request.use(
   (config) => {
@@ -54,6 +70,11 @@ service.interceptors.response.use(
     if (![0, 200].includes(res.code) && res.code !== 401) {
       if (isPhone()) {
         //移动端
+        return Promise.reject(res || 'Error');
+      }
+      // 一号通未配置类错误静默处理：不打搅用户，仅在控制台留痕
+      if (isOnePassDisabledMessage(res.message)) {
+        console.warn('[一号通未配置] ' + (res.message || '') + '（该功能需登录一号通后使用，忽略即可）');
         return Promise.reject(res || 'Error');
       }
       Message({

@@ -323,9 +323,14 @@ export default {
     checkPermi,
     //一号通 商家寄件 快递列表
     getShipmentExpress() {
-      shipmentExpressApi().then((res) => {
-        this.shipmentExpress = res.data;
-      });
+      shipmentExpressApi()
+        .then((res) => {
+          this.shipmentExpress = res.data || [];
+        })
+        .catch(() => {
+          // 一号通未配置时该接口不可用，商家寄件为可选功能，静默降级即可
+          this.shipmentExpress = [];
+        });
     },
     // 取件时间选择
     onchangeTime(e) {
@@ -367,11 +372,15 @@ export default {
     },
     // 默认信息
     sheetInfo() {
-      sheetInfoApi().then(async (res) => {
-        this.formItem.toAddr = res.exportToAddress || '';
-        this.formItem.toName = res.exportToName || '';
-        this.formItem.toTel = res.exportToTel || '';
-      });
+      sheetInfoApi()
+        .then(async (res) => {
+          this.formItem.toAddr = res.exportToAddress || '';
+          this.formItem.toName = res.exportToName || '';
+          this.formItem.toTel = res.exportToTel || '';
+        })
+        .catch(() => {
+          // 一号通相关配置缺失时静默降级，留空由用户手填
+        });
     },
     // 快递公司选择
     onChangeExport(val) {
@@ -382,9 +391,14 @@ export default {
     },
     // 电子面单模板
     exportTemp(code) {
-      exportTempApi({ com: code }).then(async (res) => {
-        this.exportTempList = res.data.data || [];
-      });
+      exportTempApi({ com: code })
+        .then(async (res) => {
+          this.exportTempList = (res.data && res.data.data) || [];
+        })
+        .catch(() => {
+          // 一号通电子面单未开通时静默降级，模板列表置空
+          this.exportTempList = [];
+        });
     },
     onChangeImg(item) {
       this.exportTempList.map((i) => {

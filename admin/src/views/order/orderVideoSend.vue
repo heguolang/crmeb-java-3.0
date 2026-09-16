@@ -63,10 +63,15 @@ export default {
   methods: {
     // 视频号快递公司
     companyGetList() {
-      companyGetListApi().then(async (res) => {
-        this.express = res;
-        sessionStorage.setItem('videoExpress', JSON.stringify(res));
-      });
+      companyGetListApi()
+        .then(async (res) => {
+          this.express = res;
+          sessionStorage.setItem('videoExpress', JSON.stringify(res));
+        })
+        .catch(() => {
+          // 依赖一号通/视频号配置，未开通时静默降级，快递公司留空
+          this.express = [];
+        });
     },
     // 提交
     putSend: Debounce(function (name) {
