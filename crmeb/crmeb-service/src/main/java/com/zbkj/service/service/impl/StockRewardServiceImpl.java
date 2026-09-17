@@ -168,7 +168,8 @@ public class StockRewardServiceImpl implements StockRewardService {
 
     /**
      * 阶梯业绩奖励结算（2026-09-18 改造：取消级差差额模式）：
-     * 每个订货商规则相同 —— 团队业绩落入阶梯区间即得【固定金额 + 业绩×比例】的一次性奖励。
+     * 每个订货商规则相同 —— 团队业绩落入阶梯区间即得一次性奖励。
+     * 每档奖励【固定金额 / 业绩比例】二选一：固定金额 > 0 时直接发固定金额，否则按 团队业绩 × 比例% 发放。
      * type: 1=月度 2=季度 3=年度；month 为该周期内任一月份（yyyy-MM），自动归集周期起止。
      * 幂等：先失效同周期已发记录再统一重发，可重复执行。
      */
@@ -208,15 +209,23 @@ public class StockRewardServiceImpl implements StockRewardService {
                 if (hit == null) {
                     continue;
                 }
+                // 固定金额 / 业绩比例 二选一：固定金额 > 0 直接发固定，否则按 团队业绩 × 比例%
                 BigDecimal fixed = hit.getReward() == null ? BigDecimal.ZERO : hit.getReward();
-                BigDecimal ratePart = teamPerf.multiply(nz(hit.getRate()))
-                        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-                BigDecimal reward = fixed.add(ratePart);
+                BigDecimal reward;
+                String ruleDesc;
+                if (fixed.signum() > 0) {
+                    reward = fixed;
+                    ruleDesc = "固定 " + fixed + " 元";
+                } else {
+                    reward = teamPerf.multiply(nz(hit.getRate()))
+                            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                    ruleDesc = "业绩 " + teamPerf + " × " + nz(hit.getRate()) + "%";
+                }
                 if (reward.signum() <= 0) {
                     continue;
                 }
                 String mark = "阶梯业绩结算|" + periodKey + "|" + periodName + "|团队业绩 " + teamPerf
-                        + " 固定 " + fixed + " 比例 " + nz(hit.getRate()) + "%";
+                        + " " + ruleDesc;
                 StockReward r = new StockReward();
                 r.setUid(agent.getUid());
                 r.setType(StockReward.TYPE_LADDER);
@@ -224,7 +233,7 @@ public class StockRewardServiceImpl implements StockRewardService {
                 r.setOrderNo("period:" + periodKey);
                 r.setLinkUid(0);
                 r.setBasePrice(teamPerf);
-                r.setRate(nz(hit.getRate()));
+                r.setRate(fixed.signum() > 0 ? BigDecimal.ZERO : nz(hit.getRate()));
                 r.setRewardPrice(reward);
                 r.setMark(mark);
                 r.setStatus(StockReward.STATUS_CREDITED);

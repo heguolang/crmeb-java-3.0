@@ -27,7 +27,7 @@
         <el-divider />
         <el-form-item label="阶梯业绩奖励">
           <el-switch v-model="form.stock_ladder_status" :active-value="'1'" :inactive-value="'0'" />
-          <span class="switch-tip">开启：团队业绩达到阶梯后按【固定金额 + 业绩×比例】奖励，每个订货商规则相同，按下方周期一次性自动结算</span>
+          <span class="switch-tip">开启：团队业绩达到阶梯后按【固定金额 或 业绩×比例】二选一奖励，每个订货商规则相同，按下方周期一次性自动结算</span>
         </el-form-item>
         <el-form-item label="结算周期">
           <el-radio-group v-model="form.stock_ladder_cycle">
@@ -42,7 +42,7 @@
           <el-button size="small" type="warning" style="margin-left: 10px" @click="onMonthlySettle">立即结算该周期</el-button>
           <span class="switch-tip">选择周期内任一月份，系统自动归集（幂等，可重复执行）</span>
         </el-form-item>
-        <el-form-item label="业绩阶梯（业绩 → 固定金额 + 比例）">
+        <el-form-item label="业绩阶梯（业绩 → 固定金额 或 比例%）">
           <div>
             <div v-for="(l, idx) in ladders" :key="idx" style="margin-bottom: 6px">
               <el-input-number v-model="l.minAmount" :min="0" :precision="0" size="mini" style="width: 120px" />
@@ -57,7 +57,7 @@
               <el-button type="text" size="mini" class="red" @click="ladders.splice(idx, 1)">删除</el-button>
             </div>
             <el-button size="mini" @click="ladders.push({ minAmount: 0, maxAmount: 0, reward: 0, rate: 0 })">+ 添加阶梯</el-button>
-            <div class="switch-tip" style="margin-top: 6px; margin-left: 0">示例：月业绩 1~2 万 → 固定 500 元；2~5 万 → 固定 3000 元。奖励 = 固定金额 + 团队业绩 × 比例%</div>
+            <div class="switch-tip" style="margin-top: 6px; margin-left: 0">示例：月业绩 1~2 万 → 奖 500 元；2~5 万 → 奖 3000 元。每档【固定金额 / 比例%】二选一：填了固定金额直接发固定，否则按 团队业绩 × 比例% 发放</div>
           </div>
         </el-form-item>
         <el-divider />
