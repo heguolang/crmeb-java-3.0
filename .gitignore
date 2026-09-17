@@ -41,3 +41,10 @@ desktop.ini
 
 # Temp commit message
 _COMMIT_MSG*
+
+# app-h5/ 是 app/ 的本地 CLI 构建副本（用于 vue-cli-service uni-build 验证），
+# 源码与 app/ 重复且 node_modules 体积巨大，不入库
+app-h5/
+
+# 本地开发脚本的运行日志
+local-dev/logs/
