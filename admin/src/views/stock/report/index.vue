@@ -66,7 +66,7 @@ export default {
         { label: '订货总金额', value: s.totalAmount || 0, sub: '共 ' + (s.totalCount || 0) + ' 单' },
         { label: '已完成金额', value: s.doneAmount || 0, sub: (s.doneCount || 0) + ' 单已完成' },
         { label: '差价奖励', value: s.diffSum || 0, sub: '已入账' },
-        { label: '级差+平级奖励', value: Number(s.ladderSum || 0) + Number(s.peerSum || 0), sub: '已入账' }
+        { label: '阶梯+平级奖励', value: Number(s.ladderSum || 0) + Number(s.peerSum || 0), sub: '已入账' }
       ];
     },
     dateLimit() {

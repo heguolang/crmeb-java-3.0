@@ -352,10 +352,10 @@ public class StockController {
     }
 
     @PreAuthorize("hasAuthority('admin:stock:setting:save')")
-    @ApiOperation(value = "级差月结")
+    @ApiOperation(value = "阶梯业绩奖励结算（月度/季度/年度）")
     @RequestMapping(value = "/reward/monthlySettle", method = RequestMethod.POST)
     public CommonResult<String> monthlySettle(@RequestBody @Validated StockRequests.StockMonthlySettleRequest request) {
-        if (stockRewardService.monthlySettle(request.getMonth())) {
+        if (stockRewardService.settleLadderReward(request.getType(), request.getMonth())) {
             return CommonResult.success();
         }
         return CommonResult.failed();

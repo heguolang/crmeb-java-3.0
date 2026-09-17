@@ -10,7 +10,7 @@
     </view>
     <view class="type-row">
       <view class="type-item"><text class="ti-num">¥{{ bonus.diffReward || 0 }}</text><text class="ti-label">差价奖励</text></view>
-      <view class="type-item"><text class="ti-num">¥{{ bonus.ladderReward || 0 }}</text><text class="ti-label">级差奖励</text></view>
+      <view class="type-item"><text class="ti-num">¥{{ bonus.ladderReward || 0 }}</text><text class="ti-label">阶梯奖励</text></view>
       <view class="type-item"><text class="ti-num">¥{{ bonus.peerReward || 0 }}</text><text class="ti-label">平级奖励</text></view>
     </view>
 
@@ -45,7 +45,7 @@
 		},
 		methods: {
 			typeName(t) {
-				return { 1: '差价奖励', 2: '级差奖励', 3: '平级奖励' }[t] || '奖励';
+				return { 1: '差价奖励', 2: '阶梯奖励', 3: '平级奖励' }[t] || '奖励';
 			},
 			load() {
 				getMyStockBonus().then(res => { this.bonus = res.data || {}; });

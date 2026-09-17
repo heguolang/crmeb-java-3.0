@@ -26,8 +26,11 @@ public interface StockRewardService {
      */
     void settleOrderReward(StockOrder order);
 
-    /** 级差月结：按月重算指定月份全部代理级差奖励 */
-    Boolean monthlySettle(String month);
+    /**
+     * 阶梯业绩奖励结算：按周期（1=月度 2=季度 3=年度）重算指定周期内全部代理的阶梯奖励。
+     * month 为该周期内任一月份（yyyy-MM），后端自动归集周期起止；幂等可重复执行。
+     */
+    Boolean settleLadderReward(Integer type, String month);
 
     // ==================== 会员端 ====================
 

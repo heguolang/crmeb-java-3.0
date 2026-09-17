@@ -145,13 +145,32 @@ public class StockRequests {
     }
 
     @Data
-    @ApiModel(value = "StockMonthlySettleRequest对象", description = "级差月结请求")
+    @ApiModel(value = "StockMonthlySettleRequest对象", description = "阶梯业绩结算请求")
     public static class StockMonthlySettleRequest implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
-        @ApiModelProperty(value = "结算月份（yyyy-MM）")
+        @ApiModelProperty(value = "结算周期类型：1=月度 2=季度 3=年度")
+        private Integer type;
+
+        @ApiModelProperty(value = "结算月份（yyyy-MM，季度/年度取该周期内任一月自动归集）")
         @NotBlank(message = "结算月份不能为空")
         private String month;
+
+        public Integer getType() {
+            return type == null || type <= 0 ? 1 : type;
+        }
+
+        public void setType(Integer type) {
+            this.type = type;
+        }
+
+        public String getMonth() {
+            return month;
+        }
+
+        public void setMonth(String month) {
+            this.month = month;
+        }
     }
 }

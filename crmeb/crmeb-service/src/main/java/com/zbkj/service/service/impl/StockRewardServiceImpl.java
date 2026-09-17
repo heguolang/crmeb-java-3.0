@@ -77,6 +77,9 @@ public class StockRewardServiceImpl implements StockRewardService {
     private com.zbkj.service.service.UserBrokerageRecordService userBrokerageRecordService;
 
     @Resource
+    private com.zbkj.service.dao.StockLevelDao stockLevelDao;
+
+    @Resource
     private SystemConfigService systemConfigService;
 
     @Resource
@@ -89,9 +92,8 @@ public class StockRewardServiceImpl implements StockRewardService {
         transactionTemplate.executeWithoutResult(status -> {
             // 1) 差价奖励
             calcDiffReward(order);
-            // 2) 级差奖励（按单结算模式下立即结算）
-            calcLadderReward(order);
-            // 3) 平级奖励
+            // 2) 阶梯业绩奖励：不再按单结算，由周期性任务/手动结算统一发放（settleLadderReward）
+            // 3) 平级奖励（按层级设置中的平级奖比例）
             calcPeerReward(order);
         });
     }
@@ -129,121 +131,61 @@ public class StockRewardServiceImpl implements StockRewardService {
                         + "（下级拿价 - 上级拿价）×" + order.getTotalNum());
     }
 
-    /** 级差：沿上级链，团队业绩阶梯差额比例 × 本单金额（按单周期）；按月周期在此跳过，由月结处理 */
-    private void calcLadderReward(StockOrder order) {
-        if (!"1".equals(systemConfigService.getValueByKey("stock_ladder_status"))) {
-            return;
-        }
-        if ("2".equals(systemConfigService.getValueByKey("stock_ladder_cycle"))) {
-            // 按月结算：完成单只累计业绩，月结时统一发放
-            return;
-        }
+    /**
+     * 平级奖励（2026-09-18 调整：全局配置已废弃，改为按层级设置中的平级奖比例）：
+     * 需求口径 —— 下级代理 B 产生订货业绩时，其【直接上级】A 若与 B 同层级（同级平推），
+     * A 按其层级在层级设置中配置的平级奖比例（eb_stock_level.peer_rate）拿 B 本单金额的奖励，只拿直接一代。
+     */
+    private void calcPeerReward(StockOrder order) {
         StockAgent start = stockService.getAgentById(order.getAgentId());
         if (start == null) {
             return;
         }
-        List<StockLadder> ladders = getLadders();
-        if (ladders.isEmpty()) {
+        if (start.getParentId() == null || start.getParentId() <= 0) {
             return;
         }
-        Set<Integer> visited = new HashSet<>();
-        StockAgent current = start;
-        int depth = 0;
-        while (current.getParentId() != null && current.getParentId() > 0 && depth < 50) {
-            StockAgent ancestor = stockService.getAgentById(current.getParentId());
-            if (ancestor == null || ancestor.getStatus() == 0 || !visited.add(ancestor.getId())) {
-                break;
-            }
-            BigDecimal myTeamPerf = teamPerformance(ancestor, null);
-            BigDecimal myRate = ladderRate(ladders, myTeamPerf);
-            // 直接下级中团队业绩最大者的比例
-            BigDecimal maxChildRate = BigDecimal.ZERO;
-            List<StockAgent> children = directChildren(ancestor.getId());
-            for (StockAgent child : children) {
-                BigDecimal childPerf = teamPerformance(child, null);
-                BigDecimal childRate = ladderRate(ladders, childPerf);
-                if (childRate.compareTo(maxChildRate) > 0) {
-                    maxChildRate = childRate;
-                }
-            }
-            BigDecimal diffRate = myRate.subtract(maxChildRate);
-            if (diffRate.signum() > 0) {
-                BigDecimal reward = order.getTotalPrice().multiply(diffRate)
-                        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-                if (reward.signum() > 0) {
-                    createRewardIfAbsent(ancestor.getUid(), StockReward.TYPE_LADDER, order.getOrderNo(), order.getUid(),
-                            order.getTotalPrice(), diffRate, reward,
-                            "级差奖励：单 " + order.getOrderNo() + " 团队业绩 " + myTeamPerf + " 比例 " + diffRate + "%");
-                }
-            }
-            current = ancestor;
-            depth++;
+        StockAgent up = stockService.getAgentById(start.getParentId());
+        if (up == null || up.getStatus() == null || up.getStatus() != 1) {
+            return;
+        }
+        // 仅同级平推产生平级奖
+        if (!up.getLevelId().equals(start.getLevelId())) {
+            return;
+        }
+        com.zbkj.common.model.stock.StockLevel level = stockLevelDao.selectById(up.getLevelId());
+        if (level == null || level.getPeerRate() == null || level.getPeerRate().signum() <= 0) {
+            return;
+        }
+        BigDecimal reward = order.getTotalPrice().multiply(level.getPeerRate())
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        if (reward.signum() > 0) {
+            createRewardIfAbsent(up.getUid(), StockReward.TYPE_PEER, order.getOrderNo(), order.getUid(),
+                    order.getTotalPrice(), level.getPeerRate(), reward,
+                    "平级奖励：同级下级单 " + order.getOrderNo() + " 按层级【" + level.getName()
+                            + "】比例 " + level.getPeerRate() + "%");
         }
     }
 
     /**
-     * 平级奖励：
-     * 需求口径 —— A 推荐 B 成为【同级】代理，B 产生订货业绩时 A 拿 B 业绩的一定比例。
-     * 实现：以下单代理 B 自身的层级为基准，沿其上级链向上找与 B 同层级的代理，
-     *      最多往上拿 generations 代（stock_peer_generations，默认 1 = 只拿直接平推的同级）。
+     * 阶梯业绩奖励结算（2026-09-18 改造：取消级差差额模式）：
+     * 每个订货商规则相同 —— 团队业绩落入阶梯区间即得【固定金额 + 业绩×比例】的一次性奖励。
+     * type: 1=月度 2=季度 3=年度；month 为该周期内任一月份（yyyy-MM），自动归集周期起止。
+     * 幂等：先失效同周期已发记录再统一重发，可重复执行。
      */
-    private void calcPeerReward(StockOrder order) {
-        if (!"1".equals(systemConfigService.getValueByKey("stock_peer_status"))) {
-            return;
-        }
-        String rateStr = systemConfigService.getValueByKey("stock_peer_rate");
-        String genStr = systemConfigService.getValueByKey("stock_peer_generations");
-        BigDecimal rate = parseDecimal(rateStr, BigDecimal.ZERO);
-        int generations = parseInt(genStr, 1);
-        if (rate.signum() <= 0 || generations <= 0) {
-            return;
-        }
-        StockAgent start = stockService.getAgentById(order.getAgentId());
-        if (start == null) {
-            return;
-        }
-        // 沿上级链向上找与下单者同层级的代理
-        int found = 0;
-        StockAgent cursor = start;
-        int depth = 0;
-        while (found < generations && depth < 50) {
-            if (cursor.getParentId() == null || cursor.getParentId() == 0) {
-                break;
-            }
-            StockAgent up = stockService.getAgentById(cursor.getParentId());
-            if (up == null) {
-                break;
-            }
-            if (up.getLevelId().equals(start.getLevelId())) {
-                if (up.getStatus() != null && up.getStatus() == 1) {
-                    BigDecimal reward = order.getTotalPrice().multiply(rate)
-                            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-                    if (reward.signum() > 0) {
-                        createRewardIfAbsent(up.getUid(), StockReward.TYPE_PEER, order.getOrderNo(), order.getUid(),
-                                order.getTotalPrice(), rate, reward,
-                                "平级奖励：同级下级 " + order.getUid() + " 单 " + order.getOrderNo()
-                                        + " 比例 " + rate + "%（第" + (found + 1) + "代）");
-                    }
-                }
-                found++;
-            }
-            cursor = up;
-            depth++;
-        }
-    }
-
-    /** 级差月结：重算指定月份（幂等：先失效该月已发级差再统一重发） */
     @Override
-    public Boolean monthlySettle(String month) {
+    public Boolean settleLadderReward(Integer type, String month) {
         if (!"1".equals(systemConfigService.getValueByKey("stock_ladder_status"))) {
-            throw new CrmebException("级差奖励未开启");
+            throw new CrmebException("阶梯业绩奖励未开启");
         }
-        String[] range = monthRange(month);
+        int t = type == null || type <= 0 ? 1 : type;
+        String[] range = periodRange(t, month);
+        String periodKey = periodKey(t, month);
+        String periodName = t == 1 ? "月度" : (t == 2 ? "季度" : "年度");
         return transactionTemplate.execute(status -> {
-            // 失效该月已发级差
+            // 失效同周期已发记录（幂等）
             List<StockReward> olds = stockRewardDao.selectList(new LambdaQueryWrapper<StockReward>()
                     .eq(StockReward::getType, StockReward.TYPE_LADDER)
-                    .likeRight(StockReward::getMark, "级差月结|" + month));
+                    .likeRight(StockReward::getMark, "阶梯业绩结算|" + periodKey));
             for (StockReward old : olds) {
                 old.setStatus(StockReward.STATUS_INVALID);
                 stockRewardDao.updateById(old);
@@ -258,46 +200,106 @@ public class StockRewardServiceImpl implements StockRewardService {
             bigPage.setLimit(10000);
             agents = stockService.getAdminAgentList(null, null, null, bigPage).getList();
             for (StockAgent agent : agents) {
-                BigDecimal myTeamPerf = teamPerformance(agent, range);
-                if (myTeamPerf.signum() <= 0) {
+                BigDecimal teamPerf = teamPerformance(agent, range);
+                if (teamPerf.signum() <= 0) {
                     continue;
                 }
-                BigDecimal myRate = ladderRate(ladders, myTeamPerf);
-                BigDecimal maxChildRate = BigDecimal.ZERO;
-                for (StockAgent child : directChildren(agent.getId())) {
-                    BigDecimal childPerf = teamPerformance(child, range);
-                    BigDecimal childRate = ladderRate(ladders, childPerf);
-                    if (childRate.compareTo(maxChildRate) > 0) {
-                        maxChildRate = childRate;
-                    }
-                }
-                BigDecimal diffRate = myRate.subtract(maxChildRate);
-                if (diffRate.signum() <= 0) {
+                StockLadder hit = matchLadder(ladders, teamPerf);
+                if (hit == null) {
                     continue;
                 }
-                BigDecimal reward = myTeamPerf.multiply(diffRate)
+                BigDecimal fixed = hit.getReward() == null ? BigDecimal.ZERO : hit.getReward();
+                BigDecimal ratePart = teamPerf.multiply(nz(hit.getRate()))
                         .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                BigDecimal reward = fixed.add(ratePart);
                 if (reward.signum() <= 0) {
                     continue;
                 }
+                String mark = "阶梯业绩结算|" + periodKey + "|" + periodName + "|团队业绩 " + teamPerf
+                        + " 固定 " + fixed + " 比例 " + nz(hit.getRate()) + "%";
                 StockReward r = new StockReward();
                 r.setUid(agent.getUid());
                 r.setType(StockReward.TYPE_LADDER);
                 r.setSource(StockReward.SOURCE_ORDER);
-                r.setOrderNo("month:" + month);
+                r.setOrderNo("period:" + periodKey);
                 r.setLinkUid(0);
-                r.setBasePrice(myTeamPerf);
-                r.setRate(diffRate);
+                r.setBasePrice(teamPerf);
+                r.setRate(nz(hit.getRate()));
                 r.setRewardPrice(reward);
-                r.setMark("级差月结|" + month + "|团队业绩 " + myTeamPerf + " 比例 " + diffRate + "%");
+                r.setMark(mark);
                 r.setStatus(StockReward.STATUS_CREDITED);
                 stockRewardDao.insert(r);
-                // 月结奖金同步计入佣金余额
-                creditBrokerage(agent.getUid(), reward, "month:" + month, "订货奖金",
-                        "级差月结|" + month + "|团队业绩 " + myTeamPerf + " 比例 " + diffRate + "%");
+                // 阶梯奖励同步计入佣金余额
+                creditBrokerage(agent.getUid(), reward, "period:" + periodKey, "订货奖金", mark);
             }
             return true;
         }) != null;
+    }
+
+    /** 团队业绩落入的阶梯（min <= 业绩 < max，max=0 不限） */
+    private StockLadder matchLadder(List<StockLadder> ladders, BigDecimal perf) {
+        for (StockLadder l : ladders) {
+            BigDecimal min = nz(l.getMinAmount());
+            BigDecimal max = nz(l.getMaxAmount());
+            boolean geMin = perf.compareTo(min) >= 0;
+            boolean ltMax = max.signum() == 0 || perf.compareTo(max) < 0;
+            if (geMin && ltMax) {
+                return l;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 周期起止：type=1 该自然月；type=2 该月所在季度；type=3 该月所在年度。
+     * 返回 [startyyyy-MM-dd, endyyyy-MM-dd]（含头含尾的日期字符串，具体格式同 monthRange）
+     */
+    private String[] periodRange(int type, String month) {
+        if (type == 2) {
+            String qStart = quarterStartMonth(month);
+            String[] start = monthRange(qStart);
+            java.time.LocalDate first = java.time.LocalDate.parse(qStart + "-01");
+            java.time.LocalDate end = first.plusMonths(3).minusDays(1);
+            return new String[]{start[0], end.toString()};
+        }
+        if (type == 3) {
+            String year = month.trim().substring(0, 4);
+            String[] start = monthRange(year + "-01");
+            java.time.LocalDate first = java.time.LocalDate.parse(year + "-12-01");
+            java.time.LocalDate end = first.plusMonths(1).minusDays(1);
+            return new String[]{start[0], end.toString()};
+        }
+        return monthRange(month);
+    }
+
+    /** 周期标识：M2026-09 / Q2026-3(该季度首月所在年) / Y2026 */
+    private String periodKey(int type, String month) {
+        if (type == 2) {
+            String qStart = quarterStartMonth(month);
+            int q = (Integer.parseInt(qStart.substring(5, 7)) - 1) / 3 + 1;
+            return "Q" + qStart.substring(0, 4) + "-" + q;
+        }
+        if (type == 3) {
+            return "Y" + month.trim().substring(0, 4);
+        }
+        return "M" + month.trim();
+    }
+
+    /** 该月所在季度的首月（yyyy-MM） */
+    private String quarterStartMonth(String month) {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        c.setTime(parseMonth(month));
+        int m = c.get(java.util.Calendar.MONTH) + 1; // 1-12
+        int qStart = (m - 1) / 3 * 3 + 1;
+        return month.trim().substring(0, 4) + "-" + String.format("%02d", qStart);
+    }
+
+    private java.util.Date parseMonth(String month) {
+        try {
+            return new java.text.SimpleDateFormat("yyyy-MM").parse(month.trim());
+        } catch (java.text.ParseException e) {
+            throw new CrmebException("月份格式错误：" + month);
+        }
     }
 
     // ==================== 会员端 ====================
@@ -642,18 +644,6 @@ public class StockRewardServiceImpl implements StockRewardService {
                 .orderByAsc(StockLadder::getSort));
     }
 
-    private BigDecimal ladderRate(List<StockLadder> ladders, BigDecimal performance) {
-        for (StockLadder ladder : ladders) {
-            boolean geMin = performance.compareTo(ladder.getMinAmount()) >= 0;
-            boolean leMax = ladder.getMaxAmount() == null || ladder.getMaxAmount().signum() == 0
-                    || performance.compareTo(ladder.getMaxAmount()) <= 0;
-            if (geMin && leMax) {
-                return ladder.getRate();
-            }
-        }
-        return BigDecimal.ZERO;
-    }
-
     /** 团队业绩：名下全部下级（子树）完成单金额。range=null 表示不限时间 */
     private BigDecimal teamPerformance(StockAgent agent, String[] range) {
         List<Integer> subAgentIds = stockService.collectSubAgentIds(agent.getId());
@@ -778,6 +768,10 @@ public class StockRewardServiceImpl implements StockRewardService {
         } catch (Exception e) {
             return def;
         }
+    }
+
+    private BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
     }
 
     private int parseInt(String s, int def) {

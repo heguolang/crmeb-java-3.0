@@ -34,7 +34,10 @@ public class StockLadder implements Serializable {
     @ApiModelProperty(value = "团队业绩上限（0=不限）")
     private BigDecimal maxAmount;
 
-    @ApiModelProperty(value = "奖励比例（%）")
+    @ApiModelProperty(value = "阶梯固定奖励金额（元）")
+    private BigDecimal reward;
+
+    @ApiModelProperty(value = "奖励比例（%，按团队业绩计算）")
     private BigDecimal rate;
 
     @ApiModelProperty(value = "排序")

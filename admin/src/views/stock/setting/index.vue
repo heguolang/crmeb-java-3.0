@@ -25,47 +25,42 @@
           <span class="switch-tip">开启：换货完成时同样按差价发放奖励</span>
         </el-form-item>
         <el-divider />
-        <el-form-item label="团队级差奖励">
+        <el-form-item label="阶梯业绩奖励">
           <el-switch v-model="form.stock_ladder_status" :active-value="'1'" :inactive-value="'0'" />
-          <span class="switch-tip">开启：按团队业绩所属阶梯，取【与最大直推下级的比例差额】结算</span>
+          <span class="switch-tip">开启：团队业绩达到阶梯后按【固定金额 + 业绩×比例】奖励，每个订货商规则相同，按下方周期一次性自动结算</span>
         </el-form-item>
-        <el-form-item label="级差结算周期">
+        <el-form-item label="结算周期">
           <el-radio-group v-model="form.stock_ladder_cycle">
-            <el-radio label="1">按订单结算</el-radio>
-            <el-radio label="2">按月统计结算</el-radio>
+            <el-radio label="1">月度</el-radio>
+            <el-radio label="2">季度</el-radio>
+            <el-radio label="3">年度</el-radio>
           </el-radio-group>
+          <span class="switch-tip">每月 1 号凌晨 1 点系统自动结算上一周期（季度=季度首月 1 号，年度=1 月 1 号）</span>
         </el-form-item>
-        <el-form-item v-if="form.stock_ladder_cycle === '2'" label="级差月结">
+        <el-form-item label="手动补结算">
           <el-date-picker v-model="settleMonth" type="month" value-format="yyyy-MM" placeholder="选择月份" size="small" style="width: 150px" />
-          <el-button size="small" type="warning" style="margin-left: 10px" @click="onMonthlySettle">执行月结</el-button>
+          <el-button size="small" type="warning" style="margin-left: 10px" @click="onMonthlySettle">立即结算该周期</el-button>
+          <span class="switch-tip">选择周期内任一月份，系统自动归集（幂等，可重复执行）</span>
         </el-form-item>
-        <el-form-item label="级差阶梯（团队业绩 → 比例）">
+        <el-form-item label="业绩阶梯（业绩 → 固定金额 + 比例）">
           <div>
             <div v-for="(l, idx) in ladders" :key="idx" style="margin-bottom: 6px">
               <el-input-number v-model="l.minAmount" :min="0" :precision="0" size="mini" style="width: 120px" />
               <span style="margin: 0 4px">~</span>
               <el-input-number v-model="l.maxAmount" :min="0" :precision="0" size="mini" style="width: 120px" placeholder="0=不限" />
               <span style="margin: 0 6px">→</span>
+              <el-input-number v-model="l.reward" :min="0" :precision="2" size="mini" style="width: 110px" placeholder="固定奖励" />
+              <span style="margin: 0 2px">元</span>
+              <span style="margin: 0 4px">+</span>
               <el-input-number v-model="l.rate" :min="0" :max="100" :precision="2" size="mini" style="width: 100px" />
               <span style="margin-left: 4px">%</span>
               <el-button type="text" size="mini" class="red" @click="ladders.splice(idx, 1)">删除</el-button>
             </div>
-            <el-button size="mini" @click="ladders.push({ minAmount: 0, maxAmount: 0, rate: 2 })">+ 添加阶梯</el-button>
+            <el-button size="mini" @click="ladders.push({ minAmount: 0, maxAmount: 0, reward: 0, rate: 0 })">+ 添加阶梯</el-button>
+            <div class="switch-tip" style="margin-top: 6px; margin-left: 0">示例：月业绩 1~2 万 → 固定 500 元；2~5 万 → 固定 3000 元。奖励 = 固定金额 + 团队业绩 × 比例%</div>
           </div>
         </el-form-item>
         <el-divider />
-        <el-form-item label="平级奖励">
-          <el-switch v-model="form.stock_peer_status" :active-value="'1'" :inactive-value="'0'" />
-          <span class="switch-tip">开启：A 推荐 B 成为【同级】代理后，B 产生订货业绩时 A 按比例拿奖励</span>
-        </el-form-item>
-        <el-form-item label="平级奖励比例%">
-          <el-input-number v-model="peerRateNum" :min="0" :max="100" :precision="2" size="small" style="width: 140px" />
-          <span class="switch-tip">按业绩金额的百分比</span>
-        </el-form-item>
-        <el-form-item label="平级奖励代数">
-          <el-input-number v-model="peerGenNum" :min="1" :max="3" :precision="0" size="small" style="width: 140px" />
-          <span class="switch-tip">1 = 只拿直接平推的同级（不拿平级的平级）</span>
-        </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="saving" @click="onSave">保存全部规则</el-button>
         </el-form-item>
@@ -89,9 +84,6 @@ export default {
         stock_exchange_diff: '0',
         stock_ladder_status: '1',
         stock_ladder_cycle: '1',
-        stock_peer_status: '1',
-        stock_peer_rate: '5',
-        stock_peer_generations: '1',
         stock_parent_deliver: '0',
         stock_up_search_hours: '12'
       },
@@ -100,14 +92,6 @@ export default {
     };
   },
   computed: {
-    peerRateNum: {
-      get() { return Number(this.form.stock_peer_rate); },
-      set(v) { this.form.stock_peer_rate = String(v); }
-    },
-    peerGenNum: {
-      get() { return Number(this.form.stock_peer_generations); },
-      set(v) { this.form.stock_peer_generations = String(v); }
-    },
     upSearchHoursNum: {
       get() { return Number(this.form.stock_up_search_hours) || 12; },
       set(v) { this.form.stock_up_search_hours = String(v); }
@@ -127,7 +111,7 @@ export default {
     },
     onSave() {
       if (!this.ladders.length) {
-        this.$confirm('当前没有配置任何级差阶梯，保存后将清空服务端阶梯配置，确认继续？', '提示', { type: 'warning' })
+        this.$confirm('当前没有配置任何业绩阶梯，保存后将清空服务端阶梯配置，确认继续？', '提示', { type: 'warning' })
           .then(() => this.doSave()).catch(() => {});
         return;
       }
@@ -144,10 +128,12 @@ export default {
       });
     },
     onMonthlySettle() {
-      if (!this.settleMonth) return this.$message.error('请选择结算月份');
-      this.$confirm('将重算 ' + this.settleMonth + ' 全部代理级差奖励（幂等，可重复执行），确认？', '级差月结').then(() => {
-        stockMonthlySettleApi({ month: this.settleMonth }).then(() => {
-          this.$message.success('月结完成');
+      if (!this.settleMonth) return this.$message.error('请选择周期内任一月份');
+      const type = Number(this.form.stock_ladder_cycle) || 1;
+      const name = type === 1 ? '月度' : (type === 2 ? '季度' : '年度');
+      this.$confirm('将重算 ' + this.settleMonth + ' 所属' + name + '周期的全部代理阶梯业绩奖励（幂等，可重复执行），确认？', '阶梯业绩结算').then(() => {
+        stockMonthlySettleApi({ type: type, month: this.settleMonth }).then(() => {
+          this.$message.success('结算完成');
         });
       }).catch(() => {});
     }

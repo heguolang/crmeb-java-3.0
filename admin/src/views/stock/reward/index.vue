@@ -8,7 +8,7 @@
         <el-form-item label="类型">
           <el-select v-model="tableFrom.type" placeholder="全部" clearable style="width: 140px">
             <el-option label="差价奖励" :value="1" />
-            <el-option label="级差奖励" :value="2" />
+            <el-option label="阶梯奖励" :value="2" />
             <el-option label="平级奖励" :value="3" />
           </el-select>
         </el-form-item>
@@ -75,7 +75,7 @@ export default {
       this.getList();
     },
     typeName(t) {
-      return { 1: '差价奖励', 2: '级差奖励', 3: '平级奖励' }[t] || t;
+      return { 1: '差价奖励', 2: '阶梯奖励', 3: '平级奖励' }[t] || t;
     }
   },
   mounted() {
