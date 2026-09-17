@@ -150,8 +150,9 @@ public class StockServiceImpl implements StockService {
                 throw new CrmebException("上级代理不存在");
             }
             StockLevel parentLevel = stockLevelDao.selectById(parent.getLevelId());
-            if (parentLevel == null || parentLevel.getSort() >= level.getSort()) {
-                throw new CrmebException("上级层级必须高于所选层级");
+            // 下级层级不得【高于】上级；同级允许（平推，用于产生平级奖励）
+            if (parentLevel == null || parentLevel.getSort() > level.getSort()) {
+                throw new CrmebException("下级代理层级不得高于上级代理");
             }
         }
         if (request.getId() != null && request.getId() > 0) {
@@ -362,8 +363,9 @@ public class StockServiceImpl implements StockService {
         if (level == null || level.getIsDel() == 1) {
             throw new CrmebException("层级不存在");
         }
-        if (parentLevel == null || level.getSort() <= parentLevel.getSort()) {
-            throw new CrmebException("只能创建比自己层级低的下级代理");
+        // 下级层级不得【高于】自己；同级允许（平推同级代理，用于产生平级奖励）
+        if (parentLevel == null || level.getSort() < parentLevel.getSort()) {
+            throw new CrmebException("下级代理层级不得高于自己（同级平推或更低均可）");
         }
         // 按手机号找已注册用户
         User user = userService.lambdaQuery().eq(User::getPhone, request.getPhone().trim()).one();
@@ -408,7 +410,8 @@ public class StockServiceImpl implements StockService {
         StockLevel mine = stockLevelDao.selectById(agent.getLevelId());
         List<StockLevel> result = new ArrayList<>();
         for (StockLevel lv : all) {
-            if (mine == null || lv.getSort() > mine.getSort()) {
+            // 允许选同级（平推）或更低层级，不允许更高
+            if (mine == null || lv.getSort() >= mine.getSort()) {
                 result.add(lv);
             }
         }

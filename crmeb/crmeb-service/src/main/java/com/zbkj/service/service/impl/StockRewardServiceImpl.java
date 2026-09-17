@@ -110,7 +110,8 @@ public class StockRewardServiceImpl implements StockRewardService {
             if (item.getParentPrice() == null) {
                 continue;
             }
-            BigDecimal d = item.getParentPrice().subtract(item.getPrice());
+            // 差价 = 下级拿货价 - 上级拿货价（例：总代拿货 80、下级拿货 100，则总代每单赚 20）
+            BigDecimal d = item.getPrice().subtract(item.getParentPrice());
             if (d.signum() > 0) {
                 diff = diff.add(d.multiply(new BigDecimal(item.getNum())));
             }
@@ -119,7 +120,8 @@ public class StockRewardServiceImpl implements StockRewardService {
             return;
         }
         createRewardIfAbsent(parent.getUid(), StockReward.TYPE_DIFF, order.getOrderNo(), order.getUid(),
-                diff, BigDecimal.ZERO, diff, "差价奖励：" + order.getOrderNo());
+                diff, BigDecimal.ZERO, diff, "差价奖励：" + order.getOrderNo()
+                        + "（下级拿价 - 上级拿价）×" + order.getTotalNum());
     }
 
     /** 级差：沿上级链，团队业绩阶梯差额比例 × 本单金额（按单周期）；按月周期在此跳过，由月结处理 */
@@ -153,9 +155,6 @@ public class StockRewardServiceImpl implements StockRewardService {
             BigDecimal maxChildRate = BigDecimal.ZERO;
             List<StockAgent> children = directChildren(ancestor.getId());
             for (StockAgent child : children) {
-                if (child.getId().equals(start.getId())) {
-                    continue;
-                }
                 BigDecimal childPerf = teamPerformance(child, null);
                 BigDecimal childRate = ladderRate(ladders, childPerf);
                 if (childRate.compareTo(maxChildRate) > 0) {
@@ -177,7 +176,12 @@ public class StockRewardServiceImpl implements StockRewardService {
         }
     }
 
-    /** 平级：上级与其上级同层级时，同层级的上级按比例拿本单金额 */
+    /**
+     * 平级奖励：
+     * 需求口径 —— A 推荐 B 成为【同级】代理，B 产生订货业绩时 A 拿 B 业绩的一定比例。
+     * 实现：以下单代理 B 自身的层级为基准，沿其上级链向上找与 B 同层级的代理，
+     *      最多往上拿 generations 代（stock_peer_generations，默认 1 = 只拿直接平推的同级）。
+     */
     private void calcPeerReward(StockOrder order) {
         if (!"1".equals(systemConfigService.getValueByKey("stock_peer_status"))) {
             return;
@@ -193,36 +197,32 @@ public class StockRewardServiceImpl implements StockRewardService {
         if (start == null) {
             return;
         }
-        StockAgent a1 = start.getParentId() != null && start.getParentId() > 0
-                ? stockService.getAgentById(start.getParentId()) : null;
-        if (a1 == null) {
-            return;
-        }
-        // 沿 A1 的上级链找同层级代理，最多 generations 代
+        // 沿上级链向上找与下单者同层级的代理
         int found = 0;
-        StockAgent cursor = a1;
+        StockAgent cursor = start;
         int depth = 0;
         while (found < generations && depth < 50) {
             if (cursor.getParentId() == null || cursor.getParentId() == 0) {
                 break;
             }
             StockAgent up = stockService.getAgentById(cursor.getParentId());
-            if (up == null || up.getStatus() == 0) {
+            if (up == null) {
                 break;
             }
-            if (up.getLevelId().equals(a1.getLevelId())) {
-                BigDecimal reward = order.getTotalPrice().multiply(rate)
-                        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-                if (reward.signum() > 0) {
-                    createRewardIfAbsent(up.getUid(), StockReward.TYPE_PEER, order.getOrderNo(), order.getUid(),
-                            order.getTotalPrice(), rate, reward,
-                            "平级奖励：下级单 " + order.getOrderNo() + " 比例 " + rate + "%");
+            if (up.getLevelId().equals(start.getLevelId())) {
+                if (up.getStatus() != null && up.getStatus() == 1) {
+                    BigDecimal reward = order.getTotalPrice().multiply(rate)
+                            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                    if (reward.signum() > 0) {
+                        createRewardIfAbsent(up.getUid(), StockReward.TYPE_PEER, order.getOrderNo(), order.getUid(),
+                                order.getTotalPrice(), rate, reward,
+                                "平级奖励：同级下级 " + order.getUid() + " 单 " + order.getOrderNo()
+                                        + " 比例 " + rate + "%（第" + (found + 1) + "代）");
+                    }
                 }
                 found++;
-                cursor = up;
-            } else {
-                break;
             }
+            cursor = up;
             depth++;
         }
     }
