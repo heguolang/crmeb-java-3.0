@@ -27,6 +27,11 @@
         </el-table-column>
         <el-table-column prop="uid" label="ID" min-width="60" />
         <el-table-column prop="nickname" label="微信用户名称" min-width="130" />
+        <el-table-column prop="phone" label="手机号" min-width="120">
+          <template slot-scope="scope">
+            <span>{{ scope.row.phone || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="用户头像" min-width="80">
           <template slot-scope="scope">
             <div class="demo-image__preview">

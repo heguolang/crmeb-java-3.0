@@ -31,6 +31,9 @@ public interface StockOrderService {
     /** 代理确认收货（触发奖励核算） */
     Boolean receiveOrder(Integer uid, Integer orderId);
 
+    /** 上级代理发货（stock_parent_deliver=1 时启用） */
+    Boolean parentSendOrder(Integer uid, Integer orderId, StockRequests.StockSendRequest request);
+
     /** 我需要审核的订单（直接下级提交） */
     CommonPage<StockOrder> getAuditOrderList(Integer uid, Integer status, com.zbkj.common.request.PageParamRequest page);
 

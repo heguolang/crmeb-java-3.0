@@ -8,12 +8,12 @@
 }
 
 .semiBold{
-    font-family: 'dinProSemiBold';
+    font-family: 'dinProSemiBold', 'Microsoft YaHei', 'PingFang SC', 'SimHei', 'Hiragino Sans GB', sans-serif;
 }
 .regular{
-    font-family: 'dinProRegular';
+    font-family: 'dinProRegular', 'Microsoft YaHei', 'PingFang SC', 'SimHei', 'Hiragino Sans GB', sans-serif;
 }
 .pingFang{
-    font-family: 'PingFang SC, PingFang SC';
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'SimHei', 'Hiragino Sans GB', sans-serif;
 	font-weight: 500;
 }

@@ -7,6 +7,14 @@
           <el-switch v-model="form.stock_order_audit" :active-value="'1'" :inactive-value="'0'" />
           <span class="switch-tip">开启：下级订货单须经【直接上级】审核通过后才流转总部云仓；关闭：下单直接进入待付款</span>
         </el-form-item>
+        <el-form-item label="上级代理发货">
+          <el-switch v-model="form.stock_parent_deliver" :active-value="'1'" :inactive-value="'0'" />
+          <span class="switch-tip">开启：有上级的订单由上级代理在【会员端】填快递发货，后台不可代发；关闭：总部后台统一发货</span>
+        </el-form-item>
+        <el-form-item label="上级无库存等待时长">
+          <el-input-number v-model="upSearchHoursNum" :min="1" :max="168" :precision="0" size="small" style="width: 140px" />
+          <span class="switch-tip">小时。上级库存不足时订单挂起，超过该时长自动为下级向上匹配有货的更高级上级（都没有则挂总部）</span>
+        </el-form-item>
         <el-divider />
         <el-form-item label="差价奖励">
           <el-switch v-model="form.stock_diff_reward_status" :active-value="'1'" :inactive-value="'0'" />
@@ -83,7 +91,9 @@ export default {
         stock_ladder_cycle: '1',
         stock_peer_status: '1',
         stock_peer_rate: '5',
-        stock_peer_generations: '1'
+        stock_peer_generations: '1',
+        stock_parent_deliver: '0',
+        stock_up_search_hours: '12'
       },
       ladders: [],
       settleMonth: ''
@@ -97,6 +107,10 @@ export default {
     peerGenNum: {
       get() { return Number(this.form.stock_peer_generations); },
       set(v) { this.form.stock_peer_generations = String(v); }
+    },
+    upSearchHoursNum: {
+      get() { return Number(this.form.stock_up_search_hours) || 12; },
+      set(v) { this.form.stock_up_search_hours = String(v); }
     }
   },
   methods: {

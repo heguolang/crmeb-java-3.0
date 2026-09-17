@@ -44,12 +44,6 @@ export default {
       meta: { title: '奖金明细', icon: '' }
     },
     {
-      path: 'withdraw',
-      component: () => import('@/views/stock/withdraw/index'),
-      name: 'StockWithdraw',
-      meta: { title: '提现管理', icon: '' }
-    },
-    {
       path: 'setting',
       component: () => import('@/views/stock/setting/index'),
       name: 'StockSetting',

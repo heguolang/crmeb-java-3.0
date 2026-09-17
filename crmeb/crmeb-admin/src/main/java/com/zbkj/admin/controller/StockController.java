@@ -303,7 +303,8 @@ public class StockController {
         HashMap<String, Object> map = new HashMap<>();
         String[] keys = {"stock_order_audit", "stock_diff_reward_status", "stock_exchange_diff",
                 "stock_ladder_status", "stock_ladder_cycle", "stock_peer_status",
-                "stock_peer_rate", "stock_peer_generations"};
+                "stock_peer_rate", "stock_peer_generations",
+                "stock_parent_deliver", "stock_up_search_hours"};
         for (String key : keys) {
             map.put(key, systemConfigService.getValueByKey(key));
         }
@@ -318,7 +319,8 @@ public class StockController {
         try {
             String[] keys = {"stock_order_audit", "stock_diff_reward_status", "stock_exchange_diff",
                     "stock_ladder_status", "stock_ladder_cycle", "stock_peer_status",
-                    "stock_peer_rate", "stock_peer_generations"};
+                    "stock_peer_rate", "stock_peer_generations",
+                    "stock_parent_deliver", "stock_up_search_hours"};
             for (String key : keys) {
                 if (settingMap.containsKey(key)) {
                     Object v = settingMap.get(key);

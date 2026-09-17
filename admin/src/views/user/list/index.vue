@@ -380,7 +380,7 @@
       </span>
     </el-dialog>
     <!--选择推荐人账户-->
-    <el-dialog class="user-dialog" title="选择推荐人账户" :visible.sync="userVisible" width="900px">
+    <el-dialog class="user-dialog" title="选择推荐人账户" :visible.sync="userVisible" width="1000px">
       <user-list @closeDialog="userVisible = false" v-if="userVisible" @getTemplateRow="getTemplateRow"></user-list>
     </el-dialog>
     <!--批量设置-->

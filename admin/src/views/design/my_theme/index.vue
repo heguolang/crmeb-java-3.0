@@ -8,7 +8,8 @@
         <div class="left-actions">
           <el-button type="primary" @click="handleAdd">新建主题</el-button>
           <el-button @click="handleImport">导入主题</el-button>
-          <img class="theme-in" src="https://www.crmeb.com/static/images/zhutishichang.png" alt="" @click="toTheme" />
+          <!-- 主题广场入口已按需求隐藏（2026-09-17），恢复时取消下行注释 -->
+          <!-- <img class="theme-in" src="https://www.crmeb.com/static/images/zhutishichang.png" alt="" @click="toTheme" /> -->
         </div>
         <div class="right-actions flex">
           <el-input v-model="searchKeyword" placeholder="请输入主题名称" class="search-input m-r-10"> </el-input>

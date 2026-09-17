@@ -7,8 +7,8 @@ crmeb:
   wechat-js-api-beta: true #微信js api是否是beta版本
   asyncConfig: false #是否同步config表数据到redis
   asyncWeChatProgramTempList: false #是否同步小程序公共模板库
-  imagePath: /Users/qianxu/WorkBuddy/java/crmeb-java-3.0/crmeb/ # 服务器图片路径配置 斜杠结尾（crmebimage 的上级目录）
-  demoSite: true # 是否演示站点 所有手机号码都会掩码
+  imagePath: D:/crmeb-java-3.0/crmeb/ # 服务器图片路径配置 斜杠结尾（crmebimage 的上级目录）
+  demoSite: false # 是否演示站点 所有手机号码都会掩码
   activityStyleCachedTime: 10 #活动边框缓存周期 秒为单位，生产环境适当5-10分钟即可
   ignored: #安全路径白名单
     - swagger-ui/
@@ -56,7 +56,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/crmeb?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: root
-    password: root
+    password: 123456
   # quartz
   quartz:
     properties:

@@ -5,6 +5,7 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zbkj.common.exception.CrmebException;
+import com.zbkj.common.constants.BrokerageRecordConstants;
 import com.zbkj.common.model.stock.StockAgent;
 import com.zbkj.common.model.stock.StockLadder;
 import com.zbkj.common.model.stock.StockNotice;
@@ -13,6 +14,7 @@ import com.zbkj.common.model.stock.StockOrderProduct;
 import com.zbkj.common.model.stock.StockReward;
 import com.zbkj.common.model.stock.StockWithdraw;
 import com.zbkj.common.model.user.User;
+import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.StockRequests;
@@ -70,6 +72,9 @@ public class StockRewardServiceImpl implements StockRewardService {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private com.zbkj.service.service.UserBrokerageRecordService userBrokerageRecordService;
 
     @Resource
     private SystemConfigService systemConfigService;
@@ -287,6 +292,9 @@ public class StockRewardServiceImpl implements StockRewardService {
                 r.setMark("级差月结|" + month + "|团队业绩 " + myTeamPerf + " 比例 " + diffRate + "%");
                 r.setStatus(StockReward.STATUS_CREDITED);
                 stockRewardDao.insert(r);
+                // 月结奖金同步计入佣金余额
+                creditBrokerage(agent.getUid(), reward, "month:" + month, "订货奖金",
+                        "级差月结|" + month + "|团队业绩 " + myTeamPerf + " 比例 " + diffRate + "%");
             }
             return true;
         }) != null;
@@ -299,13 +307,12 @@ public class StockRewardServiceImpl implements StockRewardService {
         HashMap<String, Object> map = new HashMap<>();
         // 已入账奖励总额
         BigDecimal totalReward = sumReward(uid, null);
-        // 可提现余额 = 已入账 - (待审核 + 已打款提现)
-        BigDecimal lockedWithdraw = stockWithdrawDao.selectList(new LambdaQueryWrapper<StockWithdraw>()
-                        .eq(StockWithdraw::getUid, uid).in(StockWithdraw::getStatus, 0, 1))
-                .stream().map(StockWithdraw::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 奖金已并入佣金余额，可提现金额直接取用户佣金余额（走系统统一佣金提现）
+        User user = userService.getById(uid);
+        BigDecimal commission = user == null || user.getBrokeragePrice() == null ? BigDecimal.ZERO : user.getBrokeragePrice();
         map.put("totalReward", totalReward);
-        map.put("balance", totalReward.subtract(lockedWithdraw).max(BigDecimal.ZERO));
-        map.put("lockedWithdraw", lockedWithdraw);
+        map.put("balance", commission);
+        map.put("commission", commission);
         // 分类小计
         map.put("diffReward", sumReward(uid, StockReward.TYPE_DIFF));
         map.put("ladderReward", sumReward(uid, StockReward.TYPE_LADDER));
@@ -602,8 +609,32 @@ public class StockRewardServiceImpl implements StockRewardService {
         r.setMark(mark == null ? "" : mark);
         r.setStatus(StockReward.STATUS_CREDITED);
         stockRewardDao.insert(r);
+        // 奖金同步计入佣金余额（status=3 直接到账不冻结，走系统统一佣金提现）
+        creditBrokerage(uid, rewardPrice, orderNo, "订货奖金", mark);
         sendNotice(uid, StockNotice.TYPE_REWARD, "奖金到账",
-                "订单 " + orderNo + " 产生奖金 ¥" + rewardPrice + "，已计入您的奖金账户");
+                "订单 " + orderNo + " 产生奖金 ¥" + rewardPrice + "，已计入您的佣金余额");
+    }
+
+    /** 奖金入账到佣金余额：写佣金记录（已完成状态）+ 增加用户 brokerage_price */
+    private void creditBrokerage(Integer uid, BigDecimal price, String linkId, String title, String mark) {
+        User user = userService.getById(uid);
+        if (user == null || price == null || price.signum() <= 0) {
+            return;
+        }
+        UserBrokerageRecord record = new UserBrokerageRecord();
+        record.setUid(uid);
+        record.setLinkId(linkId == null ? "" : linkId);
+        record.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        record.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
+        record.setTitle(title);
+        record.setPrice(price);
+        record.setBalance(user.getBrokeragePrice() == null ? price : user.getBrokeragePrice().add(price));
+        record.setMark(mark == null ? title : mark);
+        record.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+        record.setFrozenTime(0);
+        record.setCreateTime(com.zbkj.common.utils.CrmebDateUtil.nowDateTime());
+        userBrokerageRecordService.save(record);
+        userService.operationBrokerage(uid, price, user.getBrokeragePrice(), "add");
     }
 
     private List<StockLadder> getLadders() {

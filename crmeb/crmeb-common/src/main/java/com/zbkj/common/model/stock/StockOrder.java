@@ -102,6 +102,12 @@ public class StockOrder implements Serializable {
     @ApiModelProperty(value = "更新时间")
     private Date updateTime;
 
+    @ApiModelProperty(value = "向上查找上级库存的时间（上级无库存时生成）")
+    private Date upSearchTime;
+
+    @ApiModelProperty(value = "已向上查找次数")
+    private Integer upSearchNum;
+
     @ApiModelProperty(value = "是否删除")
     private Integer isDel;
 

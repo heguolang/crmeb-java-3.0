@@ -46,7 +46,8 @@
         <router-link :to="{ path: '/store/list/creatProduct' }">
           <el-button type="primary" class="mr14" v-hasPermi="['admin:product:save']">添加商品</el-button>
         </router-link>
-        <el-button type="success" @click="onCopy" v-hasPermi="['admin:product:save']">商品采集</el-button>
+        <!-- 商品采集入口已按需求隐藏（2026-09-17），恢复时取消下行注释 -->
+        <!-- <el-button type="success" @click="onCopy" v-hasPermi="['admin:product:save']">商品采集</el-button> -->
         <el-button @click="exports" v-hasPermi="['admin:export:excel:product']">导出</el-button>
       </div>
       <el-table

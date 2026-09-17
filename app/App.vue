@@ -317,6 +317,11 @@
 	// #endif
 	view {
 		box-sizing: border-box;
+		font-family: 'Microsoft YaHei', 'PingFang SC', 'SimHei', 'Hiragino Sans GB', sans-serif;
+	}
+	/* 兜底：所有文本节点在未命中自定义字体时回退到中文字体 */
+	text, uni-text, .uni-page-head__title, .uni-mask, .uni-modal__bd {
+		font-family: 'Microsoft YaHei', 'PingFang SC', 'SimHei', 'Hiragino Sans GB', sans-serif;
 	}
 
 	.bg-color-red {

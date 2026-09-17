@@ -184,6 +184,16 @@ public class StockController {
         return CommonResult.failed();
     }
 
+    @ApiOperation(value = "上级代理发货（stock_parent_deliver=1 时启用）")
+    @RequestMapping(value = "/order/parentSend", method = RequestMethod.POST)
+    public CommonResult<String> parentSendOrder(@RequestParam Integer id,
+                                                @RequestBody @Validated StockRequests.StockSendRequest request) {
+        if (stockOrderService.parentSendOrder(currentUid(), id, request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
     // ==================== 换货 ====================
 
     @ApiOperation(value = "提交换货申请")

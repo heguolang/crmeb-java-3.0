@@ -94,16 +94,6 @@ export function getMyStockRewards(params) {
   return request.get('stock/reward/list', params);
 }
 
-/** 申请提现 */
-export function applyStockWithdraw(data) {
-  return request.post('stock/withdraw/apply', data);
-}
-
-/** 我的提现记录 */
-export function getMyStockWithdraws(params) {
-  return request.get('stock/withdraw/list', params);
-}
-
 /** 我的消息 */
 export function getStockNotices(params) {
   return request.get('stock/notice/list', params);

@@ -69,6 +69,12 @@ public class StockServiceImpl implements StockService {
     private StoreProductService storeProductService;
 
     @Resource
+    private com.zbkj.service.dao.StockOrderDao stockOrderDao;
+
+    @Resource
+    private com.zbkj.service.dao.StockOrderProductDao stockOrderProductDao;
+
+    @Resource
     private TransactionTemplate transactionTemplate;
 
     // ==================== 层级 ====================
@@ -549,6 +555,142 @@ public class StockServiceImpl implements StockService {
             }
             return true;
         });
+    }
+
+    // ==================== 自动升级 ====================
+
+    @Override
+    public Boolean checkAndUpgrade(Integer uid) {
+        StockAgent agent = getAgentByUid(uid);
+        if (agent == null) {
+            return false;
+        }
+        List<StockLevel> levels = getLevelList(); // sort 升序：数值越小层级越高
+        int curIdx = -1;
+        for (int i = 0; i < levels.size(); i++) {
+            if (levels.get(i).getId().equals(agent.getLevelId())) {
+                curIdx = i;
+                break;
+            }
+        }
+        if (curIdx < 0) {
+            return false;
+        }
+
+        BigDecimal selfBuy = sumPaidOrderAmount(java.util.Collections.singletonList(agent.getId()));
+        List<Integer> directIds = new ArrayList<>();
+        for (StockAgent child : getDirectChildren(agent.getId())) {
+            directIds.add(child.getId());
+        }
+        BigDecimal directAmount = sumPaidOrderAmount(directIds);
+        BigDecimal teamAmount = sumPaidOrderAmount(collectSubAgentIds(agent.getId()));
+        Set<Integer> boughtProductIds = getBoughtProductIds(agent.getId());
+
+        // 从高往低找第一个满足条件的更高层级
+        for (int i = curIdx - 1; i >= 0; i--) {
+            StockLevel level = levels.get(i);
+            if (matchUpgradeCondition(level, selfBuy, directAmount, teamAmount, boughtProductIds)) {
+                StockAgent update = new StockAgent();
+                update.setId(agent.getId());
+                update.setLevelId(level.getId());
+                stockAgentDao.updateById(update);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 判断某层级条件是否满足 */
+    private boolean matchUpgradeCondition(StockLevel level, BigDecimal selfBuy, BigDecimal direct,
+                                          BigDecimal team, Set<Integer> boughtProductIds) {
+        List<Boolean> results = new ArrayList<>();
+        if (Boolean.TRUE.equals(level.getCondSelfBuy())) {
+            results.add(selfBuy.compareTo(nz(level.getSelfBuyAmount())) >= 0);
+        }
+        if (Boolean.TRUE.equals(level.getCondDirect())) {
+            results.add(direct.compareTo(nz(level.getDirectOrderAmount())) >= 0);
+        }
+        if (Boolean.TRUE.equals(level.getCondTeam())) {
+            results.add(team.compareTo(nz(level.getTeamAmount())) >= 0);
+        }
+        if (Boolean.TRUE.equals(level.getCondProduct()) && level.getUpgradeProductIds() != null
+                && !level.getUpgradeProductIds().trim().isEmpty()) {
+            boolean hit = false;
+            for (String pid : level.getUpgradeProductIds().split(",")) {
+                if (pid == null || pid.trim().isEmpty()) {
+                    continue;
+                }
+                try {
+                    if (boughtProductIds.contains(Integer.valueOf(pid.trim()))) {
+                        hit = true;
+                        break;
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            results.add(hit);
+        }
+        if (results.isEmpty()) {
+            return false;
+        }
+        if (Integer.valueOf(1).equals(level.getConditionLogic())) { // 与：全部满足
+            for (Boolean b : results) {
+                if (!Boolean.TRUE.equals(b)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        for (Boolean b : results) { // 或：任一满足
+            if (Boolean.TRUE.equals(b)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 统计一批代理已付款订单总额 */
+    private BigDecimal sumPaidOrderAmount(List<Integer> agentIds) {
+        if (agentIds == null || agentIds.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        List<com.zbkj.common.model.stock.StockOrder> orders = stockOrderDao.selectList(
+                new LambdaQueryWrapper<com.zbkj.common.model.stock.StockOrder>()
+                        .in(com.zbkj.common.model.stock.StockOrder::getAgentId, agentIds)
+                        .eq(com.zbkj.common.model.stock.StockOrder::getPayStatus, 1)
+                        .eq(com.zbkj.common.model.stock.StockOrder::getIsDel, 0));
+        BigDecimal total = BigDecimal.ZERO;
+        for (com.zbkj.common.model.stock.StockOrder order : orders) {
+            total = total.add(order.getTotalPrice() == null ? BigDecimal.ZERO : order.getTotalPrice());
+        }
+        return total;
+    }
+
+    /** 某代理已购买过的商品ID集合 */
+    private Set<Integer> getBoughtProductIds(Integer agentId) {
+        Set<Integer> ids = new HashSet<>();
+        List<com.zbkj.common.model.stock.StockOrder> orders = stockOrderDao.selectList(
+                new LambdaQueryWrapper<com.zbkj.common.model.stock.StockOrder>()
+                        .eq(com.zbkj.common.model.stock.StockOrder::getAgentId, agentId)
+                        .eq(com.zbkj.common.model.stock.StockOrder::getIsDel, 0));
+        if (orders.isEmpty()) {
+            return ids;
+        }
+        List<Integer> orderIds = new ArrayList<>();
+        for (com.zbkj.common.model.stock.StockOrder o : orders) {
+            orderIds.add(o.getId());
+        }
+        List<com.zbkj.common.model.stock.StockOrderProduct> products = stockOrderProductDao.selectList(
+                new LambdaQueryWrapper<com.zbkj.common.model.stock.StockOrderProduct>()
+                        .in(com.zbkj.common.model.stock.StockOrderProduct::getOrderId, orderIds));
+        for (com.zbkj.common.model.stock.StockOrderProduct p : products) {
+            ids.add(p.getProductId());
+        }
+        return ids;
+    }
+
+    private BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
     }
 
     @Override

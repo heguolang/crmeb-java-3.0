@@ -81,19 +81,30 @@
     </el-dialog>
 
     <!-- 层级设置弹窗 -->
-    <el-dialog title="层级设置" :visible.sync="levelVisible" width="560px">
+    <el-dialog title="层级设置" :visible.sync="levelVisible" width="1050px">
       <el-table :data="levels" size="small">
-        <el-table-column prop="name" label="层级名称" width="130">
+        <el-table-column prop="name" label="层级名称" width="120">
           <template slot-scope="scope"><el-input v-model="scope.row.name" size="mini" /></template>
         </el-table-column>
-        <el-table-column prop="sort" label="排序（小=高）" width="130">
-          <template slot-scope="scope"><el-input-number v-model="scope.row.sort" :min="1" size="mini" style="width: 110px" /></template>
+        <el-table-column prop="sort" label="排序（小=高）" width="120">
+          <template slot-scope="scope"><el-input-number v-model="scope.row.sort" :min="1" size="mini" style="width: 105px" /></template>
         </el-table-column>
-        <el-table-column prop="discount" label="默认折扣%">
-          <template slot-scope="scope"><el-input-number v-model="scope.row.discount" :min="0" :max="100" :precision="2" size="mini" style="width: 120px" /></template>
+        <el-table-column prop="discount" label="默认折扣%" width="115">
+          <template slot-scope="scope"><el-input-number v-model="scope.row.discount" :min="0" :max="100" :precision="2" size="mini" style="width: 105px" /></template>
         </el-table-column>
-        <el-table-column label="操作" width="70">
-          <template slot-scope="scope"><el-button type="text" size="small" class="red" @click="delLevel(scope.row)">删除</el-button></template>
+        <el-table-column label="升级条件" min-width="150">
+          <template slot-scope="scope">
+            <span>{{ condSummary(scope.row) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="peerRate" label="平级奖比例%" width="90">
+          <template slot-scope="scope">{{ scope.row.peerRate != null ? scope.row.peerRate : '-' }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="openCond(scope.row)">升级条件</el-button>
+            <el-button type="text" size="small" class="red" @click="delLevel(scope.row)">删除</el-button>
+          </template>
         </el-table-column>
       </el-table>
       <div style="margin-top: 10px">
@@ -104,11 +115,54 @@
         <el-button size="small" type="primary" @click="saveLevels">保存</el-button>
       </div>
     </el-dialog>
+
+    <!-- 升级条件编辑弹窗 -->
+    <el-dialog :title="'升级条件 - ' + (condLevel ? condLevel.name : '')" :visible.sync="condVisible" width="560px" append-to-body>
+      <el-form label-width="150px" size="small">
+        <el-form-item label="条件组合方式">
+          <el-radio-group v-model="condForm.conditionLogic">
+            <el-radio :label="0">任一满足（或）</el-radio>
+            <el-radio :label="1">全部满足（与）</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-divider />
+        <el-form-item label="自购消费达标">
+          <el-switch v-model="condForm.condSelfBuy" />
+          <el-input-number v-if="condForm.condSelfBuy" v-model="condForm.selfBuyAmount" :min="0" :precision="2" size="mini" style="width: 140px; margin-left: 10px" />
+          <span v-if="condForm.condSelfBuy" style="margin-left: 6px">元（累计已付款订单金额）</span>
+        </el-form-item>
+        <el-form-item label="直推订单业绩达标">
+          <el-switch v-model="condForm.condDirect" />
+          <el-input-number v-if="condForm.condDirect" v-model="condForm.directOrderAmount" :min="0" :precision="2" size="mini" style="width: 140px; margin-left: 10px" />
+          <span v-if="condForm.condDirect" style="margin-left: 6px">元（直接下级累计业绩）</span>
+        </el-form-item>
+        <el-form-item label="团队伞下业绩达标">
+          <el-switch v-model="condForm.condTeam" />
+          <el-input-number v-if="condForm.condTeam" v-model="condForm.teamAmount" :min="0" :precision="2" size="mini" style="width: 140px; margin-left: 10px" />
+          <span v-if="condForm.condTeam" style="margin-left: 6px">元（伞下全部下级业绩）</span>
+        </el-form-item>
+        <el-form-item label="购买指定商品">
+          <el-switch v-model="condForm.condProduct" />
+          <el-select v-if="condForm.condProduct" v-model="condForm.productIds" multiple filterable placeholder="选择指定商品" size="mini" style="width: 100%; margin-top: 6px">
+            <el-option v-for="p in productOptions" :key="p.id" :label="p.storeName" :value="p.id" />
+          </el-select>
+        </el-form-item>
+        <el-divider />
+        <el-form-item label="平级奖比例%">
+          <el-input-number v-model="condForm.peerRate" :min="0" :max="100" :precision="2" size="small" style="width: 140px" />
+          <span class="switch-tip">平推同级代理产生业绩时，本层级代理额外按此比例拿奖励（0=不拿）</span>
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button size="small" @click="condVisible = false">取消</el-button>
+        <el-button size="small" type="primary" :loading="condSaving" @click="saveCond">保存条件</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { stockAgentListApi, stockAgentSaveApi, stockAgentUpdateApi, stockAgentStatusApi, stockAgentDeleteApi, stockLevelListApi, stockLevelSaveApi, stockLevelDeleteApi } from '@/api/stock';
+import { stockAgentListApi, stockAgentSaveApi, stockAgentUpdateApi, stockAgentStatusApi, stockAgentDeleteApi, stockLevelListApi, stockLevelSaveApi, stockLevelDeleteApi, stockProductListApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -121,10 +175,15 @@ export default {
       total: 0,
       levels: [],
       agentOptions: [],
+      productOptions: [],
       tableFrom: { page: 1, limit: 20, keywords: '', levelId: null, status: null },
       editVisible: false,
       levelVisible: false,
-      editForm: { id: null, uid: '', levelId: null, parentId: 0, mark: '' }
+      editForm: { id: null, uid: '', levelId: null, parentId: 0, mark: '' },
+      condVisible: false,
+      condSaving: false,
+      condLevel: null,
+      condForm: {}
     };
   },
   methods: {
@@ -182,8 +241,70 @@ export default {
     openLevel() {
       this.levelVisible = true;
     },
+    condSummary(row) {
+      const parts = [];
+      if (row.condSelfBuy) parts.push('自购≥' + row.selfBuyAmount + '元');
+      if (row.condDirect) parts.push('直推业绩≥' + row.directOrderAmount + '元');
+      if (row.condTeam) parts.push('团队业绩≥' + row.teamAmount + '元');
+      if (row.condProduct) parts.push('购指定商品');
+      if (!parts.length) return '未设置';
+      return (row.conditionLogic === 1 ? '且：' : '或：') + parts.join(row.conditionLogic === 1 ? ' 且 ' : ' 或 ');
+    },
+    openCond(row) {
+      if (!row.id) return this.$message.warning('请先保存该层级后再设置升级条件');
+      this.condLevel = row;
+      let productIds = [];
+      if (row.upgradeProductIds) {
+        productIds = String(row.upgradeProductIds).split(',').map(s => parseInt(s)).filter(n => !isNaN(n));
+      }
+      this.condForm = {
+        condSelfBuy: !!row.condSelfBuy,
+        selfBuyAmount: row.selfBuyAmount != null ? Number(row.selfBuyAmount) : 0,
+        condDirect: !!row.condDirect,
+        directOrderAmount: row.directOrderAmount != null ? Number(row.directOrderAmount) : 0,
+        condTeam: !!row.condTeam,
+        teamAmount: row.teamAmount != null ? Number(row.teamAmount) : 0,
+        condProduct: !!row.condProduct,
+        productIds: productIds,
+        conditionLogic: row.conditionLogic != null ? row.conditionLogic : 0,
+        peerRate: row.peerRate != null ? Number(row.peerRate) : 0
+      };
+      if (!this.productOptions.length) {
+        stockProductListApi({ page: 1, limit: 500 }).then(res => {
+          this.productOptions = (res && res.list) || [];
+        });
+      }
+      this.condVisible = true;
+    },
+    saveCond() {
+      const f = this.condForm;
+      if (f.condSelfBuy && (!f.selfBuyAmount || f.selfBuyAmount <= 0)) return this.$message.error('请填写自购消费金额');
+      if (f.condDirect && (!f.directOrderAmount || f.directOrderAmount <= 0)) return this.$message.error('请填写直推业绩金额');
+      if (f.condTeam && (!f.teamAmount || f.teamAmount <= 0)) return this.$message.error('请填写团队业绩金额');
+      if (f.condProduct && (!f.productIds || !f.productIds.length)) return this.$message.error('请选择指定商品');
+      this.condSaving = true;
+      const data = {
+        id: this.condLevel.id,
+        condSelfBuy: f.condSelfBuy,
+        selfBuyAmount: f.selfBuyAmount || 0,
+        condDirect: f.condDirect,
+        directOrderAmount: f.directOrderAmount || 0,
+        condTeam: f.condTeam,
+        teamAmount: f.teamAmount || 0,
+        condProduct: f.condProduct,
+        upgradeProductIds: f.productIds.join(','),
+        conditionLogic: f.conditionLogic,
+        peerRate: f.peerRate || 0
+      };
+      stockLevelSaveApi(data).then(() => {
+        this.$message.success('升级条件已保存');
+        this.condSaving = false;
+        this.condVisible = false;
+        this.loadLevels();
+      }).catch(() => { this.condSaving = false; });
+    },
     addLevel() {
-      this.levels.push({ id: null, name: '', sort: (this.levels.length + 1) * 10, discount: 90, isDel: 0 });
+      this.levels.push({ id: null, name: '', sort: (this.levels.length + 1) * 10, discount: 90, isDel: 0, condSelfBuy: false, condDirect: false, condTeam: false, condProduct: false, conditionLogic: 0, peerRate: 0 });
     },
     delLevel(row) {
       if (row.id) {
@@ -214,4 +335,5 @@ export default {
 <style scoped>
 .red { color: #f56c6c; }
 .grey { color: #999; font-size: 12px; }
+.switch-tip { margin-left: 12px; font-size: 12px; color: #909399; line-height: 1.5; }
 </style>

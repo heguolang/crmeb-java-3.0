@@ -84,12 +84,13 @@
         <div class="dialog-header-tabs">
           <div class="tabs">
             <span class="title">我的主题</span>
-            <img
+            <!-- 主题广场入口已按需求隐藏（2026-09-17） -->
+            <!-- <img
               class="title-icon"
               src="https://www.crmeb.com/static/images/zhutishichang.png"
               alt=""
               @click="toTheme"
-            />
+            /> -->
           </div>
         </div>
         <i class="el-icon-close" @click="handleClose"></i>

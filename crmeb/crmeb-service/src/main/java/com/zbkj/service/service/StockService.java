@@ -97,4 +97,11 @@ public interface StockService {
 
     /** 代理ID -> uid 映射 */
     Map<Integer, Integer> getAgentUidMap(List<Integer> agentIds);
+
+    /**
+     * 校验并自动升级订货商层级
+     * 依据 eb_stock_level 上的四项条件（自购消费 / 直推订单业绩 / 团队伞下业绩 / 购买指定产品）
+     * 与条件组合方式（0=或 1=与）判断是否可升到更高层级，可升则更新并返回 true
+     */
+    Boolean checkAndUpgrade(Integer uid);
 }
