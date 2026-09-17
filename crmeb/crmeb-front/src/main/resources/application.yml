@@ -1,7 +1,7 @@
 # CRMEB 相关配置
 crmeb:
   version: CRMEB-JAVA-SY-v2.4 # 当前代码版本
-  imagePath: C:/Users/62656/.workbuddy/server/crmeb_image/ # 服务器图片路径配置 斜杠结尾
+  imagePath: /Users/qianxu/WorkBuddy/java/crmeb-java-3.0/crmeb/ # 服务器图片路径配置 斜杠结尾（crmebimage 的上级目录）
   asyncConfig: false #是否同步config表数据到redis
   activityStyleCachedTime: 10 #活动边框缓存周期 秒为单位，生产环境适当5-10分钟即可
   demoSite: true # 是否演示站点 所有手机号码都会掩码

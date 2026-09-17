@@ -1,5 +1,6 @@
 package com.zbkj.front.config;
 
+import com.zbkj.common.constants.UploadConstants;
 import com.zbkj.common.interceptor.SwaggerInterceptor;
 import com.zbkj.front.filter.ResponseFilter;
 import com.zbkj.front.interceptor.FrontTokenInterceptor;
@@ -46,6 +47,10 @@ public class WebConfig implements WebMvcConfigurer {
     private String password;
     @Value("${swagger.basic.check}")
     private Boolean check;
+
+    /** 服务器图片根路径（crmebimage 的上级目录，斜杠结尾） */
+    @Value("${crmeb.imagePath}")
+    private String imagePath;
 
 
     @Override
@@ -126,6 +131,18 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations("classpath:/META-INF/resources/");
         registry.addResourceHandler("/webjars/**")
                 .addResourceLocations("classpath:/META-INF/resources/webjars/");
+
+        /** 本地文件上传路径 crmebimage */
+        registry.addResourceHandler(UploadConstants.UPLOAD_FILE_KEYWORD + "/**")
+                .addResourceLocations("file:" + imagePath + "/" + UploadConstants.UPLOAD_FILE_KEYWORD + "/");
+
+        /** 前端上传后下载路径 uploadf */
+        registry.addResourceHandler(UploadConstants.UPLOAD_AFTER_FILE_KEYWORD + "/**")
+                .addResourceLocations("file:" + imagePath + "/" + UploadConstants.UPLOAD_AFTER_FILE_KEYWORD + "/");
+
+        /** 文件导出下载路径 downloadf */
+        registry.addResourceHandler(UploadConstants.DOWNLOAD_FILE_KEYWORD + "/**")
+                .addResourceLocations("file:" + imagePath + "/" + UploadConstants.DOWNLOAD_FILE_KEYWORD + "/");
     }
 
     @Bean

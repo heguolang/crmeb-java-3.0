@@ -22,7 +22,7 @@ module.exports = {
 		HTTP_REQUEST_URL: domain,
 		// H5商城地址
 		// 开发站
-		HTTP_H5_URL: 'http://app.beta.crmeb.xbdzz.cn',
+		HTTP_H5_URL: 'http://127.0.0.1:8083',
 		// 演示站
 		// HTTP_H5_URL: 'http://java.crmeb.net',
 		// 深度演示站
