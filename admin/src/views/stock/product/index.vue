@@ -7,8 +7,10 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="getList">查询</el-button>
+          <el-button v-if="checkPermi(['admin:stock:price:save'])" type="success" @click="openAdd">添加商品</el-button>
         </el-form-item>
       </el-form>
+      <el-alert type="info" :closable="false" style="margin-bottom: 12px" title="仅显示已加入订货模块的商品；点击右上角「添加商品」从商城商品中选择加入后才能设置拿货价与库存" />
       <el-table v-loading="loading" :data="tableData" size="small" highlight-current-row>
         <el-table-column label="商品" min-width="220">
           <template slot-scope="scope">
@@ -29,8 +31,11 @@
         </el-table-column>
         <el-table-column label="操作" width="170" fixed="right">
           <template slot-scope="scope">
-            <el-button v-if="checkPermi(['admin:stock:price:save'])" type="text" size="small" @click="openPrice(scope.row)">设置拿货价</el-button>
-            <el-button v-if="checkPermi(['admin:stock:log:adjust'])" type="text" size="small" @click="openAdjust(scope.row)">调整库存</el-button>
+            <div class="op-wrap">
+              <el-button v-if="checkPermi(['admin:stock:price:save'])" class="op-btn" type="primary" plain round size="mini" @click="openPrice(scope.row)">设置拿货价</el-button>
+              <el-button v-if="checkPermi(['admin:stock:log:adjust'])" class="op-btn" type="warning" plain round size="mini" @click="openAdjust(scope.row)">调整库存</el-button>
+              <el-button v-if="checkPermi(['admin:stock:price:save'])" class="op-btn" type="danger" plain round size="mini" @click="onRemove(scope.row)">移除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -59,6 +64,38 @@
         <el-pagination background layout="prev, pager, next" :page-size="logFrom.limit" :current-page="logFrom.page" :total="logTotal" @current-change="logPage" />
       </div>
     </el-card>
+
+    <!-- 添加商品弹窗 -->
+    <el-dialog title="添加商品（从商城商品中选择加入订货）" :visible.sync="addVisible" width="640px">
+      <el-form inline size="small" @submit.native.prevent>
+        <el-form-item>
+          <el-input v-model="selectFrom.keywords" placeholder="搜索商品名称" clearable style="width: 240px" @keyup.enter.native="getSelectList" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="getSelectList">搜索</el-button>
+        </el-form-item>
+      </el-form>
+      <el-table ref="selectTable" v-loading="selectLoading" :data="selectData" size="small" max-height="360" @selection-change="onSelectChange">
+        <el-table-column type="selection" width="50" reserve-selection />
+        <el-table-column label="商品" min-width="240">
+          <template slot-scope="scope">
+            <div style="display:flex;align-items:center">
+              <img :src="scope.row.image" style="width:32px;height:32px;margin-right:8px;border-radius:4px">
+              <span>{{ scope.row.storeName }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="price" label="零售价" width="90" />
+        <el-table-column prop="stock" label="库存" width="80" />
+      </el-table>
+      <div class="block">
+        <el-pagination background layout="total, prev, pager, next" :page-size="selectFrom.limit" :current-page="selectFrom.page" :total="selectTotal" @current-change="selectPage" />
+      </div>
+      <div slot="footer">
+        <el-button size="small" @click="addVisible = false">取消</el-button>
+        <el-button size="small" type="primary" :loading="adding" :disabled="!selectedIds.length" @click="doAdd">确定添加（{{ selectedIds.length }}）</el-button>
+      </div>
+    </el-dialog>
 
     <!-- 拿货价弹窗 -->
     <el-dialog title="设置各层级拿货价" :visible.sync="priceVisible" width="440px">
@@ -100,7 +137,7 @@
 </template>
 
 <script>
-import { stockProductListApi, stockPriceSaveApi, stockAdjustApi, stockLogListApi } from '@/api/stock';
+import { stockProductListApi, stockProductSelectListApi, stockProductAddApi, stockProductRemoveApi, stockPriceSaveApi, stockAdjustApi, stockLogListApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -119,7 +156,14 @@ export default {
       priceRow: null,
       adjustVisible: false,
       adjustRow: null,
-      adjustForm: { productId: null, changeNum: 0, mark: '' }
+      adjustForm: { productId: null, changeNum: 0, mark: '' },
+      addVisible: false,
+      selectLoading: false,
+      selectData: [],
+      selectTotal: 0,
+      selectFrom: { page: 1, limit: 10, keywords: '' },
+      selectedIds: [],
+      adding: false
     };
   },
   methods: {
@@ -132,6 +176,47 @@ export default {
         this.total = (res && res.total) || 0;
         this.loading = false;
       }).catch(() => { this.loading = false; });
+    },
+    openAdd() {
+      this.addVisible = true;
+      if (!this.selectData.length) {
+        this.getSelectList();
+      }
+    },
+    getSelectList() {
+      this.selectLoading = true;
+      stockProductSelectListApi(this.selectFrom).then(res => {
+        this.selectData = (res && res.list) || [];
+        this.selectTotal = (res && res.total) || 0;
+        this.selectLoading = false;
+      }).catch(() => { this.selectLoading = false; });
+    },
+    selectPage(page) {
+      this.selectFrom.page = page;
+      this.getSelectList();
+    },
+    onSelectChange(rows) {
+      this.selectedIds = rows.map(r => r.id);
+    },
+    doAdd() {
+      this.adding = true;
+      stockProductAddApi(this.selectedIds).then(() => {
+        this.$message.success('添加成功');
+        this.adding = false;
+        this.addVisible = false;
+        this.selectedIds = [];
+        this.selectFrom = { page: 1, limit: 10, keywords: '' };
+        this.selectData = [];
+        this.getList();
+      }).catch(() => { this.adding = false; });
+    },
+    onRemove(row) {
+      this.$confirm('确认将商品「' + row.storeName + '」移出订货模块？移除后订货商端将无法订购该商品', '提示', { type: 'warning' }).then(() => {
+        stockProductRemoveApi(row.id).then(() => {
+          this.$message.success('已移除');
+          this.getList();
+        });
+      }).catch(() => {});
     },
     loadLogs() {
       stockLogListApi(this.logFrom).then(res => {
@@ -190,4 +275,7 @@ export default {
 
 <style scoped>
 .red { color: #f56c6c; }
+/* 操作列胶囊按钮：每行 3 个 */
+.op-wrap { display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 2px 0; }
+.op-btn { margin: 0 !important; padding: 5px 14px; font-size: 12px; line-height: 1; }
 </style>

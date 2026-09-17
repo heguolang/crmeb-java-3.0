@@ -203,8 +203,19 @@ D:\crmeb-java-3.0\local-dev\stop-windows.bat full # 连带停止 Redis 与 Maria
 
 ### 后台管理入口（2026-09-17 补齐 UI）
 - **层级与升级条件**：订货 → 订货代理 → 「层级设置」按钮 → 弹窗内每行「升级条件」按钮，可编辑四项条件开关与阈值、或/与组合方式、平级奖比例（保存到 eb_stock_level）。
-- **规则开关**：订货 → 奖励规则（/stock/setting）→ 订单上级审核 / **上级代理发货（stock_parent_deliver）** / **上级无库存等待时长（stock_up_search_hours，默认 12 小时）** / 差价奖励 / 团队级差与阶梯 / 平级奖励比例与代数。
+- **规则开关**：订货 → 奖励规则（/stock/setting）→ 订单上级审核 / **上级代理发货（stock_parent_deliver）** / **上级无库存等待时长（stock_up_search_hours，默认 12 小时）** / 差价奖励 / **阶梯业绩奖励（周期：月度/季度/年度）**。原「平级奖励比例与代数」全局配置已取消（平级奖比例改在层级设置里按层级配置）。
 - 注意：这两页读取/保存走 `/admin/stock/level/*` 与 `/admin/stock/setting/*` 接口，新配置键已加入后台 StockController 的白名单数组；若再新增配置键需同步修改 getSetting/saveSetting 两处 keys。
+
+### 商品加入制（2026-09-18 调整）
+- 商品与库存页**不再默认展示全部商品**：需点「添加商品」从商城商品中选择加入（`eb_stock_product_rel`）后才会出现在订货模块，再设置拿货价/库存；可「移除」。
+- 会员端订货商品中心同样只显示已加入的商品。
+- 接口：`/admin/stock/product/selectList`（可选商品）、`/product/add`（批量加入）、`/product/remove`。
+
+### 订货商管理 与 变更记录（2026-09-18 调整）
+- 「订货代理」菜单改名「订货商管理」；操作列按钮统一为胶囊样式、每行 3 个（商品与库存页同样式）。
+- 新增菜单「订货商变更记录」（/stock/changelog）：记录订货商 新增/层级变更/上级变更/状态变更/删除，含自动升级（备注"满足升级条件自动升级"），表 `eb_stock_change_log`。
+- 「提现管理」菜单已从数据库菜单删除（eb_system_menu id 655/670 置 is_delte=1），页面文件已删除。
+- 迁移 SQL：`crmeb/sql/stock_changelog_product_rel.sql`（重建库后需重新执行）。
 
 ### 库存与向上匹配（规则 7）
 - 上级可用库存 = 上级历史已付款采购数量 − 已供应给直接下级的数量（按商品计）。
@@ -215,11 +226,18 @@ D:\crmeb-java-3.0\local-dev\stop-windows.bat full # 连带停止 Redis 与 Maria
 - 系统配置 `stock_parent_deliver`：0=总部（后台）发货（默认）；1=上级代理在会员端发货。
 - =1 时后台 `sendOrder` 对有上级的订单拦截，需上级调用会员端接口 `POST api/front/stock/order/parentSend` 填快递发货。
 
+### 阶梯业绩奖励（2026-09-18 改造，替代原"级差"模式）
+- 不再是级差（按级别差额）模式，改为**阶梯业绩一次性奖励**：订货商统计周期内团队业绩，达到某档阶梯（`eb_stock_ladder`）即按该档规则发放一次性奖励，所有订货商规则一致。
+- 每档奖励**二选一**：固定金额 `reward`（>0 时优先）或 团队业绩 × 比例 `rate`%（固定金额为 0 时按比例）。区间匹配 min ≤ 业绩 < max（max=0 表示不限）。
+- 结算周期由系统配置 `stock_ladder_cycle` 决定（1=月度 / 2=季度 / 3=年度）；定时任务 `StockLadderSettleTask`（crmeb-admin）在每月 1 日 01:00 自动结算上一周期，也可在后台奖励规则页手动指定周期与月份结算（接口 `/admin/stock/reward/monthlySettle`，参数 type + month）。
+- 初始化/迁移 SQL：`crmeb/sql/stock_ladder_period_reward.sql`（重建库后需重新执行）。
+
 ### 平级奖
-- 系统配置 `stock_peer_status`（1=开）、`stock_peer_rate`（比例）、`stock_peer_generations`（最多拿几代，默认 1）。同级平推代理下单时上级按比例拿平级奖，结算逻辑在 `StockRewardServiceImpl`。
+- 全局配置（stock_peer_status/rate/generations）已**取消不使用**；平级奖比例改为按层级配置：`eb_stock_level.peer_rate`，在「订货代理 → 层级设置」中编辑。
+- 结算规则（`StockRewardServiceImpl.calcPeerReward`）：订单订货商的**直接上级若与订货商同级**，按该层级的 peer_rate 比例拿平级奖。
 
 ### 奖金并入佣金（2026-09-17 调整）
-- 订货奖金（差价/级差/平级）入账时**同步计入用户佣金余额**（`user.brokerage_price`）并写一条已完成状态的 `eb_user_brokerage_record`（标题"订货奖金"，不冻结），级差月结同样处理。
+- 订货奖金（差价/阶梯业绩/平级）入账时**同步计入用户佣金余额**（`user.brokerage_price`）并写一条已完成状态的 `eb_user_brokerage_record`（标题"订货奖金"，不冻结），阶梯业绩周期结算同样处理（备注"阶梯业绩结算|周期"）。
 - 会员端奖金中心不再有独立提现入口/提现记录，「申请提现」按钮直接跳转系统统一佣金提现页 `/pages/users/user_cash/index`，走 CRMEB 原生佣金提现（user_extract）逻辑。
 - 管理后台「订货 → 提现管理」菜单已移除（路由 stock.js 中删除，页面文件保留）；会员端的 stock/withdraw 接口保留但前端不再调用。
 

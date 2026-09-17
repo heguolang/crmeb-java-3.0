@@ -1,0 +1,501 @@
+﻿id	pid	name	perms	component	menu_type	sort	is_show	is_delte
+294	0	鍒嗙被鏈嶅姟			M	0	0	0
+344	0	鍏叡鏈嶅姟			M	0	0	0
+280	0	鐧诲綍绠＄悊	NULL	NULL	M	1	0	0
+13	0	缁存姢	NULL	/maintain	M	60	1	0
+12	0	璁剧疆	NULL	/operation	M	70	1	0
+10	0	绉诲姩绔鐞?NULL	/javaMobile	M	80	1	0
+439	0	瑁呬慨		/design	M	85	1	0
+9	0	璐㈠姟	NULL	/financial	M	90	1	0
+633	0	鍥㈤槦		/tuandui	M	95	1	0
+652	0	璁㈣揣		/stock	M	95	1	0
+641	0	浠ｇ悊		/daili	M	96	1	0
+8	0	鍒嗛攢	NULL	/distribution	M	100	1	0
+7	0	钀ラ攢	NULL	/marketing	M	110	1	0
+6	0	搴旂敤	NULL	/appSetting	M	120	1	0
+5	0	鍐呭	NULL	/content	M	130	1	0
+4	0	鐢ㄦ埛	NULL	/user	M	140	1	0
+3	0	璁㈠崟	NULL	/order	M	160	1	0
+2	0	鍟嗗搧	NULL	/store	M	180	1	0
+1	0	杩愯惀	NULL	/dashboard	M	200	1	0
+560	0	admin:activitystyle:delete	admin:activitystyle:delete	NULL	A	99999	1	0
+561	0	admin:activitystyle:edite	admin:activitystyle:edite	NULL	A	99999	1	0
+562	0	admin:activitystyle:list	admin:activitystyle:list	NULL	A	99999	1	0
+563	0	admin:activitystyle:save	admin:activitystyle:save	NULL	A	99999	1	0
+564	0	admin:activitystyle:updatestatus	admin:activitystyle:updatestatus	NULL	A	99999	1	0
+565	0	admin:agreement:merincomming:info	admin:agreement:merincomming:info	NULL	A	99999	1	0
+566	0	admin:agreement:merincomming:save	admin:agreement:merincomming:save	NULL	A	99999	1	0
+567	0	admin:combination:combine:list:count	admin:combination:combine:list:count	NULL	A	99999	1	0
+568	0	admin:copyright:update:company:info	admin:copyright:update:company:info	NULL	A	99999	1	0
+570	0	admin:order:statistics	admin:order:statistics	NULL	A	99999	1	0
+571	0	admin:order:statistics:data	admin:order:statistics:data	NULL	A	99999	1	0
+572	0	admin:order:video:send	admin:order:video:send	NULL	A	99999	1	0
+573	0	admin:order:write:confirm	admin:order:write:confirm	NULL	A	99999	1	0
+574	0	admin:pagediy:delete	admin:pagediy:delete	NULL	A	99999	1	0
+575	0	admin:pagediy:getdefault	admin:pagediy:getdefault	NULL	A	99999	1	0
+576	0	admin:pagediy:list	admin:pagediy:list	NULL	A	99999	1	0
+577	0	admin:pagediy:save	admin:pagediy:save	NULL	A	99999	1	0
+578	0	admin:pagediy:setdefault	admin:pagediy:setdefault	NULL	A	99999	1	0
+579	0	admin:pagediy:update	admin:pagediy:update	NULL	A	99999	1	0
+580	0	admin:pagediy:updatename	admin:pagediy:updatename	NULL	A	99999	1	0
+581	0	admin:pass:shipment:callback	admin:pass:shipment:callback	NULL	A	99999	1	0
+582	0	admin:pay:component:delivery:company:get	admin:pay:component:delivery:company:get	NULL	A	99999	1	0
+583	0	admin:pay:component:product:add	admin:pay:component:product:add	NULL	A	99999	1	0
+584	0	admin:pay:component:product:delete	admin:pay:component:product:delete	NULL	A	99999	1	0
+585	0	admin:pay:component:product:delisting	admin:pay:component:product:delisting	NULL	A	99999	1	0
+586	0	admin:pay:component:product:draft:info	admin:pay:component:product:draft:info	NULL	A	99999	1	0
+587	0	admin:pay:component:product:draft:list	admin:pay:component:product:draft:list	NULL	A	99999	1	0
+588	0	admin:pay:component:product:list	admin:pay:component:product:list	NULL	A	99999	1	0
+589	0	admin:pay:component:product:listing	admin:pay:component:product:listing	NULL	A	99999	1	0
+590	0	admin:pay:component:product:update	admin:pay:component:product:update	NULL	A	99999	1	0
+591	0	admin:product:listbyids	admin:product:listbyids	NULL	A	99999	1	0
+592	0	admin:sms:applys	admin:sms:applys	NULL	A	99999	1	0
+593	0	admin:sms:modify:sign	admin:sms:modify:sign	NULL	A	99999	1	0
+594	0	admin:sms:temp:apply	admin:sms:temp:apply	NULL	A	99999	1	0
+595	0	admin:sms:temps	admin:sms:temps	NULL	A	99999	1	0
+596	0	admin:statistics:product:data	admin:statistics:product:data	NULL	A	99999	1	0
+597	0	admin:statistics:product:ranking	admin:statistics:product:ranking	NULL	A	99999	1	0
+598	0	admin:statistics:product:trend	admin:statistics:product:trend	NULL	A	99999	1	0
+599	0	admin:statistics:trade:data	admin:statistics:trade:data	NULL	A	99999	1	0
+600	0	admin:statistics:trade:overview	admin:statistics:trade:overview	NULL	A	99999	1	0
+601	0	admin:statistics:trade:trend	admin:statistics:trade:trend	NULL	A	99999	1	0
+602	0	admin:statistics:user:area	admin:statistics:user:area	NULL	A	99999	1	0
+603	0	admin:statistics:user:channel	admin:statistics:user:channel	NULL	A	99999	1	0
+604	0	admin:statistics:user:overview	admin:statistics:user:overview	NULL	A	99999	1	0
+605	0	admin:statistics:user:overview:list	admin:statistics:user:overview:list	NULL	A	99999	1	0
+606	0	admin:statistics:user:sex	admin:statistics:user:sex	NULL	A	99999	1	0
+607	0	admin:statistics:user:total:data	admin:statistics:user:total:data	NULL	A	99999	1	0
+608	0	admin:system:config:clear:cache	admin:system:config:clear:cache	NULL	A	99999	1	0
+609	0	admin:system:order:list	admin:system:order:list	NULL	A	99999	1	0
+610	0	admin:system:staff:delete	admin:system:staff:delete	NULL	A	99999	1	0
+611	0	admin:system:staff:info	admin:system:staff:info	NULL	A	99999	1	0
+612	0	admin:system:staff:list	admin:system:staff:list	NULL	A	99999	1	0
+613	0	admin:system:staff:save	admin:system:staff:save	NULL	A	99999	1	0
+614	0	admin:system:staff:update	admin:system:staff:update	NULL	A	99999	1	0
+615	0	admin:system:staff:update:status	admin:system:staff:update:status	NULL	A	99999	1	0
+616	0	admin:system:status:info	admin:system:status:info	NULL	A	99999	1	0
+617	0	admin:system:store:completely:delete	admin:system:store:completely:delete	NULL	A	99999	1	0
+618	0	admin:system:store:count	admin:system:store:count	NULL	A	99999	1	0
+619	0	admin:system:store:delete	admin:system:store:delete	NULL	A	99999	1	0
+620	0	admin:system:store:info	admin:system:store:info	NULL	A	99999	1	0
+621	0	admin:system:store:list	admin:system:store:list	NULL	A	99999	1	0
+622	0	admin:system:store:recovery	admin:system:store:recovery	NULL	A	99999	1	0
+623	0	admin:system:store:save	admin:system:store:save	NULL	A	99999	1	0
+624	0	admin:system:store:update	admin:system:store:update	NULL	A	99999	1	0
+625	0	admin:system:store:update:status	admin:system:store:update:status	NULL	A	99999	1	0
+626	0	admin:system:user:level:delete	admin:system:user:level:delete	NULL	A	99999	1	0
+627	0	admin:system:user:level:save	admin:system:user:level:save	NULL	A	99999	1	0
+628	0	admin:system:user:level:update	admin:system:user:level:update	NULL	A	99999	1	0
+629	0	admin:system:user:level:use	admin:system:user:level:use	NULL	A	99999	1	0
+630	0	admin:upload:file	admin:upload:file	NULL	A	99999	1	0
+631	0	admin:upload:image	admin:upload:image	NULL	A	99999	1	0
+632	0	public:jsconfig:getcrmebchatconfig	public:jsconfig:getcrmebchatconfig	NULL	A	99999	1	0
+226	1	鎺у埗鍙?	/dashboard	C	9	1	0
+14	2	鍟嗗搧绠＄悊	admin:product:list	/store/index	C	1	1	0
+15	2	鍟嗗搧鍒嗙被		/store/sort	C	1	1	0
+16	2	鍟嗗搧瑙勬牸	admin:product:rule:list	/store/attr	C	1	1	0
+17	2	鍟嗗搧璇勮	admin:product:reply:list	/store/comment	C	1	1	0
+495	2	淇濋殰鏈嶅姟		/store/guarantee	C	1	1	0
+32	3	璁㈠崟绠＄悊	admin:order:list	/order/index	C	1	1	0
+40	4	鐢ㄦ埛鏍囩	admin:user:tag:list	/user/label	C	1	1	0
+42	4	鐢ㄦ埛鍒嗙粍	admin:user:group:list	/user/group	C	1	1	0
+558	4	鐢ㄦ埛绛夌骇	admin:system:user:level:list	/user/grade	C	2	1	0
+39	4	鐢ㄦ埛绠＄悊 	admin:user:list	/user/index	C	100	1	0
+60	5	鏂囩珷绠＄悊	admin:article:list	/content/articleManager	C	1	1	0
+61	5	鏂囩珷鍒嗙被		/content/classifManager	C	99999	1	0
+67	6	鍏紬鍙?	/appSetting/publicAccount	M	99999	1	0
+68	6	灏忕▼搴?	/appSetting/publicRoutine	M	99999	1	0
+83	7	浼樻儬鍒?	/marketing/coupon	M	1	1	0
+84	7	绉垎		/marketing/integral	M	99999	1	0
+85	7	绉掓潃绠＄悊		/marketing/seckill	M	99999	1	0
+86	7	鐮嶄环绠＄悊		/marketing/bargain	M	99999	1	0
+87	7	鎷煎洟绠＄悊		/marketing/groupBuy	M	99999	1	0
+105	8	鍒嗛攢閰嶇疆	admin:retail:spread:manage:get	/distribution/distributionconfig	C	1	1	0
+559	8	浼氬憳杩斾剑閰嶇疆	admin:system:user:level:brokerage:list	/distribution/brokerageConfig	C	3	1	0
+104	8	鍒嗛攢鍟嗙鐞?admin:retail:list	/distribution/index	C	100	1	0
+108	9	浣ｉ噾璁板綍	admin:finance:monitor:brokerage:record	/financial/brokerage	C	1	1	0
+553	9	鍥㈤槦濂栬褰?admin:system:team:level:brokerage:record	/distribution/teamBrokerageRecord	C	8	1	0
+106	9	璐㈠姟鎿嶄綔		/financial/commission	M	99999	1	0
+107	9	璐㈠姟璁板綍		/financial/record	M	99999	1	0
+114	10	璁㈠崟鏍搁攢		/javaMobile/orderCancellation	C	99999	1	0
+115	10	璁㈠崟缁熻		/javaMobile/orderStatistics	C	99999	1	0
+452	12	鍗忚绠＄悊		/operation/agreement	M	0	1	0
+225	12	閰嶇疆寮曞		/operation/guide	C	0	1	0
+269	12	娑堟伅閫氱煡	admin:system:notification:list	/operation/notification	C	4	1	0
+125	12	椤甸潰绠＄悊		/operation/design	M	5	1	1
+124	12	鍙戣揣璁剧疆		/operation/deliverGoods	M	6	1	0
+123	12	绠＄悊鏉冮檺		/operation/roleManager	M	7	1	0
+635	12	鏃ュ織绠＄悊		/operation/logManager	M	8	1	0
+420	12	涓€鍙烽€氶厤缃?	/operation/onePassConfig	C	9	0	0
+435	12	涓€鍙烽€?	/operation/onePass	C	9	0	0
+121	12	绯荤粺璁剧疆	admin:system:config:info	/operation/setting	C	10	1	0
+158	13	绱犳潗绠＄悊	admin:system:attachment:list	/maintain/picture	C	1	1	0
+422	13	瀹氭椂浠诲姟绠＄悊		/operation/maintain/schedule	C	99	1	0
+159	13	寮€鍙戦厤缃?	/maintain//devconfiguration	M	99999	1	0
+161	13	鐗╂祦璁剧疆		/maintain/logistics	M	99999	1	0
+273	14	鍟嗗搧琛ㄥご鏁伴噺	admin:product:tabs:headers		A	0	1	0
+274	14	瀵煎叆99Api鍟嗗搧	admin:product:import:product		A	0	1	0
+275	14	鑾峰彇澶嶅埗鍟嗗搧閰嶇疆	admin:product:copy:config		A	0	1	0
+276	14	澶嶅埗骞冲彴鍟嗗搧	admin:product:copy:product		A	0	1	0
+277	14	鍟嗗搧璇︽儏	admin:product:info		A	0	1	0
+278	14	鎭㈠鍟嗗搧	admin:product:restore		A	0	1	0
+208	14	鍟嗗搧瀵煎嚭	admin:export:excel:product		A	0	1	0
+491	14	缂栬緫搴撳瓨	admin:product:quick:stock:add		A	0	1	0
+18	14	鍟嗗搧娣诲姞	admin:product:save		A	1	1	0
+19	14	鍟嗗搧淇敼	admin:product:update		A	1	1	0
+20	14	鍟嗗搧鍒犻櫎	admin:product:delete		A	1	1	0
+21	14	鍟嗗搧涓婃灦	admin:product:up		A	1	1	0
+22	14	鍟嗗搧涓嬫灦	admin:product:down		A	1	1	0
+23	14	搴撳瓨鍙樺姩		api/admin/store/product/stock	A	99999	1	0
+24	14	铏氭嫙閿€閲?	api/admin/store/product/ficti	A	99999	1	0
+389	16	鍟嗗搧瑙勫垯鍊艰鎯?admin:product:rule:info		A	0	1	0
+25	16	瑙勬牸娣诲姞	admin:product:rule:save		A	1	1	0
+26	16	瑙勬牸淇敼	admin:product:rule:update		A	1	1	0
+27	16	瑙勬牸鍒犻櫎	admin:product:rule:delete		A	1	1	0
+28	17	鍟嗗搧璇勮娣诲姞	admin:product:reply:save		A	1	1	0
+29	17	鍟嗗搧璇勮璇︽儏	admin:product:reply:info		A	1	1	0
+30	17	鍟嗗搧璇勮鍒犻櫎	admin:product:reply:delete		A	1	1	0
+31	17	鍟嗗搧璇勮鍥炲	admin:product:reply:comment		A	1	1	0
+306	32	璁㈠崟鍒楄〃缁熻鏁版嵁	admin:order:list:data		A	0	1	0
+307	32	闈㈠崟榛樿閰嶇疆淇℃伅	admin:order:sheet:info		A	0	1	0
+308	32	璁㈠崟璇︽儏	admin:order:info		A	0	1	0
+309	32	璁㈠崟鎿嶄綔璁板綍鍒楄〃	admin:order:status:list		A	0	1	0
+368	32	璁㈠崟鏍搁攢	admin:order:write:update		A	0	1	0
+373	32	鐗╂祦鍏徃闈㈠崟妯℃澘	admin:express:template		A	0	1	0
+415	32	鏇存敼璁㈠崟杩愬崟鍙?admin:order:tracking:number:update		A	0	1	0
+180	32	璁㈠崟鏀逛环	admin:order:update:price		A	0	1	0
+181	32	鐗╂祦鏌ヨ	admin:order:logistics:info		A	0	1	0
+182	32	璁㈠崟鍚勭姸鎬佹暟閲?admin:order:status:num		A	0	1	0
+224	32	鏄撹仈浜戝皬绁ㄦ墦鍗?admin:yly:print		A	0	1	0
+33	32	璁㈠崟鍒犻櫎	admin:order:delete		A	1	1	0
+34	32	璁㈠崟澶囨敞	admin:order:mark		A	1	1	0
+35	32	璁㈠崟閫€娆?admin:order:refund		A	1	1	0
+36	32	璁㈠崟鎷掔粷閫€娆?admin:order:refund:refuse		A	1	1	0
+37	32	璁㈠崟鍙戣揣	admin:order:send		A	1	1	0
+179	32	璁㈠崟瀵煎嚭	admin:export:excel:order		A	1	1	0
+38	32	璁㈠崟鏇存柊		api/admin/store/order/update	A	99999	1	0
+304	39	鍙戦€佷紭鎯犲埜鍒楄〃	admin:coupon:send:list		A	0	1	0
+315	39	鐢ㄦ埛璇︽儏椤礣op鏁版嵁	admin:user:topdetail		A	0	1	0
+316	39	鐢ㄦ埛淇℃伅璇︽儏	admin:user:infobycondition		A	0	1	0
+317	39	鐢ㄦ埛鍒嗙粍	admin:user:group		A	0	1	0
+318	39	淇敼鐢ㄦ埛鎵嬫満鍙?admin:user:update:phone		A	0	1	0
+319	39	鏇存柊鐢ㄦ埛浼氬憳绛夌骇	admin:user:update:level		A	0	1	0
+320	39	淇敼涓婄骇鎺ㄥ箍浜?admin:user:update:spread		A	0	1	0
+343	39	鍙戦€佷紭鎯犲埜	admin:coupon:user:receive		A	0	1	0
+400	39	浼氬憳绛夌骇鍒楄〃	admin:user:level:list		A	0	1	0
+43	39	鐢ㄦ埛淇敼	admin:user:update		A	1	1	0
+44	39	鐢ㄦ埛璇︽儏	admin:user:info		A	1	1	0
+47	39	鐢ㄦ埛鎵撴爣绛?admin:user:tag		A	1	1	0
+48	39	淇敼绉垎浣欓	admin:user:operate:founds		A	1	1	0
+634	39	淇敼鐧诲綍瀵嗙爜	admin:user:update:password		A	99999	1	0
+401	40	浼氬憳鏍囩璇︽儏	admin:user:tag:info		A	0	1	0
+50	40	鐢ㄦ埛鏍囩淇敼	admin:user:tag:update		A	1	1	0
+49	40	鐢ㄦ埛鏍囩娣诲姞	admin:user:tag:save		A	2	1	0
+51	40	鐢ㄦ埛鏍囩鍒犻櫎	admin:user:tag:delete		A	3	1	0
+399	42	鐢ㄦ埛鍒嗙粍璇︽儏	admin:user:group:info		A	0	1	0
+56	42	鐢ㄦ埛鍒嗙粍淇敼	admin:user:group:update		A	1	1	0
+57	42	鐢ㄦ埛鍒嗙粍鍒犻櫎	admin:user:group:delete		A	1	1	0
+59	42	鐢ㄦ埛鍒嗙粍鏂板	admin:user:group:save		A	1	1	0
+321	60	鏂囩珷璇︽儏	admin:article:info		A	0	1	0
+62	60	鏂囩珷娣诲姞	admin:article:save		A	1	1	0
+63	60	鏂囩珷鍒犻櫎	admin:article:delete		A	1	1	0
+64	60	鏂囩珷淇敼	admin:article:update		A	1	1	0
+69	67	寰俊鑿滃崟	admin:wechat:menu:public:get	/appSetting/publicAccount/wxMenus	C	0	1	0
+70	67	鑷姩鍥炲		/appSetting/publicAccount/wxReply	M	1	1	0
+305	68	涓嬭浇灏忕▼搴?admin:wechat:code:download	/appSetting/publicRoutine/download	C	0	1	0
+476	68	鍙戣揣绠＄悊		/appSetting/publicRoutine/deliveryManagement	C	0	1	0
+73	69	寰俊鑿滃崟淇濆瓨	admin:wechat:menu:public:create		A	1	1	0
+74	69	寰俊鑿滃崟鍒犻櫎	admin:wechat:menu:public:delete		A	1	1	0
+75	70	寰俊鍏虫敞鍥炲	admin:wechat:keywords:reply:info:keywords	/appSetting/publicAccount/wxReply/follow	C	99999	1	0
+76	70	鍏抽敭瀛楀洖澶?admin:wechat:keywords:reply:list	/appSetting/publicAccount/wxReply/keyword	C	99999	1	0
+77	70	鏃犳晥鍏抽敭璇嶅洖澶?	/appSetting/publicAccount/wxReply/replyIndex	C	99999	1	0
+186	75	淇敼鍏抽敭瀛楀洖澶?admin:wechat:keywords:reply:update		A	0	1	0
+184	76	鏂板鍏抽敭瀛楀洖澶?admin:wechat:keywords:reply:save		A	0	1	0
+185	76	鍒犻櫎鍏抽敭瀛楀洖澶?admin:wechat:keywords:reply:delete		A	0	1	0
+187	76	淇敼鍏抽敭瀛楃姸鎬?admin:wechat:keywords:reply:status		A	0	1	0
+188	76	寰俊鍏抽敭瀛楄鎯?admin:wechat:keywords:reply:info		A	0	1	0
+89	83	浼樻儬鍒?admin:coupon:list	/marketing/coupon/list	C	1	1	0
+90	83	棰嗗彇璁板綍	admin:coupon:user:list	/marketing/coupon/record	C	1	1	0
+92	84	绉垎鏃ュ織	admin:user:integral:list	/marketing/integral/integrallog	C	1	1	0
+91	84	绉垎閰嶇疆		/marketing/integral/integralconfig	C	99999	1	0
+93	85	绉掓潃閰嶇疆	admin:seckill:manger:list	/marketing/seckill/config	C	1	1	0
+94	85	绉掓潃鍟嗗搧	admin:seckill:list	/marketing/seckill/list	C	1	1	0
+95	86	鐮嶄环鍟嗗搧	admin:bargain:list	/marketing/bargain/bargainGoods	C	1	1	0
+96	86	鐮嶄环鍒楄〃	admin:bargain:user:list	/marketing/bargain/bargainList	C	1	1	0
+97	87	鎷煎洟鍟嗗搧	admin:combination:list	/marketing/groupBuy/groupGoods	C	1	1	0
+98	87	鎷煎洟鍒楄〃	admin:combination:combine:list	/marketing/groupBuy/groupList	C	1	1	0
+376	88	浜ゆ槗缁勪欢鑾峰彇蹇€掑叕鍙?admin:pay:component:delivery:company:get:list		A	0	1	0
+377	88	浜ゆ槗缁勪欢灏忕▼搴忔帴鍏ョ敵璇?admin:pay:component:shop:register		A	0	1	0
+378	88	浜ゆ槗缁勪欢鑾峰彇灏忕▼搴忔帴鍏ョ姸鎬?admin:pay:component:shop:register:check		A	0	1	0
+379	88	浜ゆ槗缁勪欢涓婁紶鍥剧墖	admin:pay:component:shop:img:upload		A	0	1	0
+380	88	浜ゆ槗缁勪欢涓婁紶鍝佺墝淇℃伅	admin:pay:component:shop:brand:audit		A	0	1	0
+381	88	浜ゆ槗缁勪欢鍝佺墝鍒楄〃	admin:pay:component:shop:brand:list		A	0	1	0
+382	88	浜ゆ槗缁勪欢鍙敤鍝佺墝鍒楄〃	admin:pay:component:shop:brand:usable:list		A	0	1	0
+322	89	鍒犻櫎浼樻儬鍒?admin:coupon:delete		A	0	1	0
+101	89	浼樻儬鍒告坊鍔?admin:coupon:save		A	1	1	0
+102	89	浼樻儬鍒哥姸鎬佹洿鏂?admin:coupon:update:status		A	1	1	0
+189	89	澶嶅埗	admin:coupon:info		A	1	1	0
+103	90	棰嗗彇浼樻儬鍒?	api/admin/marketing/coupon/user/receive	A	99999	1	0
+196	93	绉掓潃閰嶇疆鏂板	admin:seckill:manger:save		A	0	1	0
+197	93	绉掓潃閰嶇疆鍒犻櫎	admin:seckill:manger:delete		A	0	1	0
+198	93	绉掓潃閰嶇疆淇敼	admin:seckill:manger:update		A	0	1	0
+199	93	绉掓潃閰嶇疆璇︽儏	admin:seckill:manger:info		A	0	1	0
+200	93	绉掓潃閰嶇疆鐘舵€佷慨鏀?admin:seckill:manger:update:status		A	0	1	0
+191	94	娣诲姞绉掓潃鍟嗗搧	admin:seckill:save		A	0	1	0
+192	94	鍒犻櫎绉掓潃鍟嗗搧	admin:seckill:delete		A	0	1	0
+193	94	淇敼绉掓潃鍟嗗搧	admin:seckill:update		A	0	1	0
+194	94	淇敼绉掓潃鍟嗗搧鐘舵€?admin:seckill:update:status		A	0	1	0
+195	94	绉掓潃鍟嗗搧璇︽儏	admin:seckill:info		A	0	1	0
+201	95	鏂板鐮嶄环鍟嗗搧	admin:bargain:save		A	0	1	0
+202	95	鍒犻櫎鐮嶄环鍟嗗搧	admin:bargain:delete		A	0	1	0
+203	95	淇敼鐮嶄环鍟嗗搧	admin:bargain:update		A	0	1	0
+204	95	鐮嶄环鍟嗗搧璇︽儏	admin:bargain:info		A	0	1	0
+205	95	淇敼鐮嶄环鍟嗗搧鐘舵€?admin:bargain:update:status		A	0	1	0
+207	95	鐮嶄环鍟嗗搧瀵煎嚭	admin:export:excel:bargain		A	0	1	0
+325	96	鐮嶄环鍙備笌璇︽儏鍒楄〃	admin:bargain:user:help:list		A	0	1	0
+209	97	鏂板鎷煎洟鍟嗗搧	admin:combination:save		A	0	1	0
+210	97	鎷煎洟鍟嗗搧鍒犻櫎	admin:combination:delete		A	0	1	0
+211	97	鎷煎洟鍟嗗搧淇敼	admin:combination:update		A	0	1	0
+212	97	鎷煎洟鍟嗗搧璇︽儏	admin:combination:info		A	0	1	0
+213	97	淇敼鎷煎洟鍟嗗搧鐘舵€?admin:combination:update:status		A	0	1	0
+214	97	鎷煎洟鍟嗗搧瀵煎嚭	admin:export:excel:combiantion		A	0	1	0
+348	98	鎷煎洟璁㈠崟鍒楄〃	admin:combination:order:pink		A	0	1	0
+215	98	鎷煎洟缁熻	admin:combination:statistics		A	0	1	0
+375	99	浜ゆ槗缁勪欢姝ｅ紡鍟嗗搧璇︽儏	admin:pay:component:product:info		A	0	1	0
+350	100	缁勪欢绫荤洰鍒楄〃	admin:pay:component:cat:list		A	0	1	0
+352	104	鎺ㄥ箍浜?admin:retail:spread:list		A	0	1	0
+353	104	鎺ㄥ箍璁㈠崟	admin:retail:spread:order:list		A	0	1	0
+354	104	娓呴櫎涓婄骇鎺ㄥ箍浜?admin:retail:spread:clean		A	0	1	0
+383	104	娣诲姞鎺ㄥ箍鍏崇郴	admin:retail:spread:save		A	0	1	1
+231	105	鍒嗛攢閰嶇疆淇℃伅淇濆瓨	admin:retail:spread:manage:set		A	0	1	0
+109	106	鐢宠鎻愮幇	admin:finance:apply:list	/financial/commission/template	C	1	1	0
+110	107	鍏呭€艰褰?admin:recharge:list	/financial/record/charge	C	1	1	0
+111	107	璧勯噾鐩戞帶	admin:finance:monitor:list	/financial/record/monitor	C	1	1	0
+326	109	鎻愮幇缁熻	admin:finance:apply:balance		A	0	1	0
+355	109	鎻愮幇缂栬緫	admin:finance:apply:update		A	0	1	0
+356	109	鎻愮幇瀹℃牳	admin:finance:apply:apply		A	0	1	0
+293	110	鎻愮幇鎬婚噾棰?admin:recharge:balance		A	0	1	0
+324	121	鏁翠綋淇濆瓨琛ㄥ崟鏁版嵁	admin:system:config:save:form		A	0	1	0
+136	123	瑙掕壊绠＄悊	admin:system:role:list	/operation/roleManager/identityManager	C	1	1	0
+137	123	绠＄悊鍛樺垪琛?admin:system:admin:list	/operation/roleManager/adminList	C	1	1	0
+138	123	鏉冮檺瑙勫垯	admin:system:menu:list	/operation/roleManager/promiseRules	C	1	1	0
+140	124	杩愯垂妯℃澘	admin:shipping:templates:list	/operation/deliverGoods/freightSet	C	2	1	0
+436	125	椤甸潰瑁呬慨		/operation/design/devise	M	0	1	1
+141	125	涓€閿崲鑹?	/operation/design/theme	C	99999	1	1
+142	125	椤甸潰璁捐	admin:page:layout:index	/operation/design/viewDesign	C	99999	1	1
+143	136	韬唤娣诲姞	admin:system:role:save	api/admin/system/role/save	A	1	1	0
+144	136	韬唤鍒犻櫎	admin:system:role:delete		A	2	1	0
+145	136	韬唤淇敼	admin:system:role:update		A	3	1	0
+311	136	瑙掕壊璇︽儏	admin:system:role:info		A	4	1	0
+312	136	淇敼瑙掕壊鐘舵€?admin:system:role:update:status		A	5	1	0
+146	137	绠＄悊鍛樻坊鍔?admin:system:admin:save		A	2	1	0
+147	137	绠＄悊鍛樹慨鏀?admin:system:admin:update		A	3	1	0
+148	137	绠＄悊鍛樺垹闄?admin:system:admin:delete		A	4	1	0
+149	137	绠＄悊鍛樼姸鎬佹洿鏂?admin:system:admin:update:status		A	5	1	0
+313	137	绠＄悊鍛樿鎯?admin:system:admin:info		A	6	1	0
+314	137	鏄惁鎺ユ敹鐘舵€?admin:system:admin:update:sms		A	7	1	0
+340	138	鑿滃崟缂撳瓨鏍?admin:system:menu:cache:tree		A	0	1	0
+284	138	鑿滃崟璇︽儏	admin:system:menu:info	NULL	A	99999	1	0
+151	138	鏉冮檺鏂板	admin:system:menu:add	NULL	A	99999	1	0
+152	138	鏉冮檺鍒犻櫎	admin:system:menu:delete	NULL	A	99999	1	0
+153	138	鏉冮檺鏇存柊	admin:system:menu:update	NULL	A	99999	1	0
+154	138	鏇存柊鏉冮檺鐘舵€?admin:system:menu:show:status	NULL	A	99999	1	0
+252	140	鐗╂祦妯℃澘鏂板	admin:shipping:templates:save		A	3	1	0
+253	140	鐗╂祦妯℃澘鍒犻櫎	admin:shipping:templates:delete		A	4	1	0
+254	140	鐗╂祦妯℃澘璇︽儏	admin:shipping:templates:info		A	5	1	0
+255	140	鐗╂祦妯℃澘淇敼	admin:shipping:templates:update		A	6	1	0
+256	140	鐗╂祦鍏嶈垂妯℃澘	admin:shipping:templates:free:list		A	7	1	0
+257	140	鐗╂祦浠樿垂妯℃澘	admin:shipping:templates:region:list		A	8	1	0
+328	142	椤甸潰甯冨眬棣栭〉淇濆瓨	admin:page:layout:save		A	0	1	1
+329	142	椤甸潰甯冨眬棣栭〉banner淇濆瓨	admin:page:layout:index:banner:save		A	0	1	1
+330	142	椤甸潰甯冨眬棣栭〉menu淇濆瓨	admin:page:layout:index:menu:save		A	0	1	1
+331	142	椤甸潰棣栭〉鏂伴椈淇濆瓨	admin:page:layout:index:news:save		A	0	1	1
+333	142	椤甸潰鐢ㄦ埛涓績瀵艰埅淇濆瓨	admin:page:layout:user:menu:save		A	0	1	1
+334	142	椤甸潰鐢ㄦ埛涓績鍟嗗搧table淇濆瓨	admin:page:layout:index:table:save		A	0	1	1
+335	142	鍒嗙被椤甸厤缃繚瀛?admin:page:layout:category:config:save		A	0	1	1
+341	142	鑾峰彇鍒嗙被椤甸厤缃?admin:page:layout:category:config		A	0	1	1
+437	142	椤甸潰搴曢儴瀵艰埅	admin:page:layout:bottom:navigation		A	0	1	1
+438	142	搴曢儴瀵艰埅淇濆瓨	admin:page:layout:bottom:navigation:save		A	0	1	1
+367	158	淇敼鍥剧墖鍒嗙粍	admin:system:attachment:move		A	0	1	0
+162	158	鍒犻櫎绱犳潗	admin:system:attachment:delete	api/admin/system/attachment/delete	A	1	1	0
+164	159	缁勫悎鏁版嵁	admin:system:group:list	/maintain/devconfiguration/combineddata	C	1	1	0
+165	159	琛ㄥ崟閰嶇疆	admin:system:form:list	/maintain/devconfiguration/formConfig	C	1	1	0
+163	159	閰嶇疆鍒嗙被		/maintain/devconfiguration/configCategory	C	99999	1	0
+166	161	鍩庡競鏁版嵁	admin:system:city:list	/maintain/logistics/cityList	C	1	1	0
+167	161	鐗╂祦鍏徃	admin:express:list	/maintain/logistics/companyList	C	2	1	0
+303	164	鍒嗛〉缁勫悎鏁版嵁璇︽儏	admin:system:group:data:list		A	0	1	0
+168	164	鏁版嵁缁勬坊鍔?admin:system:group:save		A	2	1	0
+169	164	鏁版嵁缁勪慨鏀?admin:system:group:update		A	3	1	0
+170	164	鏁版嵁缁勫垹闄?admin:system:group:delete		A	4	1	0
+171	164	缁勫悎鏁版嵁娣诲姞	admin:system:group:data:save		A	5	1	0
+172	164	缁勫悎鏁版嵁淇敼	admin:system:group:data:update		A	6	1	0
+173	164	缁勫悎鏁版嵁鍒犻櫎	admin:system:group:data:delete		A	7	1	0
+250	164	缁勫悎鏁版嵁璇︽儏	admin:system:group:data:info		A	8	1	0
+174	165	琛ㄥ崟娣诲姞	admin:system:form:save		A	2	1	0
+176	165	琛ㄥ崟淇敼	admin:system:form:update		A	4	1	0
+258	166	鍩庡競璇︽儏	admin:system:city:info		A	0	1	0
+259	166	淇敼鍩庡競	admin:system:city:update		A	0	1	0
+310	166	鍩庡競鏍戝垪琛?admin:system:city:list:tree		A	0	1	0
+393	166	淇敼鍩庡競鐘舵€?admin:system:city:update:status		A	0	1	0
+357	167	鐗╂祦鍏徃	admin:express:all		A	0	1	0
+370	167	缂栬緫蹇€掑叕鍙?admin:express:update		A	0	1	0
+371	167	淇敼蹇€掑叕鍙哥姸鎬?admin:express:update:show		A	0	1	0
+372	167	蹇€掑叕鍙歌鎯?admin:express:info		A	0	1	0
+251	167	鍚屾鐗╂祦鍏徃	admin:express:sync		A	3	1	0
+285	226	棣栭〉鏁版嵁	admin:statistics:home:index		A	0	1	0
+286	226	鐢ㄦ埛鏇茬嚎鍥?admin:statistics:home:chart:user		A	0	1	0
+287	226	鐢ㄦ埛璐拱缁熻	admin:statistics:home:chart:user:buy		A	0	1	0
+288	226	30澶╄鍗曢噺瓒嬪娍	admin:statistics:home:chart:order		A	0	1	0
+289	226	鍛ㄨ鍗曢噺瓒嬪娍	admin:statistics:home:chart:order:week		A	0	1	0
+290	226	鏈堣鍗曢噺瓒嬪娍	admin:statistics:home:chart:order:month		A	0	1	0
+291	226	骞磋鍗曢噺瓒嬪娍	admin:statistics:home:chart:order:year		A	0	1	0
+327	226	缁忚惀鏁版嵁	admin:statistics:home:operating:data		A	0	1	0
+337	269	鍏紬鍙锋ā鏉挎秷鎭悓姝?admin:wechat:whcbqhn:sync		A	0	1	0
+359	269	鍏紬鍙锋ā鏉垮紑鍏?admin:system:notification:wechat:switch		A	0	1	0
+360	269	灏忕▼搴忚闃呮ā鏉垮紑鍏?admin:system:notification:routine:switch		A	0	1	0
+361	269	鍙戦€佺煭淇″紑鍏?admin:system:notification:sms:switch		A	0	1	0
+362	269	閫氱煡璇︽儏	admin:system:notification:detail		A	0	1	0
+366	269	灏忕▼搴忚闃呮秷鎭悓姝?admin:wechat:routine:sync		A	0	1	0
+369	269	淇敼閫氱煡	admin:system:notification:update		A	0	1	0
+488	280	淇敼鐧诲綍鐢ㄦ埛瀵嗙爜	admin:update:password		A	0	1	0
+489	280	淇敼绠＄悊鍛樺悕绉?admin:update:name		A	0	1	0
+281	280	鐧婚檰鐢ㄦ埛璇︽儏	admin:info	NULL	A	99999	1	0
+282	280	閫€鍑虹櫥褰?admin:logout	NULL	A	99999	1	0
+283	280	绠＄悊鍛樺彲璁块棶鐩綍	admin:login:menus	NULL	A	99999	1	0
+295	294	鍒嗙被鍒楄〃	admin:category:list		A	0	1	0
+296	294	鏂板鍒嗙被	admin:category:save		A	0	1	0
+297	294	鍒犻櫎鍒嗙被	admin:category:delete		A	0	1	0
+298	294	淇敼鍒嗙被	admin:category:update		A	0	1	0
+299	294	鍒嗙被璇︽儏	admin:category:info		A	0	1	0
+300	294	鍒嗙被tree鍒楄〃	admin:category:list:tree		A	0	1	0
+301	294	鏍规嵁id闆嗗悎鑾峰彇鍒嗙被鍒楄〃	admin:category:list:ids		A	0	1	0
+302	294	鏇存敼鍒嗙被鐘舵€?admin:category:update:status		A	0	1	0
+323	344	琛ㄥ崟妯℃澘璇︽儏	admin:system:form:info		A	0	1	0
+345	344	鏍规嵁key瀛樺偍	admin:system:config:saveuniq		A	0	1	0
+347	344	鏍规嵁key鑾峰彇	admin:system:config:getuniq		A	0	1	0
+387	344	璁㈠崟缁熻璇︽儏	admin:order:time		A	0	1	0
+390	344	鏂板闄勪欢	admin:system:attachment:save		A	0	1	0
+391	344	淇敼闄勪欢	admin:system:attachment:update		A	0	1	0
+392	344	闄勪欢璇︽儏	admin:system:attachment:info		A	0	1	0
+394	344	妫€娴嬭〃鍗昻ame鏄惁瀛樺湪	admin:system:config:check		A	0	1	0
+395	344	鏍规嵁key鑾峰彇閰嶇疆	admin:system:config:get		A	0	1	0
+396	344	鏇存柊閰嶇疆淇℃伅	admin:system:config:update		A	0	1	0
+397	344	缁勫悎鏁版嵁璇︽儏	admin:system:group:info		A	0	1	0
+402	344	鑾峰彇寰俊鍏紬鍙穓s閰嶇疆	admin:wechat:config		A	0	1	0
+403	344	寰俊绱犳潗涓婁紶	admin:wechat:media:upload		A	0	1	0
+406	344	鑾峰彇鎺堟潈淇℃伅	admin:copyright:get:info		A	0	1	0
+407	344	鑾峰彇鏂囦欢瀛樺偍绫诲瀷	admin:system:config:upload:type		A	0	1	0
+408	344	鑾峰彇绠＄悊绔痩ogo	admin:system:config:site:logo		A	0	1	1
+409	344	鑾峰彇鑵捐鍦板浘key	admin:system:config:tx:map:key		A	0	1	0
+410	344	鑾峰彇绉诲姩绔椤靛垪琛ㄦ牱寮?admin:system:config:home:page:list:style		A	0	1	0
+411	344	鑾峰彇灏忕▼搴忎笅杞藉湴鍧€	admin:system:config:mini:download:url		A	0	1	0
+412	344	淇濆瓨绉诲姩绔椤靛垪琛ㄦ牱寮?admin:system:config:home:page:list:style:save		A	0	1	0
+414	344	鑾峰彇鎺堟潈鍦板潃	admin:system:config:auth:host:get		A	0	1	0
+417	344	鑾峰彇涓婚鑹?admin:system:config:change:color:get		A	0	1	0
+418	344	淇濆瓨涓婚鑹?admin:system:config:change:color:save		A	0	1	0
+502	344	閫氳繃琛ㄥ崟鍚嶇О鏌ヨ璇︽儏	admin:system:form:name:info		A	0	1	0
+419	420	涓€鍙烽€氬簲鐢ㄤ繚瀛?admin:pass:appsave		A	0	0	0
+421	420	涓€鍙烽€氬簲鐢ㄨ幏鍙?admin:pass:appget		A	0	0	0
+433	420	鍙栨秷鍟嗗瀵勪欢	admin:pass:shipment:cancel		A	0	0	0
+434	420	鍟嗗瀵勪欢-蹇€掑垪琛?admin:pass:shipment:express		A	0	0	0
+423	422	瀹氭椂浠诲姟		/maintain/schedule/list	C	0	1	0
+424	422	瀹氭椂浠诲姟鏃ュ織		/maintain/schedule/logList	C	0	1	0
+426	423	瀹氭椂浠诲姟鍒楄〃	admin:schedule:job:list		A	0	1	0
+427	423	娣诲姞瀹氭椂浠诲姟	admin:schedule:job:add		A	0	1	0
+428	423	瀹氭椂浠诲姟缂栬緫	admin:schedule:job:update		A	0	1	0
+429	423	鏆傚仠瀹氭椂浠诲姟	admin:schedule:job:suspend		A	0	1	0
+430	423	鍚姩瀹氭椂浠诲姟	admin:schedule:job:start		A	0	1	0
+431	423	鍒犻櫎瀹氭椂浠诲姟	admin:schedule:job:delete		A	0	1	0
+432	423	绔嬪嵆鎵ц瀹氭椂浠诲姟锛堜竴娆★級	admin:schedule:job:trig		A	0	1	0
+425	424	瀹氭椂浠诲姟鏃ュ織鍒嗛〉鍒楄〃	admin:schedule:job:log:list		A	0	1	0
+492	439	寮€灞忓箍鍛?	/design/advertisement	C	0	1	0
+508	439	涓撻椤甸潰		/design/micro_theme	C	96	1	0
+507	439	鎴戠殑涓婚		/design/my_theme	C	97	1	0
+506	439	鍟嗗煄涓婚		/design/mall_theme	C	98	1	0
+453	452	淇濆瓨鐢ㄦ埛娉ㄥ唽鍗忚	admin:agreement:user:save		A	0	1	0
+454	452	鑾峰彇鐢ㄦ埛娉ㄥ唽鍗忚	admin:agreement:user:info		A	0	1	0
+455	452	淇濆瓨鐢ㄦ埛闅愮鍗忚		admin:agreement:userprivacy:save	M	0	1	1
+456	452	淇濆瓨鐢ㄦ埛闅愮鍗忚	admin:agreement:userprivacy:save		A	0	1	0
+457	452	鑾峰彇鐢ㄦ埛闅愮鍗忚	admin:agreement:userprivacy:info		A	0	1	0
+458	452	淇濆瓨鐢ㄦ埛娉ㄩ攢鍗忚	admin:agreement:useraccountcancel:save		A	0	1	0
+459	452	鑾峰彇鐢ㄦ埛娉ㄩ攢鍗忚	admin:agreement:useraccountcancel:info		A	0	1	0
+460	452	淇濆瓨鐢ㄦ埛娉ㄩ攢閲嶈鎻愮ず	admin:agreement:useraccountcancelnotice:save		A	0	1	0
+461	452	鑾峰彇鐢ㄦ埛娉ㄩ攢澹版槑閲嶈鎻愮ず	admin:agreement:useraccountcancelnotice:info		A	0	1	0
+462	452	鍏充簬鎴戜滑鍗忚淇濆瓨	admin:agreement:aboutus:save		A	0	1	0
+463	452	鍏充簬鎴戜滑鍗忚璇︽儏	admin:agreement:aboutus:info		A	0	1	0
+464	452	骞冲彴璧勮川璇佹槑淇濆瓨	admin:agreement:intelligent:save		A	0	1	0
+465	452	骞冲彴璧勮川璇佹槑璇︽儏	admin:agreement:intelligent:info		A	0	1	0
+466	452	浼樻儬鍒歌鍒欎繚瀛?admin:agreement:coupon:agreement:save		A	0	1	0
+467	452	浼樻儬鍒歌鍒欒鎯?admin:agreement:coupon:agreement:info		A	0	1	0
+477	476	鑾峰彇寰俊灏忕▼搴忓彂璐у紑鍏?admin:wechat:mini:shipping:switch:get		A	0	1	0
+478	476	鏇存柊寰俊灏忕▼搴忓彂璐у紑鍏?admin:wechat:mini:shipping:switch:update		A	0	1	0
+493	492	鑾峰彇寮€灞忓箍鍛婇厤缃?admin:page:layout:splash:ad:get		A	0	1	0
+494	492	缂栬緫寮€灞忓箍鍛婇厤缃?admin:page:layout:splash:ad:save		A	0	1	0
+496	495	淇濋殰鏈嶅姟鍒楄〃	admin:product:guarantee:list		A	0	1	0
+497	495	鏂板淇濋殰鏈嶅姟	admin:product:guarantee:add		A	0	1	0
+498	495	鍒犻櫎淇濋殰鏈嶅姟	admin:product:guarantee:delete		A	0	1	0
+499	495	淇敼淇濋殰鏈嶅姟	admin:product:guarantee:update		A	0	1	0
+500	495	淇敼淇濋殰鏈嶅姟鏄剧ず鐘舵€?admin:product:guarantee:show:status		A	0	1	0
+531	507	鍒嗛〉鍒楄〃	admin:theme:list		A	0	1	0
+532	507	鍒犻櫎	admin:theme:delete		A	0	1	0
+533	507	淇濆瓨鏍囬淇℃伅	admin:theme:save:title		A	0	1	0
+534	507	淇濆瓨涓婚	admin:theme:save:theme		A	0	1	0
+535	507	淇濆瓨涓婚鍥剧墖	admin:theme:save:image		A	0	1	0
+536	507	浣跨敤涓婚	admin:theme:use		A	0	1	0
+537	507	浣跨敤涓婚鏁版嵁	admin:theme:use:data		A	0	1	0
+538	507	杩樺師涓婚	admin:theme:restore		A	0	1	0
+539	507	姝ｅ湪浣跨敤鐨勪富棰?admin:theme:using		A	0	1	0
+540	507	璇︽儏	admin:theme:info		A	0	1	0
+541	507	鐗堟湰鍙?admin:theme:version		A	0	1	0
+542	507	瀵煎嚭涓婚	admin:theme:export		A	0	1	0
+543	507	瀵煎叆涓婚	admin:theme:import		A	0	1	0
+544	507	鏂囨湰瀛楁	admin:pagediy:info		A	0	1	0
+545	507	浜у搧鍒嗙被	admin:theme:info		A	0	1	0
+546	507	鏂囩珷鍒嗙被	admin:theme:info		A	0	1	0
+547	507	鏂囩珷鍒楄〃	admin:theme:info		A	0	1	0
+548	507	鍟嗗搧鍒楄〃	admin:theme:info		A	0	1	0
+554	549	鍥㈤槦绛夌骇娣诲姞	admin:system:team:level:save		A	1	1	0
+555	549	鍥㈤槦绛夌骇淇敼	admin:system:team:level:update		A	2	1	0
+556	549	鍥㈤槦绛夌骇鍒犻櫎	admin:system:team:level:delete		A	3	1	0
+557	549	鍥㈤槦绛夌骇鍚敤/绂佺敤	admin:system:team:level:use		A	4	1	0
+569	567	鍟嗗搧涓庡簱瀛?admin:stock:product:list	/stock/product	C	2	1	0
+552	633	鍥㈤槦鍙樻洿璁板綍	admin:system:team:level:record:list	/distribution/teamRecord	C	7	1	0
+549	633	鍥㈤槦绛夌骇	admin:system:team:level:list	/distribution/teamGrade	C	90	1	0
+550	633	鍥㈤槦绛夌骇閰嶇疆	admin:system:team:level:list	/distribution/teamLevelConfig	C	100	1	0
+551	633	鍥㈤槦鍏宠仈鐢ㄦ埛	admin:system:team:level:user:list	/distribution/teamUser	C	110	1	0
+636	635	绠＄悊鍛樼櫥褰曟棩蹇?admin:log:login:list	/operation/logManager/adminLoginLog	C	1	1	0
+638	635	鐧诲綍鏃ュ織璇︽儏	admin:log:login:info		A	1	1	0
+637	635	绠＄悊鍛樻搷浣滄棩蹇?admin:log:sensitive:list	/operation/logManager/adminOperateLog	C	2	1	0
+639	635	鍒犻櫎鐧诲綍鏃ュ織	admin:log:login:delete		A	2	1	0
+640	635	鍒犻櫎鎿嶄綔鏃ュ織	admin:log:sensitive:delete		A	3	1	0
+644	641	浠ｇ悊绠＄悊	admin:agent:list	/daili/agentList	C	1	1	0
+643	641	浠ｇ悊濂栧姳鏄庣粏	admin:agent:reward:list	/daili/agentReward	C	2	1	0
+642	641	浠ｇ悊璁剧疆	admin:agent:setting:list	/daili/agentSetting	C	3	1	0
+645	642	淇濆瓨璁剧疆	admin:agent:setting:save		A	1	0	0
+649	644	娣诲姞浠ｇ悊	admin:agent:save		A	1	0	0
+648	644	淇敼浠ｇ悊	admin:agent:update		A	2	0	0
+647	644	瀹℃牳浠ｇ悊	admin:agent:audit		A	3	0	0
+646	644	鍒犻櫎浠ｇ悊	admin:agent:delete		A	4	0	0
+660	652	璁㈣揣浠ｇ悊	admin:stock:agent:list	/stock/agent	C	1	1	0
+659	652	鍟嗗搧涓庡簱瀛?admin:stock:product:list	/stock/product	C	2	1	0
+658	652	璁㈣揣璁㈠崟	admin:stock:order:list	/stock/order	C	3	1	0
+657	652	鎹㈣揣绠＄悊	admin:stock:exchange:list	/stock/exchange	C	4	1	0
+656	652	濂栭噾鏄庣粏	admin:stock:reward:list	/stock/reward	C	5	1	0
+655	652	鎻愮幇绠＄悊	admin:stock:withdraw:list	/stock/withdraw	C	6	1	0
+654	652	濂栧姳瑙勫垯	admin:stock:setting:list	/stock/setting	C	7	1	0
+653	652	鏁版嵁鎶ヨ〃	admin:stock:report:list	/stock/report	C	8	1	0
+668	653	瀵煎嚭鎶ヨ〃	admin:stock:report:export		A	1	0	0
+669	654	淇濆瓨瑙勫垯	admin:stock:setting:save		A	1	0	0
+670	655	鎻愮幇瀹℃牳	admin:stock:withdraw:audit		A	1	0	0
+673	657	鎹㈣揣瀹℃牳	admin:stock:exchange:audit		A	1	0	0
+672	657	鎹㈣揣鍏ュ簱	admin:stock:exchange:back		A	2	0	0
+671	657	鎹㈣揣鍙戣揣	admin:stock:exchange:send		A	3	0	0
+676	658	瀹℃牳璁㈠崟	admin:stock:order:audit		A	1	0	0
+675	658	纭鏀舵	admin:stock:order:pay		A	2	0	0
+674	658	璁㈠崟鍙戣揣	admin:stock:order:send		A	3	0	0
+678	659	璁剧疆鎷胯揣浠?admin:stock:price:save		A	1	0	0
+677	659	璋冩暣搴撳瓨	admin:stock:log:adjust		A	2	0	0
+681	660	鏂板浠ｇ悊	admin:stock:agent:save		A	1	0	0
+680	660	淇敼浠ｇ悊	admin:stock:agent:update		A	2	0	0
+679	660	鍒犻櫎浠ｇ悊	admin:stock:agent:delete		A	3	0	0
+

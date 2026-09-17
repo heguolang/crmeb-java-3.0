@@ -43,9 +43,24 @@ export function stockAgentDeleteApi(id) {
   return request({ url: '/admin/stock/agent/delete', method: 'post', params: { id } });
 }
 
-/** 商品列表（含库存与拿货价） */
+/** 商品列表（含库存与拿货价，仅已加入订货的商品） */
 export function stockProductListApi(params) {
   return request({ url: '/admin/stock/product/list', method: 'get', params });
+}
+
+/** 可添加商品列表（未加入订货的商品） */
+export function stockProductSelectListApi(params) {
+  return request({ url: '/admin/stock/product/selectList', method: 'get', params });
+}
+
+/** 批量添加商品到订货模块 */
+export function stockProductAddApi(productIds) {
+  return request({ url: '/admin/stock/product/add', method: 'post', data: productIds });
+}
+
+/** 从订货模块移除商品 */
+export function stockProductRemoveApi(productId) {
+  return request({ url: '/admin/stock/product/remove', method: 'post', params: { productId } });
 }
 
 /** 保存拿货价 */
@@ -108,14 +123,9 @@ export function stockRewardListApi(params) {
   return request({ url: '/admin/stock/reward/list', method: 'get', params });
 }
 
-/** 提现列表 */
-export function stockWithdrawListApi(params) {
-  return request({ url: '/admin/stock/withdraw/list', method: 'get', params });
-}
-
-/** 提现审核 */
-export function stockWithdrawAuditApi(id, data) {
-  return request({ url: '/admin/stock/withdraw/audit', method: 'post', params: { id }, data });
+/** 订货商变更记录 */
+export function stockChangelogListApi(params) {
+  return request({ url: '/admin/stock/changelog/list', method: 'get', params });
 }
 
 /** 奖励规则读取 */

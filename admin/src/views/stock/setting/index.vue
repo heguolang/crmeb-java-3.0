@@ -51,7 +51,7 @@
               <span style="margin: 0 6px">→</span>
               <el-input-number v-model="l.reward" :min="0" :precision="2" size="mini" style="width: 110px" placeholder="固定奖励" />
               <span style="margin: 0 2px">元</span>
-              <span style="margin: 0 4px">+</span>
+              <span style="margin: 0 6px; font-weight: bold; color: #e6a23c">或</span>
               <el-input-number v-model="l.rate" :min="0" :max="100" :precision="2" size="mini" style="width: 100px" />
               <span style="margin-left: 4px">%</span>
               <el-button type="text" size="mini" class="red" @click="ladders.splice(idx, 1)">删除</el-button>

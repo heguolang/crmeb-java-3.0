@@ -1,0 +1,6 @@
+﻿Field	Type	Null	Key	Default	Extra
+rid	int(11)	NO	PRI	NULL	
+menu_id	int(11)	NO	PRI	NULL	
+c
+388
+

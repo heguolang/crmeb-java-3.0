@@ -40,8 +40,20 @@ public interface StockService {
     /** 启用/禁用代理 */
     Boolean changeAgentStatus(Integer id, Integer status);
 
-    /** 商品列表（含库存与各层级拿货价） */
+    /** 商品列表（含库存与各层级拿货价，仅已加入订货的商品） */
     HashMap<String, Object> getProductList(String keywords, com.zbkj.common.request.PageParamRequest page);
+
+    /** 已加入订货模块的商品关联列表 */
+    java.util.List<com.zbkj.common.model.stock.StockProductRel> getStockProductRelList();
+
+    /** 可添加商品列表（尚未加入订货的商品，供选择添加） */
+    HashMap<String, Object> getSelectableProductList(String keywords, com.zbkj.common.request.PageParamRequest page);
+
+    /** 批量添加商品到订货模块 */
+    Boolean addProducts(java.util.List<Integer> productIds);
+
+    /** 从订货模块移除商品 */
+    Boolean removeStockProduct(Integer productId);
 
     /** 保存商品层级拿货价 */
     Boolean savePrice(StockRequests.StockPriceSetRequest request);
@@ -104,4 +116,11 @@ public interface StockService {
      * 与条件组合方式（0=或 1=与）判断是否可升到更高层级，可升则更新并返回 true
      */
     Boolean checkAndUpgrade(Integer uid);
+
+    /** 订货商变更记录列表（联查昵称/手机号） */
+    CommonPage<com.zbkj.common.model.stock.StockChangeLog> getChangeLogList(
+            Integer uid, Integer type, com.zbkj.common.request.PageParamRequest page);
+
+    /** 写入订货商变更记录 */
+    void logChange(Integer agentId, Integer uid, Integer type, String oldValue, String newValue, String mark);
 }

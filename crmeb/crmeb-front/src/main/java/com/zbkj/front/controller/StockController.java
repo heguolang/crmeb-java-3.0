@@ -107,6 +107,19 @@ public class StockController {
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<StoreProduct> lqw =
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
         lqw.eq(StoreProduct::getIsDel, false).eq(StoreProduct::getIsShow, true);
+        // 仅显示已加入订货模块的商品（加入制）
+        List<Integer> relIds = new ArrayList<>();
+        for (com.zbkj.common.model.stock.StockProductRel rel : stockService.getStockProductRelList()) {
+            relIds.add(rel.getProductId());
+        }
+        if (relIds.isEmpty()) {
+            HashMap<String, Object> empty = new HashMap<>();
+            empty.put("list", new ArrayList<>());
+            empty.put("total", 0);
+            empty.put("isAgent", true);
+            return CommonResult.success(empty);
+        }
+        lqw.in(StoreProduct::getId, relIds);
         if (keywords != null && !keywords.trim().isEmpty()) {
             lqw.like(StoreProduct::getStoreName, keywords.trim());
         }

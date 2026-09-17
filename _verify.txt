@@ -1,0 +1,25 @@
+﻿Tables_in_crmeb (eb_stock%)
+eb_stock_agent
+eb_stock_change_log
+eb_stock_exchange
+eb_stock_ladder
+eb_stock_level
+eb_stock_log
+eb_stock_notice
+eb_stock_order
+eb_stock_order_product
+eb_stock_price
+eb_stock_product_rel
+eb_stock_reward
+eb_stock_withdraw
+id	pid	name	perms	component	sort	is_show	is_delte
+660	652	璁㈣揣鍟嗙鐞?admin:stock:agent:list	/stock/agent	1	1	0
+682	652	璁㈣揣鍟嗗彉鏇磋褰?admin:stock:agent:list	/stock/changelog	1	1	0
+659	652	鍟嗗搧涓庡簱瀛?admin:stock:product:list	/stock/product	2	1	0
+658	652	璁㈣揣璁㈠崟	admin:stock:order:list	/stock/order	3	1	0
+657	652	鎹㈣揣绠＄悊	admin:stock:exchange:list	/stock/exchange	4	1	0
+656	652	濂栭噾鏄庣粏	admin:stock:reward:list	/stock/reward	5	1	0
+655	652	鎻愮幇绠＄悊	admin:stock:withdraw:list	/stock/withdraw	6	1	1
+654	652	濂栧姳瑙勫垯	admin:stock:setting:list	/stock/setting	7	1	0
+653	652	鏁版嵁鎶ヨ〃	admin:stock:report:list	/stock/report	8	1	0
+

@@ -130,15 +130,54 @@ public class StockController {
         return CommonResult.failed();
     }
 
+    @PreAuthorize("hasAuthority('admin:stock:agent:list')")
+    @ApiOperation(value = "订货商变更记录列表")
+    @RequestMapping(value = "/changelog/list", method = RequestMethod.GET)
+    public CommonResult<CommonPage<com.zbkj.common.model.stock.StockChangeLog>> changeLogList(
+            @RequestParam(value = "uid", required = false) Integer uid,
+            @RequestParam(value = "type", required = false) Integer type,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(stockService.getChangeLogList(uid, type, pageParamRequest));
+    }
+
     // ==================== 商品与库存 ====================
 
     @PreAuthorize("hasAuthority('admin:stock:product:list')")
-    @ApiOperation(value = "商品列表（含库存与各层拿货价）")
+    @ApiOperation(value = "商品列表（含库存与各层拿货价，仅已加入订货的商品）")
     @RequestMapping(value = "/product/list", method = RequestMethod.GET)
     public CommonResult<HashMap<String, Object>> productList(
             @RequestParam(value = "keywords", required = false) String keywords,
             @Validated PageParamRequest pageParamRequest) {
         return CommonResult.success(stockService.getProductList(keywords, pageParamRequest));
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:product:list')")
+    @ApiOperation(value = "可添加商品列表（未加入订货的商品）")
+    @RequestMapping(value = "/product/selectList", method = RequestMethod.GET)
+    public CommonResult<HashMap<String, Object>> productSelectList(
+            @RequestParam(value = "keywords", required = false) String keywords,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(stockService.getSelectableProductList(keywords, pageParamRequest));
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:price:save')")
+    @ApiOperation(value = "批量添加商品到订货模块")
+    @RequestMapping(value = "/product/add", method = RequestMethod.POST)
+    public CommonResult<String> addProducts(@RequestBody List<Integer> productIds) {
+        if (stockService.addProducts(productIds)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:price:save')")
+    @ApiOperation(value = "从订货模块移除商品")
+    @RequestMapping(value = "/product/remove", method = RequestMethod.POST)
+    public CommonResult<String> removeProduct(@RequestParam Integer productId) {
+        if (stockService.removeStockProduct(productId)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
     }
 
     @PreAuthorize("hasAuthority('admin:stock:price:save')")

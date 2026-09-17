@@ -17,7 +17,13 @@ export default {
       path: 'agent',
       component: () => import('@/views/stock/agent/index'),
       name: 'StockAgent',
-      meta: { title: '订货代理', icon: '' }
+      meta: { title: '订货商管理', icon: '' }
+    },
+    {
+      path: 'changelog',
+      component: () => import('@/views/stock/changelog/index'),
+      name: 'StockChangeLog',
+      meta: { title: '订货商变更记录', icon: '' }
     },
     {
       path: 'product',

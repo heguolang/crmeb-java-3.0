@@ -41,11 +41,13 @@
         </el-table-column>
         <el-table-column prop="mark" label="备注" min-width="110" show-overflow-tooltip />
         <el-table-column prop="createTime" label="创建时间" width="150" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="170" fixed="right">
           <template slot-scope="scope">
-            <el-button v-if="checkPermi(['admin:stock:agent:update'])" type="text" size="small" @click="openEdit(scope.row)">修改</el-button>
-            <el-button v-if="checkPermi(['admin:stock:agent:update'])" type="text" size="small" @click="onStatus(scope.row)">{{ scope.row.status === 1 ? '禁用' : '启用' }}</el-button>
-            <el-button v-if="checkPermi(['admin:stock:agent:delete'])" type="text" size="small" class="red" @click="onDelete(scope.row)">删除</el-button>
+            <div class="op-wrap">
+              <el-button v-if="checkPermi(['admin:stock:agent:update'])" class="op-btn" type="primary" plain round size="mini" @click="openEdit(scope.row)">修改</el-button>
+              <el-button v-if="checkPermi(['admin:stock:agent:update'])" class="op-btn" type="warning" plain round size="mini" @click="onStatus(scope.row)">{{ scope.row.status === 1 ? '禁用' : '启用' }}</el-button>
+              <el-button v-if="checkPermi(['admin:stock:agent:delete'])" class="op-btn" type="danger" plain round size="mini" @click="onDelete(scope.row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -336,4 +338,7 @@ export default {
 .red { color: #f56c6c; }
 .grey { color: #999; font-size: 12px; }
 .switch-tip { margin-left: 12px; font-size: 12px; color: #909399; line-height: 1.5; }
+/* 操作列胶囊按钮：每行 3 个 */
+.op-wrap { display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 2px 0; }
+.op-btn { margin: 0 !important; padding: 5px 14px; font-size: 12px; line-height: 1; }
 </style>

@@ -1,0 +1,30 @@
+ M "CRMEB\346\234\254\345\234\260\351\203\250\347\275\262\346\226\207\346\241\243.md"
+ M admin/src/api/stock.js
+ M admin/src/router/modules/stock.js
+ M admin/src/views/stock/agent/index.vue
+ M admin/src/views/stock/product/index.vue
+ M admin/src/views/stock/setting/index.vue
+ D admin/src/views/stock/withdraw/index.vue
+ M crmeb/crmeb-admin/src/main/java/com/zbkj/admin/controller/StockController.java
+ M crmeb/crmeb-front/src/main/java/com/zbkj/front/controller/StockController.java
+ M crmeb/crmeb-service/src/main/java/com/zbkj/service/service/StockService.java
+ M crmeb/crmeb-service/src/main/java/com/zbkj/service/service/impl/StockServiceImpl.java
+?? _build.txt
+?? _check.txt
+?? _g.txt
+?? _jvms.txt
+?? _menu_all.txt
+?? _menu_desc.txt
+?? _menu_rows.txt
+?? _rolemenu.txt
+?? _rolemenu2.txt
+?? _sql_out.txt
+?? _tables.txt
+?? _verify.txt
+?? admin/src/views/stock/changelog/
+?? crmeb/crmeb-common/src/main/java/com/zbkj/common/model/stock/StockChangeLog.java
+?? crmeb/crmeb-common/src/main/java/com/zbkj/common/model/stock/StockProductRel.java
+?? crmeb/crmeb-service/src/main/java/com/zbkj/service/dao/StockChangeLogDao.java
+?? crmeb/crmeb-service/src/main/java/com/zbkj/service/dao/StockProductRelDao.java
+?? crmeb/sql/stock_changelog_product_rel.sql
+

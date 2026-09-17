@@ -8,10 +8,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.stock.StockAgent;
+import com.zbkj.common.model.stock.StockChangeLog;
 import com.zbkj.common.model.stock.StockLevel;
 import com.zbkj.common.model.stock.StockLadder;
 import com.zbkj.common.model.stock.StockLog;
 import com.zbkj.common.model.stock.StockPrice;
+import com.zbkj.common.model.stock.StockProductRel;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
@@ -33,6 +35,7 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -73,6 +76,12 @@ public class StockServiceImpl implements StockService {
 
     @Resource
     private com.zbkj.service.dao.StockOrderProductDao stockOrderProductDao;
+
+    @Resource
+    private com.zbkj.service.dao.StockChangeLogDao stockChangeLogDao;
+
+    @Resource
+    private com.zbkj.service.dao.StockProductRelDao stockProductRelDao;
 
     @Resource
     private TransactionTemplate transactionTemplate;
@@ -167,6 +176,8 @@ public class StockServiceImpl implements StockService {
             if (exist == null || exist.getIsDel() == 1) {
                 throw new CrmebException("代理不存在");
             }
+            Integer oldLevelId = exist.getLevelId();
+            Integer oldParentId = exist.getParentId();
             // 修改层级时校验不能高于其上级
             if (request.getParentId() != null && !request.getParentId().equals(exist.getParentId())) {
                 exist.setParentId(request.getParentId());
@@ -181,7 +192,18 @@ public class StockServiceImpl implements StockService {
                     throw new CrmebException("上级不能是自己团队的下级代理");
                 }
             }
-            return stockAgentDao.updateById(exist) > 0;
+            boolean ok = stockAgentDao.updateById(exist) > 0;
+            if (ok) {
+                if (!oldLevelId.equals(exist.getLevelId())) {
+                    logChange(exist.getId(), exist.getUid(), StockChangeLog.TYPE_LEVEL,
+                            levelName(oldLevelId), levelName(exist.getLevelId()), "后台修改层级");
+                }
+                if (!oldParentId.equals(exist.getParentId())) {
+                    logChange(exist.getId(), exist.getUid(), StockChangeLog.TYPE_PARENT,
+                            parentName(oldParentId), parentName(exist.getParentId()), "后台修改上级");
+                }
+            }
+            return ok;
         }
         // 新增：同一用户只能有一个订货代理身份
         Integer count = stockAgentDao.selectCount(new LambdaQueryWrapper<StockAgent>()
@@ -196,7 +218,12 @@ public class StockServiceImpl implements StockService {
         agent.setStatus(request.getStatus() == null ? 1 : request.getStatus());
         agent.setMark(request.getMark() == null ? "" : request.getMark());
         agent.setIsDel(0);
-        return stockAgentDao.insert(agent) > 0;
+        boolean ok = stockAgentDao.insert(agent) > 0;
+        if (ok) {
+            logChange(agent.getId(), agent.getUid(), StockChangeLog.TYPE_ADD,
+                    null, levelName(agent.getLevelId()), "后台新增订货商");
+        }
+        return ok;
     }
 
     @Override
@@ -206,17 +233,33 @@ public class StockServiceImpl implements StockService {
         if (subCount != null && subCount > 0) {
             throw new CrmebException("该代理存在下级，请先处理下级代理");
         }
+        StockAgent exist = stockAgentDao.selectById(id);
         StockAgent agent = new StockAgent();
         agent.setId(id);
         agent.setIsDel(1);
-        return stockAgentDao.updateById(agent) > 0;
+        boolean ok = stockAgentDao.updateById(agent) > 0;
+        if (ok && exist != null) {
+            logChange(exist.getId(), exist.getUid(), StockChangeLog.TYPE_DELETE,
+                    levelName(exist.getLevelId()), null, "后台删除订货商");
+        }
+        return ok;
     }
 
     @Override
     public Boolean changeAgentStatus(Integer id, Integer status) {
         LambdaUpdateWrapper<StockAgent> luw = new LambdaUpdateWrapper<>();
         luw.eq(StockAgent::getId, id).set(StockAgent::getStatus, status);
-        return stockAgentDao.update(null, luw) > 0;
+        boolean ok = stockAgentDao.update(null, luw) > 0;
+        if (ok) {
+            StockAgent agent = stockAgentDao.selectById(id);
+            if (agent != null) {
+                logChange(id, agent.getUid(), StockChangeLog.TYPE_STATUS,
+                        agent.getStatus() != null && agent.getStatus() == 1 ? "禁用" : "启用",
+                        status != null && status == 1 ? "启用" : "禁用",
+                        "后台" + (status != null && status == 1 ? "启用" : "禁用") + "订货商");
+            }
+        }
+        return ok;
     }
 
     // ==================== 商品与拿货价 ====================
@@ -225,6 +268,16 @@ public class StockServiceImpl implements StockService {
     public HashMap<String, Object> getProductList(String keywords, PageParamRequest pageParamRequest) {
         LambdaQueryWrapper<StoreProduct> lqw = new LambdaQueryWrapper<>();
         lqw.eq(StoreProduct::getIsDel, 0).eq(StoreProduct::getIsShow, true);
+        // 仅显示已加入订货模块的商品（eb_stock_product_rel 加入制）
+        List<Integer> relIds = getStockProductIds();
+        if (relIds.isEmpty()) {
+            HashMap<String, Object> empty = new HashMap<>();
+            empty.put("list", new ArrayList<>());
+            empty.put("total", 0);
+            empty.put("levels", getLevelList());
+            return empty;
+        }
+        lqw.in(StoreProduct::getId, relIds);
         if (keywords != null && !keywords.trim().isEmpty()) {
             lqw.like(StoreProduct::getStoreName, keywords.trim());
         }
@@ -266,6 +319,153 @@ public class StockServiceImpl implements StockService {
         map.put("total", productPage.getTotal());
         map.put("levels", levels);
         return map;
+    }
+
+    /** 已加入订货模块的商品ID集合 */
+    private List<Integer> getStockProductIds() {
+        List<Integer> ids = new ArrayList<>();
+        for (StockProductRel rel : getStockProductRelList()) {
+            ids.add(rel.getProductId());
+        }
+        return ids;
+    }
+
+    @Override
+    public List<StockProductRel> getStockProductRelList() {
+        return stockProductRelDao.selectList(null);
+    }
+
+    @Override
+    public HashMap<String, Object> getSelectableProductList(String keywords, PageParamRequest pageParamRequest) {
+        LambdaQueryWrapper<StoreProduct> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(StoreProduct::getIsDel, 0).eq(StoreProduct::getIsShow, true);
+        List<Integer> relIds = getStockProductIds();
+        if (!relIds.isEmpty()) {
+            lqw.notIn(StoreProduct::getId, relIds);
+        }
+        if (keywords != null && !keywords.trim().isEmpty()) {
+            lqw.like(StoreProduct::getStoreName, keywords.trim());
+        }
+        lqw.orderByDesc(StoreProduct::getId);
+        // ★ PageHelper.startPage 必须紧邻目标查询
+        PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        List<StoreProduct> productList = storeProductService.list(lqw);
+        PageInfo<StoreProduct> productPage = new PageInfo<>(productList);
+        List<HashMap<String, Object>> rows = new ArrayList<>();
+        for (StoreProduct p : productList) {
+            HashMap<String, Object> row = new HashMap<>();
+            row.put("id", p.getId());
+            row.put("storeName", p.getStoreName());
+            row.put("image", p.getImage());
+            row.put("price", p.getPrice());
+            row.put("stock", p.getStock());
+            rows.add(row);
+        }
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("list", rows);
+        map.put("total", productPage.getTotal());
+        return map;
+    }
+
+    @Override
+    public Boolean addProducts(List<Integer> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            throw new CrmebException("请选择要添加的商品");
+        }
+        return transactionTemplate.execute(status -> {
+            List<Integer> existIds = getStockProductIds();
+            Date now = new Date();
+            for (Integer pid : productIds) {
+                StoreProduct product = storeProductService.getById(pid);
+                if (product == null || product.getIsDel()) {
+                    throw new CrmebException("商品不存在（ID:" + pid + "）");
+                }
+                if (existIds.contains(pid)) {
+                    continue;
+                }
+                StockProductRel rel = new StockProductRel();
+                rel.setProductId(pid);
+                rel.setCreateTime(now);
+                stockProductRelDao.insert(rel);
+            }
+            return true;
+        });
+    }
+
+    @Override
+    public Boolean removeStockProduct(Integer productId) {
+        return stockProductRelDao.delete(new LambdaQueryWrapper<StockProductRel>()
+                .eq(StockProductRel::getProductId, productId)) >= 0;
+    }
+
+    // ==================== 订货商变更记录 ====================
+
+    @Override
+    public CommonPage<StockChangeLog> getChangeLogList(Integer uid, Integer type, PageParamRequest pageParamRequest) {
+        LambdaQueryWrapper<StockChangeLog> lqw = new LambdaQueryWrapper<>();
+        if (uid != null && uid > 0) {
+            lqw.eq(StockChangeLog::getUid, uid);
+        }
+        if (type != null && type > 0) {
+            lqw.eq(StockChangeLog::getType, type);
+        }
+        lqw.orderByDesc(StockChangeLog::getId);
+        PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        List<StockChangeLog> list = stockChangeLogDao.selectList(lqw);
+        if (!list.isEmpty()) {
+            List<Integer> uids = new ArrayList<>();
+            for (StockChangeLog log : list) {
+                uids.add(log.getUid());
+            }
+            Map<Integer, User> userMap = new HashMap<>();
+            for (User u : userService.lambdaQuery().in(User::getUid, uids).list()) {
+                userMap.put(u.getUid(), u);
+            }
+            for (StockChangeLog log : list) {
+                User u = userMap.get(log.getUid());
+                log.setNickname(u == null ? "" : u.getNickname());
+                log.setPhone(u == null ? "" : u.getPhone());
+            }
+        }
+        return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    @Override
+    public void logChange(Integer agentId, Integer uid, Integer type, String oldValue, String newValue, String mark) {
+        try {
+            StockChangeLog log = new StockChangeLog();
+            log.setAgentId(agentId);
+            log.setUid(uid);
+            log.setType(type);
+            log.setOldValue(oldValue);
+            log.setNewValue(newValue);
+            log.setMark(mark);
+            stockChangeLogDao.insert(log);
+        } catch (Exception e) {
+            // 变更记录写入失败不影响主流程
+        }
+    }
+
+    /** 层级名称（异常/删除时兜底显示原ID） */
+    private String levelName(Integer levelId) {
+        if (levelId == null) {
+            return "";
+        }
+        StockLevel lv = stockLevelDao.selectById(levelId);
+        return lv == null ? ("层级ID:" + levelId) : lv.getName();
+    }
+
+    /** 上级显示名（0=总部） */
+    private String parentName(Integer parentId) {
+        if (parentId == null || parentId <= 0) {
+            return "总部";
+        }
+        StockAgent parent = stockAgentDao.selectById(parentId);
+        if (parent == null) {
+            return "总部";
+        }
+        User u = userService.getById(parent.getUid());
+        return u == null ? ("代理ID:" + parent.getId()) : u.getNickname();
     }
 
     @Override
@@ -594,6 +794,8 @@ public class StockServiceImpl implements StockService {
                 update.setId(agent.getId());
                 update.setLevelId(level.getId());
                 stockAgentDao.updateById(update);
+                logChange(agent.getId(), agent.getUid(), StockChangeLog.TYPE_LEVEL,
+                        levelName(agent.getLevelId()), levelName(level.getId()), "满足升级条件自动升级");
                 return true;
             }
         }
