@@ -65,6 +65,20 @@
               </div>
             </div>
           </div>
+          <div v-if="stockList.length">
+            <div class="cont">订货 / 代理</div>
+            <div class="Box">
+              <div
+                class="cont_box"
+                :class="currenId == item.id ? 'on' : ''"
+                v-for="(item, index) in stockList"
+                :key="index"
+                @click="getUrl(item)"
+              >
+                {{ item.name }}
+              </div>
+            </div>
+          </div>
         </div>
         <div class="right_box" v-if="currenType == 'marketing_link'">
           <div v-if="coupon.length">
@@ -299,6 +313,7 @@ export default {
       basicsList: [],
       userList: [],
       distributionList: [],
+      stockList: [],
       coupon: [],
       luckDraw: [],
       integral: [],
@@ -445,6 +460,7 @@ export default {
       let integral = [];
       let luckDraw = [];
       let coupon = [];
+      let stockList = [];
       data.forEach((e) => {
         if (e.type == 1) {
           basicsList.push(e);
@@ -456,6 +472,8 @@ export default {
           integral.push(e);
         } else if (e.type == 5) {
           luckDraw.push(e);
+        } else if (e.type == 6) {
+          stockList.push(e);
         } else {
           coupon.push(e);
         }
@@ -463,6 +481,7 @@ export default {
       this.basicsList = basicsList;
       this.distributionList = distributionList;
       this.userList = userList;
+      this.stockList = stockList;
       this.coupon = coupon;
       this.luckDraw = luckDraw;
       this.integral = integral;

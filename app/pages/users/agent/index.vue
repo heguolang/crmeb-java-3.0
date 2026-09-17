@@ -59,7 +59,7 @@
 						</view>
 						<view class="form-item acea-row row-between-wrapper">
 							<text class="form-label">选择区域</text>
-							<picker mode="region" @change="onRegionChange">
+							<picker mode="multiSelector" :value="multiIndex" :range="multiArray" @change="onRegionChange" @columnchange="onRegionColumnChange">
 								<view class="picker-value" :class="{ placeholder: !regionText }">{{ regionText || '请选择省市区' }}<text class="iconfont icon-xiangyou"></text></view>
 							</picker>
 						</view>
@@ -99,6 +99,7 @@
 
 <script>
 	import { getAgentInfo, agentApply, getAgentRewardList } from '@/api/user.js';
+	import { getCityList } from '@/utils';
 	import { toLogin } from '@/libs/login.js';
 	import { mapGetters } from 'vuex';
 	import emptyPage from '@/components/emptyPage.vue';
@@ -121,6 +122,9 @@
 				levelIndex: 0,
 				regionText: '',
 				regionArr: [],
+				district: [],
+				multiArray: [[], [], []],
+				multiIndex: [0, 0, 0],
 				applyMark: '',
 				rewardList: [],
 				loadTitle: '加载更多',
@@ -140,6 +144,9 @@
 				if (this.info.isAgent || this.hasPending) return false;
 				return this.info.applyStatus === '1';
 			},
+		},
+		onLoad() {
+			this.loadCityList();
 		},
 		onShow() {
 			if (this.isLogin) {
@@ -202,8 +209,68 @@
 			onLevelChange(e) {
 				this.levelIndex = Number(e.detail.value) || 0;
 			},
+			// 加载省市区数据（与地址管理同源，优先走本地缓存）
+			loadCityList() {
+				const cached = this.$Cache && this.$Cache.getItem('cityList');
+				if (cached && cached.length) {
+					this.district = cached;
+					this.buildMultiArray();
+					return;
+				}
+				uni.showLoading({ title: '数据加载中...' });
+				getCityList()
+					.then((res) => {
+						this.district = res || [];
+						this.buildMultiArray();
+						uni.hideLoading();
+					})
+					.catch(() => {
+						uni.hideLoading();
+					});
+			},
+			// 依据 district 构建三级联动列数据
+			buildMultiArray() {
+				if (!this.district || !this.district.length) return;
+				const province = this.district.map((item) => item.name);
+				const cityChildren = (this.district[0] && this.district[0].child) || [];
+				const city = cityChildren.map((item) => item.name);
+				const areaChildren = (cityChildren[0] && cityChildren[0].child) || [];
+				const area = areaChildren.map((item) => item.name);
+				this.multiArray = [province, city, area];
+				this.multiIndex = [0, 0, 0];
+			},
+			// 滚动某一列时联动刷新后续列
+			onRegionColumnChange(e) {
+				const column = e.detail.column;
+				const value = e.detail.value;
+				const multiArray = this.multiArray.slice();
+				const multiIndex = this.multiIndex.slice();
+				multiIndex[column] = value;
+				if (column === 0) {
+					const cities = (this.district[value] && this.district[value].child) || [];
+					multiArray[1] = cities.map((item) => item.name);
+					const areas = (cities[0] && cities[0].child) || [];
+					multiArray[2] = areas.map((item) => item.name);
+					multiIndex[1] = 0;
+					multiIndex[2] = 0;
+				} else if (column === 1) {
+					const province = this.district[multiIndex[0]] || {};
+					const cities = province.child || [];
+					const areas = (cities[value] && cities[value].child) || [];
+					multiArray[2] = areas.map((item) => item.name);
+					multiIndex[2] = 0;
+				}
+				this.multiArray = multiArray;
+				this.multiIndex = multiIndex;
+			},
+			// 确认选择：取名称（不是索引），供提交使用
 			onRegionChange(e) {
-				this.regionArr = e.detail.value || [];
+				const value = (e.detail && e.detail.value) || [];
+				this.multiIndex = value;
+				const province = (this.multiArray[0] || [])[value[0]] || '';
+				const city = (this.multiArray[1] || [])[value[1]] || '';
+				const district = (this.multiArray[2] || [])[value[2]] || '';
+				this.regionArr = [province, city, district];
 				this.regionText = this.regionArr.filter(Boolean).join(' / ');
 			},
 			onApply() {

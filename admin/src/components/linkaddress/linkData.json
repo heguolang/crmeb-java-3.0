@@ -336,6 +336,30 @@
         "status": 1,
         "sort": 0,
         "add_time": 1626837579
+      },
+      {
+        "id": 51,
+        "cate_id": 5,
+        "type": 6,
+        "name": "订货中心",
+        "url": "/pages/users/stock/index",
+        "param": " ",
+        "example": "/pages/users/stock/index",
+        "status": 1,
+        "sort": 0,
+        "add_time": 1626837579
+      },
+      {
+        "id": 52,
+        "cate_id": 5,
+        "type": 6,
+        "name": "代理中心",
+        "url": "/pages/users/agent/index",
+        "param": " ",
+        "example": "/pages/users/agent/index",
+        "status": 1,
+        "sort": 0,
+        "add_time": 1626837579
       }
     ]
   }
