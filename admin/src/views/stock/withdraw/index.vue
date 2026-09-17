@@ -87,8 +87,8 @@ export default {
     getList() {
       this.loading = true;
       stockWithdrawListApi(this.tableFrom).then(res => {
-        this.tableData = res.data.list;
-        this.total = res.data.total;
+        this.tableData = (res && res.list) || [];
+        this.total = (res && res.total) || 0;
         this.loading = false;
       }).catch(() => { this.loading = false; });
     },

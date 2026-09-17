@@ -128,16 +128,16 @@ export default {
     getList() {
       this.loading = true;
       stockProductListApi(this.tableFrom).then(res => {
-        this.tableData = res.data.list;
-        this.levels = res.data.levels;
-        this.total = res.data.total;
+        this.tableData = (res && res.list) || [];
+        this.levels = (res && res.levels) || [];
+        this.total = (res && res.total) || 0;
         this.loading = false;
       }).catch(() => { this.loading = false; });
     },
     loadLogs() {
       stockLogListApi(this.logFrom).then(res => {
-        this.logs = res.data.list;
-        this.logTotal = res.data.total;
+        this.logs = (res && res.list) || [];
+        this.logTotal = (res && res.total) || 0;
       });
     },
     logPage(page) {

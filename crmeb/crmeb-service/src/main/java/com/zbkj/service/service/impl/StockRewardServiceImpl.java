@@ -565,6 +565,7 @@ public class StockRewardServiceImpl implements StockRewardService {
             rows.add(row);
         }
         map.put("agentRows", rows);
+        map.put("total", agentPage.getTotal());
         return map;
     }
 

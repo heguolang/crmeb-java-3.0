@@ -133,13 +133,13 @@ export default {
     getList() {
       this.loading = true;
       stockAgentListApi(this.tableFrom).then(res => {
-        this.tableData = res.data.list;
-        this.total = res.data.total;
+        this.tableData = (res && res.list) || [];
+        this.total = (res && res.total) || 0;
         this.loading = false;
       }).catch(() => { this.loading = false; });
     },
     loadLevels() {
-      stockLevelListApi().then(res => { this.levels = res.data; });
+      stockLevelListApi().then(res => { this.levels = res || []; });
     },
     pageChange(page) {
       this.tableFrom.page = page;
@@ -151,7 +151,7 @@ export default {
       } else {
         this.editForm = { id: null, uid: '', levelId: this.levels.length ? this.levels[this.levels.length - 1].id : null, parentId: 0, mark: '' };
       }
-      stockAgentListApi({ page: 1, limit: 1000 }).then(res => { this.agentOptions = res.data.list || []; });
+      stockAgentListApi({ page: 1, limit: 1000 }).then(res => { this.agentOptions = (res && res.list) || []; });
       this.editVisible = true;
     },
     onSave() {

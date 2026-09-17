@@ -62,7 +62,7 @@ export default {
   },
   computed: {
     cards() {
-      const s = this.summary;
+      const s = this.summary || {};
       return [
         { label: '订货总金额', value: s.totalAmount || 0, sub: '共 ' + (s.totalCount || 0) + ' 单' },
         { label: '已完成金额', value: s.doneAmount || 0, sub: (s.doneCount || 0) + ' 单已完成' },
@@ -78,9 +78,9 @@ export default {
     getList() {
       this.loading = true;
       stockReportApi({ dateLimit: this.dateLimit, page: this.tableFrom.page, limit: this.tableFrom.limit }).then(res => {
-        this.summary = res.data;
-        this.rows = res.data.agentRows || [];
-        this.total = this.rows.length;
+        this.summary = res || {};
+        this.rows = (res && res.agentRows) || [];
+        this.total = (res && res.total) || this.rows.length;
         this.loading = false;
       }).catch(() => { this.loading = false; });
     },
