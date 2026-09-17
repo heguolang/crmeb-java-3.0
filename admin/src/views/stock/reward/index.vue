@@ -49,7 +49,6 @@
 </template>
 
 <script>
-// force-rebuild-20260917a
 import { stockRewardListApi } from '@/api/stock';
 
 export default {

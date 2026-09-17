@@ -100,7 +100,6 @@
 </template>
 
 <script>
-// force-rebuild-20260917a
 import { stockProductListApi, stockPriceSaveApi, stockAdjustApi, stockLogListApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 

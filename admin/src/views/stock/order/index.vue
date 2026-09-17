@@ -109,7 +109,6 @@
 </template>
 
 <script>
-// force-rebuild-20260917a
 import { stockOrderListApi, stockOrderPayApi, stockOrderSendApi, stockOrderFinishApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 

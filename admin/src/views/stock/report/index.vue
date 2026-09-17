@@ -45,7 +45,6 @@
 </template>
 
 <script>
-// force-rebuild-20260917a
 import { stockReportApi } from '@/api/stock';
 
 export default {
