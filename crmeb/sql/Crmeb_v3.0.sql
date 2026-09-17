@@ -7354,9 +7354,9 @@ CREATE TABLE `eb_store_seckill_manger`  (
 -- ----------------------------
 -- Records of eb_store_seckill_manger
 -- ----------------------------
-INSERT INTO `eb_store_seckill_manger` VALUES (26, '上午场', 8, 12, NULL, '[{\"attId\":1469,\"name\":\"早餐.png\",\"attDir\":\"\",\"sattDir\":\"crmebimage/public/product/2025/05/30/627c4c646e304779b48acb4eb8944187w6v1d3blt3.png\",\"attSize\":\"1197825\",\"attType\":\"png\",\"pid\":0,\"imageType\":1,\"createTime\":\"2025-05-30 15:28:02\",\"updateTime\":\"2025-05-30 15:28:02\",\"isCk\":false,\"isSelect\":true,\"num\":1}]', NULL, '\'1\'', '2025-05-30 15:28:27', NULL, 0);
-INSERT INTO `eb_store_seckill_manger` VALUES (27, '下午场', 12, 18, NULL, '[{\"attId\":1470,\"name\":\"1748590102959.png\",\"attDir\":\"\",\"sattDir\":\"crmebimage/public/product/2025/05/30/67e68e5b72f6441faeae6238ea9a1c077ey7c2czat.png\",\"attSize\":\"643485\",\"attType\":\"png\",\"pid\":0,\"imageType\":1,\"createTime\":\"2025-05-30 15:28:22\",\"updateTime\":\"2025-05-30 15:28:22\",\"localImg\":\"\",\"isCk\":false,\"isSelect\":true,\"num\":1}]', NULL, '\'1\'', '2025-05-30 15:28:46', NULL, 0);
-INSERT INTO `eb_store_seckill_manger` VALUES (28, '午夜场', 18, 22, NULL, '[{\"attId\":1471,\"name\":\"1748590167423.png\",\"attDir\":\"\",\"sattDir\":\"crmebimage/public/product/2025/05/30/73a1fe2b9d5e42b8bd23d3896b4ad26c47fi1n1rvm.png\",\"attSize\":\"440215\",\"attType\":\"png\",\"pid\":0,\"imageType\":1,\"createTime\":\"2025-05-30 15:29:27\",\"updateTime\":\"2025-05-30 15:29:27\",\"localImg\":\"\",\"isCk\":false,\"isSelect\":true,\"num\":1}]', NULL, '\'1\'', '2025-05-30 15:29:31', NULL, 0);
+INSERT INTO `eb_store_seckill_manger` VALUES (26, '上午场', 8, 12, NULL, '[{\"attId\":1469,\"name\":\"早餐.png\",\"attDir\":\"\",\"sattDir\":\"crmebimage/public/product/2025/05/30/627c4c646e304779b48acb4eb8944187w6v1d3blt3.png\",\"attSize\":\"1197825\",\"attType\":\"png\",\"pid\":0,\"imageType\":1,\"createTime\":\"2025-05-30 15:28:02\",\"updateTime\":\"2025-05-30 15:28:02\",\"isCk\":false,\"isSelect\":true,\"num\":1}]', NULL, 1, '2025-05-30 15:28:27', NULL, 0);
+INSERT INTO `eb_store_seckill_manger` VALUES (27, '下午场', 12, 18, NULL, '[{\"attId\":1470,\"name\":\"1748590102959.png\",\"attDir\":\"\",\"sattDir\":\"crmebimage/public/product/2025/05/30/67e68e5b72f6441faeae6238ea9a1c077ey7c2czat.png\",\"attSize\":\"643485\",\"attType\":\"png\",\"pid\":0,\"imageType\":1,\"createTime\":\"2025-05-30 15:28:22\",\"updateTime\":\"2025-05-30 15:28:22\",\"localImg\":\"\",\"isCk\":false,\"isSelect\":true,\"num\":1}]', NULL, 1, '2025-05-30 15:28:46', NULL, 0);
+INSERT INTO `eb_store_seckill_manger` VALUES (28, '午夜场', 18, 22, NULL, '[{\"attId\":1471,\"name\":\"1748590167423.png\",\"attDir\":\"\",\"sattDir\":\"crmebimage/public/product/2025/05/30/73a1fe2b9d5e42b8bd23d3896b4ad26c47fi1n1rvm.png\",\"attSize\":\"440215\",\"attType\":\"png\",\"pid\":0,\"imageType\":1,\"createTime\":\"2025-05-30 15:29:27\",\"updateTime\":\"2025-05-30 15:29:27\",\"localImg\":\"\",\"isCk\":false,\"isSelect\":true,\"num\":1}]', NULL, 1, '2025-05-30 15:29:31', NULL, 0);
 
 -- ----------------------------
 -- Table structure for eb_system_admin
@@ -11709,7 +11709,7 @@ INSERT INTO `eb_system_config` VALUES (9040, 'ali_pay_return_url', 'ali_pay_retu
 INSERT INTO `eb_system_config` VALUES (9041, 'ali_pay_quit_url', 'ali_pay_quit_url', 137, 'https://111111//pages/users/alipay_return/alipay_return', 0, '2024-11-21 18:01:31', '2025-05-28 10:13:30');
 INSERT INTO `eb_system_config` VALUES (9042, 'ali_pay_public_key', 'ali_pay_public_key', 137, '111111', 0, '2024-11-21 18:01:31', '2025-05-28 10:12:28');
 INSERT INTO `eb_system_config` VALUES (9043, 'ali_pay_public_key2', 'ali_pay_public_key2', 137, '111111', 0, '2024-11-21 18:01:31', '2025-05-28 10:12:26');
-INSERT INTO `eb_system_config` VALUES (9044, 'ali_pay_status', 'ali_pay_status', 137, '\'1\'', 0, '2024-11-21 18:01:31', '2024-11-21 18:01:31');
+INSERT INTO `eb_system_config` VALUES (9044, 'ali_pay_status', 'ali_pay_status', 137, 1, 0, '2024-11-21 18:01:31', '2024-11-21 18:01:31');
 INSERT INTO `eb_system_config` VALUES (9045, 'ali_pay_recharge_return_url', 'ali_pay_recharge_return_url', 137, 'https://111111/pages/users/user_money/index', 0, '2024-11-21 18:01:31', '2025-05-28 10:14:00');
 INSERT INTO `eb_system_config` VALUES (9046, 'ali_pay_recharge_quit_url', 'ali_pay_recharge_quit_url', 137, 'https://111111/pages/users/user_money/index', 0, '2024-11-21 18:01:31', '2025-05-28 10:14:19');
 INSERT INTO `eb_system_config` VALUES (9615, 'yzf_h5_url', 'yzf_h5_url', 76, 'https://111111', 0, '2025-04-24 14:39:52', '2025-05-28 10:15:16');
@@ -11720,8 +11720,8 @@ INSERT INTO `eb_system_config` VALUES (9805, 'ylyprint_app_id', 'ylyprint_app_id
 INSERT INTO `eb_system_config` VALUES (9806, 'ylyprint_app_secret', 'ylyprint_app_secret', 143, '111111', 0, '2025-04-28 11:06:42', '2025-05-28 10:15:30');
 INSERT INTO `eb_system_config` VALUES (9807, 'ylyprint_app_machine_code', 'ylyprint_app_machine_code', 143, '111111', 0, '2025-04-28 11:06:42', '2025-05-28 10:15:41');
 INSERT INTO `eb_system_config` VALUES (9808, 'ylyprint_app_machine_msign', 'ylyprint_app_machine_msign', 143, '111111', 0, '2025-04-28 11:06:42', '2025-05-28 10:15:45');
-INSERT INTO `eb_system_config` VALUES (9809, 'ylyprint_auto_status', 'ylyprint_auto_status', 143, '\'1\'', 0, '2025-04-28 11:06:42', '2025-04-28 11:06:42');
-INSERT INTO `eb_system_config` VALUES (9810, 'ylyprint_status', 'ylyprint_status', 143, '\'0\'', 0, '2025-04-28 11:06:42', '2025-04-28 11:06:42');
+INSERT INTO `eb_system_config` VALUES (9809, 'ylyprint_auto_status', 'ylyprint_auto_status', 143, 1, 0, '2025-04-28 11:06:42', '2025-04-28 11:06:42');
+INSERT INTO `eb_system_config` VALUES (9810, 'ylyprint_status', 'ylyprint_status', 143, 0, 0, '2025-04-28 11:06:42', '2025-04-28 11:06:42');
 INSERT INTO `eb_system_config` VALUES (9860, 'logistics_type', 'logistics_type', 128, '1', 0, '2025-04-30 11:17:02', '2025-04-30 11:17:02');
 INSERT INTO `eb_system_config` VALUES (9861, 'system_express_app_code', 'system_express_app_code', 128, '1111111111', 0, '2025-04-30 11:17:02', '2025-04-30 11:17:02');
 INSERT INTO `eb_system_config` VALUES (9897, 'integral_ratio', 'integral_ratio', 109, '1', 0, '2025-05-07 14:03:46', '2025-05-07 14:03:46');
@@ -11729,14 +11729,14 @@ INSERT INTO `eb_system_config` VALUES (9898, 'order_give_integral', 'order_give_
 INSERT INTO `eb_system_config` VALUES (9899, 'freeze_integral_day', 'freeze_integral_day', 109, '0', 0, '2025-05-07 14:03:46', '2025-05-07 14:03:46');
 INSERT INTO `eb_system_config` VALUES (10031, 'system_product_copy_type', 'system_product_copy_type', 127, '1', 0, '2025-05-15 15:19:35', '2025-05-15 15:19:35');
 INSERT INTO `eb_system_config` VALUES (10032, 'copy_product_apikey', 'copy_product_apikey', 127, '1111', 0, '2025-05-15 15:19:35', '2025-05-15 15:19:35');
-INSERT INTO `eb_system_config` VALUES (10445, 'yue_pay_status', 'yue_pay_status', 80, '\'1\'', 0, '2025-05-19 18:03:28', '2025-05-19 18:03:28');
+INSERT INTO `eb_system_config` VALUES (10445, 'yue_pay_status', 'yue_pay_status', 80, 1, 0, '2025-05-19 18:03:28', '2025-05-19 18:03:28');
 INSERT INTO `eb_system_config` VALUES (10496, 'pay_weixin_appid', 'pay_weixin_appid', 67, '111', 0, '2025-05-19 18:06:05', '2025-05-19 18:06:05');
 INSERT INTO `eb_system_config` VALUES (10497, 'pay_weixin_appsecret', 'pay_weixin_appsecret', 67, '111', 0, '2025-05-19 18:06:05', '2025-05-19 18:06:05');
 INSERT INTO `eb_system_config` VALUES (10498, 'pay_weixin_mchid', 'pay_weixin_mchid', 67, '111', 0, '2025-05-19 18:06:05', '2025-05-19 18:06:05');
 INSERT INTO `eb_system_config` VALUES (10499, 'pay_routine_client_p12', 'pay_routine_client_p12', 67, 'file/operation/2020/12/02/04161bfbad984c6490f61b1cb64db8f1qwy6gqdoov.p12', 0, '2025-05-19 18:06:05', '2025-05-19 18:06:05');
 INSERT INTO `eb_system_config` VALUES (10500, 'pay_weixin_certificate_path', 'pay_weixin_certificate_path', 67, '111', 0, '2025-05-19 18:06:05', '2025-05-19 18:06:05');
 INSERT INTO `eb_system_config` VALUES (10501, 'pay_weixin_key', 'pay_weixin_key', 67, '111', 0, '2025-05-19 18:06:05', '2025-05-19 18:06:05');
-INSERT INTO `eb_system_config` VALUES (10502, 'pay_weixin_open', 'pay_weixin_open', 67, '\'1\'', 0, '2025-05-19 18:06:05', '2025-05-19 18:06:05');
+INSERT INTO `eb_system_config` VALUES (10502, 'pay_weixin_open', 'pay_weixin_open', 67, 1, 0, '2025-05-19 18:06:05', '2025-05-19 18:06:05');
 INSERT INTO `eb_system_config` VALUES (10503, 'paydir', 'paydir', 67, '', 0, '2025-05-19 18:06:05', '2025-05-19 18:06:05');
 INSERT INTO `eb_system_config` VALUES (10626, 'store_user_min_recharge', 'store_user_min_recharge', 78, '1', 0, '2025-05-30 16:06:38', '2025-05-30 16:06:38');
 INSERT INTO `eb_system_config` VALUES (10627, 'recharge_switch', 'recharge_switch', 78, 'true', 0, '2025-05-30 16:06:38', '2025-05-30 16:06:38');
@@ -11773,7 +11773,7 @@ INSERT INTO `eb_system_config` VALUES (10804, 'splash_ad_switch', '', 0, '1', 0,
 INSERT INTO `eb_system_config` VALUES (10805, 'splash_ad_show_time', '', 0, '15', 0, '2025-10-22 15:50:05', '2025-11-10 11:27:29');
 INSERT INTO `eb_system_config` VALUES (10806, 'splash_ad_show_interval', '', 0, '1', 0, '2025-10-22 15:50:05', '2025-11-10 11:27:29');
 INSERT INTO `eb_system_config` VALUES (10807, 'store_brokerage_share_node', '', 0, 'receipt', 0, '2025-10-27 16:51:15', '2025-11-05 11:54:48');
-INSERT INTO `eb_system_config` VALUES (10908, 'auto_reply_switch', 'auto_reply_switch', 149, '\'1\'', 0, '2025-11-12 10:20:48', '2025-11-12 10:20:48');
+INSERT INTO `eb_system_config` VALUES (10908, 'auto_reply_switch', 'auto_reply_switch', 149, 1, 0, '2025-11-12 10:20:48', '2025-11-12 10:20:48');
 INSERT INTO `eb_system_config` VALUES (10909, 'auto_reply_time', 'auto_reply_time', 149, '0', 0, '2025-11-12 10:20:48', '2025-11-12 10:20:48');
 INSERT INTO `eb_system_config` VALUES (10910, 'auto_reply_content', 'auto_reply_content', 149, '很好，种草了！', 0, '2025-11-12 10:20:48', '2025-11-12 10:20:48');
 INSERT INTO `eb_system_config` VALUES (10911, 'store_stock', 'store_stock', 77, '20', 0, '2025-11-12 15:06:14', '2025-11-12 15:06:14');
@@ -11786,7 +11786,7 @@ INSERT INTO `eb_system_config` VALUES (10932, 'app_update_url', 'app_update_url'
 INSERT INTO `eb_system_config` VALUES (10933, 'ios_address', 'ios_address', 138, 'https://apps.apple.com/cn/app/id1558260648', 0, '2025-11-12 15:13:11', '2025-11-12 15:13:11');
 INSERT INTO `eb_system_config` VALUES (10934, 'android_address', 'android_address', 138, 'https://www.pgyer.com/a1eb', 0, '2025-11-12 15:13:11', '2025-11-12 15:13:11');
 INSERT INTO `eb_system_config` VALUES (10935, 'app_version', 'app_version', 138, '1.4.1', 0, '2025-11-12 15:13:11', '2025-11-12 15:13:11');
-INSERT INTO `eb_system_config` VALUES (10936, 'open_upgrade', 'open_upgrade', 138, '\'0\'', 0, '2025-11-12 15:13:11', '2025-11-12 15:13:11');
+INSERT INTO `eb_system_config` VALUES (10936, 'open_upgrade', 'open_upgrade', 138, 0, 0, '2025-11-12 15:13:11', '2025-11-12 15:13:11');
 INSERT INTO `eb_system_config` VALUES (10937, 'copyright_icp_number', 'copyright_icp_number', 146, 'Copyright@2025', 0, '2025-11-12 15:13:15', '2025-11-12 15:13:15');
 INSERT INTO `eb_system_config` VALUES (10938, 'copyright_icp_number_url', 'copyright_icp_number_url', 146, 'https://www.crmeb.com/', 0, '2025-11-12 15:13:15', '2025-11-12 15:13:15');
 INSERT INTO `eb_system_config` VALUES (10939, 'copyright_internet_record', 'copyright_internet_record', 146, 'Copyright@2025 西安众邦网络科技有限公司', 0, '2025-11-12 15:13:15', '2025-11-12 15:13:15');
@@ -11796,7 +11796,7 @@ INSERT INTO `eb_system_config` VALUES (10942, 'site_logo_lefttop', 'site_logo_le
 INSERT INTO `eb_system_config` VALUES (10943, 'site_logo_square', 'site_logo_square', 64, 'crmebimage/public/product/2025/05/30/d9668baa15d04179aff2ccddf985e92e83dqxh6y9x.png', 0, '2025-11-12 15:13:44', '2025-11-12 15:13:44');
 INSERT INTO `eb_system_config` VALUES (10944, 'site_logo_login', 'site_logo_login', 64, 'crmebimage/public/product/2025/05/30/081a002d92894a74ad498c825c29aa26or4ycyd3cy.png', 0, '2025-11-12 15:13:44', '2025-11-12 15:13:44');
 INSERT INTO `eb_system_config` VALUES (10945, 'admin_login_bg_pic', 'admin_login_bg_pic', 64, 'crmebimage/public/product/2025/11/08/cdfaefc6c7fe4c2ab6cc017d886c498fs7oxcolbon.png', 0, '2025-11-12 15:13:44', '2025-11-12 15:13:44');
-INSERT INTO `eb_system_config` VALUES (10946, 'store_free_postage_switch', 'store_free_postage_switch', 74, '\'1\'', 0, '2025-11-12 15:14:07', '2025-11-12 15:14:07');
+INSERT INTO `eb_system_config` VALUES (10946, 'store_free_postage_switch', 'store_free_postage_switch', 74, 1, 0, '2025-11-12 15:14:07', '2025-11-12 15:14:07');
 INSERT INTO `eb_system_config` VALUES (10947, 'store_free_postage', 'store_free_postage', 74, '999999', 0, '2025-11-12 15:14:07', '2025-11-12 15:14:07');
 INSERT INTO `eb_system_config` VALUES (10948, 'tengxun_map_key', 'tengxun_map_key', 74, '111111', 0, '2025-11-12 15:14:07', '2025-11-14 16:15:24');
 INSERT INTO `eb_system_config` VALUES (10949, 'store_self_mention', 'store_self_mention', 74, '0', 0, '2025-11-12 15:14:07', '2025-11-12 15:14:07');
