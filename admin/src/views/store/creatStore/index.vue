@@ -264,6 +264,21 @@
             </el-form-item>
           </el-col>
           <el-col :span="24">
+            <el-form-item label="门店服务：">
+              <el-switch
+                v-model="formValidate.isStore"
+                active-text="支持门店服务"
+                :disabled="isDisabled"
+                style="margin-right: 16px"
+              />
+              <template v-if="formValidate.isStore">
+                <el-checkbox v-model="formValidate.storeSelfPickup" :disabled="isDisabled">到店自提</el-checkbox>
+                <el-checkbox v-model="formValidate.storeDelivery" :disabled="isDisabled">上门配送</el-checkbox>
+              </template>
+              <span class="tip">开启后该商品可在门店进行自提、配送与核销</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
             <el-form-item label="活动优先级：">
               <div class="color-list acea-row row-middle">
                 <div
@@ -383,6 +398,9 @@ const defaultObj = {
   couponIds: [],
   coupons: [],
   guaranteeIds: '', // 服务保障id字符串
+  isStore: false, // 是否支持门店服务
+  storeSelfPickup: false, // 门店-是否支持自提
+  storeDelivery: false, // 门店-是否支持配送
   activity: ['默认', '秒杀', '砍价', '拼团'],
 };
 const objTitle = {
@@ -821,6 +839,9 @@ export default {
             ficti: info.ficti,
             coupons: info.coupons,
             couponIds: info.couponIds,
+            isStore: !!info.isStore,
+            storeSelfPickup: !!info.storeSelfPickup,
+            storeDelivery: !!info.storeDelivery,
             activity: info.activity ? info.activity : ['默认', '秒杀', '砍价', '拼团'],
           };
           // 获取服务保障被选id列表

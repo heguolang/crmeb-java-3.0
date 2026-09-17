@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 import io.swagger.annotations.ApiModel;
@@ -79,5 +80,28 @@ public class SystemStore implements Serializable {
     @ApiModelProperty(value = "修改时间")
     private Date updateTime;
 
+    @ApiModelProperty(value = "是否支持到店自提：1=是 0=否")
+    private Boolean selfPickup;
+
+    @ApiModelProperty(value = "是否支持上门配送：1=是 0=否")
+    private Boolean delivery;
+
+    @ApiModelProperty(value = "配送服务半径(公里)")
+    private BigDecimal deliveryRadius;
+
+    @ApiModelProperty(value = "门店核销服务费")
+    private BigDecimal verifyFee;
+
+    @ApiModelProperty(value = "到店自提服务费")
+    private BigDecimal pickupFee;
+
+    @ApiModelProperty(value = "上门配送服务费")
+    private BigDecimal deliveryFee;
+
+    @ApiModelProperty(value = "门店负责人用户UID")
+    private Integer leaderUid;
+
+    @ApiModelProperty(value = "门店负责人昵称(冗余)")
+    private String leaderName;
 
 }

@@ -137,6 +137,15 @@ public class StoreProductRequest implements Serializable {
     @ApiModelProperty(value = "是否单独分佣")
     private Boolean isSub;
 
+    @ApiModelProperty(value = "是否支持门店服务：1=是 0=否")
+    private Boolean isStore;
+
+    @ApiModelProperty(value = "门店-是否支持自提：1=是 0=否")
+    private Boolean storeSelfPickup;
+
+    @ApiModelProperty(value = "门店-是否支持配送：1=是 0=否")
+    private Boolean storeDelivery;
+
     @ApiModelProperty(value = "虚拟销量")
     private Integer ficti;
 

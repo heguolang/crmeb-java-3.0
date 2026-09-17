@@ -216,6 +216,24 @@
 					"navigationBarTitleText": "消息通知"
 				}
 			},
+			{
+				"path": "store/index",
+				"style": {
+					"navigationBarTitleText": "门店中心"
+				}
+			},
+			{
+				"path": "store/verify-order",
+				"style": {
+					"navigationBarTitleText": "门店核销"
+				}
+			},
+			{
+				"path": "store/verify",
+				"style": {
+					"navigationBarTitleText": "核销记录"
+				}
+			},
 				{
 					"path": "user_money/index",
 					"style": {

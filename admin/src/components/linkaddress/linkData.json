@@ -360,6 +360,18 @@
         "status": 1,
         "sort": 0,
         "add_time": 1626837579
+      },
+      {
+        "id": 53,
+        "cate_id": 5,
+        "type": 6,
+        "name": "门店中心",
+        "url": "/pages/users/store/index",
+        "param": " ",
+        "example": "/pages/users/store/index",
+        "status": 1,
+        "sort": 0,
+        "add_time": 1626837579
       }
     ]
   }

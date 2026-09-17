@@ -69,6 +69,8 @@ public class StoreOrderVerificationImpl implements StoreOrderVerification {
     private WechatOrderShippingService wechatOrderShippingService;
     @Autowired
     private StorePinkService storePinkService;
+    @Autowired
+    private com.zbkj.service.service.MerchantStoreService merchantStoreService;
     /**
      * 获取订单核销数据
      */
@@ -206,6 +208,10 @@ public class StoreOrderVerificationImpl implements StoreOrderVerification {
                     wechatOrderShippingService.uploadVerifyShippingInfo(storeOrder.getOrderId());
                 }
             }
+            // 门店核销记录（后台核销）
+            merchantStoreService.writeVerifyRecord(storeOrder, null,
+                    StrUtil.blankToDefault(currentAdmin.getRealName(), currentAdmin.getAccount()),
+                    com.zbkj.common.model.merchant.MerchantStoreVerifyRecord.SOURCE_ADMIN);
         }
         return saveStatus;
     }

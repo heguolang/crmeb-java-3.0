@@ -174,4 +174,13 @@ public class StoreProduct implements Serializable {
 
     @ApiModelProperty(value = "保障服务ids(英文逗号拼接)")
     private String guaranteeIds;
+
+    @ApiModelProperty(value = "是否支持门店服务：1=是 0=否")
+    private Boolean isStore;
+
+    @ApiModelProperty(value = "门店-是否支持自提：1=是 0=否")
+    private Boolean storeSelfPickup;
+
+    @ApiModelProperty(value = "门店-是否支持配送：1=是 0=否")
+    private Boolean storeDelivery;
 }
