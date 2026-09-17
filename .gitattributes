@@ -1,0 +1,12 @@
+# 图片等二进制资源禁止换行转换，避免文件损坏
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.bmp binary
+*.svg -text
+
+# SQL 脚本保持原样，不做 CRLF/LF 转换（导入过程中的换行敏感）
+*.sql -text

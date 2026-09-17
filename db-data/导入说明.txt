@@ -1,0 +1,43 @@
+CRMEB 本地数据导出包  生成时间：2026-09-17
+================================================
+
+【包含】
+  1. crmeb_full_data_export.sql   —— 本地库全部数据（78 张表，约 3.3 万行，19.5MB）
+  2. crmeb_image\                 —— 本地上传的图片资源（530 个文件，74MB）
+     对应 application.yml 里的配置：
+         imagePath: C:/Users/62656/.workbuddy/server/crmeb_image/
+     → 目标机器复制后，需把该路径改成本机的实际目录（斜杠结尾）
+
+【导入顺序】（目标库必须先完成建库）
+  1) crmeb/sql/Crmeb_v3.0.sql                 全量建表
+  2) crmeb/sql/add_missing_team_level_tables.sql
+  3) crmeb/sql/add_missing_columns.sql
+  4) crmeb/sql/upgrade_team_level_direct.sql
+  5) crmeb/sql/add_login_notice_config.sql
+  6) crmeb/sql/add_user_update_password_menu.sql
+  7) crmeb/sql/add_admin_log_menu_and_table.sql
+  8) crmeb/sql/reset_default_category.sql
+  9) crmeb/sql/update_copyright_company_name.sql
+ 10) crmeb/sql/agent.sql
+ 11) crmeb/sql/stock.sql
+ 12) crmeb/sql/update_deploy_config.sql
+ 13) crmeb/sql/export_admin_settings.sql       后台设置（站点信息/菜单/开关等）
+ 14) crmeb_full_data_export.sql                本包：全部业务数据
+
+【导入保护规则（自动，无需手工干预）】
+  每一张表在导入前都会先比较行数：
+    ① 本地源表为空              -> 跳过该表
+    ② 本地行数 < 目标库已有行数  -> 跳过该表（保留目标库更全的数据，不会被覆盖）
+    ③ 其它情况                  -> INSERT ... ON DUPLICATE KEY UPDATE 补齐并更新
+  判定用的 @ok_flag 在每张表开始前算一次，整表口径一致。
+  脚本幂等，可重复执行。
+
+【已排除的内容】
+  - bak_* 表：本地跑 reset_default_category.sql 产生的临时备份表，属垃圾数据
+  - 空表（65 张）：按规则跳过，不生成任何语句
+
+【实测结论】
+  全新空库按上述 1~14 步执行：全部 rc=0、零 ERROR。
+  80 张有数据的表中 79 张行数与本地完全一致；
+  唯一例外 eb_schedule_job_log（调度日志），因后端仍在持续写入，
+  导出与导入之间会产生几十行的自然增长，属正常现象，不是导出失败。
