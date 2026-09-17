@@ -102,7 +102,6 @@ public class StockServiceImpl implements StockService {
 
     @Override
     public CommonPage<StockAgent> getAdminAgentList(String keywords, Integer levelId, Integer status, PageParamRequest pageParamRequest) {
-        PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
         LambdaQueryWrapper<StockAgent> lqw = new LambdaQueryWrapper<>();
         lqw.eq(StockAgent::getIsDel, 0);
         if (levelId != null && levelId > 0) {
@@ -126,6 +125,8 @@ public class StockServiceImpl implements StockService {
             lqw.in(StockAgent::getUid, uids);
         }
         lqw.orderByDesc(StockAgent::getId);
+        // ★ startPage 必须紧邻目标查询（上面的用户查询会吃掉分页参数）
+        PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
         List<StockAgent> list = stockAgentDao.selectList(lqw);
         fillAgents(list);
         return CommonPage.restPage(new PageInfo<>(list));
@@ -216,7 +217,6 @@ public class StockServiceImpl implements StockService {
 
     @Override
     public HashMap<String, Object> getProductList(String keywords, PageParamRequest pageParamRequest) {
-        PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
         LambdaQueryWrapper<StoreProduct> lqw = new LambdaQueryWrapper<>();
         lqw.eq(StoreProduct::getIsDel, 0).eq(StoreProduct::getIsShow, true);
         if (keywords != null && !keywords.trim().isEmpty()) {
@@ -225,8 +225,11 @@ public class StockServiceImpl implements StockService {
         lqw.orderByDesc(StoreProduct::getId);
         List<StockLevel> levels = getLevelList();
         List<HashMap<String, Object>> rows = new ArrayList<>();
-        Page<StoreProduct> productPage = storeProductService.page(new Page<>(pageParamRequest.getPage(), pageParamRequest.getLimit()), lqw);
-        for (StoreProduct p : productPage.getRecords()) {
+        // ★ PageHelper.startPage 必须紧邻目标查询（中间不能插入其它查询，否则分页会被它吃掉）
+        PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        List<StoreProduct> productList = storeProductService.list(lqw);
+        PageInfo<StoreProduct> productPage = new PageInfo<>(productList);
+        for (StoreProduct p : productList) {
             HashMap<String, Object> row = new HashMap<>();
             row.put("id", p.getId());
             row.put("storeName", p.getStoreName());
