@@ -1,5 +1,6 @@
 package com.zbkj.common.response;
 
+import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.vo.StoreOrderInfoOldVo;
 import com.zbkj.common.model.system.SystemStore;
 import io.swagger.annotations.ApiModel;
@@ -10,6 +11,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -141,6 +143,9 @@ public class StoreOrderInfoResponse implements Serializable {
 
     @ApiModelProperty(value = "推广人名称")
     private String spreadName;
+
+    @ApiModelProperty(value = "分销/分佣信息")
+    private List<UserBrokerageRecord> brokerageList = new ArrayList<>();
 
     @ApiModelProperty(value = "商品总价")
     private BigDecimal proTotalPrice;

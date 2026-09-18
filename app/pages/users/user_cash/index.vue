@@ -44,6 +44,9 @@
 						<view class='tip'>
 							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现
 						</view>
+						<view class='tip' v-if="commission.extractWeekdaysTip || commission.extractTimeTip">
+							可提现时间：{{commission.extractWeekdaysTip}} {{commission.extractTimeTip}}
+						</view>
 						<button formType="submit" class='bnt bg-color'>提现</button>
 					</form>
 				</view>
@@ -80,6 +83,9 @@
 						</view>
 						<view class='tip'>
 							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现
+						</view>
+						<view class='tip' v-if="commission.extractWeekdaysTip || commission.extractTimeTip">
+							可提现时间：{{commission.extractWeekdaysTip}} {{commission.extractTimeTip}}
 						</view>
 						<button formType="submit" class='bnt bg-color'>提现</button>
 					</form>
@@ -118,6 +124,9 @@
 						<view class='tip'>
 							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现
 						</view>
+						<view class='tip' v-if="commission.extractWeekdaysTip || commission.extractTimeTip">
+							可提现时间：{{commission.extractWeekdaysTip}} {{commission.extractTimeTip}}
+						</view>
 						<button formType="submit" class='bnt'>提现</button>
 					</form>
 				</view>
@@ -141,6 +150,9 @@
 						</view>
 						<view class='tip'>
 							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现
+						</view>
+						<view class='tip' v-if="commission.extractWeekdaysTip || commission.extractTimeTip">
+							可提现时间：{{commission.extractWeekdaysTip}} {{commission.extractTimeTip}}
 						</view>
 						<button formType="submit" class='bnt bg-color'>提现</button>
 					</form>
@@ -314,6 +326,11 @@
 				if (value.money < that.minPrice) return this.$util.Tips({
 					title: '提现金额不能低于' + that.minPrice
 				});
+				if (that.commission && that.commission.extractTimeAllowed === false) {
+					return this.$util.Tips({
+						title: '当前不在可提现时间：' + (that.commission.extractWeekdaysTip || '') + ' ' + (that.commission.extractTimeTip || '')
+					});
+				}
 				if (this.isCommitted == false) {
 					this.isCommitted = true;
 					if (that.currentTab == 3) {

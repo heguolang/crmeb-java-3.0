@@ -14,6 +14,7 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.zbkj.common.constants.BrokerageRecordConstants;
 import com.zbkj.common.constants.Constants;
+import com.zbkj.common.constants.SysConfigConstants;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.finance.UserExtract;
 import com.zbkj.common.model.user.User;
@@ -37,10 +38,15 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.math.BigDecimal.ZERO;
@@ -376,11 +382,31 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
      */
     @Override
     public Boolean extractApply(UserExtractRequest request) {
+        // 功能开关
+        String extractSwitch = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_SWITCH);
+        if (StrUtil.isNotBlank(extractSwitch) && !"1".equals(extractSwitch)) {
+            throw new CrmebException("佣金提现功能已关闭");
+        }
+        // 可提现时间校验
+        checkExtractTimeAllowed(true);
+
         //添加判断，提现金额不能后台配置金额
         String value = systemConfigService.getValueByKeyException(Constants.CONFIG_EXTRACT_MIN_PRICE);
         BigDecimal ten = new BigDecimal(value);
         if (request.getExtractPrice().compareTo(ten) < 0) {
             throw new CrmebException(StrUtil.format("最低提现金额{}元", ten));
+        }
+
+        // 提现倍数校验，0不限制
+        String multipleStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_MULTIPLE);
+        if (StrUtil.isNotBlank(multipleStr)) {
+            BigDecimal multiple = new BigDecimal(multipleStr);
+            if (multiple.compareTo(ZERO) > 0) {
+                BigDecimal[] divRem = request.getExtractPrice().divideAndRemainder(multiple);
+                if (divRem[1].compareTo(ZERO) != 0) {
+                    throw new CrmebException(StrUtil.format("提现金额须为{}的倍数", multiple.stripTrailingZeros().toPlainString()));
+                }
+            }
         }
 
         User user = userService.getInfo();
@@ -396,6 +422,13 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
             throw new CrmebException("你当前最多可提现 " + money + "元");
         }
 
+        // 计算手续费（仅备注展示，扣减仍按申请金额）
+        BigDecimal fee = calcExtractFee(request.getExtractPrice());
+        BigDecimal arrivePrice = request.getExtractPrice().subtract(fee);
+        if (arrivePrice.compareTo(ZERO) < 0) {
+            arrivePrice = ZERO;
+        }
+
         UserExtract userExtract = new UserExtract();
         BeanUtils.copyProperties(request, userExtract);
         userExtract.setUid(user.getUid());
@@ -403,6 +436,10 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
         //存入银行名称
         if (StrUtil.isNotBlank(userExtract.getQrcodeUrl())) {
             userExtract.setQrcodeUrl(systemAttachmentService.clearPrefix(userExtract.getQrcodeUrl()));
+        }
+        if (fee.compareTo(ZERO) > 0) {
+            String feeMark = StrUtil.format("手续费{}元，预计到账{}元", fee, arrivePrice);
+            userExtract.setMark(StrUtil.isBlank(userExtract.getMark()) ? feeMark : userExtract.getMark() + "；" + feeMark);
         }
 
         // 添加佣金记录
@@ -430,6 +467,103 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
         // 此处可添加提现申请通知
 
         return execute;
+    }
+
+    /**
+     * 计算提现手续费
+     */
+    public BigDecimal calcExtractFee(BigDecimal extractPrice) {
+        String feeType = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE);
+        String feeVal = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_FEE);
+        if (StrUtil.isBlank(feeVal)) {
+            return ZERO;
+        }
+        BigDecimal feeConfig = new BigDecimal(feeVal);
+        if (feeConfig.compareTo(ZERO) <= 0) {
+            return ZERO;
+        }
+        if ("fixed".equals(feeType)) {
+            return feeConfig.setScale(2, RoundingMode.HALF_UP);
+        }
+        // 默认按比例
+        return extractPrice.multiply(feeConfig).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * 校验当前是否在可提现时间；返回是否允许
+     * @param throwEx true时不在窗口直接抛异常
+     */
+    public boolean checkExtractTimeAllowed(boolean throwEx) {
+        String weekdays = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS);
+        String startStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_TIME_START);
+        String endStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_TIME_END);
+
+        LocalDateTime now = LocalDateTime.now();
+        int day = now.getDayOfWeek().getValue(); // 1=周一 ... 7=周日
+        if (StrUtil.isNotBlank(weekdays)) {
+            Set<String> daySet = new HashSet<>(Arrays.asList(weekdays.split(",")));
+            if (!daySet.contains(String.valueOf(day))) {
+                if (throwEx) {
+                    throw new CrmebException("当前不在可提现日，可提现：" + formatWeekdaysTip(weekdays));
+                }
+                return false;
+            }
+        }
+
+        int startHour = parseHour(startStr, 0);
+        int endHour = parseHour(endStr, 24);
+        if (startHour < 0) startHour = 0;
+        if (endHour > 24) endHour = 24;
+        if (startHour >= endHour) {
+            // 配置异常时不拦截
+            return true;
+        }
+        int hour = now.getHour();
+        // [startHour, endHour)，endHour=24 表示到当天结束
+        boolean inRange = hour >= startHour && (endHour == 24 || hour < endHour);
+        if (!inRange) {
+            if (throwEx) {
+                throw new CrmebException("当前不在可提现时间，可提现：" + formatTimeTip(startHour, endHour));
+            }
+            return false;
+        }
+        return true;
+    }
+
+    public String formatWeekdaysTip(String weekdays) {
+        if (StrUtil.isBlank(weekdays)) {
+            return "周一至周日";
+        }
+        String[] names = {"", "周一", "周二", "周三", "周四", "周五", "周六", "周日"};
+        List<String> list = new ArrayList<>();
+        for (String d : weekdays.split(",")) {
+            String t = d.trim();
+            if (StrUtil.isBlank(t)) continue;
+            try {
+                int idx = Integer.parseInt(t);
+                if (idx >= 1 && idx <= 7) list.add(names[idx]);
+            } catch (Exception ignored) {
+            }
+        }
+        return list.isEmpty() ? "周一至周日" : String.join("、", list);
+    }
+
+    public String formatTimeTip(int startHour, int endHour) {
+        return String.format("%02d:00-%02d:00", startHour, endHour == 24 ? 24 : endHour);
+    }
+
+    private int parseHour(String val, int defaultVal) {
+        if (StrUtil.isBlank(val)) {
+            return defaultVal;
+        }
+        try {
+            if (val.contains(":")) {
+                return Integer.parseInt(val.split(":")[0]);
+            }
+            return Integer.parseInt(val.trim());
+        } catch (Exception e) {
+            return defaultVal;
+        }
     }
 
     /**

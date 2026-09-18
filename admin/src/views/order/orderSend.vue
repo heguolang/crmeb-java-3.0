@@ -15,6 +15,23 @@
       @submit.native.prevent
       :rules="rules"
     >
+      <el-form-item label="收货信息：">
+        <div class="recipient-box">
+          <div class="recipient-row">
+            <span class="label">收货人：</span>
+            <span>{{ recipient.realName || '-' }}</span>
+          </div>
+          <div class="recipient-row">
+            <span class="label">收货电话：</span>
+            <span>{{ recipient.userPhone || '-' }}</span>
+          </div>
+          <div class="recipient-row">
+            <span class="label">收货地址：</span>
+            <span>{{ recipient.userAddress || '-' }}</span>
+          </div>
+          <el-button type="primary" size="mini" plain class="copy-btn" @click="copyRecipient">一键复制</el-button>
+        </div>
+      </el-form-item>
       <el-form-item label="选择类型：">
         <el-radio-group
           v-model="formItem.deliveryType"
@@ -297,6 +314,11 @@ export default {
       expressTempIdImg: '', // 商家发货电子面单图片
       pickupTime: ['', ''], // 取件时间
       nowCompany: '',
+      recipient: {
+        realName: '',
+        userPhone: '',
+        userAddress: '',
+      },
     };
   },
   watch: {
@@ -306,6 +328,11 @@ export default {
           this.loading = true;
           this.isEdit = true;
           this.getExpressDetail(val);
+          this.setRecipient({
+            realName: val.realName,
+            userPhone: val.userPhone,
+            userAddress: val.userAddress,
+          });
         } else {
           this.isEdit = false;
           this.loading = false;
@@ -321,6 +348,50 @@ export default {
   },
   methods: {
     checkPermi,
+    setRecipient(info) {
+      this.recipient = {
+        realName: (info && info.realName) || '',
+        userPhone: (info && info.userPhone) || '',
+        userAddress: (info && info.userAddress) || '',
+      };
+    },
+    copyRecipient() {
+      const text = [
+        this.recipient.realName || '',
+        this.recipient.userPhone || '',
+        this.recipient.userAddress || '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+      if (!text) {
+        this.$message.warning('暂无收货人信息可复制');
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          this.$message.success('收货人信息已复制');
+        }).catch(() => {
+          this.fallbackCopy(text);
+        });
+      } else {
+        this.fallbackCopy(text);
+      }
+    },
+    fallbackCopy(text) {
+      const input = document.createElement('textarea');
+      input.value = text;
+      input.style.position = 'fixed';
+      input.style.left = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        this.$message.success('收货人信息已复制');
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
+    },
     //一号通 商家寄件 快递列表
     getShipmentExpress() {
       shipmentExpressApi()
@@ -515,6 +586,24 @@ export default {
   img {
     width: 38px !important;
     height: 30px !important;
+  }
+}
+
+.recipient-box {
+  background: #f7f8fa;
+  border-radius: 4px;
+  padding: 12px 16px;
+  line-height: 1.8;
+  position: relative;
+  .recipient-row .label {
+    color: #909399;
+    display: inline-block;
+    min-width: 70px;
+  }
+  .copy-btn {
+    position: absolute;
+    right: 12px;
+    top: 12px;
   }
 }
 </style>

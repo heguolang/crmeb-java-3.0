@@ -51,4 +51,13 @@ public class UserExtractCashResponse implements Serializable {
 
     @ApiModelProperty(value = "冻结天数")
     private String brokenDay;
+
+    @ApiModelProperty(value = "可提现星期提示，如：周一至周五")
+    private String extractWeekdaysTip;
+
+    @ApiModelProperty(value = "可提现时段提示，如：09:00-18:00")
+    private String extractTimeTip;
+
+    @ApiModelProperty(value = "当前是否在可提现时间内")
+    private Boolean extractTimeAllowed;
 }

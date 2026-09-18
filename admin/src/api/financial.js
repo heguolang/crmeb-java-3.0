@@ -140,3 +140,24 @@ export function brokerageListApi(params) {
     params,
   });
 }
+
+/**
+ * 提现设置获取
+ */
+export function extractSettingGetApi() {
+  return request({
+    url: '/admin/finance/apply/setting/get',
+    method: 'get',
+  });
+}
+
+/**
+ * 提现设置保存
+ */
+export function extractSettingSaveApi(data) {
+  return request({
+    url: '/admin/finance/apply/setting/save',
+    method: 'post',
+    data,
+  });
+}

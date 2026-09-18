@@ -760,10 +760,23 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
         storeOrderInfoResponse.setNikeName(user.getNickname());
         storeOrderInfoResponse.setPhone(user.getPhone());
 
-        UserBrokerageRecord brokerageRecord = userBrokerageRecordService.getByLinkIdAndLinkType(orderNo, "order");
-        if (ObjectUtil.isNotNull(brokerageRecord)) {
-            User spread = userService.getById(brokerageRecord.getUid());
-            storeOrderInfoResponse.setSpreadName(spread.getNickname());
+        List<UserBrokerageRecord> brokerageList = userBrokerageRecordService.findListByLinkIdAndLinkType(
+                orderNo, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        if (CollUtil.isNotEmpty(brokerageList)) {
+            List<Integer> brokerageUidList = brokerageList.stream().map(UserBrokerageRecord::getUid).distinct().collect(Collectors.toList());
+            HashMap<Integer, User> brokerageUserMap = userService.getMapListInUid(brokerageUidList);
+            for (UserBrokerageRecord record : brokerageList) {
+                User brokerageUser = brokerageUserMap.get(record.getUid());
+                if (ObjectUtil.isNotNull(brokerageUser)) {
+                    record.setUserName(brokerageUser.getNickname());
+                }
+            }
+            storeOrderInfoResponse.setBrokerageList(brokerageList);
+            UserBrokerageRecord first = brokerageList.get(0);
+            User spread = brokerageUserMap.get(first.getUid());
+            if (ObjectUtil.isNotNull(spread)) {
+                storeOrderInfoResponse.setSpreadName(spread.getNickname());
+            }
         }
 
         storeOrderInfoResponse.setProTotalPrice(storeOrder.getTotalPrice().subtract(storeOrder.getTotalPostage()));

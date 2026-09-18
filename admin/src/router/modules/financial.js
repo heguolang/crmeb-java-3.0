@@ -33,6 +33,12 @@ const financialRouter = {
           name: 'commissionTemplate',
           meta: { title: '申请提现', icon: '' },
         },
+        {
+          path: 'setting',
+          component: () => import('@/views/financial/commission/setting/index'),
+          name: 'extractSetting',
+          meta: { title: '提现设置', icon: '' },
+        },
       ],
     },
     {

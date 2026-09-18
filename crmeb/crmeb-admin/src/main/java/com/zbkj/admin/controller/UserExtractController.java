@@ -1,5 +1,7 @@
 package com.zbkj.admin.controller;
 
+import cn.hutool.core.util.StrUtil;
+import com.zbkj.common.constants.SysConfigConstants;
 import com.zbkj.common.model.finance.UserExtract;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
@@ -7,6 +9,7 @@ import com.zbkj.common.request.UserExtractRequest;
 import com.zbkj.common.request.UserExtractSearchRequest;
 import com.zbkj.common.response.BalanceResponse;
 import com.zbkj.common.result.CommonResult;
+import com.zbkj.service.service.SystemConfigService;
 import com.zbkj.service.service.UserExtractService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -14,10 +17,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 
 /**
@@ -40,6 +47,9 @@ public class UserExtractController {
 
     @Autowired
     private UserExtractService userExtractService;
+
+    @Autowired
+    private SystemConfigService systemConfigService;
 
     /**
      * 分页显示用户提现表
@@ -101,7 +111,81 @@ public class UserExtractController {
             return CommonResult.failed();
         }
     }
+
+    /**
+     * 提现设置获取
+     */
+    @PreAuthorize("hasAuthority('admin:finance:extract:setting:get')")
+    @ApiOperation(value = "提现设置获取")
+    @RequestMapping(value = "/setting/get", method = RequestMethod.GET)
+    public CommonResult<Map<String, String>> getSetting() {
+        Map<String, String> map = new LinkedHashMap<>();
+        String[] keys = new String[]{
+                SysConfigConstants.CONFIG_EXTRACT_SWITCH,
+                SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE,
+                SysConfigConstants.CONFIG_EXTRACT_MULTIPLE,
+                SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE,
+                SysConfigConstants.CONFIG_EXTRACT_FEE,
+                SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS,
+                SysConfigConstants.CONFIG_EXTRACT_TIME_START,
+                SysConfigConstants.CONFIG_EXTRACT_TIME_END,
+                SysConfigConstants.CONFIG_EXTRACT_BANK
+        };
+        for (String key : keys) {
+            String val = systemConfigService.getValueByKey(key);
+            map.put(key, val == null ? "" : val);
+        }
+        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_SWITCH))) {
+            map.put(SysConfigConstants.CONFIG_EXTRACT_SWITCH, "1");
+        }
+        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_MULTIPLE))) {
+            map.put(SysConfigConstants.CONFIG_EXTRACT_MULTIPLE, "0");
+        }
+        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE))) {
+            map.put(SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE, "ratio");
+        }
+        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_FEE))) {
+            map.put(SysConfigConstants.CONFIG_EXTRACT_FEE, "0");
+        }
+        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS))) {
+            map.put(SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS, "1,2,3,4,5,6,7");
+        }
+        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_TIME_START))) {
+            map.put(SysConfigConstants.CONFIG_EXTRACT_TIME_START, "0");
+        }
+        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_TIME_END))) {
+            map.put(SysConfigConstants.CONFIG_EXTRACT_TIME_END, "24");
+        }
+        return CommonResult.success(map);
+    }
+
+    /**
+     * 提现设置保存
+     */
+    @PreAuthorize("hasAuthority('admin:finance:extract:setting:save')")
+    @ApiOperation(value = "提现设置保存")
+    @RequestMapping(value = "/setting/save", method = RequestMethod.POST)
+    public CommonResult<String> saveSetting(@RequestBody Map<String, Object> body) {
+        if (body == null || body.isEmpty()) {
+            return CommonResult.failed("参数不能为空");
+        }
+        String[] keys = new String[]{
+                SysConfigConstants.CONFIG_EXTRACT_SWITCH,
+                SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE,
+                SysConfigConstants.CONFIG_EXTRACT_MULTIPLE,
+                SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE,
+                SysConfigConstants.CONFIG_EXTRACT_FEE,
+                SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS,
+                SysConfigConstants.CONFIG_EXTRACT_TIME_START,
+                SysConfigConstants.CONFIG_EXTRACT_TIME_END,
+                SysConfigConstants.CONFIG_EXTRACT_BANK
+        };
+        for (String key : keys) {
+            if (body.containsKey(key)) {
+                Object v = body.get(key);
+                systemConfigService.updateOrSaveValueByName(key, v == null ? "" : String.valueOf(v));
+            }
+        }
+        return CommonResult.success();
+    }
 }
-
-
-

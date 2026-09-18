@@ -96,7 +96,23 @@
           </template>
         </el-table-column>
         <el-table-column prop="orderType" label="订单类型" min-width="110" v-if="checkedCities.includes('订单类型')" />
-        <el-table-column prop="realName" label="收货人" min-width="100" v-if="checkedCities.includes('收货人')" />
+        <el-table-column label="收货人" min-width="180" v-if="checkedCities.includes('收货人')">
+          <template slot-scope="scope">
+            <div class="recipient-cell">
+              <div>姓名：{{ scope.row.realName || '-' }}</div>
+              <div>电话：{{ scope.row.userPhone || '-' }}</div>
+              <el-tooltip
+                v-if="scope.row.userAddress"
+                effect="dark"
+                :content="scope.row.userAddress"
+                placement="top"
+              >
+                <div class="recipient-address">地址：{{ scope.row.userAddress }}</div>
+              </el-tooltip>
+              <div v-else>地址：-</div>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column
           :show-overflow-tooltip="true"
           label="商品信息"
@@ -602,6 +618,11 @@ export default {
         this.$refs.send.modals = true;
         //默认加载Normal物流公司
         this.$refs.send.express = this.expressListNormal;
+        this.$refs.send.setRecipient({
+          realName: row.realName,
+          userPhone: row.userPhone,
+          userAddress: row.userAddress,
+        });
         this.$refs.send.sheetInfo();
       } else {
         this.$refs.videoSend.modals = true;
@@ -866,6 +887,17 @@ export default {
   letter-spacing: 1px;
   /*padding: 5px 0;*/
   box-sizing: border-box;
+}
+
+.recipient-cell {
+  font-size: 12px;
+  line-height: 1.6;
+  .recipient-address {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .text_overflow {

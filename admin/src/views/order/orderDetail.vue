@@ -149,6 +149,46 @@
                 </li>
               </ul>
             </div>
+            <div class="detailSection">
+              <div class="title">分销信息</div>
+              <el-table
+                v-if="orderDatalist.brokerageList && orderDatalist.brokerageList.length"
+                :data="orderDatalist.brokerageList"
+                size="small"
+                border
+                style="width: 100%"
+              >
+                <el-table-column label="奖励类型" min-width="110">
+                  <template slot-scope="scope">
+                    {{ brokerageLevelText(scope.row.brokerageLevel) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="获得会员" min-width="160">
+                  <template slot-scope="scope">
+                    <div>{{ scope.row.userName || '-' }}</div>
+                    <div class="color-909399">UID：{{ scope.row.uid }}</div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="title" label="标题" min-width="120" />
+                <el-table-column label="金额" min-width="100">
+                  <template slot-scope="scope">
+                    <span style="color: #ff9900">+{{ scope.row.price }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="状态" min-width="90">
+                  <template slot-scope="scope">
+                    {{ brokerageStatusText(scope.row.status) }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="mark" label="备注" min-width="180" show-overflow-tooltip />
+                <el-table-column label="时间" min-width="150">
+                  <template slot-scope="scope">
+                    {{ scope.row.createTime || '-' }}
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div v-else class="color-909399" style="padding: 8px 0">暂无分佣记录</div>
+            </div>
             <div v-if="orderExtend.length" class="detailSection">
               <div class="title">自定义留言</div>
               <ul class="list">
@@ -333,6 +373,27 @@ export default {
   },
   methods: {
     checkPermi,
+    brokerageLevelText(level) {
+      const map = {
+        0: '自购返佣',
+        1: '一级分销',
+        2: '二级分销',
+        10: '团队极差奖',
+        11: '团队平级奖',
+        12: '区域代理奖励',
+      };
+      return map[level] || `等级${level == null ? '-' : level}`;
+    },
+    brokerageStatusText(status) {
+      const map = {
+        1: '订单创建',
+        2: '冻结中',
+        3: '已到账',
+        4: '已失效',
+        5: '提现申请',
+      };
+      return map[status] || '-';
+    },
     //修改物流信息
     handleEditLogistics(row) {
       this.editDeliveryDialogVisible = true;

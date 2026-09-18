@@ -94,6 +94,20 @@ public class SysConfigConstants {
     public static final String CONFIG_EXTRACT_FREEZING_TIME = "extract_time";
     /** 提现银行卡 */
     public static final String CONFIG_EXTRACT_BANK = "user_extract_bank";
+    /** 佣金提现功能开关 1开 0关 */
+    public static final String CONFIG_EXTRACT_SWITCH = "user_extract_switch";
+    /** 提现倍数，0不限制 */
+    public static final String CONFIG_EXTRACT_MULTIPLE = "user_extract_multiple";
+    /** 手续费类型：fixed固定金额 ratio比例 */
+    public static final String CONFIG_EXTRACT_FEE_TYPE = "user_extract_fee_type";
+    /** 手续费值（金额或百分比） */
+    public static final String CONFIG_EXTRACT_FEE = "user_extract_fee";
+    /** 可提现星期，1-7逗号分隔，空为全部 */
+    public static final String CONFIG_EXTRACT_WEEKDAYS = "user_extract_weekdays";
+    /** 可提现开始小时 0-23 */
+    public static final String CONFIG_EXTRACT_TIME_START = "user_extract_time_start";
+    /** 可提现结束小时 1-24（不含，24表示到当天结束） */
+    public static final String CONFIG_EXTRACT_TIME_END = "user_extract_time_end";
 
 
 

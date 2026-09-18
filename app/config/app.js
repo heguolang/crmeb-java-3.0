@@ -9,7 +9,7 @@
 // +----------------------------------------------------------------------
 //移动端商城API
 // 本地开发：crmeb-front (8081)
-let domain = 'http://127.0.0.1:8081'
+let domain = 'http://api.qianxutec.com'
 // 演示站
 // let domain = 'https://apif.java.crmeb.net'
 // 深度演示站
@@ -22,7 +22,7 @@ module.exports = {
 		HTTP_REQUEST_URL: domain,
 		// H5商城地址
 		// 开发站
-		HTTP_H5_URL: 'http://127.0.0.1:8083',
+		HTTP_H5_URL: 'http://app.qianxutec.com',
 		// 演示站
 		// HTTP_H5_URL: 'http://java.crmeb.net',
 		// 深度演示站

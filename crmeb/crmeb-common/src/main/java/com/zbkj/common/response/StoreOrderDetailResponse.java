@@ -94,6 +94,12 @@ public class StoreOrderDetailResponse implements Serializable {
     @ApiModelProperty(value = "用户姓名")
     private String realName;
 
+    @ApiModelProperty(value = "收货人电话")
+    private String userPhone;
+
+    @ApiModelProperty(value = "收货人地址")
+    private String userAddress;
+
     @ApiModelProperty(value = "商品总价")
     private BigDecimal proTotalPrice;
 

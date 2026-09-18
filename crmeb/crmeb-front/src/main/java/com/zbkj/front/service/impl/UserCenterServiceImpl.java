@@ -1052,7 +1052,26 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         BigDecimal brokeragePrice = user.getBrokeragePrice();
         // 冻结佣金
         BigDecimal freeze = userBrokerageRecordService.getFreezePrice(user.getUid());
-        return new UserExtractCashResponse(minPrice, brokeragePrice, freeze, extractTime);
+        UserExtractCashResponse response = new UserExtractCashResponse(minPrice, brokeragePrice, freeze, extractTime);
+
+        String weekdays = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS);
+        String startStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_TIME_START);
+        String endStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_TIME_END);
+        int startHour = 0;
+        int endHour = 24;
+        try {
+            if (StrUtil.isNotBlank(startStr)) {
+                startHour = startStr.contains(":") ? Integer.parseInt(startStr.split(":")[0]) : Integer.parseInt(startStr.trim());
+            }
+            if (StrUtil.isNotBlank(endStr)) {
+                endHour = endStr.contains(":") ? Integer.parseInt(endStr.split(":")[0]) : Integer.parseInt(endStr.trim());
+            }
+        } catch (Exception ignored) {
+        }
+        response.setExtractWeekdaysTip(userExtractService.formatWeekdaysTip(weekdays));
+        response.setExtractTimeTip(userExtractService.formatTimeTip(startHour, endHour));
+        response.setExtractTimeAllowed(userExtractService.checkExtractTimeAllowed(false));
+        return response;
     }
 
     /**

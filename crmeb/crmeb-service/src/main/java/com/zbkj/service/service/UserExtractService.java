@@ -70,6 +70,22 @@ public interface UserExtractService extends IService<UserExtract> {
     Boolean extractApply(UserExtractRequest request);
 
     /**
+     * 当前是否在可提现时间窗口
+     * @param throwEx true 时不在窗口抛异常
+     */
+    boolean checkExtractTimeAllowed(boolean throwEx);
+
+    /**
+     * 可提现星期文案
+     */
+    String formatWeekdaysTip(String weekdays);
+
+    /**
+     * 可提现时段文案
+     */
+    String formatTimeTip(int startHour, int endHour);
+
+    /**
      * 修改提现申请
      * @param id 申请id
      * @param userExtractRequest 具体参数
