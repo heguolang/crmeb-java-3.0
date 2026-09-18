@@ -43,12 +43,12 @@
             <el-tag :type="scope.row.isShow ? 'success' : 'info'" size="mini">{{ scope.row.isShow ? '启用' : '禁用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="170" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="scope">
             <div class="op-wrap">
-              <el-button v-if="checkPermi(['admin:merchant:store:update'])" class="op-btn" type="primary" plain round size="mini" @click="openEdit(scope.row)">修改</el-button>
-              <el-button v-if="checkPermi(['admin:merchant:store:update'])" class="op-btn" type="warning" plain round size="mini" @click="onStatus(scope.row)">{{ scope.row.isShow ? '禁用' : '启用' }}</el-button>
-              <el-button v-if="checkPermi(['admin:merchant:store:delete'])" class="op-btn" type="danger" plain round size="mini" @click="onDelete(scope.row)">删除</el-button>
+              <el-button v-if="checkPermi(['admin:merchant:store:update'])" class="op-btn" type="primary" plain size="mini" @click="openEdit(scope.row)">修改</el-button>
+              <el-button v-if="checkPermi(['admin:merchant:store:update'])" class="op-btn" type="warning" plain size="mini" @click="onStatus(scope.row)">{{ scope.row.isShow ? '禁用' : '启用' }}</el-button>
+              <el-button v-if="checkPermi(['admin:merchant:store:delete'])" class="op-btn" type="danger" plain size="mini" @click="onDelete(scope.row)">删除</el-button>
             </div>
           </template>
         </el-table-column>
@@ -230,6 +230,6 @@ export default {
 .grey { color: #999; }
 .tc { text-align: center; }
 .switch-tip { margin-left: 10px; color: #999; font-size: 12px; }
-.op-wrap { display: flex; flex-wrap: wrap; }
-.op-btn { margin: 2px 4px 2px 0; }
+.op-wrap { display: flex; align-items: center; gap: 10px; padding: 2px 0; }
+.op-btn { margin: 0 !important; padding: 5px 14px; font-size: 12px; line-height: 1; border-radius: 4px; }
 </style>

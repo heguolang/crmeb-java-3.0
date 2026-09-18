@@ -29,12 +29,12 @@
         <el-table-column v-for="lv in levels" :key="lv.id" :label="lv.name + '价'" width="100">
           <template slot-scope="scope">{{ priceOf(scope.row, lv.id) || '按折扣' + lv.discount + '%' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="170" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="scope">
             <div class="op-wrap">
-              <el-button v-if="checkPermi(['admin:stock:price:save'])" class="op-btn" type="primary" plain round size="mini" @click="openPrice(scope.row)">设置拿货价</el-button>
-              <el-button v-if="checkPermi(['admin:stock:log:adjust'])" class="op-btn" type="warning" plain round size="mini" @click="openAdjust(scope.row)">调整库存</el-button>
-              <el-button v-if="checkPermi(['admin:stock:price:save'])" class="op-btn" type="danger" plain round size="mini" @click="onRemove(scope.row)">移除</el-button>
+              <el-button v-if="checkPermi(['admin:stock:price:save'])" class="op-btn" type="primary" plain size="mini" @click="openPrice(scope.row)">设置拿货价</el-button>
+              <el-button v-if="checkPermi(['admin:stock:log:adjust'])" class="op-btn" type="warning" plain size="mini" @click="openAdjust(scope.row)">调整库存</el-button>
+              <el-button v-if="checkPermi(['admin:stock:price:save'])" class="op-btn" type="danger" plain size="mini" @click="onRemove(scope.row)">移除</el-button>
             </div>
           </template>
         </el-table-column>
@@ -276,6 +276,6 @@ export default {
 <style scoped>
 .red { color: #f56c6c; }
 /* 操作列胶囊按钮：每行 3 个 */
-.op-wrap { display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 2px 0; }
-.op-btn { margin: 0 !important; padding: 5px 14px; font-size: 12px; line-height: 1; }
+.op-wrap { display: flex; align-items: center; gap: 10px; padding: 2px 0; }
+.op-btn { margin: 0 !important; padding: 5px 14px; font-size: 12px; line-height: 1; border-radius: 4px; }
 </style>
