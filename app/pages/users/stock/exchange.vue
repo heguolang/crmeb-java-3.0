@@ -172,12 +172,13 @@
 				});
 			},
 			submit() {
-				if (!this.form.orderId || !this.form.productId) return this.$util.Tips({ title: '请填写原订单与商品ID' });
+				if (!this.form.productId) return this.$util.Tips({ title: '请选择要换货的商品' });
 				if (!this.selectedTarget) return this.$util.Tips({ title: '请选择要换入的商品' });
 				if (!this.form.reason) return this.$util.Tips({ title: '请填写换货原因' });
 				applyStockExchange({
 					orderId: this.form.orderId ? Number(this.form.orderId) : null,
 					productId: Number(this.form.productId),
+					skuKey: this.skuKeyParam || '',
 					num: Number(this.form.num || 1),
 					reason: this.form.reason,
 					targetProductId: this.selectedTarget.targetProductId,

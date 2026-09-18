@@ -695,6 +695,8 @@ public class StockOrderServiceImpl implements StockOrderService {
                 for (StockOrderProduct op : items) {
                     creditVirtualStock(order, op);
                 }
+                // 虚拟单完成：差价结算给上级（幂等，与付款即完成路径一致）
+                settleOrderReward(order);
                 stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "虚拟库存入账成功",
                         "您的订货单 " + order.getOrderNo() + " 已由上级审核通过，虚拟库存已入账，可在会员中心【虚拟库存】中提货");
             } else {
@@ -751,6 +753,8 @@ public class StockOrderServiceImpl implements StockOrderService {
                 for (StockOrderProduct op : items) {
                     creditVirtualStock(order, op);
                 }
+                // 虚拟单完成：差价结算给上级（幂等，与付款即完成路径一致）
+                settleOrderReward(order);
                 stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "虚拟库存入账成功",
                         "您的订货单 " + order.getOrderNo() + " 已由总部审核通过，虚拟库存已入账，可在会员中心【虚拟库存】中提货");
             } else {
@@ -830,11 +834,28 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (!order.getStatus().equals(StockOrder.STATUS_COMPLETE)) {
             throw new CrmebException("只有已完成的订单才能申请换货");
         }
+        // 带规格key时精确匹配明细（防止同订单同商品多规格取错/多行抛错）
         StockOrderProduct item = stockOrderProductDao.selectOne(new LambdaQueryWrapper<StockOrderProduct>()
                 .eq(StockOrderProduct::getOrderId, order.getId())
-                .eq(StockOrderProduct::getProductId, request.getProductId()));
+                .eq(StockOrderProduct::getProductId, request.getProductId())
+                .eq(request.getSkuKey() != null && !request.getSkuKey().trim().isEmpty(),
+                        StockOrderProduct::getSkuKey, request.getSkuKey().trim())
+                .last(" limit 1"));
         if (item == null) {
             throw new CrmebException("该订单中没有此商品");
+        }
+        // 累计换货数量校验：同订单同商品的有效换货单（未驳回）已换数量 + 本次不得超过购买数量
+        int used = 0;
+        for (StockExchange e : stockExchangeDao.selectList(new LambdaQueryWrapper<StockExchange>()
+                .eq(StockExchange::getOrderId, order.getId())
+                .eq(StockExchange::getProductId, request.getProductId())
+                .ne(StockExchange::getStatus, StockExchange.STATUS_REJECT)
+                .eq(StockExchange::getIsDel, 0))) {
+            used += e.getNum() == null ? 0 : e.getNum();
+        }
+        if (request.getNum() + used > item.getNum()) {
+            throw new CrmebException("换货数量超出可换范围：该订单此商品共购 " + item.getNum()
+                    + " 件，已换 " + used + " 件，本次最多可换 " + (item.getNum() - used) + " 件");
         }
         // 换货开关：商品/规格级配置优先，未配置则沿用原行为（允许）
         if (!isExchangeAllowed(request.getProductId(), item.getSkuKey())) {
@@ -858,6 +879,11 @@ public class StockOrderServiceImpl implements StockOrderService {
                 request.getTargetSkuKey() == null ? "" : request.getTargetSkuKey());
         if (targetPrice.compareTo(originPrice) < 0) {
             throw new CrmebException("换入商品拿货价不能低于原商品（原 ¥" + originPrice + "，目标 ¥" + targetPrice + "）");
+        }
+        // 最低换入价校验（后台「换货设置」配置，规格级优先，未配置回退整品级）
+        BigDecimal minTargetPrice = getMinTargetPrice(request.getProductId(), item.getSkuKey());
+        if (minTargetPrice != null && minTargetPrice.signum() > 0 && targetPrice.compareTo(minTargetPrice) < 0) {
+            throw new CrmebException("换入商品拿货价低于设置的最低换入价 ¥" + minTargetPrice);
         }
         boolean allowedTarget = false;
         for (StockExchangeTarget t : getExchangeTargetList(request.getProductId(), item.getSkuKey())) {
@@ -1028,18 +1054,57 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (!order.getStatus().equals(StockOrder.STATUS_WAIT_PAY)) {
             throw new CrmebException("订单当前状态不可确认收款");
         }
-        order.setPayStatus(1);
-        order.setPayTime(new Date());
-        order.setStatus(StockOrder.STATUS_WAIT_SEND);
-        boolean ok = stockOrderDao.updateById(order) > 0;
-        if (ok) {
-            // 付款后按升级规则自动升级（自购 / 直推 / 团队业绩）
-            try {
-                stockService.checkAndUpgrade(order.getUid());
-            } catch (Exception ignored) {
+        boolean isVirtual = isVirtualOrder(order);
+        List<StockOrderProduct> items = stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
+                .eq(StockOrderProduct::getOrderId, order.getId()));
+        transactionTemplate.executeWithoutResult(status -> {
+            // 乐观锁防并发：仅未支付+待付款状态可确认收款
+            LambdaUpdateWrapper<StockOrder> wrapper = new LambdaUpdateWrapper<>();
+            wrapper.eq(StockOrder::getId, order.getId())
+                    .eq(StockOrder::getPayStatus, 0)
+                    .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_PAY)
+                    .set(StockOrder::getPayStatus, 1)
+                    .set(StockOrder::getPayTime, new Date())
+                    .set(StockOrder::getPayType, StockOrder.PAY_TYPE_RECORD);
+            if (isVirtual) {
+                // 虚拟采购单：总部确认收款 = 完成并入账虚拟库存（不扣云仓、不发货）
+                wrapper.set(StockOrder::getStatus, StockOrder.STATUS_COMPLETE)
+                        .set(StockOrder::getFinishTime, new Date());
+            } else {
+                // 实体采购单：总部确认收款 = 跳过审核直接待发货，需扣云仓库存（与付款/审核通过路径一致）
+                wrapper.set(StockOrder::getStatus, StockOrder.STATUS_WAIT_SEND);
             }
+            boolean updated = stockOrderDao.update(null, wrapper) > 0;
+            if (!updated) {
+                throw new CrmebException("订单状态已变更，请刷新后重试");
+            }
+            if (isVirtual) {
+                for (StockOrderProduct op : items) {
+                    creditVirtualStock(order, op);
+                }
+            } else {
+                for (StockOrderProduct op : items) {
+                    stockService.deductStockBySku(op.getProductId(), op.getSkuKey(), op.getNum(), 1,
+                            order.getOrderNo(), "总部确认收款扣库存");
+                }
+            }
+        });
+        StockOrder latest = getByOrderNo(order.getOrderNo());
+        if (isVirtualOrder(latest)) {
+            // 虚拟单完成：差价结算给上级（与付款即完成路径一致，幂等）
+            settleOrderReward(latest);
+            stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "虚拟库存入账成功",
+                    "您的订货单 " + order.getOrderNo() + " 已由总部确认收款，虚拟库存已入账，可在会员中心【虚拟库存】中提货");
+        } else {
+            stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "订货单支付成功",
+                    "您的订货单 " + order.getOrderNo() + " 已由总部确认收款，等待发货");
         }
-        return ok;
+        // 付款后按升级规则自动升级（自购 / 直推 / 团队业绩）
+        try {
+            stockService.checkAndUpgrade(order.getUid());
+        } catch (Exception ignored) {
+        }
+        return true;
     }
 
     @Override
@@ -1510,6 +1575,22 @@ public class StockOrderServiceImpl implements StockOrderService {
         return cfg == null || Boolean.TRUE.equals(cfg.getEnable());
     }
 
+    /** 最低换入价（规格级配置优先，未配置回退整品级；无配置返回 null） */
+    private BigDecimal getMinTargetPrice(Integer productId, String skuKey) {
+        String sku = skuKey == null ? "" : skuKey;
+        StockExchangeConfig cfg = stockExchangeConfigDao.selectOne(new LambdaQueryWrapper<StockExchangeConfig>()
+                .eq(StockExchangeConfig::getProductId, productId)
+                .eq(StockExchangeConfig::getSkuKey, sku)
+                .last(" limit 1"));
+        if (cfg == null && !sku.isEmpty()) {
+            cfg = stockExchangeConfigDao.selectOne(new LambdaQueryWrapper<StockExchangeConfig>()
+                    .eq(StockExchangeConfig::getProductId, productId)
+                    .eq(StockExchangeConfig::getSkuKey, "")
+                    .last(" limit 1"));
+        }
+        return cfg == null ? null : cfg.getMinTargetPrice();
+    }
+
     /** 自动匹配该会员最近一笔包含指定商品且已完成的订货单（会员端从库存页发起换货时用）
      *  stockType 非空时按库存类型过滤：1=实体库存（含历史空值） 2=虚拟库存
      */
@@ -1595,10 +1676,15 @@ public class StockOrderServiceImpl implements StockOrderService {
             return out;
         }
         BigDecimal originPrice = stockService.getProductPrice(agent, productId, sku);
+        BigDecimal minTargetPrice = getMinTargetPrice(productId, sku);
         for (StockExchangeTarget t : getExchangeTargetList(productId, sku)) {
             BigDecimal targetPrice = stockService.getProductPrice(agent, t.getTargetProductId(), t.getTargetSkuKey());
             // 只能换同价或更高价（不能换比当前金额少的商品）
             if (targetPrice.compareTo(originPrice) < 0) {
+                continue;
+            }
+            // 低于设置的最低换入价的商品不下发
+            if (minTargetPrice != null && minTargetPrice.signum() > 0 && targetPrice.compareTo(minTargetPrice) < 0) {
                 continue;
             }
             StoreProduct tp = storeProductService.getById(t.getTargetProductId());
@@ -1792,6 +1878,8 @@ public class StockOrderServiceImpl implements StockOrderService {
                 for (StockOrderProduct op : items) {
                     creditVirtualStock(order, op);
                 }
+                // 虚拟单完成：差价结算给上级（幂等，与付款即完成路径一致）
+                settleOrderReward(getByOrderNo(order.getOrderNo()));
             }
             if (!needAudit && !virtual) {
                 // 审核开关关闭：释放为待发货需补扣云仓库存（挂起时未扣）

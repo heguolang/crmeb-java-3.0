@@ -1058,6 +1058,7 @@ public class StockServiceImpl implements StockService {
         List<com.zbkj.common.model.stock.StockOrder> orders = stockOrderDao.selectList(
                 new LambdaQueryWrapper<com.zbkj.common.model.stock.StockOrder>()
                         .eq(com.zbkj.common.model.stock.StockOrder::getAgentId, agentId)
+                        .eq(com.zbkj.common.model.stock.StockOrder::getPayStatus, 1)
                         .eq(com.zbkj.common.model.stock.StockOrder::getIsDel, 0));
         if (orders.isEmpty()) {
             return ids;
