@@ -77,7 +77,7 @@
 				uni.navigateTo({ url: '/pages/users/stock/goods' });
 			},
 			goExchange(p) {
-				uni.navigateTo({ url: '/pages/users/stock/exchange?productId=' + p.productId + '&num=' + (p.num || 1) });
+				uni.navigateTo({ url: '/pages/users/stock/exchange?productId=' + p.productId + '&num=' + (p.num || 1) + '&type=1' });
 			},
 			openSell(p) {
 				this.sellRow = p;

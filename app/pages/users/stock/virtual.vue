@@ -104,7 +104,7 @@
 				uni.navigateTo({ url: '/pages/users/stock/goods' });
 			},
 			goExchange(v) {
-				uni.navigateTo({ url: '/pages/users/stock/exchange?productId=' + v.productId + '&skuKey=' + (v.skuKey || '') + '&num=' + (v.remainNum || 1) });
+				uni.navigateTo({ url: '/pages/users/stock/exchange?productId=' + v.productId + '&skuKey=' + (v.skuKey || '') + '&num=' + (v.remainNum || 1) + '&type=2' });
 			},
 			plus(v) {
 				if (v.pickNum >= v.remainNum) return this.$util.Tips({ title: '已达可提数量上限' });

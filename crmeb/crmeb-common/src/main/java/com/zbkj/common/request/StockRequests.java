@@ -90,6 +90,9 @@ public class StockRequests {
         @ApiModelProperty(value = "原商品规格key")
         private String skuKey;
 
+        @ApiModelProperty(value = "来源库存类型：1=实体库存 2=虚拟库存（从库存页发起时带上，用于自动匹配原订单）")
+        private Integer sourceStockType;
+
         @ApiModelProperty(value = "要换入的商品ID（一次只能换一个目标商品）")
         @NotNull(message = "请选择要换入的商品")
         private Integer targetProductId;

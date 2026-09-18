@@ -3,27 +3,50 @@
     <view v-if="canApply" class="apply-card">
       <view class="card-title">提交换货申请</view>
       <view class="form-item">
-        <text class="f-label">原订货单ID</text>
-        <input v-model="form.orderId" type="number" class="f-input" placeholder="从订单列表点【申请换货】自动带入" />
+        <text class="f-label">库存类型</text>
+        <view class="f-static">
+          <text class="st-pill" :class="sourceType === 2 ? 'st-virtual' : (sourceType === 1 ? 'st-physical' : 'st-none')">
+            {{ sourceType === 2 ? '虚拟库存' : (sourceType === 1 ? '实体库存' : '不区分') }}
+          </text>
+          <text class="f-hint">{{ sourceType === 2 ? '虚拟换货：总部直接发货，虚拟库存同步扣减' : (sourceType === 1 ? '实体换货：上级审核通过后发货' : '按原订单的库存类型自动判定') }}</text>
+        </view>
       </view>
       <view class="form-item">
-        <text class="f-label">商品ID</text>
-        <input v-model="form.productId" type="number" class="f-input" placeholder="原订单中的商品ID" />
+        <text class="f-label">原商品</text>
+        <view class="f-static">
+          <text class="f-strong">商品ID {{ form.productId }}</text>
+          <text class="f-hint">{{ form.orderId ? ('原订单ID ' + form.orderId) : '未指定订单，系统将自动匹配最近一笔含此商品的已完成订单' }}</text>
+        </view>
       </view>
       <view class="form-item">
         <text class="f-label">换货数量</text>
         <input v-model="form.num" type="number" class="f-input" placeholder="1" />
       </view>
       <view class="form-item">
-        <text class="f-label">换入商品</text>
-        <view class="opt-list">
-          <view v-for="(o, i) in options" :key="i" class="opt-item" :class="{ active: selectedTarget && selectedTarget.targetProductId === o.targetProductId }" @click="selectedTarget = o">
-            <view class="opt-name">{{ o.targetProductName }}</view>
-            <view class="opt-price">拿货价 ¥{{ o.targetPrice }} · 需补差价 ¥{{ o.diffPrice }}</view>
-          </view>
-          <view v-if="!options.length" class="opt-none">该商品暂无可换入商品（需后台在「设置拿货价」中配置）</view>
+        <view class="opt-head">
+          <text class="f-label">换入商品</text>
+          <button class="opt-load-btn" size="mini" @click="loadOptions">加载可换商品</button>
         </view>
-        <button class="opt-load-btn" size="mini" @click="loadOptions">加载可换商品</button>
+        <view class="opt-list">
+          <view v-for="(o, i) in visibleOptions" :key="i" class="opt-item" :class="{ active: selectedTarget && selectedTarget.targetProductId === o.targetProductId }" @click="selectedTarget = o">
+            <image :src="o.image" class="opt-img" mode="aspectFill" />
+            <view class="opt-info">
+              <view class="opt-name">{{ o.targetProductName }}</view>
+              <view v-if="o.skuName" class="opt-spec">规格：{{ o.skuName }}</view>
+              <view class="opt-prices">
+                <text class="p-retail">零售 ¥{{ o.retailPrice }}</text>
+                <text class="p-whole">拿货 ¥{{ o.targetPrice }}</text>
+                <text v-if="Number(o.diffPrice) > 0" class="p-diff">补差价 ¥{{ o.diffPrice }}</text>
+                <text v-else class="p-same">无需补差价</text>
+              </view>
+            </view>
+            <text v-if="selectedTarget && selectedTarget.targetProductId === o.targetProductId" class="opt-check">✓</text>
+          </view>
+          <view v-if="options.length > 3" class="opt-more" @click="showAllOptions = !showAllOptions">
+            {{ showAllOptions ? '收起' : ('更多（共 ' + options.length + ' 个可换商品）') }}
+          </view>
+          <view v-if="!options.length" class="opt-none">该商品暂无可换入商品（需后台在「规格与订货设置」中配置）</view>
+        </view>
       </view>
       <view v-if="selectedTarget" class="diff-tip">
         换 {{ form.num || 1 }} 件需补差价 <text class="diff-amt">¥{{ (selectedTarget.diffPrice * (form.num || 1)).toFixed(2) }}</text>
@@ -75,10 +98,19 @@
 				options: [],
 				selectedTarget: null,
 				skuKeyParam: '',
+				sourceType: 0,
+				showAllOptions: false,
 				form: { orderId: '', productId: '', num: '1', reason: '' }
 			};
 		},
+		computed: {
+			visibleOptions() {
+				const list = this.options || [];
+				return this.showAllOptions ? list : list.slice(0, 3);
+			}
+		},
 		onLoad(opt) {
+			this.sourceType = opt.type ? Number(opt.type) : 0;
 			if (opt.orderId) {
 				this.form.orderId = opt.orderId;
 				this.canApply = true;
@@ -144,12 +176,13 @@
 				if (!this.selectedTarget) return this.$util.Tips({ title: '请选择要换入的商品' });
 				if (!this.form.reason) return this.$util.Tips({ title: '请填写换货原因' });
 				applyStockExchange({
-					orderId: Number(this.form.orderId),
+					orderId: this.form.orderId ? Number(this.form.orderId) : null,
 					productId: Number(this.form.productId),
 					num: Number(this.form.num || 1),
 					reason: this.form.reason,
 					targetProductId: this.selectedTarget.targetProductId,
-					targetSkuKey: this.selectedTarget.targetSkuKey || ''
+					targetSkuKey: this.selectedTarget.targetSkuKey || '',
+					sourceStockType: this.sourceType || null
 				}).then(() => {
 					this.$util.Tips({ title: '申请已提交' });
 					this.load();
@@ -197,13 +230,30 @@
 </script>
 
 <style lang="scss" scoped>
-.opt-list { margin-top: 10rpx; }
-.opt-item { border: 1rpx solid #ebeef5; border-radius: 12rpx; padding: 16rpx 20rpx; margin-bottom: 12rpx; }
+.f-static { display: flex; flex-direction: column; }
+.f-strong { font-size: 26rpx; color: #303133; }
+.f-hint { font-size: 22rpx; color: #a0a6b0; margin-top: 6rpx; line-height: 1.5; }
+.st-pill { display: inline-block; align-self: flex-start; padding: 4rpx 18rpx; border-radius: 999rpx; font-size: 23rpx; }
+.st-physical { background: #e8f2ff; color: #2b6fe3; }
+.st-virtual { background: #fff4e0; color: #d48806; }
+.st-none { background: #f2f3f5; color: #909399; }
+.opt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12rpx; }
+.opt-list { margin-top: 0; }
+.opt-load-btn { background: #f2f3f5; color: #333; border-radius: 999rpx; margin: 0; }
+.opt-item { display: flex; align-items: center; position: relative; border: 1rpx solid #ebeef5; border-radius: 12rpx; padding: 16rpx; margin-bottom: 12rpx; background: #fff; }
 .opt-item.active { border-color: #2b6fe3; background: #f0f6ff; }
-.opt-name { font-size: 26rpx; color: #303133; font-weight: 600; }
-.opt-price { font-size: 22rpx; color: #909399; margin-top: 6rpx; }
+.opt-img { width: 130rpx; height: 130rpx; border-radius: 10rpx; background: #f5f6fa; flex-shrink: 0; }
+.opt-info { flex: 1; margin-left: 18rpx; overflow: hidden; }
+.opt-name { font-size: 25rpx; color: #303133; font-weight: 600; line-height: 34rpx; }
+.opt-spec { font-size: 22rpx; color: #909399; margin-top: 6rpx; }
+.opt-prices { margin-top: 8rpx; display: flex; flex-wrap: wrap; align-items: baseline; }
+.p-retail { font-size: 21rpx; color: #b0b8c4; text-decoration: line-through; margin-right: 14rpx; }
+.p-whole { font-size: 23rpx; color: #e6a23c; margin-right: 14rpx; }
+.p-diff { font-size: 23rpx; color: #e93323; font-weight: 700; }
+.p-same { font-size: 21rpx; color: #67c23a; }
+.opt-check { position: absolute; right: 16rpx; top: 16rpx; color: #2b6fe3; font-size: 30rpx; font-weight: 700; }
+.opt-more { text-align: center; font-size: 23rpx; color: #2b6fe3; padding: 10rpx 0 4rpx; }
 .opt-none { font-size: 23rpx; color: #b0b8c4; padding: 12rpx 0; }
-.opt-load-btn { margin-top: 10rpx; background: #f2f3f5; color: #333; border-radius: 999rpx; }
 .diff-tip { margin: 10rpx 0 16rpx; font-size: 24rpx; color: #e6a23c; }
 .diff-amt { color: #e93323; font-weight: 700; }
 .exchange-page { min-height: 100vh; background: #f5f6f8; padding: 24rpx; }

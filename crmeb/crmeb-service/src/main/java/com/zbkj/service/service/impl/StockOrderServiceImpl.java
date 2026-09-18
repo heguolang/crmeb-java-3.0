@@ -821,8 +821,8 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (request.getOrderId() != null) {
             order = stockOrderDao.selectById(request.getOrderId());
         } else {
-            // 库存页发起的换货：自动匹配该会员最近一笔含此商品的已完成订单
-            order = findLatestCompletedOrder(uid, request.getProductId());
+            // 库存页发起的换货：自动匹配该会员最近一笔含此商品且库存类型一致的已完成订单
+            order = findLatestCompletedOrder(uid, request.getProductId(), request.getSourceStockType());
         }
         if (order == null || order.getIsDel() == 1 || !order.getUid().equals(uid)) {
             throw new CrmebException("原订单不存在");
@@ -1510,14 +1510,22 @@ public class StockOrderServiceImpl implements StockOrderService {
         return cfg == null || Boolean.TRUE.equals(cfg.getEnable());
     }
 
-    /** 自动匹配该会员最近一笔包含指定商品且已完成的订货单（会员端从库存页发起换货时用） */
-    private StockOrder findLatestCompletedOrder(Integer uid, Integer productId) {
-        List<StockOrder> orders = stockOrderDao.selectList(new LambdaQueryWrapper<StockOrder>()
+    /** 自动匹配该会员最近一笔包含指定商品且已完成的订货单（会员端从库存页发起换货时用）
+     *  stockType 非空时按库存类型过滤：1=实体库存（含历史空值） 2=虚拟库存
+     */
+    private StockOrder findLatestCompletedOrder(Integer uid, Integer productId, Integer stockType) {
+        LambdaQueryWrapper<StockOrder> lqw = new LambdaQueryWrapper<StockOrder>()
                 .eq(StockOrder::getUid, uid)
                 .eq(StockOrder::getStatus, StockOrder.STATUS_COMPLETE)
-                .eq(StockOrder::getIsDel, 0)
-                .orderByDesc(StockOrder::getId)
-                .last(" limit 50"));
+                .eq(StockOrder::getIsDel, 0);
+        if (stockType != null && stockType == 2) {
+            lqw.eq(StockOrder::getStockType, StockOrder.STOCK_TYPE_VIRTUAL);
+        } else if (stockType != null) {
+            lqw.and(w -> w.eq(StockOrder::getStockType, StockOrder.STOCK_TYPE_PHYSICAL)
+                    .or().isNull(StockOrder::getStockType));
+        }
+        lqw.orderByDesc(StockOrder::getId).last(" limit 50");
+        List<StockOrder> orders = stockOrderDao.selectList(lqw);
         for (StockOrder o : orders) {
             Integer cnt = stockOrderProductDao.selectCount(new LambdaQueryWrapper<StockOrderProduct>()
                     .eq(StockOrderProduct::getOrderId, o.getId())
@@ -1599,6 +1607,24 @@ public class StockOrderServiceImpl implements StockOrderService {
             row.put("targetSkuKey", t.getTargetSkuKey());
             row.put("targetProductName", t.getTargetProductName());
             row.put("image", tp == null ? "" : tp.getImage());
+            row.put("retailPrice", tp == null || tp.getPrice() == null ? BigDecimal.ZERO : tp.getPrice());
+            // 规格名（取规格的 attrValue，如「豆沙绿 / XS」）
+            String skuName = "";
+            if (t.getTargetSkuKey() != null && !t.getTargetSkuKey().trim().isEmpty()) {
+                for (HashMap<String, Object> skuItem : stockService.getProductSkuList(t.getTargetProductId())) {
+                    if (t.getTargetSkuKey().trim().equals(String.valueOf(skuItem.get("skuKey")))) {
+                        Object avText = skuItem.get("attrValue");
+                        String raw = avText == null ? "" : String.valueOf(avText);
+                        if (raw.startsWith("{")) {
+                            raw = raw.replace("{", "").replace("}", "").replace("\"", "")
+                                    .replace(":", "：").replace(",", " / ");
+                        }
+                        skuName = raw;
+                        break;
+                    }
+                }
+            }
+            row.put("skuName", skuName);
             row.put("originPrice", originPrice);
             row.put("targetPrice", targetPrice);
             row.put("diffPrice", targetPrice.subtract(originPrice));
