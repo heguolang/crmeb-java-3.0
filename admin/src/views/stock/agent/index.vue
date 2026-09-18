@@ -1,57 +1,65 @@
 <template>
   <div class="divBg addContent-wrapper">
     <el-card :bordered="false" shadow="never" class="mt16">
-      <el-form inline size="small" @submit.native.prevent>
-        <el-form-item label="关键词">
-          <el-input v-model="tableFrom.keywords" placeholder="昵称/手机号" clearable style="width: 180px" @keyup.enter.native="getList" />
-        </el-form-item>
-        <el-form-item label="层级">
-          <el-select v-model="tableFrom.levelId" placeholder="全部层级" clearable style="width: 140px">
-            <el-option v-for="lv in levels" :key="lv.id" :label="lv.name" :value="lv.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="tableFrom.status" placeholder="全部" clearable style="width: 110px">
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="getList">查询</el-button>
-          <el-button v-if="checkPermi(['admin:stock:agent:save'])" type="success" @click="openEdit()">新增代理</el-button>
-          <el-button @click="openLevel">层级设置</el-button>
-        </el-form-item>
-      </el-form>
-      <el-table v-loading="loading" :data="tableData" size="small" highlight-current-row>
-        <el-table-column prop="id" label="ID" width="64" />
+      <div class="toolbar">
+        <el-form inline size="small" @submit.native.prevent>
+          <el-form-item label="关键词">
+            <el-input v-model="tableFrom.keywords" placeholder="昵称/手机号" clearable style="width: 180px" @keyup.enter.native="getList" />
+          </el-form-item>
+          <el-form-item label="层级">
+            <el-select v-model="tableFrom.levelId" placeholder="全部层级" clearable style="width: 140px">
+              <el-option v-for="lv in levels" :key="lv.id" :label="lv.name" :value="lv.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="tableFrom.status" placeholder="全部" clearable style="width: 110px">
+              <el-option label="启用" :value="1" />
+              <el-option label="禁用" :value="0" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" icon="el-icon-search" @click="getList">查询</el-button>
+          </el-form-item>
+        </el-form>
+        <div class="toolbar-actions">
+          <el-button v-if="checkPermi(['admin:stock:agent:save'])" type="success" icon="el-icon-plus" @click="openEdit()">新增代理</el-button>
+          <el-button icon="el-icon-setting" @click="openLevel">层级设置</el-button>
+        </div>
+      </div>
+      <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
+        <el-table-column prop="id" label="ID" width="38" />
         <el-table-column prop="nickname" label="代理用户" min-width="120">
           <template slot-scope="scope">
             <div>{{ scope.row.nickname }}</div>
             <div class=" grey">{{ scope.row.phone }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="levelName" label="层级" width="100" />
-        <el-table-column label="上级" min-width="110">
+        <el-table-column prop="levelName" label="层级" width="72" />
+        <el-table-column label="上级" min-width="90">
           <template slot-scope="scope">{{ scope.row.parentId > 0 ? scope.row.parentName : '总部' }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column label="状态" width="70">
           <template slot-scope="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'info'" size="mini">{{ scope.row.status === 1 ? '启用' : '禁用' }}</el-tag>
+            <span class="st-dot" :class="{ on: scope.row.status === 1 }"><i></i>{{ scope.row.status === 1 ? '启用' : '禁用' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="mark" label="备注" min-width="110" show-overflow-tooltip />
-        <el-table-column prop="createTime" label="创建时间" width="150" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column prop="mark" label="备注" min-width="90" show-overflow-tooltip />
+        <el-table-column prop="createTime" label="创建时间" width="136" />
+        <el-table-column label="操作" width="140" fixed="right">
           <template slot-scope="scope">
-            <div class="op-wrap">
-              <el-button v-if="checkPermi(['admin:stock:agent:update'])" class="op-btn" type="primary" plain size="mini" @click="openEdit(scope.row)">修改</el-button>
-              <el-button v-if="checkPermi(['admin:stock:agent:update'])" class="op-btn" type="warning" plain size="mini" @click="onStatus(scope.row)">{{ scope.row.status === 1 ? '禁用' : '启用' }}</el-button>
-              <el-button v-if="checkPermi(['admin:stock:agent:delete'])" class="op-btn" type="danger" plain size="mini" @click="onDelete(scope.row)">删除</el-button>
+            <div class="op-links">
+              <template v-if="checkPermi(['admin:stock:agent:update'])">
+                <a class="op-link" @click="openEdit(scope.row)">修改</a>
+                <el-divider direction="vertical"></el-divider>
+                <a class="op-link" @click="onStatus(scope.row)">{{ scope.row.status === 1 ? '禁用' : '启用' }}</a>
+                <el-divider direction="vertical"></el-divider>
+              </template>
+              <a v-if="checkPermi(['admin:stock:agent:delete'])" class="op-link" @click="onDelete(scope.row)">删除</a>
             </div>
           </template>
         </el-table-column>
       </el-table>
-      <div class="block">
+      <div class="pager">
         <el-pagination background :page-size="tableFrom.limit" :current-page="tableFrom.page" layout="total, prev, pager, next, jumper" :total="total" @current-change="pageChange" />
       </div>
     </el-card>
@@ -84,7 +92,7 @@
 
     <!-- 层级设置弹窗 -->
     <el-dialog title="层级设置" :visible.sync="levelVisible" width="1050px">
-      <el-table :data="levels" size="small">
+      <el-table class="admin-table" :data="levels" size="small">
         <el-table-column prop="name" label="层级名称" width="120">
           <template slot-scope="scope"><el-input v-model="scope.row.name" size="mini" /></template>
         </el-table-column>
@@ -102,11 +110,12 @@
         <el-table-column prop="peerRate" label="平级奖比例%" width="90">
           <template slot-scope="scope">{{ scope.row.peerRate != null ? scope.row.peerRate : '-' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="120" fixed="right">
           <template slot-scope="scope">
-            <div class="op-wrap">
-              <el-button class="op-btn" type="primary" plain size="mini" @click="openCond(scope.row)">升级条件</el-button>
-              <el-button class="op-btn" type="danger" plain size="mini" @click="delLevel(scope.row)">删除</el-button>
+            <div class="op-links">
+              <a class="op-link" @click="openCond(scope.row)">升级条件</a>
+              <el-divider direction="vertical"></el-divider>
+              <a class="op-link" @click="delLevel(scope.row)">删除</a>
             </div>
           </template>
         </el-table-column>
@@ -337,10 +346,8 @@ export default {
 </script>
 
 <style scoped>
+/* 列表页通用规范（.toolbar/.pager/.admin-table/.op-wrap/.op-btn）已统一在 theme/styles.scss 全局定义 */
 .red { color: #f56c6c; }
 .grey { color: #999; font-size: 12px; }
 .switch-tip { margin-left: 12px; font-size: 12px; color: #909399; line-height: 1.5; }
-/* 操作列胶囊按钮：每行 3 个 */
-.op-wrap { display: flex; align-items: center; gap: 10px; padding: 2px 0; }
-.op-btn { margin: 0 !important; padding: 5px 14px; font-size: 12px; line-height: 1; border-radius: 4px; }
 </style>

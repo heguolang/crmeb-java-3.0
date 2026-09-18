@@ -1,18 +1,22 @@
 <template>
   <div class="divBg addContent-wrapper">
     <el-card :bordered="false" shadow="never" class="mt16">
-      <el-form inline size="small" @submit.native.prevent>
-        <el-form-item label="商品名称">
-          <el-input v-model="tableFrom.keywords" placeholder="商品名称" clearable style="width: 200px" @keyup.enter.native="getList" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="getList">查询</el-button>
-          <el-button v-if="checkPermi(['admin:stock:price:save'])" type="success" @click="openAdd">添加商品</el-button>
-        </el-form-item>
-      </el-form>
+      <div class="toolbar">
+        <el-form inline size="small" @submit.native.prevent>
+          <el-form-item label="商品名称">
+            <el-input v-model="tableFrom.keywords" placeholder="商品名称" clearable style="width: 200px" @keyup.enter.native="getList" />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" icon="el-icon-search" @click="getList">查询</el-button>
+          </el-form-item>
+        </el-form>
+        <div class="toolbar-actions">
+          <el-button v-if="checkPermi(['admin:stock:price:save'])" type="success" icon="el-icon-plus" @click="openAdd">添加商品</el-button>
+        </div>
+      </div>
       <el-alert type="info" :closable="false" style="margin-bottom: 12px" title="仅显示已加入订货模块的商品；点击右上角「添加商品」从商城商品中选择加入后才能设置拿货价与库存" />
-      <el-table v-loading="loading" :data="tableData" size="small" highlight-current-row>
-        <el-table-column label="商品" min-width="220">
+      <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
+        <el-table-column label="商品" min-width="160">
           <template slot-scope="scope">
             <div style="display:flex;align-items:center">
               <img :src="scope.row.image" style="width:36px;height:36px;margin-right:8px;border-radius:4px">
@@ -20,33 +24,35 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="price" label="零售价" width="90" />
-        <el-table-column label="云仓库存" width="100">
+        <el-table-column prop="price" label="零售价" width="78" />
+        <el-table-column label="云仓库存" width="88">
           <template slot-scope="scope">
             <span :style="{ color: scope.row.stock <= 10 ? '#f56c6c' : '' }">{{ scope.row.stock }}</span>
           </template>
         </el-table-column>
-        <el-table-column v-for="lv in levels" :key="lv.id" :label="lv.name + '价'" width="100">
+        <el-table-column v-for="lv in levels" :key="lv.id" :label="lv.name + '价'" width="88">
           <template slot-scope="scope">{{ priceOf(scope.row, lv.id) || '按折扣' + lv.discount + '%' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="196" fixed="right">
           <template slot-scope="scope">
-            <div class="op-wrap">
-              <el-button v-if="checkPermi(['admin:stock:price:save'])" class="op-btn" type="primary" plain size="mini" @click="openPrice(scope.row)">设置拿货价</el-button>
-              <el-button v-if="checkPermi(['admin:stock:log:adjust'])" class="op-btn" type="warning" plain size="mini" @click="openAdjust(scope.row)">调整库存</el-button>
-              <el-button v-if="checkPermi(['admin:stock:price:save'])" class="op-btn" type="danger" plain size="mini" @click="onRemove(scope.row)">移除</el-button>
+            <div class="op-links">
+              <a v-if="checkPermi(['admin:stock:price:save'])" class="op-link" @click="openPrice(scope.row)">设置拿货价</a>
+              <el-divider direction="vertical"></el-divider>
+              <a v-if="checkPermi(['admin:stock:log:adjust'])" class="op-link" @click="openAdjust(scope.row)">调整库存</a>
+              <el-divider direction="vertical"></el-divider>
+              <a v-if="checkPermi(['admin:stock:price:save'])" class="op-link" @click="onRemove(scope.row)">移除</a>
             </div>
           </template>
         </el-table-column>
       </el-table>
-      <div class="block">
+      <div class="pager">
         <el-pagination background :page-size="tableFrom.limit" :current-page="tableFrom.page" layout="total, prev, pager, next, jumper" :total="total" @current-change="pageChange" />
       </div>
     </el-card>
 
     <el-card :bordered="false" shadow="never" class="mt16">
       <div slot="header"><b>库存变动日志</b></div>
-      <el-table :data="logs" size="small">
+      <el-table class="admin-table" :data="logs" size="small">
         <el-table-column prop="id" label="ID" width="64" />
         <el-table-column prop="linkNo" label="关联单号" width="180" />
         <el-table-column label="类型" width="130">
@@ -60,7 +66,7 @@
         <el-table-column prop="mark" label="备注" min-width="160" />
         <el-table-column prop="createTime" label="时间" width="150" />
       </el-table>
-      <div class="block">
+      <div class="pager">
         <el-pagination background layout="prev, pager, next" :page-size="logFrom.limit" :current-page="logFrom.page" :total="logTotal" @current-change="logPage" />
       </div>
     </el-card>
@@ -75,7 +81,7 @@
           <el-button type="primary" @click="getSelectList">搜索</el-button>
         </el-form-item>
       </el-form>
-      <el-table ref="selectTable" v-loading="selectLoading" :data="selectData" size="small" max-height="360" @selection-change="onSelectChange">
+      <el-table class="admin-table" ref="selectTable" v-loading="selectLoading" :data="selectData" size="small" max-height="360" @selection-change="onSelectChange">
         <el-table-column type="selection" width="50" reserve-selection />
         <el-table-column label="商品" min-width="240">
           <template slot-scope="scope">
@@ -100,7 +106,7 @@
     <!-- 拿货价弹窗 -->
     <el-dialog title="设置各层级拿货价" :visible.sync="priceVisible" width="440px">
       <div v-if="priceRow" style="margin-bottom:10px;color:#999">{{ priceRow.storeName }}（零售价 ¥{{ priceRow.price }}）</div>
-      <el-table v-if="priceRow" :data="priceRow.levelPrices" size="small">
+      <el-table class="admin-table" v-if="priceRow" :data="priceRow.levelPrices" size="small">
         <el-table-column prop="levelName" label="层级" width="110" />
         <el-table-column label="拿货价">
           <template slot-scope="scope">
@@ -274,8 +280,6 @@ export default {
 </script>
 
 <style scoped>
+/* 列表页通用规范（.toolbar/.pager/.admin-table/.op-wrap/.op-btn）已统一在 theme/styles.scss 全局定义 */
 .red { color: #f56c6c; }
-/* 操作列胶囊按钮：每行 3 个 */
-.op-wrap { display: flex; align-items: center; gap: 10px; padding: 2px 0; }
-.op-btn { margin: 0 !important; padding: 5px 14px; font-size: 12px; line-height: 1; border-radius: 4px; }
 </style>
