@@ -15,10 +15,10 @@ powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='no
 if /I "%1"=="full" (
   echo Stopping Redis ...
   powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='redis-server.exe'\" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
-  REM MySQL 5.7 runs as a Windows service (auto-start) - stop it via the service,
+  REM MySQL 8.0 runs as a Windows service (auto-start) - stop it via the service,
   REM never by killing mysqld.exe. Needs an elevated console.
-  echo Stopping MySQL 5.7 service ...
-  net stop MySQL57
+  echo Stopping MySQL 8.0 service ...
+  net stop MySQL80
 )
 
 echo Done.

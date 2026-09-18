@@ -10,18 +10,18 @@
 |---|---|---|---|---|
 | JDK | OpenJDK 1.8.0_504 (Temurin) | `D:\env\java\jdk8u504-b01` | — | — |
 | Maven | 3.9.16 | `D:\env\apache-maven-3.9.16` | — | 本地仓库 `D:\env\maven-repo` |
-| MySQL | **5.7.38**（与生产对齐） | `D:\env\mysql-5.7.38-winx64` | 3306 | root / **123456** |
+| MySQL | **8.0.29**（与生产对齐） | `D:\env\mysql-8.0.29-winx64` | 3306 | root / **123456** |
 | Redis | 5.0.14.1 (Windows) | `D:\env\redis` | 6379 | 密码 **123456** |
 | Node.js | 22.22.2 | WorkBuddy 托管目录 | — | — |
 | HBuilderX | 5.26 alpha | `E:\HBuilderX\HBuilderX` | — | — |
 
-**版本沿革（2026-09-18 切换）**：本机最早用 MariaDB 10.6.28 代替 MySQL 5.7（当时 `mysqld.exe` 因缺 VC++ 运行库无法启动）。现 VC++ 运行库已补齐，且为与生产环境（宝塔 MySQL）保持一致，**已正式切换为 MySQL 5.7.38**：
-- 服务名 `MySQL57`（自动启动），配置文件 `D:\env\mysql-5.7.38-winx64\my.ini`，数据目录 `...\data`。
-- 切换前全量备份：`D:\env\backup\crmeb_mariadb_20260918.sql`（131 表，9.5MB）。
-- MariaDB 服务 `CRMEB-DB` 已停止并改为**手动启动**（数据目录 `D:\env\mariadb-10.6.28-winx64\data` 原样保留，作为回退手段；如需回退：停 MySQL57 → 启动 CRMEB-DB，两者都占用 3306，不要同时开）。
-- 客户端命令由 `D:\env\mariadb-10.6.28-winx64\bin\mysql.exe` 改为 `D:\env\mysql-5.7.38-winx64\bin\mysql.exe`。
+**版本沿革（2026-09-18 两次切换）**：本机最早用 MariaDB 10.6.28 代替 MySQL（当时 `mysqld.exe` 因缺 VC++ 运行库无法启动）；当天上午切到 MySQL 5.7.38，当晚应汪总要求**升级为 MySQL 8.0.29**：
+- 服务名 `MySQL80`（自动启动），配置文件 `D:\env\mysql-8.0.29-winx64\my.ini`，数据目录 `...\data`；`lower_case_table_names=1`（8.0 只能初始化时定）；`sql_mode` 不含 8.0 已移除的 `NO_AUTO_CREATE_USER`；排序规则仍用 `utf8mb4_general_ci`（不用 8.0 默认 0900_ai_ci，与旧库一致）。JDBC 零改动：驱动 mysql-connector-java 8.0.26，URL 已带 `serverTimezone\allowPublicKeyRetrieval\useSSL=false`。
+- 切换前备份：MariaDB 全量 `D:\env\backup\crmeb_mariadb_20260918.sql`（131 表）、升级 8.0 前 MySQL 5.7 全量 `D:\env\backup\crmeb_mysql57_20260918_before8.sql`（131 表，导入 8.0 无报错）。
+- MariaDB 服务 `CRMEB-DB` 已停止并改为**手动启动**（数据目录 `D:\env\mariadb-10.6.28-winx64\data` 原样保留，作为回退手段；如需回退：停 MySQL80 → 启动 CRMEB-DB，两者都占用 3306，不要同时开）。
+- 5.7.38 已按要求清除：服务已 remove、目录与安装包已删；客户端用 `D:\env\mysql-8.0.29-winx64\bin\mysql.exe`。
 - **MariaDB 专用兼容脚本已作废并删除**：`crmeb/sql/mariadb_any_value_compat.sql`（给 MariaDB 造一个 `ANY_VALUE()` 恒等函数）在 MySQL 5.7 上**有害** —— 用户函数会遮蔽内置函数，反而偏离生产行为。该文件已从仓库删除，`crmeb/sql/oneclick/02_patches_all.sql` 里对应的补丁段也已移除。库中残留的同名函数已 `DROP FUNCTION IF EXISTS ANY_VALUE`，实测 `information_schema.ROUTINES` 中 crmeb 库 0 条自定义函数，`SELECT ANY_VALUE(id) ... GROUP BY uid` 走内置函数正常。
-- 如需回退到 MariaDB，兼容函数定义备份在 `D:\env\backup\any_value_func_rollback.sql`，内容为：
+- MariaDB 兼容函数定义（仅回退 MariaDB 时才需要）备份在 `D:\env\backup\any_value_func_rollback.sql`，内容为：
   ```sql
   USE crmeb;
   CREATE FUNCTION IF NOT EXISTS ANY_VALUE(x LONGTEXT) RETURNS LONGTEXT
@@ -67,7 +67,7 @@ mv D:\crmeb-java-3.0-master D:\crmeb-java-3.0
 ### 2. 初始化数据库（按顺序，前 13 步为建表/补丁，第 14 步为业务数据）
 
 ```bash
-set MYSQL=D:\env\mysql-5.7.38-winx64\bin\mysql.exe -uroot -p123456 --default-character-set=utf8mb4 crmeb
+set MYSQL=D:\env\mysql-8.0.29-winx64\bin\mysql.exe -uroot -p123456 --default-character-set=utf8mb4 crmeb
 %MYSQL% < crmeb\sql\Crmeb_v3.0.sql
 %MYSQL% < crmeb\sql\add_missing_team_level_tables.sql
 %MYSQL% < crmeb\sql\add_missing_columns.sql
@@ -180,12 +180,12 @@ curl -X POST http://127.0.0.1:8080/api/admin/login \
 ## 五、一键启停脚本
 
 ```bash
-D:\crmeb-java-3.0\local-dev\start-windows.bat     # 依次拉起 MySQL57(服务)/Redis/8080/8081/9527
+D:\crmeb-java-3.0\local-dev\start-windows.bat     # 依次拉起 MySQL80(服务)/Redis/8080/8081/9527
 D:\crmeb-java-3.0\local-dev\stop-windows.bat      # 停止两个 jar + 前端
-D:\crmeb-java-3.0\local-dev\stop-windows.bat full # 连带停止 Redis 与 MySQL57 服务（net stop，需管理员）
+D:\crmeb-java-3.0\local-dev\stop-windows.bat full # 连带停止 Redis 与 MySQL80 服务（net stop，需管理员）
 ```
 
-脚本已内置 `set SERVER_PORT=` 与 `NODE_OPTIONS=--openssl-legacy-provider`。数据库改为 MySQL 5.7 后，`start-windows.bat` 不再直接拉进程，而是检测 3306 → 未监听时 `net start MySQL57`（服务为自动启动，正常开机即在跑）；`stop-windows.bat full` 用 `net stop MySQL57` 优雅停库，**不再直接 kill 数据库进程**。
+脚本已内置 `set SERVER_PORT=` 与 `NODE_OPTIONS=--openssl-legacy-provider`。数据库改为 MySQL 5.7 后，`start-windows.bat` 不再直接拉进程，而是检测 3306 → 未监听时 `net start MySQL80`（服务为自动启动，正常开机即在跑）；`stop-windows.bat full` 用 `net stop MySQL80` 优雅停库，**不再直接 kill 数据库进程**。
 
 ---
 
@@ -194,9 +194,9 @@ D:\crmeb-java-3.0\local-dev\stop-windows.bat full # 连带停止 Redis 与 MySQL
 0. **接口中文全部显示"�"方块（前后端都乱）——真正的根因**：中文 Windows 上 Java 8 默认编码是 GBK，后端 JSON 序列化走了 JVM 平台默认编码，接口输出的中文是 GBK 字节（如 `realName` = `\xb3\xac\xbc\xb6\xb9\xdc\xc0\xed\xd4\xb1`），浏览器按 UTF-8 解析就全是替换符。特征：编译进前端的静态文案正常、**所有接口数据里的中文全乱**。修复：启动命令加 `-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8`（`start-windows.bat` 已内置），重启后实测登录接口与首页接口均返回合法 UTF-8（"超级管理员"、"春节快乐"等）。
    附带的字体加固（非本次乱码主因，但建议保留）：项目大量使用 macOS 字体 `PingFang SC` 与仅含拉丁字形的 D-DIN-PRO（`.regular`/`.semiBold` 类），已在 `admin/src/assets/fonts/font.css`、`app/static/fonts/font.css` 追加 `Microsoft YaHei / SimHei / Hiragino Sans GB` 回退，并在 `app/App.vue` 增加 view/text 全局中文兜底。另外本机未装 Chrome 只有 Edge，已用 `cli.exe config set --key browser.chrome.path` 将 HBuilderX 运行浏览器指向 Edge；若在 WorkBuddy 内嵌预览窗口里仍见方框，属预览内核缺中文字体，用系统浏览器访问即可。
 
-0.5. **后台登录后提示"服务器数据异常，请联系管理员"【已解决】**：当时的库是 MariaDB 10.6，没有 MySQL 5.7 的内置函数 `ANY_VALUE()`，首页统计接口 `/admin/statistics/home/*` 全部报 `FUNCTION crmeb.ANY_VALUE does not exist`。**2026-09-18 切换到 MySQL 5.7.38 后从根上消失**（内置函数天然可用），`/admin/statistics/trade/data` 实测 200。原先的兼容脚本 `mariadb_any_value_compat.sql` 已删除，切勿在 MySQL 上重建同名函数，详见第一节「版本沿革」。
+0.5. **后台登录后提示"服务器数据异常，请联系管理员"【已解决】**：当时的库是 MariaDB 10.6，没有 MySQL 5.7 的内置函数 `ANY_VALUE()`，首页统计接口 `/admin/statistics/home/*` 全部报 `FUNCTION crmeb.ANY_VALUE does not exist`。**2026-09-18 切换到 MySQL（5.7 → 8.0.29）后从根上消失**（内置函数天然可用），`/admin/statistics/trade/data` 实测 200。原先的兼容脚本 `mariadb_any_value_compat.sql` 已删除，切勿在 MySQL 上重建同名函数，详见第一节「版本沿革」。
 
-1. **MySQL 5.7 `mysqld.exe` 静默退出【已解决】**：根因是缺 VC++ 运行库（`vcruntime140.dll` / `vcruntime140_1.dll` / `msvcp140.dll`），当时临时用 MariaDB 10.6 顶上。现运行库已补齐，`mysqld.exe --version` 正常，**2026-09-18 已正式切回 MySQL 5.7.38**，与生产环境（宝塔 MySQL）一致。
+1. **MySQL 5.7 `mysqld.exe` 静默退出【已解决】**：根因是缺 VC++ 运行库（`vcruntime140.dll` / `vcruntime140_1.dll` / `msvcp140.dll`），当时临时用 MariaDB 10.6 顶上。现运行库已补齐，**2026-09-18 已正式切回 MySQL**（先 5.7.38、当晚升级 8.0.29），与生产环境（宝塔 MySQL）一致。
 2. **`mvnw.cmd` 无法下载 wrapper**：直连 `repo.maven.apache.org` 失败，改用本机 Maven + 阿里云镜像（已配置在 `D:\env\apache-maven-3.9.16\conf\settings.xml`）。
 3. **端口被环境变量覆盖**：必须 `--server.port` 显式指定或清除 `SERVER_PORT`。
 4. **Redis 需要密码**：项目配置 `password: 123456`，启动时加 `--requirepass 123456`；早期用过的 `redis-lite`（Node 实现）不支持 Lua 脚本，CRMEB 不可用，已替换为真实 Redis。
@@ -260,9 +260,9 @@ D:\crmeb-java-3.0\local-dev\stop-windows.bat full # 连带停止 Redis 与 MySQL
 ## 七、数据备份
 
 ```bash
-D:\env\mysql-5.7.38-winx64\bin\mysqldump.exe -uroot -p123456 --default-character-set=utf8mb4 --single-transaction --routines --triggers --events --databases crmeb > D:\env\backup\crmeb_backup.sql
+D:\env\mysql-8.0.29-winx64\bin\mysqldump.exe -uroot -p123456 --default-character-set=utf8mb4 --single-transaction --routines --triggers --events --databases crmeb > D:\env\backup\crmeb_backup.sql
 ```
 
-> 本机切库前的 MariaDB 全量备份仍保留在 `D:\env\backup\crmeb_mariadb_20260918.sql`（131 表，9.5MB），作为回退手段；MariaDB 数据目录 `D:\env\mariadb-10.6.28-winx64\data` 原样未动。
+> 历史备份均可回退：MariaDB 全量 `D:\env\backup\crmeb_mariadb_20260918.sql`、MySQL 5.7 全量 `D:\env\backup\crmeb_mysql57_20260918_before8.sql`；MariaDB 服务 `CRMEB-DB` 与数据目录 `D:\env\mariadb-10.6.28-winx64\data` 原样保留。
 
 图片一并备份 `crmeb\crmebimage\` 目录。`db-data\` 目录是上一台机器（macOS）导出的完整数据包，含导入顺序说明，可作为还原参考。

@@ -1,18 +1,18 @@
 @echo off
 REM ============================================================
 REM  CRMEB Java 3.0  -  Windows local dev launcher
-REM  Starts: MySQL 5.7(3306) -> Redis(6379) -> Admin API(8080)
+REM  Starts: MySQL 8.0(3306) -> Redis(6379) -> Admin API(8080)
 REM          -> Front API(8081) -> Admin Web(9527)
-REM  DB     : Windows service "MySQL57" (auto-start), root/123456, db crmeb
+REM  DB     : Windows service "MySQL80" (auto-start), root/123456, db crmeb
 REM  Logs   : D:\crmeb-java-3.0\local-dev\logs
 REM ============================================================
 setlocal
 set "JAVA_HOME=D:\env\java\jdk8u504-b01"
 set "PROJ=D:\crmeb-java-3.0"
 set "LOGS=%PROJ%\local-dev\logs"
-REM MySQL 5.7 runs as a Windows service; we only need "net start" when it is down.
-set "MYSQL_SVC=MySQL57"
-set "MYSQL_HOME=D:\env\mysql-5.7.38-winx64"
+REM MySQL 8.0 runs as a Windows service; we only need "net start" when it is down.
+set "MYSQL_SVC=MySQL80"
+set "MYSQL_HOME=D:\env\mysql-8.0.29-winx64"
 set "REDIS_EXE=D:\env\redis\redis-server.exe"
 set "NODE_DIR=C:\Users\Administrator\.workbuddy\binaries\node\versions\22.22.2-3"
 REM Avoid inherited SERVER_PORT overriding Spring's server.port
@@ -24,7 +24,7 @@ set "DEMO_FLAG=--crmeb.demoSite=false"
 
 if not exist "%LOGS%" mkdir "%LOGS%"
 
-echo [1/5] MySQL 5.7 3306 ...
+echo [1/5] MySQL 8.0 3306 ...
 netstat -ano | findstr /C:":3306 " | findstr LISTENING >nul
 if errorlevel 1 (
   net start %MYSQL_SVC% >nul 2>&1
@@ -75,7 +75,7 @@ echo ================= Service URLs =================
 echo Admin web      : http://127.0.0.1:9527   (admin / 123456)
 echo Admin API      : http://127.0.0.1:8080   docs http://127.0.0.1:8080/doc.html
 echo Front API      : http://127.0.0.1:8081
-echo MySQL 5.7      : 127.0.0.1:3306  root / 123456  db crmeb   (service %MYSQL_SVC%)
+echo MySQL 8.0      : 127.0.0.1:3306  root / 123456  db crmeb   (service %MYSQL_SVC%)
 echo Redis          : 127.0.0.1:6379  password 123456
 echo Logs           : %LOGS%
 echo ===============================================
