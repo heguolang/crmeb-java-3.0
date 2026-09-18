@@ -1137,19 +1137,19 @@ WHERE m.component = '/merchantStore' AND m.pid = 0 AND m.is_delte = 0
   AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/merchantStore/verify' AND `is_delte` = 0);
 
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
-SELECT m.id, '保存门店', '', 'admin:merchant:store:save', NULL, 'M', 3, 0, 0
+SELECT m.id, '保存门店', '', 'admin:merchant:store:save', NULL, 'A', 3, 0, 0
 FROM `eb_system_menu` m
 WHERE m.component = '/merchantStore/list' AND m.is_delte = 0
   AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `perms` = 'admin:merchant:store:save' AND `is_delte` = 0);
 
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
-SELECT m.id, '修改门店', '', 'admin:merchant:store:update', NULL, 'M', 4, 0, 0
+SELECT m.id, '修改门店', '', 'admin:merchant:store:update', NULL, 'A', 4, 0, 0
 FROM `eb_system_menu` m
 WHERE m.component = '/merchantStore/list' AND m.is_delte = 0
   AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `perms` = 'admin:merchant:store:update' AND `is_delte` = 0);
 
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
-SELECT m.id, '删除门店', '', 'admin:merchant:store:delete', NULL, 'M', 5, 0, 0
+SELECT m.id, '删除门店', '', 'admin:merchant:store:delete', NULL, 'A', 5, 0, 0
 FROM `eb_system_menu` m
 WHERE m.component = '/merchantStore/list' AND m.is_delte = 0
   AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `perms` = 'admin:merchant:store:delete' AND `is_delte` = 0);
@@ -1158,15 +1158,15 @@ WHERE m.component = '/merchantStore/list' AND m.is_delte = 0
 
 -- ========== BEGIN: merchant_store_menu_buttons.sql ==========
 INSERT INTO eb_system_menu (pid, name, icon, perms, component, menu_type, sort, is_show, is_delte)
-SELECT 684, '保存门店', '', 'admin:merchant:store:save', NULL, 'M', 3, 0, 0
+SELECT 684, '保存门店', '', 'admin:merchant:store:save', NULL, 'A', 3, 0, 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM eb_system_menu WHERE perms='admin:merchant:store:save' AND is_delte=0) t);
 INSERT INTO eb_system_menu (pid, name, icon, perms, component, menu_type, sort, is_show, is_delte)
-SELECT 684, '修改门店', '', 'admin:merchant:store:update', NULL, 'M', 4, 0, 0
+SELECT 684, '修改门店', '', 'admin:merchant:store:update', NULL, 'A', 4, 0, 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM eb_system_menu WHERE perms='admin:merchant:store:update' AND is_delte=0) t);
 INSERT INTO eb_system_menu (pid, name, icon, perms, component, menu_type, sort, is_show, is_delte)
-SELECT 684, '删除门店', '', 'admin:merchant:store:delete', NULL, 'M', 5, 0, 0
+SELECT 684, '删除门店', '', 'admin:merchant:store:delete', NULL, 'A', 5, 0, 0
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1 FROM eb_system_menu WHERE perms='admin:merchant:store:delete' AND is_delte=0) t);
 
