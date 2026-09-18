@@ -6,17 +6,13 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- ========== BEGIN: mariadb_any_value_compat.sql ==========
--- MariaDB 兼容补丁：CRMEB 部分 SQL 使用了 MySQL 5.7 的内置函数 ANY_VALUE()，
--- MariaDB 没有该函数，会报 "FUNCTION crmeb.ANY_VALUE does not exist"。
--- 本脚本创建同名兼容函数（恒等返回）。只需执行一次，随库持久保存。
--- 适用：MariaDB 10.x（本部署 10.6.28）
--- USE removed by oneclick
-CREATE FUNCTION IF NOT EXISTS ANY_VALUE(x LONGTEXT) RETURNS LONGTEXT
-DETERMINISTIC NO SQL
-RETURN x;
-
--- ========== END: mariadb_any_value_compat.sql ==========
+-- ---------- [已移除] mariadb_any_value_compat.sql ----------
+-- 原脚本为 MariaDB 10.x 创建同名 ANY_VALUE() 恒等函数，用来兼容 CRMEB 用到的
+-- MySQL 5.7 内置函数 ANY_VALUE()。生产（宝塔）与本机现已统一为 MySQL 5.7，
+-- 内置函数天然可用；且 MySQL 5.7 不支持函数 IF NOT EXISTS 语法，本段保留会在
+-- 一键部署第一步就报 1064，故整段移除。
+-- 若历史库里有同名函数残留（从 MariaDB 迁过来的），清理一次即可：
+--   DROP FUNCTION IF EXISTS ANY_VALUE;
 
 -- ========== BEGIN: add_missing_team_level_tables.sql ==========
 -- ============================================================

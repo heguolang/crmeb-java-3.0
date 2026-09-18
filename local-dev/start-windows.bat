@@ -1,16 +1,18 @@
 @echo off
 REM ============================================================
 REM  CRMEB Java 3.0  -  Windows local dev launcher
-REM  Starts: MariaDB(3306) -> Redis(6379) -> Admin API(8080)
+REM  Starts: MySQL 5.7(3306) -> Redis(6379) -> Admin API(8080)
 REM          -> Front API(8081) -> Admin Web(9527)
-REM  Logs  : D:\crmeb-java-3.0\local-dev\logs
+REM  DB     : Windows service "MySQL57" (auto-start), root/123456, db crmeb
+REM  Logs   : D:\crmeb-java-3.0\local-dev\logs
 REM ============================================================
 setlocal
 set "JAVA_HOME=D:\env\java\jdk8u504-b01"
 set "PROJ=D:\crmeb-java-3.0"
 set "LOGS=%PROJ%\local-dev\logs"
-set "MARIADB_EXE=D:\env\mariadb-10.6.28-winx64\bin\mariadbd.exe"
-set "MARIADB_INI=D:\env\mariadb-10.6.28-winx64\my.ini"
+REM MySQL 5.7 runs as a Windows service; we only need "net start" when it is down.
+set "MYSQL_SVC=MySQL57"
+set "MYSQL_HOME=D:\env\mysql-5.7.38-winx64"
 set "REDIS_EXE=D:\env\redis\redis-server.exe"
 set "NODE_DIR=C:\Users\Administrator\.workbuddy\binaries\node\versions\22.22.2-3"
 REM Avoid inherited SERVER_PORT overriding Spring's server.port
@@ -22,11 +24,16 @@ set "DEMO_FLAG=--crmeb.demoSite=false"
 
 if not exist "%LOGS%" mkdir "%LOGS%"
 
-echo [1/5] MariaDB 3306 ...
+echo [1/5] MySQL 5.7 3306 ...
 netstat -ano | findstr /C:":3306 " | findstr LISTENING >nul
 if errorlevel 1 (
-  start "" /B "%MARIADB_EXE%" --defaults-file="%MARIADB_INI%"
-  echo       started
+  net start %MYSQL_SVC% >nul 2>&1
+  if errorlevel 1 (
+    echo       could not start service %MYSQL_SVC%
+    echo       run this script as Administrator, or start "%MYSQL_HOME%\bin\mysqld.exe" manually
+  ) else (
+    echo       started service %MYSQL_SVC%
+  )
 ) else ( echo       already running )
 
 echo [2/5] Redis 6379 ...
@@ -68,7 +75,7 @@ echo ================= Service URLs =================
 echo Admin web      : http://127.0.0.1:9527   (admin / 123456)
 echo Admin API      : http://127.0.0.1:8080   docs http://127.0.0.1:8080/doc.html
 echo Front API      : http://127.0.0.1:8081
-echo MariaDB        : 127.0.0.1:3306  root / 123456  db crmeb
+echo MySQL 5.7      : 127.0.0.1:3306  root / 123456  db crmeb   (service %MYSQL_SVC%)
 echo Redis          : 127.0.0.1:6379  password 123456
 echo Logs           : %LOGS%
 echo ===============================================

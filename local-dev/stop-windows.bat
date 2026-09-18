@@ -2,7 +2,7 @@
 REM ============================================================
 REM  CRMEB Java 3.0  -  stop local dev services (Windows)
 REM  Usage: stop-windows.bat            -> stop apps only
-REM         stop-windows.bat full       -> also stop Redis + MariaDB
+REM         stop-windows.bat full       -> also stop Redis + MySQL service
 REM ============================================================
 setlocal
 
@@ -15,8 +15,10 @@ powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='no
 if /I "%1"=="full" (
   echo Stopping Redis ...
   powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='redis-server.exe'\" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
-  echo Stopping MariaDB ...
-  powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='mariadbd.exe'\" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+  REM MySQL 5.7 runs as a Windows service (auto-start) - stop it via the service,
+  REM never by killing mysqld.exe. Needs an elevated console.
+  echo Stopping MySQL 5.7 service ...
+  net stop MySQL57
 )
 
 echo Done.
