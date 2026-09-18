@@ -143,19 +143,39 @@ public class StockOrderServiceImpl implements StockOrderService {
             if (product == null || product.getIsDel() || !product.getIsShow()) {
                 throw new CrmebException("商品不存在或已下架");
             }
-            // 云仓库存只约束实体单（虚拟单不涉及总部实物发货）
-            if (!isVirtual && product.getStock() < item.getNum()) {
-                throw new CrmebException("商品【" + product.getStoreName() + "】云仓库存不足，当前库存：" + product.getStock());
+            // 商品是否支持所选库存类型（后台「商品与库存 → 设置拿货价」里配置）
+            com.zbkj.common.model.stock.StockProductRel rel = stockService.getProductRel(product.getId());
+            if (rel != null) {
+                boolean supported = isVirtual
+                        ? (rel.getSupportVirtual() == null || rel.getSupportVirtual())
+                        : (rel.getSupportPhysical() == null || rel.getSupportPhysical());
+                if (!supported) {
+                    throw new CrmebException("商品【" + product.getStoreName() + "】不支持"
+                            + (isVirtual ? "虚拟" : "实体") + "库存下单");
+                }
             }
-            BigDecimal price = stockService.getProductPrice(agent, product.getId());
+            String skuKey = item.getSkuKey() == null ? "" : item.getSkuKey().trim();
+            // 云仓库存只约束实体单（虚拟单不涉及总部实物发货）；有规格时按规格库存校验
+            if (!isVirtual) {
+                if (!skuKey.isEmpty()) {
+                    int skuStock = stockService.getSkuStock(product.getId(), skuKey);
+                    if (skuStock < item.getNum()) {
+                        throw new CrmebException("商品【" + product.getStoreName() + "】该规格云仓库存不足，当前库存：" + skuStock);
+                    }
+                } else if (product.getStock() < item.getNum()) {
+                    throw new CrmebException("商品【" + product.getStoreName() + "】云仓库存不足，当前库存：" + product.getStock());
+                }
+            }
+            BigDecimal price = stockService.getProductPrice(agent, product.getId(), skuKey);
             StockOrderProduct op = new StockOrderProduct();
             op.setProductId(product.getId());
-            op.setSkuKey(item.getSkuKey() == null ? "" : item.getSkuKey().trim());
+            op.setSkuKey(skuKey);
             op.setProductName(product.getStoreName());
             op.setImage(product.getImage());
             op.setNum(item.getNum());
             op.setPrice(price);
-            op.setParentPrice(parent == null ? BigDecimal.ZERO : stockService.getProductPrice(parent, product.getId()));
+            op.setParentPrice(parent == null ? BigDecimal.ZERO
+                    : stockService.getProductPrice(parent, product.getId(), skuKey));
             op.setTotalPrice(price.multiply(new BigDecimal(item.getNum())));
             items.add(op);
             totalPrice = totalPrice.add(op.getTotalPrice());
@@ -326,7 +346,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         }
         if (parentStockOk && !isVirtual && !needAudit) {
             for (StockOrderProduct op : items) {
-                stockService.deductStock(op.getProductId(), op.getNum(), 1,
+                stockService.deductStockBySku(op.getProductId(), op.getSkuKey(), op.getNum(), 1,
                         order.getOrderNo(), "订货单付款成功扣库存（审核开关关闭）");
             }
         }
@@ -679,7 +699,7 @@ public class StockOrderServiceImpl implements StockOrderService {
                         "您的订货单 " + order.getOrderNo() + " 已由上级审核通过，虚拟库存已入账，可在会员中心【虚拟库存】中提货");
             } else {
                 for (StockOrderProduct op : items) {
-                    stockService.deductStock(op.getProductId(), op.getNum(), 1, order.getOrderNo(), "上级审核通过扣库存");
+                    stockService.deductStockBySku(op.getProductId(), op.getSkuKey(), op.getNum(), 1, order.getOrderNo(), "上级审核通过扣库存");
                 }
                 order.setStatus(StockOrder.STATUS_WAIT_SEND);
                 stockOrderDao.updateById(order);
@@ -735,7 +755,7 @@ public class StockOrderServiceImpl implements StockOrderService {
                         "您的订货单 " + order.getOrderNo() + " 已由总部审核通过，虚拟库存已入账，可在会员中心【虚拟库存】中提货");
             } else {
                 for (StockOrderProduct op : items) {
-                    stockService.deductStock(op.getProductId(), op.getNum(), 1, order.getOrderNo(), "总部介入审核扣库存");
+                    stockService.deductStockBySku(op.getProductId(), op.getSkuKey(), op.getNum(), 1, order.getOrderNo(), "总部介入审核扣库存");
                 }
                 order.setStatus(StockOrder.STATUS_WAIT_SEND);
                 stockOrderDao.updateById(order);
@@ -828,7 +848,8 @@ public class StockOrderServiceImpl implements StockOrderService {
             throw new CrmebException("请选择要换入的商品（不能与原商品相同）");
         }
         BigDecimal originPrice = item.getPrice() == null ? BigDecimal.ZERO : item.getPrice();
-        BigDecimal targetPrice = stockService.getProductPrice(agent, targetProductId);
+        BigDecimal targetPrice = stockService.getProductPrice(agent, targetProductId,
+                request.getTargetSkuKey() == null ? "" : request.getTargetSkuKey());
         if (targetPrice.compareTo(originPrice) < 0) {
             throw new CrmebException("换入商品拿货价不能低于原商品（原 ¥" + originPrice + "，目标 ¥" + targetPrice + "）");
         }
@@ -1036,7 +1057,7 @@ public class StockOrderServiceImpl implements StockOrderService {
                 List<StockOrderProduct> items = stockOrderProductDao.selectList(
                         new LambdaQueryWrapper<StockOrderProduct>().eq(StockOrderProduct::getOrderId, order.getId()));
                 for (StockOrderProduct op : items) {
-                    stockService.deductStock(op.getProductId(), op.getNum(), 1,
+                    stockService.deductStockBySku(op.getProductId(), op.getSkuKey(), op.getNum(), 1,
                             order.getOrderNo(), "虚拟库存提货发货扣云仓库存");
                 }
             }
@@ -1179,7 +1200,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         }
         return transactionTemplate.execute(status -> {
             // 旧品核验入库：回补库存
-            stockService.addStock(exchange.getProductId(), exchange.getNum(), 4,
+            stockService.addStockBySku(exchange.getProductId(), exchange.getSkuKey(), exchange.getNum(), 4,
                     exchange.getExchangeNo(), "换货旧品退回核验入库");
             exchange.setStatus(StockExchange.STATUS_WAIT_SEND);
             exchange.setBackTime(new Date());
@@ -1203,7 +1224,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         Integer shipProductId = (exchange.getTargetProductId() != null && exchange.getTargetProductId() > 0)
                 ? exchange.getTargetProductId() : exchange.getProductId();
         return transactionTemplate.execute(status -> {
-            stockService.deductStock(shipProductId, exchange.getNum(), 3,
+            stockService.deductStockBySku(shipProductId, exchange.getTargetSkuKey(), exchange.getNum(), 3,
                     exchange.getExchangeNo(), "换货发出新品");
             exchange.setNewExpressName(request.getExpressName());
             exchange.setNewExpressNum(request.getExpressNum());
@@ -1540,9 +1561,9 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (!isExchangeAllowed(productId, sku)) {
             return out;
         }
-        BigDecimal originPrice = stockService.getProductPrice(agent, productId);
+        BigDecimal originPrice = stockService.getProductPrice(agent, productId, sku);
         for (StockExchangeTarget t : getExchangeTargetList(productId, sku)) {
-            BigDecimal targetPrice = stockService.getProductPrice(agent, t.getTargetProductId());
+            BigDecimal targetPrice = stockService.getProductPrice(agent, t.getTargetProductId(), t.getTargetSkuKey());
             // 只能换同价或更高价（不能换比当前金额少的商品）
             if (targetPrice.compareTo(originPrice) < 0) {
                 continue;
@@ -1702,7 +1723,7 @@ public class StockOrderServiceImpl implements StockOrderService {
                 // 审核开关关闭：释放为待发货需补扣云仓库存（挂起时未扣）
                 for (StockOrderProduct op : items) {
                     try {
-                        stockService.deductStock(op.getProductId(), op.getNum(), 1,
+                        stockService.deductStockBySku(op.getProductId(), op.getSkuKey(), op.getNum(), 1,
                                 order.getOrderNo(), "向上匹配后释放订单扣库存（审核开关关闭）");
                     } catch (Exception ignored) {
                     }

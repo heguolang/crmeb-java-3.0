@@ -5,11 +5,11 @@
     </view>
     <!-- 库存类型 -->
     <view class="type-bar">
-      <view class="type-item" :class="{ active: stockType === 1 }" @click="stockType = 1">
+      <view class="type-item" :class="{ active: stockType === 1 }" @click="switchType(1)">
         <view class="t-name">实体库存</view>
         <view class="t-sub">付款后发货到家</view>
       </view>
-      <view class="type-item" :class="{ active: stockType === 2 }" @click="stockType = 2">
+      <view class="type-item" :class="{ active: stockType === 2 }" @click="switchType(2)">
         <view class="t-name">虚拟库存</view>
         <view class="t-sub">付款即入账，可提货</view>
       </view>
@@ -22,7 +22,12 @@
           <text class="my-price">¥{{ item.myPrice }}</text>
           <text class="retail-price">零售 ¥{{ item.price }}</text>
         </view>
-        <view class="goods-stock">云仓库存：{{ item.stock }}</view>
+        <view class="goods-stock">
+          云仓库存：{{ item.skuKey ? item.skuStock : item.stock }}
+          <text v-if="item.skus && item.skus.length" class="sku-chip" @click="chooseSku(item)">
+            {{ item.skuName || '选规格' }} ▾
+          </text>
+        </view>
       </view>
       <view class="goods-op">
         <view class="num-ctrl">
@@ -104,8 +109,15 @@
 			this.loadAddr();
 		},
 		methods: {
+			switchType(t) {
+				if (this.stockType === t) return;
+				this.stockType = t;
+				this.cartItems = [];
+				this.list = [];
+				this.load();
+			},
 			load() {
-				getStockProducts({ keywords: this.keywords, page: 1, limit: 50 }).then(res => {
+				getStockProducts({ keywords: this.keywords, page: 1, limit: 50, stockType: this.stockType }).then(res => {
 					this.list = (res.data.list || []).map(i => ({ ...i, buyNum: 0 }));
 					this.loaded = true;
 				}).catch(() => { this.loaded = true; });
@@ -153,6 +165,22 @@
 					this.cartItems.splice(idx, 1);
 				}
 			},
+			chooseSku(item) {
+				const skus = item.skus || [];
+				if (!skus.length) return;
+				const names = skus.map(s => (s.attrValue || s.skuKey) + '　拿货价 ¥' + s.myPrice + '（库存 ' + s.stock + '）');
+				uni.showActionSheet({
+					itemList: names,
+					success: (res) => {
+						const s = skus[res.tapIndex];
+						this.$set(item, 'skuKey', s.skuKey);
+						this.$set(item, 'skuName', s.attrValue || s.skuKey);
+						this.$set(item, 'skuStock', s.stock);
+						this.$set(item, 'myPrice', s.myPrice);
+						this.syncCart(item);
+					}
+				});
+			},
 			buy(item) {
 				if (!item.buyNum || item.buyNum <= 0) {
 					this.$set(item, 'buyNum', 1);
@@ -164,7 +192,7 @@
 			submitOrder() {
 				const isVirtual = this.stockType === 2;
 				if (!isVirtual && !this.selectedAddr) return this.$util.Tips({ title: '请选择收货地址' });
-				const items = this.cartItems.filter(i => i.buyNum > 0).map(i => ({ productId: i.id, num: Number(i.buyNum) }));
+				const items = this.cartItems.filter(i => i.buyNum > 0).map(i => ({ productId: i.id, num: Number(i.buyNum), skuKey: i.skuKey || '' }));
 				if (!items.length) return this.$util.Tips({ title: '请先选择商品数量' });
 				const tip = isVirtual
 					? '共 ' + items.length + ' 种商品，合计 ¥' + this.cartTotal + '。付款后虚拟库存即时入账，后续可在【虚拟库存】中提货。'
@@ -267,6 +295,7 @@
 .my-price { color: #e93323; font-size: 32rpx; font-weight: 600; margin-right: 14rpx; }
 .retail-price { color: #999; font-size: 22rpx; text-decoration: line-through; }
 .goods-stock { color: #999; font-size: 22rpx; margin-top: 6rpx; }
+.sku-chip { margin-left: 12rpx; color: #2b6fe3; border: 1rpx solid #2b6fe3; border-radius: 999rpx; padding: 0 14rpx; font-size: 21rpx; }
 .goods-op { display: flex; flex-direction: column; align-items: flex-end; }
 .num-ctrl { display: flex; align-items: center; margin-bottom: 12rpx; }
 .ctrl-btn { width: 48rpx; height: 48rpx; background: #f2f3f5; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; font-size: 30rpx; color: #333; }

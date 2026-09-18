@@ -46,6 +46,12 @@ public interface StockService {
     /** 已加入订货模块的商品关联列表 */
     java.util.List<com.zbkj.common.model.stock.StockProductRel> getStockProductRelList();
 
+    /** 后台：设置商品是否支持虚拟/实体库存下单 */
+    void saveProductStockType(Integer productId, Boolean supportVirtual, Boolean supportPhysical);
+
+    /** 取某商品在订货模块的配置（未加入返回 null） */
+    com.zbkj.common.model.stock.StockProductRel getProductRel(Integer productId);
+
     /** 可添加商品列表（尚未加入订货的商品，供选择添加） */
     HashMap<String, Object> getSelectableProductList(String keywords, com.zbkj.common.request.PageParamRequest page);
 
@@ -88,6 +94,24 @@ public interface StockService {
 
     /** 某代理对某商品的拿货价（价格表优先 -> 层级默认折扣 -> 零售价） */
     java.math.BigDecimal getProductPrice(StockAgent agent, Integer productId);
+
+    /** 规格级拿货价：规格专用价 > 商品专用价 > 层级折扣(按规格零售价) > 规格零售价 */
+    java.math.BigDecimal getProductPrice(StockAgent agent, Integer productId, String skuKey);
+
+    /** 商品规格列表（suk / 规格名 / 零售价 / 云仓规格库存） */
+    List<java.util.HashMap<String, Object>> getProductSkuList(Integer productId);
+
+    /** 某规格的各层级拿货价（后台回显，含未配置的层级为 null） */
+    List<java.util.HashMap<String, Object>> getPriceSkuList(Integer productId, String skuKey);
+
+    /** 云仓规格可用库存 */
+    int getSkuStock(Integer productId, String skuKey);
+
+    /** 按规格扣减云仓库存（规格库存 + 商品总库存同步扣减） */
+    void deductStockBySku(Integer productId, String skuKey, Integer num, Integer type, String linkNo, String mark);
+
+    /** 按规格回补云仓库存 */
+    void addStockBySku(Integer productId, String skuKey, Integer num, Integer type, String linkNo, String mark);
 
     /** 扣减库存（乐观锁 stock>=num），失败抛出 CrmebException */
     void deductStock(Integer productId, Integer num, Integer type, String linkNo, String mark);

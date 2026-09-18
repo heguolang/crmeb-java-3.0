@@ -13,6 +13,8 @@ import com.zbkj.common.model.stock.StockLevel;
 import com.zbkj.common.model.stock.StockLadder;
 import com.zbkj.common.model.stock.StockLog;
 import com.zbkj.common.model.stock.StockPrice;
+import com.zbkj.common.model.stock.StockPriceSku;
+import com.zbkj.common.model.product.StoreProductAttrValue;
 import com.zbkj.common.model.stock.StockProductRel;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.page.CommonPage;
@@ -64,6 +66,12 @@ public class StockServiceImpl implements StockService {
 
     @Autowired
     private com.zbkj.service.dao.StockLadderDao stockLadderDao;
+
+    @Autowired
+    private com.zbkj.service.dao.StockPriceSkuDao stockPriceSkuDao;
+
+    @Autowired
+    private com.zbkj.service.dao.StoreProductAttrValueDao storeProductAttrValueDao;
 
     @Resource
     private UserService userService;
@@ -336,6 +344,23 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
+    public StockProductRel getProductRel(Integer productId) {
+        return stockProductRelDao.selectOne(new LambdaQueryWrapper<StockProductRel>()
+                .eq(StockProductRel::getProductId, productId).last(" limit 1"));
+    }
+
+    @Override
+    public void saveProductStockType(Integer productId, Boolean supportVirtual, Boolean supportPhysical) {
+        StockProductRel rel = getProductRel(productId);
+        if (rel == null) {
+            throw new CrmebException("该商品尚未加入订货模块");
+        }
+        rel.setSupportVirtual(supportVirtual == null ? Boolean.TRUE : supportVirtual);
+        rel.setSupportPhysical(supportPhysical == null ? Boolean.TRUE : supportPhysical);
+        stockProductRelDao.updateById(rel);
+    }
+
+    @Override
     public HashMap<String, Object> getSelectableProductList(String keywords, PageParamRequest pageParamRequest) {
         LambdaQueryWrapper<StoreProduct> lqw = new LambdaQueryWrapper<>();
         lqw.eq(StoreProduct::getIsDel, 0).eq(StoreProduct::getIsShow, true);
@@ -473,6 +498,35 @@ public class StockServiceImpl implements StockService {
         StoreProduct product = storeProductService.getById(request.getProductId());
         if (product == null || product.getIsDel()) {
             throw new CrmebException("商品不存在");
+        }
+        // 规格级拿货价（skuKey 非空时写入 eb_stock_price_sku）
+        if (request.getSkuKey() != null && !request.getSkuKey().trim().isEmpty()) {
+            String sku = request.getSkuKey().trim();
+            return transactionTemplate.execute(status -> {
+                for (StockRequests.PriceItem item : request.getPrices()) {
+                    StockPriceSku exist = stockPriceSkuDao.selectOne(new LambdaQueryWrapper<StockPriceSku>()
+                            .eq(StockPriceSku::getProductId, request.getProductId())
+                            .eq(StockPriceSku::getSkuKey, sku)
+                            .eq(StockPriceSku::getLevelId, item.getLevelId())
+                            .last(" limit 1"));
+                    if (item.getPrice() == null) {
+                        if (exist != null) {
+                            stockPriceSkuDao.deleteById(exist.getId());
+                        }
+                    } else if (exist != null) {
+                        exist.setPrice(item.getPrice());
+                        stockPriceSkuDao.updateById(exist);
+                    } else {
+                        StockPriceSku sps = new StockPriceSku();
+                        sps.setProductId(request.getProductId());
+                        sps.setSkuKey(sku);
+                        sps.setLevelId(item.getLevelId());
+                        sps.setPrice(item.getPrice());
+                        stockPriceSkuDao.insert(sps);
+                    }
+                }
+                return true;
+            });
         }
         return transactionTemplate.execute(status -> {
             for (StockRequests.PriceItem item : request.getPrices()) {
@@ -644,6 +698,136 @@ public class StockServiceImpl implements StockService {
             return agent;
         }
         return null;
+    }
+
+    @Override
+    public BigDecimal getProductPrice(StockAgent agent, Integer productId, String skuKey) {
+        if (skuKey == null || skuKey.trim().isEmpty()) {
+            return getProductPrice(agent, productId);
+        }
+        String sku = skuKey.trim();
+        StoreProduct product = storeProductService.getById(productId);
+        if (product == null || product.getIsDel()) {
+            throw new CrmebException("商品不存在");
+        }
+        StoreProductAttrValue av = storeProductAttrValueDao.selectOne(new LambdaQueryWrapper<StoreProductAttrValue>()
+                .eq(StoreProductAttrValue::getProductId, productId)
+                .eq(StoreProductAttrValue::getSuk, sku)
+                .eq(StoreProductAttrValue::getIsDel, false)
+                .last(" limit 1"));
+        if (av == null) {
+            throw new CrmebException("商品规格不存在或已删除");
+        }
+        if (agent == null) {
+            return av.getPrice() == null ? product.getPrice() : av.getPrice();
+        }
+        // 1) 规格级专用价
+        StockPriceSku sps = stockPriceSkuDao.selectOne(new LambdaQueryWrapper<StockPriceSku>()
+                .eq(StockPriceSku::getProductId, productId)
+                .eq(StockPriceSku::getSkuKey, sku)
+                .eq(StockPriceSku::getLevelId, agent.getLevelId())
+                .last(" limit 1"));
+        if (sps != null && sps.getPrice() != null) {
+            return sps.getPrice();
+        }
+        // 2) 商品级专用价
+        StockPrice sp = stockPriceDao.selectOne(new LambdaQueryWrapper<StockPrice>()
+                .eq(StockPrice::getProductId, productId).eq(StockPrice::getLevelId, agent.getLevelId()));
+        if (sp != null) {
+            return sp.getPrice();
+        }
+        // 3) 层级折扣 × 规格零售价
+        BigDecimal base = av.getPrice() == null ? product.getPrice() : av.getPrice();
+        StockLevel level = stockLevelDao.selectById(agent.getLevelId());
+        if (level != null && level.getDiscount() != null && level.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
+            return base.multiply(level.getDiscount()).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        }
+        // 4) 规格零售价
+        return base;
+    }
+
+    @Override
+    public List<java.util.HashMap<String, Object>> getProductSkuList(Integer productId) {
+        List<java.util.HashMap<String, Object>> rows = new ArrayList<>();
+        for (StoreProductAttrValue av : storeProductAttrValueDao.selectList(
+                new LambdaQueryWrapper<StoreProductAttrValue>()
+                        .eq(StoreProductAttrValue::getProductId, productId)
+                        .eq(StoreProductAttrValue::getIsDel, false)
+                        .orderByAsc(StoreProductAttrValue::getId))) {
+            java.util.HashMap<String, Object> row = new java.util.HashMap<>();
+            row.put("skuKey", av.getSuk());
+            row.put("attrValue", av.getAttrValue());
+            row.put("price", av.getPrice());
+            row.put("stock", av.getStock());
+            row.put("image", av.getImage());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    @Override
+    public List<java.util.HashMap<String, Object>> getPriceSkuList(Integer productId, String skuKey) {
+        List<java.util.HashMap<String, Object>> rows = new ArrayList<>();
+        if (skuKey == null || skuKey.trim().isEmpty()) {
+            return rows;
+        }
+        for (StockPriceSku sps : stockPriceSkuDao.selectList(new LambdaQueryWrapper<StockPriceSku>()
+                .eq(StockPriceSku::getProductId, productId)
+                .eq(StockPriceSku::getSkuKey, skuKey.trim()))) {
+            java.util.HashMap<String, Object> row = new java.util.HashMap<>();
+            row.put("levelId", sps.getLevelId());
+            row.put("price", sps.getPrice());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    @Override
+    public int getSkuStock(Integer productId, String skuKey) {
+        if (skuKey == null || skuKey.trim().isEmpty()) {
+            StoreProduct p = storeProductService.getById(productId);
+            return p == null || p.getStock() == null ? 0 : p.getStock();
+        }
+        StoreProductAttrValue av = storeProductAttrValueDao.selectOne(new LambdaQueryWrapper<StoreProductAttrValue>()
+                .eq(StoreProductAttrValue::getProductId, productId)
+                .eq(StoreProductAttrValue::getSuk, skuKey.trim())
+                .eq(StoreProductAttrValue::getIsDel, false)
+                .last(" limit 1"));
+        return av == null || av.getStock() == null ? 0 : av.getStock();
+    }
+
+    @Override
+    public void deductStockBySku(Integer productId, String skuKey, Integer num, Integer type, String linkNo, String mark) {
+        if (skuKey == null || skuKey.trim().isEmpty()) {
+            deductStock(productId, num, type, linkNo, mark);
+            return;
+        }
+        String sku = skuKey.trim();
+        int updated = storeProductAttrValueDao.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<StoreProductAttrValue>()
+                .eq(StoreProductAttrValue::getProductId, productId)
+                .eq(StoreProductAttrValue::getSuk, sku)
+                .eq(StoreProductAttrValue::getIsDel, false)
+                .ge(StoreProductAttrValue::getStock, num)
+                .setSql("stock = stock - (" + num + ")")) ;
+        if (updated == 0) {
+            throw new CrmebException("该规格云仓库存不足，当前库存：" + getSkuStock(productId, sku));
+        }
+        // 商品总库存同步扣减（失败记录日志，不回滚规格扣减由外层事务兜底）
+        deductStock(productId, num, type, linkNo, mark);
+    }
+
+    @Override
+    public void addStockBySku(Integer productId, String skuKey, Integer num, Integer type, String linkNo, String mark) {
+        if (skuKey == null || skuKey.trim().isEmpty()) {
+            addStock(productId, num, type, linkNo, mark);
+            return;
+        }
+        storeProductAttrValueDao.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<StoreProductAttrValue>()
+                .eq(StoreProductAttrValue::getProductId, productId)
+                .eq(StoreProductAttrValue::getSuk, skuKey.trim())
+                .eq(StoreProductAttrValue::getIsDel, false)
+                .setSql("stock = stock + (" + num + ")"));
+        addStock(productId, num, type, linkNo, mark);
     }
 
     @Override

@@ -105,6 +105,7 @@ public class StockController {
     @RequestMapping(value = "/product/list", method = RequestMethod.GET)
     public CommonResult<HashMap<String, Object>> productList(
             @RequestParam(value = "keywords", required = false) String keywords,
+            @RequestParam(value = "stockType", required = false) Integer stockType,
             @Validated PageParamRequest pageParamRequest) {
         Integer uid = currentUid();
         StockAgent agent = stockService.getAgentByUid(uid);
@@ -117,7 +118,16 @@ public class StockController {
         // 仅显示已加入订货模块的商品（加入制）
         List<Integer> relIds = new ArrayList<>();
         for (com.zbkj.common.model.stock.StockProductRel rel : stockService.getStockProductRelList()) {
-            relIds.add(rel.getProductId());
+            // 按库存类型过滤：stockType=2 只看支持虚拟库存的商品，否则只看支持实体库存的
+            boolean supported;
+            if (stockType != null && stockType == 2) {
+                supported = rel.getSupportVirtual() == null || rel.getSupportVirtual();
+            } else {
+                supported = rel.getSupportPhysical() == null || rel.getSupportPhysical();
+            }
+            if (supported) {
+                relIds.add(rel.getProductId());
+            }
         }
         if (relIds.isEmpty()) {
             HashMap<String, Object> empty = new HashMap<>();
@@ -146,6 +156,18 @@ public class StockController {
             row.put("stock", p.getStock());
             BigDecimal myPrice = stockService.getProductPrice(agent, p.getId());
             row.put("myPrice", myPrice);
+            // 规格清单（含各规格拿货价与云仓规格库存），供会员端选规格下单
+            List<HashMap<String, Object>> skus = new ArrayList<>();
+            for (HashMap<String, Object> s : stockService.getProductSkuList(p.getId())) {
+                String skuKey = (String) s.get("skuKey");
+                try {
+                    s.put("myPrice", stockService.getProductPrice(agent, p.getId(), skuKey));
+                } catch (Exception e) {
+                    s.put("myPrice", myPrice);
+                }
+                skus.add(s);
+            }
+            row.put("skus", skus);
             rows.add(row);
         }
         HashMap<String, Object> map = new HashMap<>();

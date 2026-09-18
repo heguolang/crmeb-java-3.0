@@ -124,6 +124,16 @@
       <div v-if="priceRow" style="margin-bottom:10px;color:#999">{{ priceRow.storeName }}（零售价 ¥{{ priceRow.price }}）</div>
       <div v-if="priceRow" class="ex-block">
         <div class="ex-row">
+          <span class="ex-label">支持虚拟库存</span>
+          <el-switch v-model="stockTypeForm.supportVirtual" @change="saveStockType" />
+          <span class="ex-tip">开启后该商品可用「虚拟库存」下单（付款即入账虚拟库存，可提货/换货）</span>
+        </div>
+        <div class="ex-row">
+          <span class="ex-label">支持实体库存</span>
+          <el-switch v-model="stockTypeForm.supportPhysical" @change="saveStockType" />
+          <span class="ex-tip">开启后该商品可用「实体库存」下单（走上级审核/发货流程）</span>
+        </div>
+        <div class="ex-row">
           <span class="ex-label">是否支持换货</span>
           <el-switch v-model="exForm.enable" @change="saveExchangeConfig" />
           <span class="ex-tip">{{ exForm.enable ? '允许换货' : '不允许换货' }}（未配置过的规格沿用整品设置；换货按钮精确到规格）</span>
@@ -132,6 +142,14 @@
           <span class="ex-label">可换入商品</span>
           <el-button size="mini" :disabled="!exForm.enable" @click="openExTargets">设置可换商品（已选 {{ exTargets.length }}）</el-button>
           <span class="ex-tip">只允许换入清单内的商品，且目标拿货价不得低于原商品价</span>
+        </div>
+        <div class="ex-row">
+          <span class="ex-label">定价规格</span>
+          <el-select v-model="priceSkuKey" size="mini" style="width: 220px" @change="onSkuChange">
+            <el-option label="整品（商品级拿货价）" value="" />
+            <el-option v-for="s in skuOptions" :key="s.skuKey" :label="s.attrValue || s.skuKey" :value="s.skuKey" />
+          </el-select>
+          <span class="ex-tip">选择规格后，下方「拿货价」就是该规格的层级价（未配置则回退商品级价）</span>
         </div>
       </div>
       <el-divider v-if="priceRow" />
@@ -185,7 +203,7 @@
 </template>
 
 <script>
-import { stockProductListApi, stockProductSelectListApi, stockProductAddApi, stockProductRemoveApi, stockPriceSaveApi, stockAdjustApi, stockLogListApi, stockExchangeConfigApi, stockExchangeConfigSaveApi, stockExchangeTargetsApi, stockExchangeTargetsSaveApi } from '@/api/stock';
+import { stockProductListApi, stockProductSelectListApi, stockProductAddApi, stockProductRemoveApi, stockPriceSaveApi, stockAdjustApi, stockLogListApi, stockExchangeConfigApi, stockExchangeConfigSaveApi, stockExchangeTargetsApi, stockExchangeTargetsSaveApi, stockProductStockTypeApi, stockProductStockTypeSaveApi, stockProductSkuListApi, stockProductSkuPriceApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -206,6 +224,9 @@ export default {
       exTargets: [],
       exTargetsVisible: false,
       productOptions: [],
+      skuOptions: [],
+      priceSkuKey: '',
+      stockTypeForm: { supportVirtual: true, supportPhysical: true },
       adjustVisible: false,
       adjustRow: null,
       adjustForm: { productId: null, changeNum: 0, mark: '' },
@@ -325,6 +346,38 @@ export default {
           this.productOptions = (res && res.list) || [];
         }).catch(() => {});
       }
+      this.priceSkuKey = '';
+      this.stockTypeForm = { supportVirtual: true, supportPhysical: true };
+      stockProductStockTypeApi(productId).then(res => {
+        if (res) {
+          this.stockTypeForm = { supportVirtual: !!res.supportVirtual, supportPhysical: !!res.supportPhysical };
+        }
+      }).catch(() => {});
+      stockProductSkuListApi(productId).then(res => {
+        this.skuOptions = res || [];
+      }).catch(() => {});
+    },
+    saveStockType() {
+      stockProductStockTypeSaveApi({
+        productId: this.priceRow.id,
+        supportVirtual: this.stockTypeForm.supportVirtual,
+        supportPhysical: this.stockTypeForm.supportPhysical
+      }).then(() => this.$message.success('已保存'));
+    },
+    onSkuChange() {
+      const sku = this.priceSkuKey;
+      const lv = this.priceRow.levelPrices || [];
+      if (!sku) {
+        // 回到商品级价：重新拉取商品级价格
+        stockProductListApi({ page: 1, limit: 200 }).then(() => {}).catch(() => {});
+        lv.forEach(p => { p.price = p.productPrice !== undefined ? p.productPrice : p.price; });
+        return;
+      }
+      stockProductSkuPriceApi(this.priceRow.id, sku).then(res => {
+        const map = {};
+        (res || []).forEach(x => { map[x.levelId] = x.price; });
+        lv.forEach(p => { p.price = map[p.levelId] !== undefined ? Number(map[p.levelId]) : null; });
+      }).catch(() => {});
     },
     saveExchangeConfig() {
       stockExchangeConfigSaveApi({
@@ -349,8 +402,8 @@ export default {
     },
     savePrice() {
       const prices = this.priceRow.levelPrices.map(p => ({ levelId: p.levelId, price: p.price }));
-      stockPriceSaveApi({ productId: this.priceRow.id, prices }).then(() => {
-        this.$message.success('已保存');
+      stockPriceSaveApi({ productId: this.priceRow.id, prices, skuKey: this.priceSkuKey || '' }).then(() => {
+        this.$message.success(this.priceSkuKey ? '该规格拿货价已保存' : '已保存');
         this.priceVisible = false;
         this.getList();
       });

@@ -181,13 +181,56 @@ public class StockController {
     }
 
     @PreAuthorize("hasAuthority('admin:stock:price:save')")
-    @ApiOperation(value = "保存商品层级拿货价")
+    @ApiOperation(value = "保存商品层级拿货价（带 skuKey 时为规格级价）")
     @RequestMapping(value = "/price/save", method = RequestMethod.POST)
     public CommonResult<String> savePrice(@RequestBody @Validated StockRequests.StockPriceSetRequest request) {
         if (stockService.savePrice(request)) {
             return CommonResult.success();
         }
         return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:price:save')")
+    @ApiOperation(value = "商品规格列表（含零售价与云仓规格库存）")
+    @RequestMapping(value = "/product/skulist", method = RequestMethod.GET)
+    public CommonResult<java.util.List<java.util.HashMap<String, Object>>> productSkuList(@RequestParam Integer productId) {
+        return CommonResult.success(stockService.getProductSkuList(productId));
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:price:save')")
+    @ApiOperation(value = "某规格的层级拿货价（回显）")
+    @RequestMapping(value = "/product/skuPrice", method = RequestMethod.GET)
+    public CommonResult<java.util.List<java.util.HashMap<String, Object>>> priceSkuList(
+            @RequestParam Integer productId,
+            @RequestParam String skuKey) {
+        return CommonResult.success(stockService.getPriceSkuList(productId, skuKey));
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:price:save')")
+    @ApiOperation(value = "商品是否支持虚拟/实体库存（读取）")
+    @RequestMapping(value = "/product/stockType", method = RequestMethod.GET)
+    public CommonResult<HashMap<String, Object>> productStockType(@RequestParam Integer productId) {
+        HashMap<String, Object> map = new HashMap<>();
+        com.zbkj.common.model.stock.StockProductRel rel = stockService.getProductRel(productId);
+        map.put("supportVirtual", rel == null || rel.getSupportVirtual() == null || rel.getSupportVirtual());
+        map.put("supportPhysical", rel == null || rel.getSupportPhysical() == null || rel.getSupportPhysical());
+        return CommonResult.success(map);
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:price:save')")
+    @ApiOperation(value = "保存商品是否支持虚拟/实体库存")
+    @RequestMapping(value = "/product/stockType/save", method = RequestMethod.POST)
+    public CommonResult<String> saveProductStockType(@RequestBody HashMap<String, Object> params) {
+        Integer productId = params.get("productId") == null ? null : Integer.valueOf(String.valueOf(params.get("productId")));
+        if (productId == null) {
+            return CommonResult.failed("商品不能为空");
+        }
+        Boolean supportVirtual = params.get("supportVirtual") == null ? Boolean.TRUE
+                : Boolean.valueOf(String.valueOf(params.get("supportVirtual")));
+        Boolean supportPhysical = params.get("supportPhysical") == null ? Boolean.TRUE
+                : Boolean.valueOf(String.valueOf(params.get("supportPhysical")));
+        stockService.saveProductStockType(productId, supportVirtual, supportPhysical);
+        return CommonResult.success();
     }
 
     @PreAuthorize("hasAuthority('admin:stock:log:adjust')")

@@ -172,3 +172,23 @@ export function stockExchangeTargetsApi(productId, skuKey) {
 export function stockExchangeTargetsSaveApi(data) {
   return request({ url: '/admin/stock/exchange/targets/save', method: 'post', data });
 }
+
+/** 商品是否支持虚拟/实体库存（读取） */
+export function stockProductStockTypeApi(productId) {
+  return request({ url: '/admin/stock/product/stockType', method: 'get', params: { productId } });
+}
+
+/** 保存商品是否支持虚拟/实体库存 */
+export function stockProductStockTypeSaveApi(data) {
+  return request({ url: '/admin/stock/product/stockType/save', method: 'post', data });
+}
+
+/** 商品规格列表 */
+export function stockProductSkuListApi(productId) {
+  return request({ url: '/admin/stock/product/skulist', method: 'get', params: { productId } });
+}
+
+/** 规格层级拿货价（回显） */
+export function stockProductSkuPriceApi(productId, skuKey) {
+  return request({ url: '/admin/stock/product/skuPrice', method: 'get', params: { productId, skuKey } });
+}

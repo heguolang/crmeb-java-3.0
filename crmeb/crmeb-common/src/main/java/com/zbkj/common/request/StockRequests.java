@@ -29,6 +29,9 @@ public class StockRequests {
 
         @ApiModelProperty(value = "价格项")
         private List<PriceItem> prices;
+
+        @ApiModelProperty(value = "规格key（留空=商品级价；填写则保存该规格的层级价）")
+        private String skuKey;
     }
 
     @Data
