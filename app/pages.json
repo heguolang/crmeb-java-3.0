@@ -181,6 +181,18 @@
 				}
 			},
 			{
+				"path": "stock/virtual",
+				"style": {
+					"navigationBarTitleText": "虚拟库存"
+				}
+			},
+			{
+				"path": "stock/physical",
+				"style": {
+					"navigationBarTitleText": "实体库存"
+				}
+			},
+			{
 				"path": "stock/order-list",
 				"style": {
 					"navigationBarTitleText": "订货订单"

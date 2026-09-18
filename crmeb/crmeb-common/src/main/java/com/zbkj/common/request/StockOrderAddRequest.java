@@ -24,11 +24,10 @@ public class StockOrderAddRequest implements Serializable {
     @NotEmpty(message = "请选择订货商品")
     private List<StockOrderItem> items;
 
-    @ApiModelProperty(value = "收货地址ID（系统收货地址簿 eb_user_address）")
-    @NotNull(message = "请选择收货地址")
+    @ApiModelProperty(value = "收货地址ID（实体库存必填，虚拟库存可空）")
     private Integer addressId;
 
-    @ApiModelProperty(value = "库存类型：1=实体 2=虚拟（二期启用虚拟，默认实体）")
+    @ApiModelProperty(value = "库存类型：1=实体 2=虚拟，默认实体")
     private Integer stockType;
 
     @ApiModelProperty(value = "订单备注")

@@ -34,6 +34,17 @@ public interface StockOrderService {
     /** 定时任务：待付款超时订单自动取消(-2) */
     void cancelExpiredUnpaidOrders();
 
+    // ==================== 虚拟库存（二期） ====================
+
+    /** 我的虚拟库存列表（剩余可提货数量>0） */
+    List<com.zbkj.common.model.stock.StockVirtualStock> getMyVirtualStock(Integer uid);
+
+    /** 虚拟库存提货：扣减 remain_num，生成 order_type=2 提货单（总部发货扣云仓） */
+    HashMap<String, Object> pickupVirtual(Integer uid, StockRequests.StockVirtualPickupRequest request);
+
+    /** 我的实体库存（云仓可供应量 = 已付款采购 - 已供应给直接下级，按商品聚合） */
+    List<HashMap<String, Object>> getMyPhysicalStock(Integer uid);
+
     /** 我的订单列表（status: null=全部） */
     CommonPage<StockOrder> getMyOrderList(Integer uid, Integer status, com.zbkj.common.request.PageParamRequest page);
 

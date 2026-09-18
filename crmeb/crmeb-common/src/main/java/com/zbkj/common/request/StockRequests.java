@@ -130,6 +130,28 @@ public class StockRequests {
     }
 
     @Data
+    @ApiModel(value = "StockVirtualPickupRequest对象", description = "虚拟库存提货请求")
+    public static class StockVirtualPickupRequest implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        @ApiModelProperty(value = "虚拟库存记录ID")
+        @NotNull(message = "请选择虚拟库存")
+        private Integer virtualId;
+
+        @ApiModelProperty(value = "提货数量")
+        @NotNull(message = "请填写提货数量")
+        private Integer num;
+
+        @ApiModelProperty(value = "收货地址ID（系统收货地址簿）")
+        @NotNull(message = "请选择收货地址")
+        private Integer addressId;
+
+        @ApiModelProperty(value = "备注")
+        private String mark;
+    }
+
+    @Data
     @ApiModel(value = "StockExchangeBackRequest对象", description = "旧品退回快递信息")
     public static class StockExchangeBackRequest implements Serializable {
 

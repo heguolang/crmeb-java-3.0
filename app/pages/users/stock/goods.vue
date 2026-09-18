@@ -3,6 +3,17 @@
     <view class="search-bar">
       <input v-model="keywords" class="search-input" placeholder="搜索商品名称" confirm-type="search" @confirm="reload" />
     </view>
+    <!-- 库存类型 -->
+    <view class="type-bar">
+      <view class="type-item" :class="{ active: stockType === 1 }" @click="stockType = 1">
+        <view class="t-name">实体库存</view>
+        <view class="t-sub">付款后发货到家</view>
+      </view>
+      <view class="type-item" :class="{ active: stockType === 2 }" @click="stockType = 2">
+        <view class="t-name">虚拟库存</view>
+        <view class="t-sub">付款即入账，可提货</view>
+      </view>
+    </view>
     <view v-for="item in list" :key="item.id" class="goods-card">
       <image :src="item.image" class="goods-img" mode="aspectFill" />
       <view class="goods-info">
@@ -24,14 +35,17 @@
     </view>
     <view v-if="!list.length && loaded" class="empty">暂无订货商品</view>
 
-    <!-- 收货地址 -->
-    <view class="addr-bar" @click="showAddr = true">
+    <!-- 收货地址（实体库存需要） -->
+    <view class="addr-bar" v-if="stockType === 1" @click="showAddr = true">
       <view v-if="selectedAddr" class="addr-info">
         <view class="addr-line1">{{ selectedAddr.realName }} {{ selectedAddr.phone }}</view>
         <view class="addr-line2">{{ addrText(selectedAddr) }}</view>
       </view>
       <view v-else class="addr-empty">请选择收货地址</view>
       <text class="addr-arrow">›</text>
+    </view>
+    <view class="addr-bar v-bar" v-else>
+      <view class="addr-empty">虚拟库存无需收货地址，付款后自动入账，可在会员中心提货</view>
     </view>
 
     <view class="cart-bar" v-if="cartItems.length">
@@ -68,6 +82,7 @@
 				list: [],
 				loaded: false,
 				cartItems: [],
+				stockType: 1,
 				addrList: [],
 				selectedAddr: null,
 				showAddr: false
@@ -147,15 +162,21 @@
 				}
 			},
 			submitOrder() {
-				if (!this.selectedAddr) return this.$util.Tips({ title: '请选择收货地址' });
+				const isVirtual = this.stockType === 2;
+				if (!isVirtual && !this.selectedAddr) return this.$util.Tips({ title: '请选择收货地址' });
 				const items = this.cartItems.filter(i => i.buyNum > 0).map(i => ({ productId: i.id, num: Number(i.buyNum) }));
 				if (!items.length) return this.$util.Tips({ title: '请先选择商品数量' });
+				const tip = isVirtual
+					? '共 ' + items.length + ' 种商品，合计 ¥' + this.cartTotal + '。付款后虚拟库存即时入账，后续可在【虚拟库存】中提货。'
+					: '共 ' + items.length + ' 种商品，合计 ¥' + this.cartTotal + '。提交后需先完成付款，付款后进入审核/发货流程。';
 				uni.showModal({
 					title: '确认提交',
-					content: '共 ' + items.length + ' 种商品，合计 ¥' + this.cartTotal + '。提交后需先完成付款，付款后进入审核/发货流程。',
+					content: tip,
 					success: (m) => {
 						if (!m.confirm) return;
-						createStockOrder({ items, addressId: this.selectedAddr.id }).then(res => {
+						const payload = { items, stockType: this.stockType };
+						if (!isVirtual) payload.addressId = this.selectedAddr.id;
+						createStockOrder(payload).then(res => {
 							const d = res.data || {};
 							if (d.upSearchWaiting && d.upSearchMessage) {
 								uni.showModal({
@@ -186,10 +207,12 @@
 			},
 			payYue(orderNo) {
 				payStockOrder({ orderNo, payType: 'yue' }).then(() => {
-					uni.showToast({ title: '支付成功', icon: 'success' });
+					uni.showToast({ title: this.stockType === 2 ? '支付成功，虚拟库存已入账' : '支付成功', icon: 'none' });
 					this.cartItems = [];
 					this.list.forEach(i => { i.buyNum = 0; });
-					setTimeout(() => { uni.navigateTo({ url: '/pages/users/stock/order-list' }); }, 800);
+					setTimeout(() => {
+						uni.navigateTo({ url: this.stockType === 2 ? '/pages/users/stock/virtual' : '/pages/users/stock/order-list' });
+					}, 800);
 				});
 			},
 			payWeixin(orderNo) {
@@ -204,10 +227,12 @@
 						timeStamp: js.timeStamp,
 						paySign: js.paySign,
 						success: () => {
-							uni.showToast({ title: '支付成功', icon: 'success' });
+							uni.showToast({ title: this.stockType === 2 ? '支付成功，虚拟库存已入账' : '支付成功', icon: 'none' });
 							this.cartItems = [];
 							this.list.forEach(i => { i.buyNum = 0; });
-							setTimeout(() => { uni.navigateTo({ url: '/pages/users/stock/order-list' }); }, 800);
+							setTimeout(() => {
+								uni.navigateTo({ url: this.stockType === 2 ? '/pages/users/stock/virtual' : '/pages/users/stock/order-list' });
+							}, 800);
 						},
 						fail: () => {
 							uni.showToast({ title: '支付未完成，可在订单列表继续支付', icon: 'none' });
@@ -224,6 +249,16 @@
 .stock-goods { min-height: 100vh; background: #f5f6f8; padding: 24rpx 24rpx 200rpx; }
 .search-bar { margin-bottom: 20rpx; }
 .search-input { background: #fff; border-radius: 40rpx; height: 72rpx; padding: 0 30rpx; font-size: 26rpx; }
+.type-bar { display: flex; margin-bottom: 20rpx; }
+.type-item {
+	flex: 1; background: #fff; border-radius: 16rpx; padding: 20rpx 24rpx; margin-right: 16rpx;
+	border: 2rpx solid transparent;
+	&:last-child { margin-right: 0; }
+	&.active { border-color: #2b6fe3; background: #f0f6ff; }
+}
+.t-name { font-size: 28rpx; color: #303133; font-weight: 600; }
+.type-item.active .t-name { color: #2b6fe3; }
+.t-sub { font-size: 22rpx; color: #909399; margin-top: 6rpx; }
 .goods-card { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 20rpx; display: flex; align-items: center; }
 .goods-img { width: 120rpx; height: 120rpx; border-radius: 12rpx; flex-shrink: 0; }
 .goods-info { flex: 1; margin: 0 20rpx; overflow: hidden; }
@@ -242,6 +277,8 @@
 	padding: 20rpx 30rpx; display: flex; align-items: center; justify-content: space-between;
 	box-shadow: 0 -4rpx 20rpx rgba(0,0,0,.06);
 }
+.addr-bar.v-bar { cursor: default; }
+.addr-bar.v-bar .addr-empty { line-height: 36rpx; }
 .addr-info { flex: 1; overflow: hidden; }
 .addr-empty { font-size: 26rpx; color: #999; }
 .addr-line1 { font-size: 26rpx; color: #303133; font-weight: 600; }

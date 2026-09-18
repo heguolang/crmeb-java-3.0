@@ -27,34 +27,40 @@
       </div>
 
       <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
-        <el-table-column label="订货单号" min-width="140" show-overflow-tooltip>
+        <el-table-column label="订货单号" min-width="120" show-overflow-tooltip>
           <template slot-scope="scope">{{ scope.row.orderNo }}</template>
         </el-table-column>
-        <el-table-column label="代理" min-width="115">
+        <el-table-column label="代理" min-width="100">
           <template slot-scope="scope">
             <div>{{ scope.row.nickname }}</div>
             <div class="sub-text">{{ scope.row.levelName }} · UID {{ scope.row.uid }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="数量/金额" width="88">
+        <el-table-column label="类型" width="80">
+          <template slot-scope="scope">
+            <div>{{ orderTypeText(scope.row.orderType) }}</div>
+            <div v-if="scope.row.orderType === 1" class="sub-text">{{ scope.row.stockType === 2 ? '虚拟' : '实体' }}库存</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="数量/金额" width="84">
           <template slot-scope="scope">
             <div>{{ scope.row.totalNum }} 件</div>
             <div class="price-text">¥{{ scope.row.totalPrice }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="付款" width="90">
+        <el-table-column label="付款" width="80">
           <template slot-scope="scope">
             <span class="st-dot" :class="{ on: scope.row.payStatus === 1 }"><i></i>{{ scope.row.payStatus === 1 ? '已付' : '未付' }}</span>
             <div class="sub-text">{{ scope.row.payType === 1 ? '微信支付' : '记账欠款' }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="88">
+        <el-table-column label="状态" width="80">
           <template slot-scope="scope">
             <span class="st-dot" :class="{ warn: scope.row.status === 0 || scope.row.status === 1, on: scope.row.status === 4, danger: scope.row.status === -1 }"><i></i>{{ statusMap[scope.row.status] || scope.row.status }}</span>
             <div v-if="scope.row.status === -1" class="reject-text">{{ scope.row.rejectReason }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="快递" min-width="100">
+        <el-table-column label="快递" min-width="85">
           <template slot-scope="scope">
             <template v-if="scope.row.expressNum">
               <div>{{ scope.row.expressName }}</div>
@@ -63,7 +69,7 @@
             <span v-else class="sub-text">—</span>
           </template>
         </el-table-column>
-        <el-table-column label="下单时间" min-width="143">
+        <el-table-column label="下单时间" min-width="135">
           <template slot-scope="scope">{{ scope.row.createTime }}</template>
         </el-table-column>
         <el-table-column label="操作" width="132" fixed="right">
@@ -179,6 +185,9 @@ export default {
   },
   methods: {
     checkPermi,
+    orderTypeText(t) {
+      return { 1: '采购', 2: '提货', 3: '换货' }[t] || '采购';
+    },
     getList() {
       this.loading = true;
       stockOrderListApi(this.tableFrom).then(res => {

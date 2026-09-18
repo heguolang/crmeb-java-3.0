@@ -44,6 +44,21 @@ export function cancelStockOrder(id) {
   return request.post('stock/order/cancel?id=' + id);
 }
 
+/** 我的虚拟库存列表 */
+export function getMyVirtualStock() {
+  return request.get('stock/virtual/list');
+}
+
+/** 虚拟库存提货 */
+export function pickupVirtual(data) {
+  return request.post('stock/virtual/pickup', data);
+}
+
+/** 我的实体库存（云仓可供应量） */
+export function getMyPhysicalStock() {
+  return request.get('stock/physical/list');
+}
+
 /** 我的订货单列表 */
 export function getMyStockOrders(params) {
   return request.get('stock/order/list', params);

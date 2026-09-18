@@ -267,6 +267,26 @@ public class StockController {
         return CommonResult.failed();
     }
 
+    // ==================== 虚拟库存（二期） ====================
+
+    @ApiOperation(value = "我的虚拟库存列表（剩余可提货>0）")
+    @RequestMapping(value = "/virtual/list", method = RequestMethod.GET)
+    public CommonResult<List<com.zbkj.common.model.stock.StockVirtualStock>> myVirtualStock() {
+        return CommonResult.success(stockOrderService.getMyVirtualStock(currentUid()));
+    }
+
+    @ApiOperation(value = "虚拟库存提货（生成提货单，由总部发货）")
+    @RequestMapping(value = "/virtual/pickup", method = RequestMethod.POST)
+    public CommonResult<HashMap<String, Object>> pickupVirtual(@RequestBody @Validated StockRequests.StockVirtualPickupRequest request) {
+        return CommonResult.success(stockOrderService.pickupVirtual(currentUid(), request));
+    }
+
+    @ApiOperation(value = "我的实体库存（云仓可供应量，按商品聚合）")
+    @RequestMapping(value = "/physical/list", method = RequestMethod.GET)
+    public CommonResult<List<HashMap<String, Object>>> myPhysicalStock() {
+        return CommonResult.success(stockOrderService.getMyPhysicalStock(currentUid()));
+    }
+
     // ==================== 业绩/奖金/提现/消息 ====================
 
     @ApiOperation(value = "我的业绩")

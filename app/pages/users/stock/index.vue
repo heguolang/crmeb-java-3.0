@@ -23,6 +23,14 @@
           <view class="g-icon ic-blue">商城</view>
           <view class="g-label">商品中心</view>
         </view>
+        <view class="g-item" @click="nav('/pages/users/stock/physical')">
+          <view class="g-icon ic-green">实体</view>
+          <view class="g-label">实体库存</view>
+        </view>
+        <view class="g-item" @click="nav('/pages/users/stock/virtual')">
+          <view class="g-icon ic-gold">虚拟</view>
+          <view class="g-label">虚拟库存</view>
+        </view>
         <view class="g-item" @click="nav('/pages/users/stock/order-list')">
           <view class="g-icon ic-orange">订单</view>
           <view class="g-label">订货订单</view>
