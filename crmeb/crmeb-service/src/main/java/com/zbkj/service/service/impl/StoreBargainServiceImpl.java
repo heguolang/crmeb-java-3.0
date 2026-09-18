@@ -571,9 +571,9 @@ public class StoreBargainServiceImpl extends ServiceImpl<StoreBargainDao, StoreB
         detailH5Response.setSku(productAttrValue.getSuk());
 
         StoreProductDescription sd = storeProductDescriptionService.getOne(
-                new LambdaQueryWrapper<StoreProductDescription>()
+                    new LambdaQueryWrapper<StoreProductDescription>()
                         .eq(StoreProductDescription::getProductId, id)
-                        .eq(StoreProductDescription::getType, ProductConstants.PRODUCT_TYPE_BARGAIN));
+                        .eq(StoreProductDescription::getType, ProductConstants.PRODUCT_TYPE_BARGAIN), false);
         if (ObjectUtil.isNotNull(sd)) {
             detailH5Response.setContent(ObjectUtil.isNull(sd.getDescription()) ? "" : sd.getDescription());
         }

@@ -159,9 +159,9 @@ public class StoreSeckillServiceImpl extends ServiceImpl<StoreSeckillDao, StoreS
             }
             // 处理富文本
             StoreProductDescription sd = storeProductDescriptionService.getOne(
-                    new LambdaQueryWrapper<StoreProductDescription>()
+                new LambdaQueryWrapper<StoreProductDescription>()
                             .eq(StoreProductDescription::getProductId, product.getId())
-                                .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_SECKILL));
+                                .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_SECKILL), false);
             if (null != sd) {
                 storeProductResponse.setContent(null == sd.getDescription()?"":sd.getDescription());
             }
@@ -502,7 +502,7 @@ public class StoreSeckillServiceImpl extends ServiceImpl<StoreSeckillDao, StoreS
         StoreProductDescription sd = storeProductDescriptionService.getOne(
                 new LambdaQueryWrapper<StoreProductDescription>()
                         .eq(StoreProductDescription::getProductId, skillId)
-                        .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_SECKILL));
+                        .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_SECKILL), false);
         if (ObjectUtil.isNotNull(sd)) {
             detailH5Response.setContent(ObjectUtil.isNull(sd.getDescription()) ? "" : sd.getDescription());
         }

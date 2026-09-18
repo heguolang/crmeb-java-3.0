@@ -527,9 +527,9 @@ public class StoreCombinationServiceImpl extends ServiceImpl<StoreCombinationDao
 //        infoResponse.setStoreInfo(storeCombination.getInfo());
         // 详情
         StoreProductDescription sd = storeProductDescriptionService.getOne(
-                new LambdaQueryWrapper<StoreProductDescription>()
+                    new LambdaQueryWrapper<StoreProductDescription>()
                         .eq(StoreProductDescription::getProductId, comId)
-                        .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_PINGTUAN));
+                        .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_PINGTUAN), false);
         if (ObjectUtil.isNotNull(sd)) {
             infoResponse.setContent(ObjectUtil.isNull(sd.getDescription()) ? "" : sd.getDescription());
         }

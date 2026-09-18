@@ -236,7 +236,7 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
             StoreProductDescription sd = storeProductDescriptionService.getOne(
                     new LambdaQueryWrapper<StoreProductDescription>()
                             .eq(StoreProductDescription::getProductId, product.getId())
-                            .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_NORMAL));
+                            .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_NORMAL), false);
             if (null != sd) {
                 storeProductResponse.setContent(null == sd.getDescription()?"":sd.getDescription());
             }
@@ -727,7 +727,7 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
             StoreProductDescription sd = storeProductDescriptionService.getOne(
                     new LambdaQueryWrapper<StoreProductDescription>()
                             .eq(StoreProductDescription::getProductId, storeProduct.getId())
-                            .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_NORMAL));
+                            .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_NORMAL), false);
             if (null != sd) {
                 storeProductResponse.setContent(null == sd.getDescription()?"":sd.getDescription());
             }
@@ -1341,9 +1341,9 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         }
 
         StoreProductDescription sd = storeProductDescriptionService.getOne(
-                new LambdaQueryWrapper<StoreProductDescription>()
+                    new LambdaQueryWrapper<StoreProductDescription>()
                         .eq(StoreProductDescription::getProductId, storeProduct.getId())
-                        .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_NORMAL));
+                        .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_NORMAL), false);
         if (ObjectUtil.isNotNull(sd)) {
             storeProduct.setContent(StrUtil.isBlank(sd.getDescription()) ? "" : sd.getDescription());
         }
