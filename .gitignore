@@ -52,3 +52,9 @@ local-dev/logs/
 # 本地构建/运行残留物（2026-09-17 订货商模块开发期间产生）
 crmeb/crmeb-admin/target_stale/
 crmeb/crmebimage/downloadf/
+
+# local test artifacts
+.ab-profile*/
+_git.txt
+_push.txt
+_hooks.txt
