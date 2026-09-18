@@ -287,6 +287,13 @@ public class StockController {
         return CommonResult.success(stockOrderService.getMyPhysicalStock(currentUid()));
     }
 
+    @ApiOperation(value = "线下销售出库（登记出库并扣减云仓库存）")
+    @RequestMapping(value = "/physical/sell", method = RequestMethod.POST)
+    public CommonResult<String> sellOffline(@RequestBody @Validated StockRequests.StockOfflineSaleRequest request) {
+        stockOrderService.sellOffline(currentUid(), request);
+        return CommonResult.success();
+    }
+
     // ==================== 业绩/奖金/提现/消息 ====================
 
     @ApiOperation(value = "我的业绩")

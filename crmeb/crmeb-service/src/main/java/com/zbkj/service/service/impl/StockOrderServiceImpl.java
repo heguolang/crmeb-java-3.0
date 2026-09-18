@@ -10,6 +10,7 @@ import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.stock.StockAgent;
 import com.zbkj.common.model.stock.StockExchange;
 import com.zbkj.common.model.stock.StockLevel;
+import com.zbkj.common.model.stock.StockOfflineSale;
 import com.zbkj.common.model.stock.StockNotice;
 import com.zbkj.common.model.stock.StockOrder;
 import com.zbkj.common.model.stock.StockOrderProduct;
@@ -67,6 +68,9 @@ public class StockOrderServiceImpl implements StockOrderService {
 
     @Resource
     private com.zbkj.service.dao.StockVirtualStockDao stockVirtualStockDao;
+
+    @Resource
+    private com.zbkj.service.dao.StockOfflineSaleDao stockOfflineSaleDao;
 
     @Autowired
     private StockService stockService;
@@ -408,9 +412,18 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockOrder::getParentAgentId, agent.getId()));
         Map<Integer, Integer> supplied = new HashMap<>();
         accumulateOrderProducts(childOrders, supplied, null);
+        // 线下销售出库数量（从可供应量中扣减）
+        Map<Integer, Integer> sold = new HashMap<>();
+        for (StockOfflineSale s : stockOfflineSaleDao.selectList(new LambdaQueryWrapper<StockOfflineSale>()
+                .eq(StockOfflineSale::getAgentId, agent.getId())
+                .eq(StockOfflineSale::getIsDel, 0))) {
+            sold.merge(s.getProductId(), s.getNum() == null ? 0 : s.getNum(), Integer::sum);
+        }
         // 净持有量 > 0 的商品
         for (Map.Entry<Integer, Integer> entry : purchased.entrySet()) {
-            int net = entry.getValue() - supplied.getOrDefault(entry.getKey(), 0);
+            int net = entry.getValue()
+                    - supplied.getOrDefault(entry.getKey(), 0)
+                    - sold.getOrDefault(entry.getKey(), 0);
             if (net <= 0) {
                 continue;
             }
@@ -1221,7 +1234,50 @@ public class StockOrderServiceImpl implements StockOrderService {
                 supplied += op.getNum();
             }
         }
-        return purchased - supplied;
+        // 线下销售出库数量（自己卖掉的货，从可供应量中扣减）
+        int sold = 0;
+        for (StockOfflineSale s : stockOfflineSaleDao.selectList(new LambdaQueryWrapper<StockOfflineSale>()
+                .eq(StockOfflineSale::getAgentId, agent.getId())
+                .eq(StockOfflineSale::getProductId, productId)
+                .eq(StockOfflineSale::getIsDel, 0))) {
+            sold += s.getNum() == null ? 0 : s.getNum();
+        }
+        return purchased - supplied - sold;
+    }
+
+    @Override
+    public void sellOffline(Integer uid, StockRequests.StockOfflineSaleRequest request) {
+        StockAgent agent = stockService.getAgentByUid(uid);
+        if (agent == null || agent.getStatus() == 0) {
+            throw new CrmebException("您还不是订货代理或已被禁用");
+        }
+        if (request.getNum() == null || request.getNum() <= 0) {
+            throw new CrmebException("销售数量必须大于0");
+        }
+        int available = getAgentStockNum(agent, request.getProductId());
+        if (available < request.getNum()) {
+            throw new CrmebException("可销售实体库存不足，当前剩余：" + available);
+        }
+        StoreProduct product = storeProductService.getById(request.getProductId());
+        if (product == null || product.getIsDel() || !product.getIsShow()) {
+            throw new CrmebException("商品不存在或已下架");
+        }
+        transactionTemplate.executeWithoutResult(status -> {
+            // 扣云仓库存并写库存日志（type=4 线下销售）
+            stockService.deductStock(request.getProductId(), request.getNum(), 4,
+                    "OFFLINE" + System.currentTimeMillis(), "线下销售出库");
+            StockOfflineSale record = new StockOfflineSale();
+            record.setUid(uid);
+            record.setAgentId(agent.getId());
+            record.setProductId(request.getProductId());
+            record.setSkuKey(request.getSkuKey() == null ? "" : request.getSkuKey());
+            record.setProductName(product.getStoreName());
+            record.setImage(product.getImage());
+            record.setNum(request.getNum());
+            record.setMark(request.getMark() == null ? "" : request.getMark());
+            record.setIsDel(0);
+            stockOfflineSaleDao.insert(record);
+        });
     }
 
     /** 校验上级对订单明细各项均有足够库存 */

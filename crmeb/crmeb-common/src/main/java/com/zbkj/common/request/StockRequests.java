@@ -152,6 +152,27 @@ public class StockRequests {
     }
 
     @Data
+    @ApiModel(value = "StockOfflineSaleRequest对象", description = "线下销售出库请求")
+    public static class StockOfflineSaleRequest implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        @ApiModelProperty(value = "商品ID")
+        @NotNull(message = "请选择商品")
+        private Integer productId;
+
+        @ApiModelProperty(value = "销售数量")
+        @NotNull(message = "请填写销售数量")
+        private Integer num;
+
+        @ApiModelProperty(value = "规格key")
+        private String skuKey;
+
+        @ApiModelProperty(value = "备注")
+        private String mark;
+    }
+
+    @Data
     @ApiModel(value = "StockExchangeBackRequest对象", description = "旧品退回快递信息")
     public static class StockExchangeBackRequest implements Serializable {
 

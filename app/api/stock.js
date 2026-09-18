@@ -59,6 +59,11 @@ export function getMyPhysicalStock() {
   return request.get('stock/physical/list');
 }
 
+/** 线下销售出库（扣减库存） */
+export function sellOffline(data) {
+  return request.post('stock/physical/sell', data);
+}
+
 /** 我的订货单列表 */
 export function getMyStockOrders(params) {
   return request.get('stock/order/list', params);

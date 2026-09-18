@@ -45,6 +45,9 @@ public interface StockOrderService {
     /** 我的实体库存（云仓可供应量 = 已付款采购 - 已供应给直接下级，按商品聚合） */
     List<HashMap<String, Object>> getMyPhysicalStock(Integer uid);
 
+    /** 线下销售出库：登记出库记录并扣减云仓库存（后续从实体可供应量中扣减） */
+    void sellOffline(Integer uid, StockRequests.StockOfflineSaleRequest request);
+
     /** 我的订单列表（status: null=全部） */
     CommonPage<StockOrder> getMyOrderList(Integer uid, Integer status, com.zbkj.common.request.PageParamRequest page);
 
