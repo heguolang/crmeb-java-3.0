@@ -817,7 +817,13 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (agent == null) {
             throw new CrmebException("您还不是订货代理");
         }
-        StockOrder order = stockOrderDao.selectById(request.getOrderId());
+        StockOrder order;
+        if (request.getOrderId() != null) {
+            order = stockOrderDao.selectById(request.getOrderId());
+        } else {
+            // 库存页发起的换货：自动匹配该会员最近一笔含此商品的已完成订单
+            order = findLatestCompletedOrder(uid, request.getProductId());
+        }
         if (order == null || order.getIsDel() == 1 || !order.getUid().equals(uid)) {
             throw new CrmebException("原订单不存在");
         }
@@ -1504,6 +1510,25 @@ public class StockOrderServiceImpl implements StockOrderService {
         return cfg == null || Boolean.TRUE.equals(cfg.getEnable());
     }
 
+    /** 自动匹配该会员最近一笔包含指定商品且已完成的订货单（会员端从库存页发起换货时用） */
+    private StockOrder findLatestCompletedOrder(Integer uid, Integer productId) {
+        List<StockOrder> orders = stockOrderDao.selectList(new LambdaQueryWrapper<StockOrder>()
+                .eq(StockOrder::getUid, uid)
+                .eq(StockOrder::getStatus, StockOrder.STATUS_COMPLETE)
+                .eq(StockOrder::getIsDel, 0)
+                .orderByDesc(StockOrder::getId)
+                .last(" limit 50"));
+        for (StockOrder o : orders) {
+            Integer cnt = stockOrderProductDao.selectCount(new LambdaQueryWrapper<StockOrderProduct>()
+                    .eq(StockOrderProduct::getOrderId, o.getId())
+                    .eq(StockOrderProduct::getProductId, productId));
+            if (cnt != null && cnt > 0) {
+                return o;
+            }
+        }
+        return null;
+    }
+
     // ==================== 换货可选目标与差价 ====================
 
     @Override
@@ -1627,11 +1652,34 @@ public class StockOrderServiceImpl implements StockOrderService {
             result.put("paid", true);
             result.put("payType", "yue");
         } else if ("weixin".equalsIgnoreCase(request.getPayType())) {
-            throw new CrmebException("换货差价微信支付暂未开放，请使用余额支付");
+            throw new CrmebException("请通过微信支付接口发起差价支付");
         } else {
             throw new CrmebException("不支持的支付方式");
         }
         return result;
+    }
+
+    @Override
+    public boolean confirmExchangeDiffPaid(String exchangeNo) {
+        StockExchange exchange = stockExchangeDao.selectOne(new LambdaQueryWrapper<StockExchange>()
+                .eq(StockExchange::getExchangeNo, exchangeNo)
+                .eq(StockExchange::getIsDel, 0)
+                .last(" limit 1"));
+        if (exchange == null) {
+            return false;
+        }
+        if (exchange.getDiffPayStatus() != null && exchange.getDiffPayStatus() == 1) {
+            return true;
+        }
+        exchange.setDiffPayStatus(1);
+        exchange.setDiffPayType("weixin");
+        exchange.setDiffPayTime(new Date());
+        stockExchangeDao.updateById(exchange);
+        // 差价按比例奖励直接上级
+        stockRewardService.settleExchangeDiffReward(exchange);
+        stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_REWARD, "换货差价支付成功",
+                "换货单 " + exchangeNo + " 差价 ¥" + exchange.getDiffPrice() + " 已支付成功");
+        return true;
     }
 
     /** 校验上级对订单明细各项均有足够库存 */

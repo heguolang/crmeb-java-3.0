@@ -19,4 +19,7 @@ public interface StockPayService {
      * @return yue: {payType, status} / weixin: {payType, jsConfig}
      */
     HashMap<String, Object> pay(Integer uid, StockPayRequest request, String ip);
+
+    /** 换货差价微信支付：返回 jsConfig（需后台开启 stock_exchange_diff_wechat 开关） */
+    HashMap<String, Object> payExchangeDiffWeixin(Integer uid, Integer exchangeId, String channel, String ip);
 }

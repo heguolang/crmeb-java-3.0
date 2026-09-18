@@ -24,8 +24,8 @@
         </view>
         <view class="goods-stock">
           云仓库存：{{ item.skuKey ? item.skuStock : item.stock }}
-          <text v-if="item.skus && item.skus.length" class="sku-chip" @click="chooseSku(item)">
-            {{ item.skuName || '选规格' }} ▾
+          <text v-if="item.skus && item.skus.length" class="sku-chip" @click="openSku(item)">
+            {{ item.skuName || '选择规格' }}
           </text>
         </view>
       </view>
@@ -39,6 +39,30 @@
       </view>
     </view>
     <view v-if="!list.length && loaded" class="empty">暂无订货商品</view>
+
+    <!-- 规格选择弹窗（交互与商城下单规格弹窗一致） -->
+    <view v-if="skuVisible" class="sku-mask" @click="skuVisible = false">
+      <view class="sku-pop" @click.stop>
+        <view class="sku-head">
+          <image :src="skuRow.image" class="sku-img" mode="aspectFill" />
+          <view class="sku-head-info">
+            <view class="sku-price">¥{{ skuRow.myPrice }}</view>
+            <view class="sku-sub">云仓库存 {{ skuRow.skuStock !== undefined && skuRow.skuKey ? skuRow.skuStock : skuRow.stock }} 件</view>
+            <view class="sku-sel">已选：{{ skuRow.skuName || '请选择规格' }}</view>
+          </view>
+        </view>
+        <view class="sku-body">
+          <view class="sku-attr-name">规格</view>
+          <view class="sku-values">
+            <view v-for="(s, i) in (skuRow.skus || [])" :key="i" class="sku-value"
+                  :class="{ active: skuRow.skuKey === s.skuKey }" @click="pickSku(s)">
+              {{ s.attrValue || s.skuKey }}
+            </view>
+          </view>
+        </view>
+        <button class="sku-confirm" @click="confirmSku">确定</button>
+      </view>
+    </view>
 
     <!-- 收货地址（实体库存需要） -->
     <view class="addr-bar" v-if="stockType === 1" @click="showAddr = true">
@@ -88,6 +112,8 @@
 				loaded: false,
 				cartItems: [],
 				stockType: 1,
+				skuVisible: false,
+				skuRow: {},
 				addrList: [],
 				selectedAddr: null,
 				showAddr: false
@@ -165,21 +191,20 @@
 					this.cartItems.splice(idx, 1);
 				}
 			},
-			chooseSku(item) {
-				const skus = item.skus || [];
-				if (!skus.length) return;
-				const names = skus.map(s => (s.attrValue || s.skuKey) + '　拿货价 ¥' + s.myPrice + '（库存 ' + s.stock + '）');
-				uni.showActionSheet({
-					itemList: names,
-					success: (res) => {
-						const s = skus[res.tapIndex];
-						this.$set(item, 'skuKey', s.skuKey);
-						this.$set(item, 'skuName', s.attrValue || s.skuKey);
-						this.$set(item, 'skuStock', s.stock);
-						this.$set(item, 'myPrice', s.myPrice);
-						this.syncCart(item);
-					}
-				});
+			openSku(item) {
+				this.skuRow = item;
+				this.skuRow._origSkuKey = item.skuKey || '';
+				this.skuVisible = true;
+			},
+			pickSku(s) {
+				this.$set(this.skuRow, 'skuKey', s.skuKey);
+				this.$set(this.skuRow, 'skuName', s.attrValue || s.skuKey);
+				this.$set(this.skuRow, 'skuStock', s.stock);
+				this.$set(this.skuRow, 'myPrice', s.myPrice);
+			},
+			confirmSku() {
+				this.skuVisible = false;
+				this.syncCart(this.skuRow);
 			},
 			buy(item) {
 				if (!item.buyNum || item.buyNum <= 0) {
@@ -296,6 +321,20 @@
 .retail-price { color: #999; font-size: 22rpx; text-decoration: line-through; }
 .goods-stock { color: #999; font-size: 22rpx; margin-top: 6rpx; }
 .sku-chip { margin-left: 12rpx; color: #2b6fe3; border: 1rpx solid #2b6fe3; border-radius: 999rpx; padding: 0 14rpx; font-size: 21rpx; }
+.sku-mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 99; display: flex; align-items: flex-end; }
+.sku-pop { width: 100%; background: #fff; border-radius: 24rpx 24rpx 0 0; padding: 30rpx 30rpx 40rpx; }
+.sku-head { display: flex; }
+.sku-img { width: 150rpx; height: 150rpx; border-radius: 12rpx; background: #f5f6fa; }
+.sku-head-info { flex: 1; margin-left: 20rpx; }
+.sku-price { color: #e93323; font-size: 34rpx; font-weight: 700; }
+.sku-sub { color: #909399; font-size: 23rpx; margin-top: 8rpx; }
+.sku-sel { color: #606266; font-size: 23rpx; margin-top: 8rpx; }
+.sku-body { margin-top: 26rpx; }
+.sku-attr-name { font-size: 26rpx; color: #303133; font-weight: 600; }
+.sku-values { display: flex; flex-wrap: wrap; margin-top: 14rpx; }
+.sku-value { padding: 10rpx 26rpx; border-radius: 999rpx; background: #f2f3f5; color: #303133; font-size: 24rpx; margin: 0 16rpx 16rpx 0; }
+.sku-value.active { background: #e93323; color: #fff; }
+.sku-confirm { margin-top: 20rpx; background: #e93323; color: #fff; border-radius: 999rpx; height: 80rpx; line-height: 80rpx; font-size: 28rpx; }
 .goods-op { display: flex; flex-direction: column; align-items: flex-end; }
 .num-ctrl { display: flex; align-items: center; margin-bottom: 12rpx; }
 .ctrl-btn { width: 48rpx; height: 48rpx; background: #f2f3f5; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; font-size: 30rpx; color: #333; }

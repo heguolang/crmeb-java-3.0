@@ -72,8 +72,7 @@ public class StockRequests {
 
         private static final long serialVersionUID = 1L;
 
-        @ApiModelProperty(value = "关联订货订单ID")
-        @NotNull(message = "订单不能为空")
+        @ApiModelProperty(value = "关联订货订单ID（从库存页发起可留空，由系统自动匹配最近一笔含该商品的已完成订单）")
         private Integer orderId;
 
         @ApiModelProperty(value = "商品ID")
@@ -139,6 +138,9 @@ public class StockRequests {
         @ApiModelProperty(value = "支付方式：yue=余额 weixin=微信")
         @NotBlank(message = "请选择支付方式")
         private String payType;
+
+        @ApiModelProperty(value = "微信支付渠道：routine=小程序 public=公众号")
+        private String payChannel;
     }
 
     @Data

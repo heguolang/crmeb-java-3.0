@@ -111,14 +111,30 @@
 				}).catch(() => {});
 			},
 			payDiff(e) {
-				uni.showModal({
-					title: '支付换货差价',
-					content: '需支付差价 ¥' + e.diffPrice + '（从余额扣除，支付后按比例奖励您的上级）',
-					success: (m) => {
-						if (!m.confirm) return;
-						payExchangeDiff({ exchangeId: e.id, payType: 'yue' }).then(() => {
-							uni.showToast({ title: '差价支付成功', icon: 'success' });
-							this.load();
+				uni.showActionSheet({
+					itemList: ['余额支付', '微信支付'],
+					success: (r) => {
+						const payType = r.tapIndex === 0 ? 'yue' : 'weixin';
+						const body = { exchangeId: e.id, payType: payType };
+						if (payType === 'weixin') body.payChannel = 'routine';
+						payExchangeDiff(body).then(res => {
+							const d = res.data || {};
+							if (payType === 'weixin' && d.jsConfig) {
+								const cfg = d.jsConfig;
+								uni.requestPayment({
+									provider: 'wxpay',
+									timeStamp: cfg.timeStamp,
+									nonceStr: cfg.nonceStr,
+									package: cfg.packages,
+									signType: cfg.signType,
+									paySign: cfg.paySign,
+									success: () => { uni.showToast({ title: '差价支付成功', icon: 'success' }); this.load(); },
+									fail: () => { uni.showToast({ title: '支付已取消', icon: 'none' }); }
+								});
+							} else {
+								uni.showToast({ title: '差价支付成功', icon: 'success' });
+								this.load();
+							}
 						});
 					}
 				});

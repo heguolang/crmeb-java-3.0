@@ -36,6 +36,10 @@
           <el-input-number v-model="exchangeDiffRateNum" :min="0" :max="100" :precision="0" size="small" style="width: 140px" />
           <span class="switch-tip">%。换货需补的差价支付后，按此比例奖励给换货人的直接上级（100=全额给上级）</span>
         </el-form-item>
+        <el-form-item label="换货差价支持微信支付">
+          <el-switch v-model="form.stock_exchange_diff_wechat" :active-value="'1'" :inactive-value="'0'" />
+          <span class="switch-tip">开启：会员可用微信支付换货差价（需已配置微信支付参数）；关闭：只能用余额支付</span>
+        </el-form-item>
         <el-form-item label="换货一次一件">
           <el-switch v-model="form.stock_exchange_single" :active-value="'1'" :inactive-value="'0'" />
           <span class="switch-tip">开启：一次换货申请只能换 1 件；关闭：可按数量整单换（如同一商品 5 件换 5 件，但一次只能换一个目标商品）</span>
@@ -118,6 +122,7 @@ export default {
         stock_wait_pay_hours: '24',
         stock_exchange_single: '0',
         stock_exchange_diff_parent_rate: '100',
+        stock_exchange_diff_wechat: '1',
         stock_peer_status: '1',
         stock_peer_rate: '5',
         stock_peer_generations: '1'

@@ -143,15 +143,11 @@
           <el-button size="mini" :disabled="!exForm.enable" @click="openExTargets">设置可换商品（已选 {{ exTargets.length }}）</el-button>
           <span class="ex-tip">只允许换入清单内的商品，且目标拿货价不得低于原商品价</span>
         </div>
-        <div class="ex-row">
-          <span class="ex-label">定价规格</span>
-          <el-select v-model="priceSkuKey" size="mini" style="width: 220px" @change="onSkuChange">
-            <el-option label="整品（商品级拿货价）" value="" />
-            <el-option v-for="s in skuOptions" :key="s.skuKey" :label="s.attrValue || s.skuKey" :value="s.skuKey" />
-          </el-select>
-          <span class="ex-tip">选择规格后，下方「拿货价」就是该规格的层级价（未配置则回退商品级价）</span>
-        </div>
       </div>
+      <el-tabs v-if="priceRow" v-model="priceSkuKey" @tab-click="onSkuChange" class="price-tabs">
+        <el-tab-pane label="整品（商品级价）" name="" />
+        <el-tab-pane v-for="s in skuOptions" :key="s.skuKey" :label="s.attrValue || s.skuKey" :name="s.skuKey" />
+      </el-tabs>
       <el-divider v-if="priceRow" />
       <el-table class="admin-table" v-if="priceRow" :data="priceRow.levelPrices" size="small">
         <el-table-column prop="levelName" label="层级" width="110" />
@@ -328,6 +324,8 @@ export default {
     },
     openPrice(row) {
       this.priceRow = JSON.parse(JSON.stringify(row));
+      // 快照商品级价，规格 tab 之间来回切换时用于还原
+      (this.priceRow.levelPrices || []).forEach(p => { p._basePrice = p.price; });
       this.priceVisible = true;
       this.loadExchange(row.id);
     },
@@ -368,9 +366,8 @@ export default {
       const sku = this.priceSkuKey;
       const lv = this.priceRow.levelPrices || [];
       if (!sku) {
-        // 回到商品级价：重新拉取商品级价格
-        stockProductListApi({ page: 1, limit: 200 }).then(() => {}).catch(() => {});
-        lv.forEach(p => { p.price = p.productPrice !== undefined ? p.productPrice : p.price; });
+        // 切回整品：还原商品级价
+        lv.forEach(p => { p.price = p._basePrice === undefined ? null : p._basePrice; });
         return;
       }
       stockProductSkuPriceApi(this.priceRow.id, sku).then(res => {
@@ -441,4 +438,6 @@ export default {
 .ex-row:last-child { margin-bottom: 0; }
 .ex-label { width: 84px; color: #303133; font-size: 13px; flex-shrink: 0; }
 .ex-tip { color: #909399; font-size: 12px; }
+.price-tabs { margin: 4px 0 6px; }
+.price-tabs ::v-deep .el-tabs__header { margin-bottom: 8px; }
 </style>

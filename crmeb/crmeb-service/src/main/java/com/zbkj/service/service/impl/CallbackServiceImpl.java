@@ -151,7 +151,8 @@ public class CallbackServiceImpl implements CallbackService {
             //根据类型判断是订单或者充值或者订货单
             if (!Constants.SERVICE_PAY_TYPE_ORDER.equals(attachVo.getType())
                     && !Constants.SERVICE_PAY_TYPE_RECHARGE.equals(attachVo.getType())
-                    && !Constants.SERVICE_PAY_TYPE_STOCK.equals(attachVo.getType())) {
+                    && !Constants.SERVICE_PAY_TYPE_STOCK.equals(attachVo.getType())
+                    && !"exchange".equals(attachVo.getType())) {
                 logger.error("wechat pay err : 未知的支付类型==》" + callbackVo.getOutTradeNo());
                 throw new CrmebException("未知的支付类型！");
             }
@@ -268,6 +269,14 @@ public class CallbackServiceImpl implements CallbackService {
                     return sb.toString();
                 }
                 redisUtil.lPush(TaskConstants.ORDER_TASK_PAY_SUCCESS_AFTER, storeOrder.getOrderId());
+            }
+            // 换货差价
+            if ("exchange".equals(attachVo.getType())) {
+                boolean ok = stockOrderService.confirmExchangeDiffPaid(callbackVo.getOutTradeNo());
+                if (!ok) {
+                    logger.error("wechat pay error : 换货单不存在==》" + callbackVo.getOutTradeNo());
+                    throw new CrmebException("wechat pay error : 换货单不存在==》" + callbackVo.getOutTradeNo());
+                }
             }
             // 订货单
             if (Constants.SERVICE_PAY_TYPE_STOCK.equals(attachVo.getType())) {

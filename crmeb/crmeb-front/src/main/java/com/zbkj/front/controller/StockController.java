@@ -297,9 +297,14 @@ public class StockController {
         return CommonResult.success(stockOrderService.getExchangeOptions(currentUid(), productId, skuKey));
     }
 
-    @ApiOperation(value = "支付换货差价（按比例奖励直接上级）")
+    @ApiOperation(value = "支付换货差价（余额/微信；微信返回 jsConfig）")
     @RequestMapping(value = "/exchange/payDiff", method = RequestMethod.POST)
-    public CommonResult<HashMap<String, Object>> payExchangeDiff(@RequestBody @Validated StockRequests.StockExchangeDiffPayRequest request) {
+    public CommonResult<HashMap<String, Object>> payExchangeDiff(@RequestBody @Validated StockRequests.StockExchangeDiffPayRequest request,
+                                                                 HttpServletRequest httpRequest) {
+        if ("weixin".equalsIgnoreCase(request.getPayType())) {
+            return CommonResult.success(stockPayService.payExchangeDiffWeixin(currentUid(), request.getExchangeId(),
+                    request.getPayChannel(), CrmebUtil.getClientIp(httpRequest)));
+        }
         return CommonResult.success(stockOrderService.payExchangeDiff(currentUid(), request));
     }
 

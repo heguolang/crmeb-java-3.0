@@ -432,7 +432,8 @@ public class StockController {
                 "stock_peer_rate", "stock_peer_generations",
                 "stock_parent_deliver", "stock_up_search_hours",
                 "stock_virtual_audit", "stock_wait_pay_hours",
-                "stock_exchange_single", "stock_exchange_diff_parent_rate"};
+                "stock_exchange_single", "stock_exchange_diff_parent_rate",
+                "stock_exchange_diff_wechat"};
         for (String key : keys) {
             map.put(key, systemConfigService.getValueByKey(key));
         }
@@ -450,7 +451,8 @@ public class StockController {
                     "stock_peer_rate", "stock_peer_generations",
                     "stock_parent_deliver", "stock_up_search_hours",
                     "stock_virtual_audit", "stock_wait_pay_hours",
-                    "stock_exchange_single", "stock_exchange_diff_parent_rate"};
+                    "stock_exchange_single", "stock_exchange_diff_parent_rate",
+                    "stock_exchange_diff_wechat"};
             for (String key : keys) {
                 if (settingMap.containsKey(key)) {
                     Object v = settingMap.get(key);

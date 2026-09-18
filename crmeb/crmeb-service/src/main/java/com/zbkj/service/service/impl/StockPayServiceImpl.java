@@ -180,4 +180,76 @@ public class StockPayServiceImpl implements StockPayService {
         }
         throw new CrmebException("不支持的支付方式");
     }
+
+    @Resource
+    private com.zbkj.service.dao.StockExchangeDao stockExchangeDao;
+
+    /** 换货差价微信支付（JSAPI）：返回前端调起支付所需 jsConfig */
+    @Override
+    public HashMap<String, Object> payExchangeDiffWeixin(Integer uid, Integer exchangeId, String channel, String ip) {
+        if (!"1".equals(systemConfigService.getValueByKey("stock_exchange_diff_wechat"))) {
+            throw new CrmebException("后台未开启「换货差价支持微信支付」，请使用余额支付");
+        }
+        com.zbkj.common.model.stock.StockExchange exchange = stockExchangeDao.selectById(exchangeId);
+        if (exchange == null || exchange.getIsDel() == 1 || !uid.equals(exchange.getUid())) {
+            throw new CrmebException("换货单不存在");
+        }
+        if (exchange.getDiffPrice() == null || exchange.getDiffPrice().signum() <= 0) {
+            throw new CrmebException("该换货单无需支付差价");
+        }
+        if (exchange.getDiffPayStatus() != null && exchange.getDiffPayStatus() == 1) {
+            throw new CrmebException("差价已支付，请勿重复支付");
+        }
+        boolean isPublic = PayConstants.PAY_CHANNEL_WE_CHAT_PUBLIC.equals(channel == null ? "routine" : channel);
+        int tokenType = isPublic ? UserConstants.USER_TOKEN_TYPE_WECHAT : UserConstants.USER_TOKEN_TYPE_ROUTINE;
+        UserToken userToken = userTokenService.getTokenByUserId(uid, tokenType);
+        if (userToken == null || userToken.getToken() == null) {
+            throw new CrmebException("当前渠道缺少支付所需的openId，请使用余额支付或在微信内重试");
+        }
+        String appId = systemConfigService.getValueByKeyException(isPublic
+                ? Constants.CONFIG_KEY_PAY_WE_CHAT_APP_ID : Constants.CONFIG_KEY_PAY_ROUTINE_APP_ID);
+        String mchId = systemConfigService.getValueByKeyException(isPublic
+                ? Constants.CONFIG_KEY_PAY_WE_CHAT_MCH_ID : Constants.CONFIG_KEY_PAY_ROUTINE_MCH_ID);
+        String signKey = systemConfigService.getValueByKeyException(isPublic
+                ? Constants.CONFIG_KEY_PAY_WE_CHAT_APP_KEY : Constants.CONFIG_KEY_PAY_ROUTINE_APP_KEY);
+        String apiDomain = systemConfigService.getValueByKeyException(Constants.CONFIG_KEY_API_URL);
+        String siteName = systemConfigService.getValueByKeyException(Constants.CONFIG_KEY_SITE_NAME);
+
+        AttachVo attachVo = new AttachVo("exchange", uid);
+        CreateOrderRequestVo vo = new CreateOrderRequestVo();
+        vo.setAppid(appId);
+        vo.setMch_id(mchId);
+        vo.setNonce_str(WxPayUtil.getNonceStr());
+        vo.setSign_type(PayConstants.WX_PAY_SIGN_TYPE_MD5);
+        vo.setBody(siteName);
+        vo.setAttach(JSONObject.toJSONString(attachVo));
+        vo.setOut_trade_no(exchange.getExchangeNo());
+        vo.setTotal_fee(exchange.getDiffPrice().multiply(new BigDecimal(100)).intValue());
+        vo.setSpbill_create_ip(ip);
+        vo.setNotify_url(apiDomain + PayConstants.WX_PAY_NOTIFY_API_URI);
+        vo.setTrade_type(PayConstants.WX_PAY_TRADE_TYPE_JS);
+        vo.setOpenid(userToken.getToken());
+        vo.setSign(WxPayUtil.getSign(vo, signKey));
+        CreateOrderResponseVo responseVo = wechatNewService.payUnifiedorder(vo);
+
+        WxPayJsResultVo jsConfig = new WxPayJsResultVo();
+        jsConfig.setAppId(appId);
+        jsConfig.setNonceStr(vo.getNonce_str());
+        jsConfig.setPackages("prepay_id=".concat(responseVo.getPrepayId()));
+        jsConfig.setSignType(PayConstants.WX_PAY_SIGN_TYPE_MD5);
+        jsConfig.setTimeStamp(String.valueOf(WxPayUtil.getCurrentTimestamp()));
+        HashMap<String, String> signMap = new HashMap<>();
+        signMap.put("appId", jsConfig.getAppId());
+        signMap.put("nonceStr", jsConfig.getNonceStr());
+        signMap.put("package", jsConfig.getPackages());
+        signMap.put("signType", jsConfig.getSignType());
+        signMap.put("timeStamp", jsConfig.getTimeStamp());
+        jsConfig.setPaySign(WxPayUtil.getSign(signMap, signKey));
+
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("payType", PayConstants.PAY_TYPE_WE_CHAT);
+        result.put("status", true);
+        result.put("jsConfig", jsConfig);
+        return result;
+    }
 }

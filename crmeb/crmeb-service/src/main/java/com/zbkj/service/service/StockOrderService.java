@@ -69,6 +69,9 @@ public interface StockOrderService {
     /** 换货差价支付（yue=余额 weixin=微信），支付成功后按比例奖励直接上级 */
     HashMap<String, Object> payExchangeDiff(Integer uid, StockRequests.StockExchangeDiffPayRequest request);
 
+    /** 微信差价支付回调：按换货单号确认差价已付并发放上级奖励（幂等） */
+    boolean confirmExchangeDiffPaid(String exchangeNo);
+
     /** 我的订单列表（status: null=全部） */
     CommonPage<StockOrder> getMyOrderList(Integer uid, Integer status, com.zbkj.common.request.PageParamRequest page);
 
