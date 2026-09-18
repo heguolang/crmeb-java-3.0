@@ -1,68 +1,81 @@
 <template>
   <div class="divBg addContent-wrapper">
     <el-card :bordered="false" shadow="never" class="mt16">
-      <div class="toolbar">
+      <!-- 顶部统计条 -->
+      <div class="summary-bar">目前有 <b>{{ total }}</b> 名订货商。</div>
+
+      <!-- 筛选面板 -->
+      <div class="filter-panel">
         <el-form inline size="small" @submit.native.prevent>
-          <el-form-item label="关键词">
-            <el-input v-model="tableFrom.keywords" placeholder="昵称/手机号" clearable style="width: 160px" @keyup.enter.native="getList" />
+          <el-form-item label="昵称/手机">
+            <el-input v-model="tableFrom.keywords" placeholder="昵称/手机" clearable style="width: 180px" @keyup.enter.native="getList" />
           </el-form-item>
           <el-form-item label="订货商UID">
-            <el-input v-model.number="tableFrom.uid" placeholder="UID精确查询" clearable style="width: 130px" @keyup.enter.native="getList" />
+            <el-input v-model.number="tableFrom.uid" placeholder="UID精确查询" clearable style="width: 150px" @keyup.enter.native="getList" />
           </el-form-item>
           <el-form-item label="层级">
-            <el-select v-model="tableFrom.levelId" placeholder="全部层级" clearable style="width: 140px">
+            <el-select v-model="tableFrom.levelId" placeholder="所有层级" clearable style="width: 140px">
               <el-option v-for="lv in levels" :key="lv.id" :label="lv.name" :value="lv.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="状态">
-            <el-select v-model="tableFrom.status" placeholder="全部" clearable style="width: 110px">
+            <el-select v-model="tableFrom.status" placeholder="所有状态" clearable style="width: 120px">
               <el-option label="启用" :value="1" />
               <el-option label="禁用" :value="0" />
             </el-select>
           </el-form-item>
-          <el-form-item>
-            <el-button type="primary" icon="el-icon-search" @click="getList">查询</el-button>
-          </el-form-item>
         </el-form>
-        <div class="toolbar-actions">
-          <el-button v-if="checkPermi(['admin:stock:agent:save'])" type="success" icon="el-icon-plus" @click="openEdit()">新增代理</el-button>
-          <el-button icon="el-icon-setting" @click="openLevel">层级设置</el-button>
+        <div class="filter-actions">
+          <el-button type="primary" icon="el-icon-search" @click="getList">查询</el-button>
+          <el-button icon="el-icon-refresh" @click="reset">重置</el-button>
+          <el-button v-if="checkPermi(['admin:stock:agent:save'])" type="primary" plain icon="el-icon-plus" @click="openEdit()">新增代理</el-button>
         </div>
       </div>
-      <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
-        <el-table-column prop="id" label="ID" width="38" />
-        <el-table-column prop="uid" label="UID" width="78" />
-        <el-table-column prop="nickname" label="代理用户" min-width="120">
+
+      <el-table class="admin-table table-lg" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
+        <!-- 头像 -->
+        <el-table-column label="头像" width="70" align="center">
           <template slot-scope="scope">
-            <div>{{ scope.row.nickname }}</div>
-            <div class=" grey">{{ scope.row.phone }}</div>
+            <img v-if="scope.row.avatar" :src="scope.row.avatar" class="avatar-img" />
+            <span v-else class="avatar-text">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="levelName" label="层级" width="72" />
-        <el-table-column label="上级" min-width="90">
-          <template slot-scope="scope">{{ scope.row.parentId > 0 ? scope.row.parentName : '总部' }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="70">
+        <!-- 代理信息：昵称/手机/ID/上级 多行 -->
+        <el-table-column label="代理信息" width="220">
           <template slot-scope="scope">
-            <span class="st-dot" :class="{ on: scope.row.status === 1 }"><i></i>{{ scope.row.status === 1 ? '启用' : '禁用' }}</span>
+            <div class="info-name">{{ scope.row.nickname }}</div>
+            <div class="info-line">{{ scope.row.phone || '—' }}</div>
+            <div class="info-line">ID：{{ scope.row.uid }}</div>
+            <div class="info-line">上级：<span :class="{ hq: !(scope.row.parentId > 0) }">{{ scope.row.parentId > 0 ? scope.row.parentName : '总部' }}</span></div>
           </template>
         </el-table-column>
-        <el-table-column prop="mark" label="备注" min-width="80" show-overflow-tooltip />
-        <el-table-column prop="createTime" label="创建时间" width="130" />
-        <el-table-column label="操作" width="210" fixed="right">
+        <!-- 等级/状态/备注：三列弹性均分剩余空间，避免备注单列独吞出现大片空白 -->
+        <el-table-column label="等级" min-width="100">
           <template slot-scope="scope">
-            <div class="op-links">
-              <template v-if="checkPermi(['admin:stock:agent:update'])">
-                <a class="op-link" @click="openEdit(scope.row)">修改</a>
-                <el-divider direction="vertical"></el-divider>
-                <a class="op-link" @click="onStatus(scope.row)">{{ scope.row.status === 1 ? '禁用' : '启用' }}</a>
-                <el-divider direction="vertical"></el-divider>
-              </template>
-              <a class="op-link" @click="openTeam(scope.row)">团队</a>
-              <el-divider direction="vertical"></el-divider>
-              <a class="op-link" @click="openStock(scope.row)">库存</a>
-              <el-divider direction="vertical"></el-divider>
-              <a v-if="checkPermi(['admin:stock:agent:delete'])" class="op-link" @click="onDelete(scope.row)">删除</a>
+            <span class="lv-chip">{{ scope.row.levelName || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" min-width="80">
+          <template slot-scope="scope">
+            <span class="st-dot st-dot-lg" :class="{ on: scope.row.status === 1 }"><i></i>{{ scope.row.status === 1 ? '启用' : '禁用' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" min-width="140" show-overflow-tooltip>
+          <template slot-scope="scope">{{ scope.row.mark || '—' }}</template>
+        </el-table-column>
+        <!-- 创建时间：右侧留白，与操作列拉开间距 -->
+        <el-table-column label="创建时间" width="150" class-name="time-cell">
+          <template slot-scope="scope">{{ fmtTime(scope.row.createTime) }}</template>
+        </el-table-column>
+        <!-- 操作：着色小按钮网格（左留间距拉开时间列，右留白使整组按钮左移） -->
+        <el-table-column label="操作" width="196" fixed="right" class-name="op-cell" label-class-name="op-cell">
+          <template slot-scope="scope">
+            <div class="op-grid">
+              <el-button size="mini" plain class="op-tag tint-primary" @click="openEdit(scope.row)">修改</el-button>
+              <el-button v-if="checkPermi(['admin:stock:agent:update'])" size="mini" plain class="op-tag tint-warn" @click="onStatus(scope.row)">{{ scope.row.status === 1 ? '禁用' : '启用' }}</el-button>
+              <el-button size="mini" plain class="op-tag tint-neutral" @click="openTeam(scope.row)">团队</el-button>
+              <el-button size="mini" plain class="op-tag tint-neutral" @click="openStock(scope.row)">库存</el-button>
+              <el-button v-if="checkPermi(['admin:stock:agent:delete'])" size="mini" plain class="op-tag tint-danger" @click="onDelete(scope.row)">删除</el-button>
             </div>
           </template>
         </el-table-column>
@@ -154,93 +167,11 @@
         <el-button size="small" type="primary" :loading="stockSaving" @click="submitStock">确定</el-button>
       </div>
     </el-dialog>
-
-    <!-- 层级设置弹窗 -->
-    <el-dialog title="层级设置" :visible.sync="levelVisible" width="1050px">
-      <el-table class="admin-table" :data="levels" size="small">
-        <el-table-column prop="name" label="层级名称" width="120">
-          <template slot-scope="scope"><el-input v-model="scope.row.name" size="mini" /></template>
-        </el-table-column>
-        <el-table-column prop="sort" label="排序（小=高）" width="120">
-          <template slot-scope="scope"><el-input-number v-model="scope.row.sort" :min="1" size="mini" style="width: 105px" /></template>
-        </el-table-column>
-        <el-table-column prop="discount" label="默认折扣%" width="115">
-          <template slot-scope="scope"><el-input-number v-model="scope.row.discount" :min="0" :max="100" :precision="2" size="mini" style="width: 105px" /></template>
-        </el-table-column>
-        <el-table-column label="升级条件" min-width="150">
-          <template slot-scope="scope">
-            <span>{{ condSummary(scope.row) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="peerRate" label="平级奖比例%" width="90">
-          <template slot-scope="scope">{{ scope.row.peerRate != null ? scope.row.peerRate : '-' }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template slot-scope="scope">
-            <div class="op-links">
-              <a class="op-link" @click="openCond(scope.row)">升级条件</a>
-              <el-divider direction="vertical"></el-divider>
-              <a class="op-link" @click="delLevel(scope.row)">删除</a>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div style="margin-top: 10px">
-        <el-button size="mini" @click="addLevel">+ 新增层级</el-button>
-      </div>
-      <div slot="footer">
-        <el-button size="small" @click="levelVisible = false">取消</el-button>
-        <el-button size="small" type="primary" @click="saveLevels">保存</el-button>
-      </div>
-    </el-dialog>
-
-    <!-- 升级条件编辑弹窗 -->
-    <el-dialog :title="'升级条件 - ' + (condLevel ? condLevel.name : '')" :visible.sync="condVisible" width="560px" append-to-body>
-      <el-form label-width="150px" size="small">
-        <el-form-item label="条件组合方式">
-          <el-radio-group v-model="condForm.conditionLogic">
-            <el-radio :label="0">任一满足（或）</el-radio>
-            <el-radio :label="1">全部满足（与）</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-divider />
-        <el-form-item label="自购消费达标">
-          <el-switch v-model="condForm.condSelfBuy" />
-          <el-input-number v-if="condForm.condSelfBuy" v-model="condForm.selfBuyAmount" :min="0" :precision="2" size="mini" style="width: 140px; margin-left: 10px" />
-          <span v-if="condForm.condSelfBuy" style="margin-left: 6px">元（累计已付款订单金额）</span>
-        </el-form-item>
-        <el-form-item label="直推订单业绩达标">
-          <el-switch v-model="condForm.condDirect" />
-          <el-input-number v-if="condForm.condDirect" v-model="condForm.directOrderAmount" :min="0" :precision="2" size="mini" style="width: 140px; margin-left: 10px" />
-          <span v-if="condForm.condDirect" style="margin-left: 6px">元（直接下级累计业绩）</span>
-        </el-form-item>
-        <el-form-item label="团队伞下业绩达标">
-          <el-switch v-model="condForm.condTeam" />
-          <el-input-number v-if="condForm.condTeam" v-model="condForm.teamAmount" :min="0" :precision="2" size="mini" style="width: 140px; margin-left: 10px" />
-          <span v-if="condForm.condTeam" style="margin-left: 6px">元（伞下全部下级业绩）</span>
-        </el-form-item>
-        <el-form-item label="购买指定商品">
-          <el-switch v-model="condForm.condProduct" />
-          <el-select v-if="condForm.condProduct" v-model="condForm.productIds" multiple filterable placeholder="选择指定商品" size="mini" style="width: 100%; margin-top: 6px">
-            <el-option v-for="p in productOptions" :key="p.id" :label="p.storeName" :value="p.id" />
-          </el-select>
-        </el-form-item>
-        <el-divider />
-        <el-form-item label="平级奖比例%">
-          <el-input-number v-model="condForm.peerRate" :min="0" :max="100" :precision="2" size="small" style="width: 140px" />
-          <span class="switch-tip">平推同级代理产生业绩时，本层级代理额外按此比例拿奖励（0=不拿）</span>
-        </el-form-item>
-      </el-form>
-      <div slot="footer">
-        <el-button size="small" @click="condVisible = false">取消</el-button>
-        <el-button size="small" type="primary" :loading="condSaving" @click="saveCond">保存条件</el-button>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
 <script>
-import { stockAgentListApi, stockAgentSaveApi, stockAgentUpdateApi, stockAgentStatusApi, stockAgentDeleteApi, stockAgentTeamApi, stockAgentVirtualAdjustApi, stockAgentPhysicalAdjustApi, stockLevelListApi, stockLevelSaveApi, stockLevelDeleteApi, stockProductListApi, stockProductSkuListApi } from '@/api/stock';
+import { stockAgentListApi, stockAgentSaveApi, stockAgentUpdateApi, stockAgentStatusApi, stockAgentDeleteApi, stockAgentTeamApi, stockAgentVirtualAdjustApi, stockAgentPhysicalAdjustApi, stockLevelListApi, stockProductListApi, stockProductSkuListApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -256,12 +187,7 @@ export default {
       productOptions: [],
       tableFrom: { page: 1, limit: 20, keywords: '', uid: null, levelId: null, status: null },
       editVisible: false,
-      levelVisible: false,
       editForm: { id: null, uid: '', levelId: null, parentId: 0, mark: '' },
-      condVisible: false,
-      condSaving: false,
-      condLevel: null,
-      condForm: {},
       teamVisible: false,
       teamAgent: null,
       teamRows: [],
@@ -274,6 +200,9 @@ export default {
   },
   methods: {
     checkPermi,
+    fmtTime(t) {
+      return t ? String(t).slice(0, 16) : '—';
+    },
     getList() {
       this.loading = true;
       stockAgentListApi(this.tableFrom).then(res => {
@@ -287,6 +216,10 @@ export default {
     },
     pageChange(page) {
       this.tableFrom.page = page;
+      this.getList();
+    },
+    reset() {
+      this.tableFrom = { page: 1, limit: 20, keywords: '', uid: null, levelId: null, status: null };
       this.getList();
     },
     openEdit(row) {
@@ -384,92 +317,6 @@ export default {
         this.stockSaving = false;
         this.stockVisible = false;
       }).catch(() => { this.stockSaving = false; });
-    },
-    openLevel() {
-      this.levelVisible = true;
-    },
-    condSummary(row) {
-      const parts = [];
-      if (row.condSelfBuy) parts.push('自购≥' + row.selfBuyAmount + '元');
-      if (row.condDirect) parts.push('直推业绩≥' + row.directOrderAmount + '元');
-      if (row.condTeam) parts.push('团队业绩≥' + row.teamAmount + '元');
-      if (row.condProduct) parts.push('购指定商品');
-      if (!parts.length) return '未设置';
-      return (row.conditionLogic === 1 ? '且：' : '或：') + parts.join(row.conditionLogic === 1 ? ' 且 ' : ' 或 ');
-    },
-    openCond(row) {
-      if (!row.id) return this.$message.warning('请先保存该层级后再设置升级条件');
-      this.condLevel = row;
-      let productIds = [];
-      if (row.upgradeProductIds) {
-        productIds = String(row.upgradeProductIds).split(',').map(s => parseInt(s)).filter(n => !isNaN(n));
-      }
-      this.condForm = {
-        condSelfBuy: !!row.condSelfBuy,
-        selfBuyAmount: row.selfBuyAmount != null ? Number(row.selfBuyAmount) : 0,
-        condDirect: !!row.condDirect,
-        directOrderAmount: row.directOrderAmount != null ? Number(row.directOrderAmount) : 0,
-        condTeam: !!row.condTeam,
-        teamAmount: row.teamAmount != null ? Number(row.teamAmount) : 0,
-        condProduct: !!row.condProduct,
-        productIds: productIds,
-        conditionLogic: row.conditionLogic != null ? row.conditionLogic : 0,
-        peerRate: row.peerRate != null ? Number(row.peerRate) : 0
-      };
-      if (!this.productOptions.length) {
-        stockProductListApi({ page: 1, limit: 500 }).then(res => {
-          this.productOptions = (res && res.list) || [];
-        });
-      }
-      this.condVisible = true;
-    },
-    saveCond() {
-      const f = this.condForm;
-      if (f.condSelfBuy && (!f.selfBuyAmount || f.selfBuyAmount <= 0)) return this.$message.error('请填写自购消费金额');
-      if (f.condDirect && (!f.directOrderAmount || f.directOrderAmount <= 0)) return this.$message.error('请填写直推业绩金额');
-      if (f.condTeam && (!f.teamAmount || f.teamAmount <= 0)) return this.$message.error('请填写团队业绩金额');
-      if (f.condProduct && (!f.productIds || !f.productIds.length)) return this.$message.error('请选择指定商品');
-      this.condSaving = true;
-      const data = {
-        id: this.condLevel.id,
-        condSelfBuy: f.condSelfBuy,
-        selfBuyAmount: f.selfBuyAmount || 0,
-        condDirect: f.condDirect,
-        directOrderAmount: f.directOrderAmount || 0,
-        condTeam: f.condTeam,
-        teamAmount: f.teamAmount || 0,
-        condProduct: f.condProduct,
-        upgradeProductIds: f.productIds.join(','),
-        conditionLogic: f.conditionLogic,
-        peerRate: f.peerRate || 0
-      };
-      stockLevelSaveApi(data).then(() => {
-        this.$message.success('升级条件已保存');
-        this.condSaving = false;
-        this.condVisible = false;
-        this.loadLevels();
-      }).catch(() => { this.condSaving = false; });
-    },
-    addLevel() {
-      this.levels.push({ id: null, name: '', sort: (this.levels.length + 1) * 10, discount: 90, isDel: 0, condSelfBuy: false, condDirect: false, condTeam: false, condProduct: false, conditionLogic: 0, peerRate: 0 });
-    },
-    delLevel(row) {
-      if (row.id) {
-        stockLevelDeleteApi(row.id).then(() => {
-          this.levels = this.levels.filter(l => l.id !== row.id);
-          this.$message.success('已删除');
-        });
-      } else {
-        this.levels = this.levels.filter(l => l !== row);
-      }
-    },
-    saveLevels() {
-      const tasks = this.levels.map(l => stockLevelSaveApi(l));
-      Promise.all(tasks).then(() => {
-        this.$message.success('已保存');
-        this.levelVisible = false;
-        this.loadLevels();
-      });
     }
   },
   mounted() {
@@ -480,9 +327,9 @@ export default {
 </script>
 
 <style scoped>
-/* 列表页通用规范（.toolbar/.pager/.admin-table/.op-wrap/.op-btn）已统一在 theme/styles.scss 全局定义 */
-.red { color: #f56c6c; }
-.grey { color: #999; font-size: 12px; }
+/* 列表页范式（.summary-bar/.filter-panel/.table-lg/.op-grid/.op-tag/头像/两行文本/圆点状态）
+   已统一提升到 theme/styles.scss 全局定义，本页只保留弹窗与团队表格等页面特有样式 */
+
 .switch-tip { margin-left: 12px; font-size: 12px; color: #909399; line-height: 1.5; }
 .team-tip { font-size: 13px; color: #909399; margin-bottom: 10px; }
 .depth-tag { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #ecf5ff; color: #409eff; font-size: 12px; }

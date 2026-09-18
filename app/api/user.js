@@ -537,3 +537,10 @@ export function agentApply(data) {
 export function getAgentRewardList(data) {
   return request.get("agent/reward/list", data);
 }
+
+/**
+ * 我的推荐人（上级推广人）
+*/
+export function getMyReferrer(){
+  return request.get('spread/parent');
+}

@@ -48,14 +48,19 @@
 					<text class='iconfont icon-dingdan'></text>
 					<view>推广人订单</view>
 				</navigator>
-				<navigator url='/pages/promoter/promoter_rank/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
-					<text class='iconfont icon-paihang1'></text>
-					<view>推广人排行</view>
-				</navigator>
-				<navigator url='/pages/promoter/commission_rank/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
-					<text class='iconfont icon-paihang'></text>
-					<view>佣金排行</view>
-				</navigator>
+			<!-- 推广人排行 / 佣金排行：2026-09-19 按需求隐藏 -->
+			<!-- <navigator url='/pages/promoter/promoter_rank/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
+				<text class='iconfont icon-paihang1'></text>
+				<view>推广人排行</view>
+			</navigator>
+			<navigator url='/pages/promoter/commission_rank/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
+				<text class='iconfont icon-paihang'></text>
+				<view>佣金排行</view>
+			</navigator> -->
+			<navigator url='/pages/promoter/my_referrer/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
+				<text class='iconfont icon-tuandui'></text>
+				<view>我的推荐人</view>
+			</navigator>
 			</view>
 		</view>
 	</view>

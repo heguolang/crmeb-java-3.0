@@ -14,6 +14,12 @@ export default {
   },
   children: [
     {
+      path: 'level',
+      component: () => import('@/views/stock/level/index'),
+      name: 'StockLevel',
+      meta: { title: '订货商级别设置', icon: '' }
+    },
+    {
       path: 'agent',
       component: () => import('@/views/stock/agent/index'),
       name: 'StockAgent',
@@ -54,12 +60,6 @@ export default {
       component: () => import('@/views/stock/setting/index'),
       name: 'StockSetting',
       meta: { title: '订货商设置', icon: '' }
-    },
-    {
-      path: 'level',
-      component: () => import('@/views/stock/level/index'),
-      name: 'StockLevel',
-      meta: { title: '层级显示', icon: '' }
     },
     {
       path: 'report',

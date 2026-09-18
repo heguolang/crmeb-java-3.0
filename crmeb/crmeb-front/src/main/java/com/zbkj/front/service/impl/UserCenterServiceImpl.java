@@ -1385,4 +1385,28 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         //删除验证码
         redisUtil.delete(SmsConstants.SMS_VALIDATE_PHONE + phone);
     }
+
+    /**
+     * 我的推荐人（上级推广人）
+     * @return hasReferrer/uid/nickname/avatar
+     */
+    @Override
+    public Map<String, Object> getMyReferrer() {
+        User user = userService.getInfo();
+        Map<String, Object> map = new LinkedHashMap<>();
+        if (user == null || user.getSpreadUid() == null || user.getSpreadUid() <= 0) {
+            map.put("hasReferrer", false);
+            return map;
+        }
+        User referrer = getById(user.getSpreadUid());
+        if (referrer == null) {
+            map.put("hasReferrer", false);
+            return map;
+        }
+        map.put("hasReferrer", true);
+        map.put("uid", referrer.getUid());
+        map.put("nickname", referrer.getNickname());
+        map.put("avatar", referrer.getAvatar());
+        return map;
+    }
 }

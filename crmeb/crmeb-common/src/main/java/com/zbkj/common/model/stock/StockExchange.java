@@ -154,4 +154,12 @@ public class StockExchange implements Serializable {
     @ApiModelProperty(value = "关联订货单号")
     @TableField(exist = false)
     private String orderNo;
+
+    @ApiModelProperty(value = "商品缩略图")
+    @TableField(exist = false)
+    private String productImage;
+
+    @ApiModelProperty(value = "库存类型：1=实体 2=虚拟（取自关联订货单）")
+    @TableField(exist = false)
+    private Integer stockType;
 }

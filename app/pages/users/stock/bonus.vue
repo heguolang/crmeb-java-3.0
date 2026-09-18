@@ -1,32 +1,72 @@
 <template>
   <view class="bonus-page">
-    <view class="balance-card">
-      <view class="bc-label">累计奖励（已并入佣金余额）</view>
-      <view class="bc-num">¥{{ bonus.totalReward || 0 }}</view>
-      <view class="bc-row">
-        <text>佣金余额 ¥{{ bonus.commission || 0 }}</text>
-      </view>
-      <button class="wd-btn" @click="goWithdraw">申请提现</button>
-    </view>
-    <view class="type-row">
-      <view class="type-item"><text class="ti-num">¥{{ bonus.diffReward || 0 }}</text><text class="ti-label">差价奖励</text></view>
-      <view class="type-item"><text class="ti-num">¥{{ bonus.ladderReward || 0 }}</text><text class="ti-label">阶梯奖励</text></view>
-      <view class="type-item"><text class="ti-num">¥{{ bonus.peerReward || 0 }}</text><text class="ti-label">平级奖励</text></view>
+    <!-- 顶部渐变头 -->
+    <view class="top-wrap">
+      <view class="top-deco d1"></view>
+      <view class="top-deco d2"></view>
+      <view class="page-title">奖金中心</view>
+      <view class="page-sub">奖励自动结算，可并入佣金申请提现</view>
     </view>
 
-    <view class="list-card">
-      <view class="tabs">
-        <view class="tab-item active">奖励明细</view>
-      </view>
-      <view v-for="r in rewards" :key="r.id" class="item-card">
-        <view class="item-line">
-          <text class="item-title">{{ typeName(r.type) }}</text>
-          <text class="item-money">+¥{{ r.rewardPrice }}</text>
+    <view class="page-body">
+      <!-- 余额卡：金色渐变 -->
+      <view class="balance-card">
+        <view class="bc-deco d1"></view>
+        <view class="bc-deco d2"></view>
+        <view class="bc-label">累计奖励（已并入佣金余额）</view>
+        <view class="bc-num">
+          <text class="bc-cny">¥</text>{{ bonus.totalReward || 0 }}
         </view>
-        <view class="item-sub">{{ r.mark }}</view>
-        <view class="item-sub grey">{{ r.createTime }}</view>
+        <view class="bc-row">
+          <text>佣金余额 ¥{{ bonus.commission || 0 }}</text>
+        </view>
+        <button class="wd-btn" @click="goWithdraw">申请提现</button>
       </view>
-      <view v-if="!rewards.length" class="empty">暂无奖励明细</view>
+
+      <!-- 奖励构成 -->
+      <view class="type-card">
+        <view class="type-item">
+          <text class="ti-num">¥{{ bonus.diffReward || 0 }}</text>
+          <text class="ti-label">差价奖励</text>
+        </view>
+        <view class="ti-divider"></view>
+        <view class="type-item">
+          <text class="ti-num">¥{{ bonus.ladderReward || 0 }}</text>
+          <text class="ti-label">阶梯奖励</text>
+        </view>
+        <view class="ti-divider"></view>
+        <view class="type-item">
+          <text class="ti-num">¥{{ bonus.peerReward || 0 }}</text>
+          <text class="ti-label">平级奖励</text>
+        </view>
+      </view>
+
+      <!-- 奖励明细 -->
+      <view class="section-title">
+        <view class="st-bar"></view>
+        <text class="st-text">奖励明细</text>
+        <view class="st-line"></view>
+      </view>
+
+      <view v-if="rewards.length" class="list-card">
+        <view v-for="r in rewards" :key="r.id" class="item-card">
+          <view class="ai-dot" :class="'t' + r.type"></view>
+          <view class="item-main">
+            <view class="item-line">
+              <text class="item-title">{{ typeName(r.type) }}</text>
+              <text class="item-money">+¥{{ r.rewardPrice }}</text>
+            </view>
+            <view class="item-sub">{{ r.mark }}</view>
+            <view class="item-sub grey">{{ r.createTime }}</view>
+          </view>
+        </view>
+      </view>
+
+      <view v-if="!rewards.length" class="empty-card">
+        <view class="empty-ico">奖</view>
+        <view class="empty-txt">暂无奖励明细</view>
+        <view class="empty-sub">团队订货产生差价 / 阶梯 / 平级奖励后自动入账</view>
+      </view>
     </view>
   </view>
 </template>
@@ -60,25 +100,166 @@
 </script>
 
 <style lang="scss" scoped>
-.bonus-page { min-height: 100vh; background: #f5f6f8; padding: 24rpx; padding-bottom: 60rpx; }
-.balance-card { background: linear-gradient(135deg, #e6b33c, #f0cd6e); border-radius: 20rpx; padding: 40rpx 36rpx; color: #fff; }
-.bc-label { font-size: 26rpx; opacity: .9; }
-.bc-num { font-size: 64rpx; font-weight: 700; margin: 12rpx 0; }
-.bc-row { display: flex; gap: 40rpx; font-size: 24rpx; opacity: .9; }
-.wd-btn { margin-top: 26rpx; background: #fff; color: #c98f1f; border-radius: 40rpx; font-size: 28rpx; }
-.type-row { display: flex; gap: 16rpx; margin: 20rpx 0; }
-.type-item { flex: 1; background: #fff; border-radius: 14rpx; padding: 24rpx 0; text-align: center; }
-.ti-num { display: block; font-size: 30rpx; font-weight: 600; color: #333; }
-.ti-label { font-size: 22rpx; color: #999; margin-top: 6rpx; }
-.list-card { background: #fff; border-radius: 14rpx; overflow: hidden; }
-.tabs { display: flex; border-bottom: 1rpx solid #f2f3f5; }
-.tab-item { flex: 1; text-align: center; padding: 24rpx 0; font-size: 27rpx; color: #666; }
-.tab-item.active { color: #e6b33c; font-weight: 600; border-bottom: 4rpx solid #e6b33c; }
-.item-card { padding: 24rpx 30rpx; border-bottom: 1rpx solid #f2f3f5; }
-.item-line { display: flex; justify-content: space-between; }
-.item-title { font-size: 27rpx; color: #333; }
-.item-money { font-size: 28rpx; color: #e93323; font-weight: 600; }
-.item-sub { font-size: 23rpx; color: #666; margin-top: 8rpx; }
-.grey { color: #b0b6bf; }
-.empty { text-align: center; color: #999; padding: 80rpx 0; font-size: 26rpx; background: #fff; }
+.bonus-page { min-height: 100vh; background: #f4f6fb; padding-bottom: 60rpx; }
+
+/* ---------- 顶部渐变头 ---------- */
+.top-wrap {
+  position: relative;
+  padding: 34rpx 32rpx 86rpx;
+  background: linear-gradient(160deg, #2b6fe3 0%, #4a9df8 70%, #6dadf9 100%);
+  overflow: hidden;
+  .top-deco { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.10); }
+  .d1 { width: 240rpx; height: 240rpx; right: -70rpx; top: -100rpx; background: rgba(255,255,255,0.14); }
+  .d2 { width: 130rpx; height: 130rpx; left: -50rpx; bottom: -30rpx; }
+}
+.page-title {
+  position: relative;
+  z-index: 1;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1rpx;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.12);
+}
+.page-sub {
+  position: relative;
+  z-index: 1;
+  margin-top: 12rpx;
+  font-size: 23rpx;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 1rpx;
+}
+
+.page-body {
+  position: relative;
+  z-index: 2;
+  padding: 0 24rpx;
+  margin-top: -56rpx;
+}
+
+/* ---------- 余额卡：金色渐变 + 光斑 ---------- */
+.balance-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(132deg, #d99f2b 0%, #e6b33c 50%, #f0cd6e 100%);
+  border-radius: 24rpx;
+  padding: 34rpx 34rpx 32rpx;
+  color: #fff;
+  box-shadow: 0 12rpx 32rpx rgba(217, 159, 43, 0.32);
+  .bc-deco { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.14); }
+  .d1 { width: 200rpx; height: 200rpx; right: -60rpx; top: -80rpx; }
+  .d2 { width: 110rpx; height: 110rpx; right: 90rpx; bottom: -50rpx; }
+}
+.bc-label { font-size: 24rpx; opacity: 0.92; position: relative; z-index: 1; }
+.bc-num {
+  font-size: 68rpx;
+  font-weight: 700;
+  margin: 14rpx 0 10rpx;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.10);
+  position: relative;
+  z-index: 1;
+}
+.bc-cny { font-size: 36rpx; font-weight: 600; margin-right: 6rpx; }
+.bc-row { font-size: 24rpx; opacity: 0.92; position: relative; z-index: 1; }
+.wd-btn {
+  position: relative;
+  z-index: 1;
+  margin-top: 26rpx;
+  background: #fff;
+  color: #c98f1f;
+  border-radius: 999rpx;
+  font-size: 27rpx;
+  font-weight: 600;
+  height: 72rpx;
+  line-height: 72rpx;
+  padding: 0 44rpx;
+  display: inline-block;
+  box-shadow: 0 8rpx 18rpx rgba(120, 84, 10, 0.18);
+  &::after { border: none; }
+}
+
+/* ---------- 奖励构成 ---------- */
+.type-card {
+  background: #fff;
+  border-radius: 22rpx;
+  padding: 30rpx 16rpx;
+  margin-top: 20rpx;
+  display: flex;
+  align-items: stretch;
+  box-shadow: 0 6rpx 22rpx rgba(31, 45, 61, 0.05);
+}
+.type-item { flex: 1; text-align: center; }
+.ti-num { display: block; font-size: 32rpx; font-weight: 700; color: #26324b; }
+.ti-label { font-size: 22rpx; color: #909399; margin-top: 8rpx; }
+.ti-divider { width: 1rpx; background: #eef1f6; }
+
+/* ---------- 奖励明细 ---------- */
+.section-title { display: flex; align-items: center; margin: 30rpx 6rpx 20rpx; }
+.st-bar {
+  width: 8rpx;
+  height: 30rpx;
+  border-radius: 4rpx;
+  background: linear-gradient(180deg, #4a9df8, #2b6fe3);
+  margin-right: 14rpx;
+}
+.st-text { font-size: 30rpx; font-weight: 700; color: #26324b; }
+.st-line { flex: 1; height: 1rpx; margin-left: 20rpx; background: linear-gradient(90deg, #e3e9f4, rgba(227, 233, 244, 0)); }
+
+.list-card {
+  background: #fff;
+  border-radius: 22rpx;
+  padding: 8rpx 24rpx;
+  box-shadow: 0 6rpx 22rpx rgba(31, 45, 61, 0.05);
+}
+.item-card {
+  display: flex;
+  align-items: flex-start;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #f2f4f8;
+  &:last-child { border-bottom: none; }
+}
+/* 类型色点 */
+.ai-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  margin-top: 12rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+  &.t1 { background: #f56c6c; box-shadow: 0 0 0 6rpx rgba(245, 108, 108, 0.14); }
+  &.t2 { background: #e6b33c; box-shadow: 0 0 0 6rpx rgba(230, 179, 60, 0.16); }
+  &.t3 { background: #2b6fe3; box-shadow: 0 0 0 6rpx rgba(43, 111, 227, 0.14); }
+  &.t4 { background: #909399; box-shadow: 0 0 0 6rpx rgba(144, 147, 153, 0.14); }
+}
+.item-main { flex: 1; overflow: hidden; }
+.item-line { display: flex; justify-content: space-between; align-items: center; }
+.item-title { font-size: 27rpx; color: #26324b; font-weight: 600; }
+.item-money { font-size: 30rpx; color: #e93323; font-weight: 700; }
+.item-sub { font-size: 23rpx; color: #606266; margin-top: 8rpx; }
+.grey { color: #a4adc0; }
+
+/* ---------- 空态白卡 ---------- */
+.empty-card {
+  background: #fff;
+  border-radius: 22rpx;
+  padding: 90rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 6rpx 22rpx rgba(31, 45, 61, 0.05);
+}
+.empty-ico {
+  width: 110rpx;
+  height: 110rpx;
+  border-radius: 50%;
+  background: #fdf5e2;
+  color: #d9a53c;
+  font-size: 44rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.empty-txt { margin-top: 26rpx; font-size: 28rpx; color: #3d4a5f; font-weight: 600; }
+.empty-sub { margin-top: 10rpx; font-size: 23rpx; color: #a4adc0; }
 </style>

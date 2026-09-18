@@ -330,7 +330,13 @@ public class UserController {
         }
         return CommonResult.failed();
     }
+
+    /**
+     * 我的推荐人（上级推广人）
+     */
+    @ApiOperation(value = "我的推荐人")
+    @RequestMapping(value = "/spread/parent", method = RequestMethod.GET)
+    public CommonResult<Map<String, Object>> getMyReferrer() {
+        return CommonResult.success(userCenterService.getMyReferrer());
+    }
 }
-
-
-

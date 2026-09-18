@@ -22,73 +22,76 @@
           </el-form-item>
           <el-form-item>
             <el-button type="primary" icon="el-icon-search" @click="getList">查询</el-button>
+            <el-button @click="reset">重置</el-button>
           </el-form-item>
         </el-form>
       </div>
 
-      <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
-        <el-table-column label="订货单号" min-width="112" show-overflow-tooltip>
-          <template slot-scope="scope">{{ scope.row.orderNo }}</template>
-        </el-table-column>
-        <el-table-column label="代理" min-width="100">
-          <template slot-scope="scope">
-            <div>{{ scope.row.nickname }}</div>
-            <div class="sub-text">{{ scope.row.levelName }} · UID {{ scope.row.uid }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="类型/库存" width="78">
-          <template slot-scope="scope">
-            <div>{{ orderTypeText(scope.row.orderType) }}</div>
-            <div class="sub-text">{{ stockTypeText(scope.row.stockType) }}库存</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="收货人" min-width="96">
-          <template slot-scope="scope">
-            <template v-if="scope.row.realName">
-              <div>{{ scope.row.realName }}</div>
-              <div class="sub-text">{{ scope.row.phone }}</div>
-            </template>
-            <span v-else class="sub-text">—</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="数量/金额" width="78">
-          <template slot-scope="scope">
-            <div>{{ scope.row.totalNum }} 件</div>
-            <div class="price-text">¥{{ scope.row.totalPrice }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="付款" width="78">
-          <template slot-scope="scope">
-            <span class="st-dot" :class="{ on: scope.row.payStatus === 1 }"><i></i>{{ scope.row.payStatus === 1 ? '已付' : '未付' }}</span>
-            <div class="sub-text">{{ payTypeText(scope.row.payType) }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="80">
-          <template slot-scope="scope">
-            <span class="st-dot" :class="{ warn: scope.row.status === 0 || scope.row.status === 1, on: scope.row.status === 4, danger: scope.row.status === -1 }"><i></i>{{ statusMap[scope.row.status] || scope.row.status }}</span>
-            <div v-if="scope.row.status === -1" class="reject-text">{{ scope.row.rejectReason }}</div>
-            <div v-else-if="scope.row.expressNum" class="sub-text">{{ scope.row.expressName }} {{ scope.row.expressNum }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="下单时间" min-width="108">
-          <template slot-scope="scope">{{ shortTime(scope.row.createTime) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
-          <template slot-scope="scope">
-            <div class="op-links">
-              <a class="op-link" @click="detail(scope.row)">明细</a>
-              <el-divider v-if="scope.row.status === 0 && checkPermi(['admin:stock:order:audit'])" direction="vertical"></el-divider>
-              <a v-if="scope.row.status === 0 && checkPermi(['admin:stock:order:audit'])" class="op-link" @click="openAudit(scope.row)">介入审核</a>
-              <el-divider v-if="scope.row.status === 1 && checkPermi(['admin:stock:order:pay'])" direction="vertical"></el-divider>
-              <a v-if="scope.row.status === 1 && checkPermi(['admin:stock:order:pay'])" class="op-link" @click="onPay(scope.row)">确认收款</a>
-              <el-divider v-if="scope.row.status === 2 && checkPermi(['admin:stock:order:send'])" direction="vertical"></el-divider>
-              <a v-if="scope.row.status === 2 && checkPermi(['admin:stock:order:send'])" class="op-link" @click="openSend(scope.row)">发货</a>
-              <el-divider v-if="scope.row.status === 3 && checkPermi(['admin:stock:order:send'])" direction="vertical"></el-divider>
-              <a v-if="scope.row.status === 3 && checkPermi(['admin:stock:order:send'])" class="op-link" @click="onFinish(scope.row)">标记完成</a>
+      <!-- 订单卡片列表 -->
+      <div v-loading="loading" class="order-list">
+        <div v-for="row in tableData" :key="row.id" class="order-card">
+          <!-- 卡片头：单号 + 时间 + 状态 -->
+          <div class="card-head">
+            <span class="head-label">订单编号：</span>
+            <span class="head-no">{{ row.orderNo }}</span>
+            <span class="head-time">{{ shortTime(row.createTime) }}</span>
+            <span class="head-status" :class="statusClass(row.status)">{{ statusMap[row.status] || row.status }}</span>
+            <span v-if="row.status === -1 && row.rejectReason" class="head-reason" :title="row.rejectReason">（{{ row.rejectReason }}）</span>
+          </div>
+          <!-- 卡片体：商品 | 收货 | 金额 | 代理 | 付款/状态 | 操作 -->
+          <div class="card-body">
+            <div class="col col-goods">
+              <div v-for="(g, gi) in (row.productList || [])" :key="gi" class="goods-item">
+                <img v-if="g.image" :src="g.image" class="goods-img" />
+                <div class="goods-info">
+                  <div class="goods-name" :title="g.productName">{{ g.productName }}</div>
+                  <div class="goods-num">¥{{ fmtMoney(g.price) }} × {{ g.num }}</div>
+                </div>
+              </div>
+              <div v-if="!(row.productList || []).length" class="sub-text">—</div>
             </div>
-          </template>
-        </el-table-column>
-      </el-table>
+            <div class="col col-recv">
+              <template v-if="row.realName">
+                <div class="recv-name">{{ row.realName }}<span class="sub-text recv-phone">{{ row.phone }}</span></div>
+                <div class="recv-addr" :title="row.userAddress">{{ row.userAddress || '—' }}</div>
+              </template>
+              <div v-else class="sub-text">无需收货信息</div>
+              <div class="recv-tags">
+                <span class="mini-chip">{{ orderTypeText(row.orderType) }}</span>
+                <span class="mini-chip">{{ stockTypeText(row.stockType) }}库存</span>
+              </div>
+            </div>
+            <div class="col col-amount">
+              <div class="amount">¥{{ fmtMoney(row.totalPrice) }}</div>
+              <div class="sub-text">共 {{ row.totalNum }} 件</div>
+            </div>
+            <div class="col col-agent">
+              <div class="agent-line">
+                <span class="avatar">{{ (row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
+                <div class="agent-text">
+                  <div class="agent-name" :title="row.nickname">{{ row.nickname }}</div>
+                  <div class="sub-text">{{ row.levelName }} · UID {{ row.uid }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="col col-state">
+              <span class="state-text" :class="statusClass(row.status)">{{ statusMap[row.status] || row.status }}</span>
+              <div class="sub-text">{{ row.payStatus === 1 ? '已付款 · ' + payTypeText(row.payType) : '未付款' }}</div>
+              <div v-if="row.expressNum" class="sub-text ellipsis" :title="(row.expressName || '') + ' ' + row.expressNum">{{ row.expressName }} {{ row.expressNum }}</div>
+            </div>
+            <div class="col col-ops">
+              <el-button size="mini" type="primary" plain class="op-btn" @click="detail(row)">查看明细</el-button>
+              <el-button v-if="row.status === 0 && checkPermi(['admin:stock:order:audit'])" size="mini" type="warning" plain class="op-btn" @click="openAudit(row)">介入审核</el-button>
+              <el-button v-if="row.status === 1 && checkPermi(['admin:stock:order:pay'])" size="mini" type="warning" plain class="op-btn" @click="onPay(row)">确认收款</el-button>
+              <el-button v-if="row.status === 2 && checkPermi(['admin:stock:order:send'])" size="mini" type="primary" plain class="op-btn" @click="openSend(row)">订单发货</el-button>
+              <el-button v-if="row.status === 3 && checkPermi(['admin:stock:order:send'])" size="mini" type="success" plain class="op-btn" @click="onFinish(row)">标记完成</el-button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="!tableData.length && !loading" class="empty-tip">暂无订单</div>
+      </div>
+
       <div class="pager">
         <el-pagination background :page-size="tableFrom.limit" :current-page="tableFrom.page" layout="total, prev, pager, next, jumper" :total="total" @current-change="pageChange" />
       </div>
@@ -144,21 +147,30 @@
     </el-dialog>
 
     <!-- 发货弹窗：复用原生发货（物流公司下拉 + 收货信息） -->
-    <el-dialog title="订单发货" :visible.sync="sendVisible" width="560px">
-      <div v-if="sendRow" class="recipient-box">
-        <div class="recipient-row"><span class="label">收货人：</span><span>{{ sendRow.realName || '-' }}</span></div>
-        <div class="recipient-row"><span class="label">联系电话：</span><span>{{ sendRow.phone || '-' }}</span></div>
-        <div class="recipient-row"><span class="label">收货地址：</span><span>{{ sendRow.userAddress || '-' }}</span></div>
-        <el-button size="mini" plain class="copy-btn" @click="copyRecipient">一键复制</el-button>
+    <el-dialog title="订单发货" :visible.sync="sendVisible" width="520px">
+      <!-- 收货信息卡 -->
+      <div v-if="sendRow" class="ship-recipient">
+        <i class="el-icon-location-outline rc-icon"></i>
+        <div class="rc-main">
+          <div class="rc-line1">
+            <b>{{ sendRow.realName || '-' }}</b>
+            <span class="rc-phone">{{ sendRow.phone || '-' }}</span>
+          </div>
+          <div class="rc-addr" :title="sendRow.userAddress">{{ sendRow.userAddress || '-' }}</div>
+        </div>
+        <el-button size="mini" plain icon="el-icon-document-copy" class="rc-copy" @click="copyRecipient">复制</el-button>
       </div>
-      <el-form label-width="100px" size="small" style="margin-top: 14px">
-        <el-form-item label="配送方式">
-          <el-radio-group v-model="sendForm.deliveryType" @change="onDeliveryTypeChange">
-            <el-radio label="express">快递发货</el-radio>
-            <el-radio label="send">送货上门</el-radio>
-            <el-radio label="fictitious">虚拟发货</el-radio>
-          </el-radio-group>
-        </el-form-item>
+
+      <!-- 配送方式选择卡 -->
+      <div class="ship-types">
+        <div v-for="t in deliveryTypes" :key="t.value" class="ship-type" :class="{ active: sendForm.deliveryType === t.value }" @click="setDeliveryType(t.value)">
+          <i :class="t.icon" class="st-icon"></i>
+          <div class="st-name">{{ t.name }}</div>
+          <div class="st-desc">{{ t.desc }}</div>
+        </div>
+      </div>
+
+      <el-form label-width="90px" size="small" style="margin-top: 16px">
         <template v-if="sendForm.deliveryType === 'express'">
           <el-form-item label="快递公司">
             <el-select v-model="sendForm.expressCode" filterable placeholder="请选择快递公司" style="width: 100%" @change="onExpressChange">
@@ -178,7 +190,7 @@
           </el-form-item>
         </template>
         <el-form-item v-else label="虚拟发货">
-          <span class="sub-text">无需物流，直接标记已发货</span>
+          <span class="sub-text">无需物流，确认后直接标记已发货</span>
         </el-form-item>
       </el-form>
       <div slot="footer">
@@ -209,6 +221,11 @@ export default {
       sendRow: null,
       expressOptions: [],
       sendForm: { deliveryType: 'express', expressCode: '', expressName: '', expressNum: '', deliveryName: '', deliveryTel: '' },
+      deliveryTypes: [
+        { value: 'express', name: '快递发货', desc: '填写快递单号', icon: 'el-icon-truck' },
+        { value: 'send', name: '送货上门', desc: '登记送货人', icon: 'el-icon-user' },
+        { value: 'fictitious', name: '虚拟发货', desc: '无需物流', icon: 'el-icon-message' }
+      ],
       auditVisible: false,
       auditRow: null,
       auditForm: { status: 1, reason: '' }
@@ -229,9 +246,17 @@ export default {
       if (t === 2) return '记账欠款';
       return t === 1 ? '微信支付' : '未支付';
     },
+    // 状态配色：待审核/待付款橙、待发货/待收货蓝、已完成绿、已驳回红
+    statusClass(s) {
+      return { 0: 'is-warn', 1: 'is-warn', 2: 'is-info', 3: 'is-info', 4: 'is-ok', '-1': 'is-danger' }[s] || '';
+    },
     shortTime(t) {
       if (!t) return '-';
       return String(t).substring(0, 16);
+    },
+    fmtMoney(v) {
+      const n = Number(v || 0);
+      return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     },
     getList() {
       this.loading = true;
@@ -245,8 +270,9 @@ export default {
       this.tableFrom.page = page;
       this.getList();
     },
-    statusTag(s) {
-      return { 0: 'warning', 1: 'warning', 2: 'primary', 3: 'primary', 4: 'success', '-1': 'danger' }[s] || 'info';
+    reset() {
+      this.tableFrom = { page: 1, limit: 20, orderNo: '', uid: null, status: null, payStatus: null };
+      this.getList();
     },
     detail(row) {
       this.detailRow = row;
@@ -298,6 +324,12 @@ export default {
       this.sendForm.expressNum = '';
       this.sendForm.deliveryName = '';
       this.sendForm.deliveryTel = '';
+    },
+    // 点击方式卡切换配送方式（重复点击同项不重置表单）
+    setDeliveryType(v) {
+      if (this.sendForm.deliveryType === v) return;
+      this.sendForm.deliveryType = v;
+      this.onDeliveryTypeChange();
     },
     copyRecipient() {
       const row = this.sendRow || {};
@@ -361,18 +393,307 @@ export default {
 
 <style scoped>
 .sub-text {
-  color: #999;
-  font-size: 12px;
+  color: #909399;
+  font-size: 13px;
+  line-height: 20px;
 }
-.price-text {
-  color: #e93323;
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 订单卡片列表 ===== */
+.order-list {
+  min-height: 120px;
+}
+.order-card {
+  margin-bottom: 14px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+.order-card:hover {
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* 卡片头 */
+.card-head {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 40px;
+  background: #f0f4fb;
+  font-size: 13px;
+}
+.head-label {
+  color: #606266;
+}
+.head-no {
   font-weight: 600;
-  font-size: 12px;
+  color: #303133;
+  font-size: 14px;
 }
-.reject-text {
+.head-time {
+  margin-left: 14px;
+  color: #909399;
+}
+.head-status {
+  margin-left: 14px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.head-status.is-warn { color: #ff9900; }
+.head-status.is-info { color: #409eff; }
+.head-status.is-ok { color: #19be6b; }
+.head-status.is-danger { color: #f56c6c; }
+.head-reason {
   color: #f56c6c;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 卡片体：网格分列，列间细分隔线 */
+.card-body {
+  display: grid;
+  grid-template-columns: minmax(250px, 1.5fr) 220px 130px 190px 160px 112px;
+  align-items: center;
+  padding: 16px 0;
+}
+.col {
+  padding: 4px 16px;
+  min-width: 0;
+  align-self: center;
+}
+.col + .col {
+  border-left: 1px solid #f2f4f7;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 商品列 */
+.goods-item {
+  display: flex;
+  align-items: center;
+  margin: 4px 0;
+}
+.goods-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f5f7fa;
+  margin-right: 10px;
+}
+.goods-info {
+  min-width: 0;
+}
+.goods-name {
+  font-size: 14px;
+  color: #303133;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.goods-num {
+  font-size: 13px;
+  color: #909399;
+  line-height: 20px;
+  margin-top: 2px;
+}
+
+/* 收货列 */
+.recv-name {
+  font-size: 14px;
+  color: #303133;
+  line-height: 22px;
+}
+.recv-phone {
+  margin-left: 8px;
+}
+.recv-addr {
+  font-size: 13px;
+  color: #606266;
+  line-height: 20px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.recv-tags {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+}
+.mini-chip {
+  padding: 0 8px;
+  border-radius: 3px;
+  background: #f5f7fa;
+  border: 1px solid #ebeef5;
+  color: #909399;
   font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+/* 金额列 */
+.col-amount {
+  text-align: center;
+}
+.amount {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e93323;
+  font-family: DIN, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 26px;
+}
+
+/* 代理列 */
+.agent-line {
+  display: flex;
+  align-items: center;
+}
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ecf5ff;
+  color: #409eff;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+.agent-text {
+  min-width: 0;
+}
+.agent-name {
+  font-size: 14px;
+  color: #303133;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 付款/状态列 */
+.state-text {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+}
+.state-text.is-warn { color: #ff9900; }
+.state-text.is-info { color: #409eff; }
+.state-text.is-ok { color: #19be6b; }
+.state-text.is-danger { color: #f56c6c; }
+
+/* 操作列：按钮竖排 */
+.col-ops {
+  align-items: center;
+}
+.op-btn {
+  width: 92px;
+  margin: 4px 0 !important;
+  margin-left: 0 !important;
+  display: block;
+}
+.empty-tip {
+  text-align: center;
+  color: #909399;
+  font-size: 13px;
+  padding: 32px 0;
+}
+
+/* ===== 发货弹窗 ===== */
+/* 收货信息卡 */
+.ship-recipient {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: #f0f4fb;
+  border-radius: 6px;
+}
+.rc-icon {
+  font-size: 18px;
+  color: #409eff;
+  margin: 2px 10px 0 0;
+}
+.rc-main {
+  flex: 1;
+  min-width: 0;
+}
+.rc-line1 {
+  font-size: 13px;
+  color: #303133;
+  line-height: 20px;
+}
+.rc-phone {
+  margin-left: 8px;
+  color: #909399;
+}
+.rc-addr {
+  font-size: 12px;
+  color: #606266;
   line-height: 18px;
   margin-top: 2px;
+}
+.rc-copy {
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+/* 配送方式选择卡 */
+.ship-types {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.ship-type {
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ship-type:hover {
+  border-color: #c6e2ff;
+}
+.ship-type.active {
+  border-color: #409eff;
+  background: #f0f7ff;
+}
+.st-icon {
+  font-size: 20px;
+  color: #909399;
+}
+.ship-type.active .st-icon {
+  color: #409eff;
+}
+.st-name {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #303133;
+  font-weight: 600;
+}
+.ship-type.active .st-name {
+  color: #409eff;
+}
+.st-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #c0c4cc;
 }
 </style>

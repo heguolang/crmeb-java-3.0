@@ -2072,13 +2072,30 @@ public class StockOrderServiceImpl implements StockOrderService {
             userMap.put(u.getUid(), u);
         }
         HashMap<Integer, String> orderNoMap = new HashMap<>();
+        HashMap<Integer, Integer> stockTypeMap = new HashMap<>();
         for (StockOrder o : stockOrderDao.selectBatchIds(orderIds)) {
             orderNoMap.put(o.getId(), o.getOrderNo());
+            stockTypeMap.put(o.getId(), o.getStockType());
+        }
+        // 商品缩略图
+        List<Integer> productIds = new ArrayList<>();
+        for (StockExchange e : list) {
+            if (e.getProductId() != null && !productIds.contains(e.getProductId())) {
+                productIds.add(e.getProductId());
+            }
+        }
+        HashMap<Integer, String> productImageMap = new HashMap<>();
+        if (!productIds.isEmpty()) {
+            for (StoreProduct p : storeProductService.listByIds(productIds)) {
+                productImageMap.put(p.getId(), p.getImage());
+            }
         }
         for (StockExchange e : list) {
             User u = userMap.get(e.getUid());
             e.setNickname(u == null ? "" : u.getNickname());
             e.setOrderNo(orderNoMap.get(e.getOrderId()) == null ? "" : orderNoMap.get(e.getOrderId()));
+            e.setProductImage(productImageMap.get(e.getProductId()) == null ? "" : productImageMap.get(e.getProductId()));
+            e.setStockType(stockTypeMap.get(e.getOrderId()));
         }
     }
 }

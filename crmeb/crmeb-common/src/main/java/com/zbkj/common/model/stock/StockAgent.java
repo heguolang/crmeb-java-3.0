@@ -69,6 +69,10 @@ public class StockAgent implements Serializable {
     @TableField(exist = false)
     private String phone;
 
+    @ApiModelProperty(value = "用户头像")
+    @TableField(exist = false)
+    private String avatar;
+
     @ApiModelProperty(value = "上级昵称")
     @TableField(exist = false)
     private String parentName;

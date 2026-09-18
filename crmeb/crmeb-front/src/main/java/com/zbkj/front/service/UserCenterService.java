@@ -228,4 +228,10 @@ public interface UserCenterService extends IService<User> {
      * 支付宝充值
      */
     OrderPayResultResponse aliPayRecharge(UserRechargeRequest request);
+
+    /**
+     * 我的推荐人（上级推广人）
+     * @return hasReferrer/uid/nickname/avatar
+     */
+    java.util.Map<String, Object> getMyReferrer();
 }

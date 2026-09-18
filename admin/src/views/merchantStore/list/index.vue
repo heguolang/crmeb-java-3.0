@@ -1,62 +1,65 @@
 <template>
   <div class="divBg addContent-wrapper">
     <el-card :bordered="false" shadow="never" class="mt16">
-      <div class="toolbar">
+      <!-- 顶部统计条 -->
+      <div class="summary-bar">目前有 <b>{{ total }}</b> 家门店。</div>
+
+      <!-- 筛选面板 -->
+      <div class="filter-panel">
         <el-form inline size="small" @submit.native.prevent>
           <el-form-item label="关键词">
-            <el-input v-model="tableFrom.keywords" placeholder="门店名称/地址/电话" clearable style="width: 200px" @keyup.enter.native="getList" />
+            <el-input v-model="tableFrom.keywords" placeholder="门店名称/地址/电话" clearable style="width: 180px" @keyup.enter.native="getList" />
           </el-form-item>
           <el-form-item label="状态">
-            <el-select v-model="tableFrom.status" placeholder="全部" clearable style="width: 110px">
+            <el-select v-model="tableFrom.status" placeholder="全部" clearable style="width: 120px">
               <el-option label="启用" :value="1" />
               <el-option label="禁用" :value="0" />
             </el-select>
           </el-form-item>
-          <el-form-item>
-            <el-button type="primary" icon="el-icon-search" @click="getList">查询</el-button>
-          </el-form-item>
         </el-form>
-        <div class="toolbar-actions">
-          <el-button v-if="checkPermi(['admin:merchant:store:save'])" type="success" icon="el-icon-plus" @click="openEdit()">新增门店</el-button>
+        <div class="filter-actions">
+          <el-button type="primary" icon="el-icon-search" @click="getList">查询</el-button>
+          <el-button icon="el-icon-refresh" @click="reset">重置</el-button>
+          <el-button v-if="checkPermi(['admin:merchant:store:save'])" type="primary" plain icon="el-icon-plus" @click="openEdit()">新增门店</el-button>
         </div>
       </div>
-      <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
-        <el-table-column label="门店" min-width="205">
+      <el-table class="admin-table table-lg" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
+        <!-- 门店：名称 + 地址 两行 -->
+        <el-table-column label="门店" min-width="160">
           <template slot-scope="scope">
-            <div class="store-name">{{ scope.row.name }}</div>
-            <div class="store-addr">{{ scope.row.address }}</div>
+            <div class="info-name">{{ scope.row.name }}</div>
+            <div class="info-line">{{ scope.row.address }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="phone" label="电话" width="108" />
-        <el-table-column prop="dayTime" label="营业时间" width="126" show-overflow-tooltip />
-        <el-table-column label="履约服务" width="136">
+        <!-- 电话：132 保证 13~14 位号码不折行 -->
+        <el-table-column prop="phone" label="电话" width="132" />
+        <el-table-column prop="dayTime" label="营业时间" width="115" show-overflow-tooltip />
+        <!-- 履约服务/负责人/状态：弹性分摊 -->
+        <el-table-column label="履约服务" min-width="115">
           <template slot-scope="scope">
             <span v-if="scope.row.selfPickup" class="svc-tag svc-pickup">自提</span>
             <span v-if="scope.row.delivery" class="svc-tag svc-delivery">配送 {{ scope.row.deliveryRadius }}km</span>
-            <span v-if="!scope.row.selfPickup && !scope.row.delivery" class="grey">未开启</span>
+            <span v-if="!scope.row.selfPickup && !scope.row.delivery" class="info-line">未开启</span>
           </template>
         </el-table-column>
-        <el-table-column prop="leaderName" label="负责人" min-width="100" show-overflow-tooltip>
+        <el-table-column prop="leaderName" label="负责人" min-width="95" show-overflow-tooltip>
           <template slot-scope="scope">
             <span v-if="scope.row.leaderUid > 0">{{ scope.row.leaderName }}（{{ scope.row.leaderUid }}）</span>
-            <span v-else class="grey">未绑定</span>
+            <span v-else class="info-line">未绑定</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="70">
+        <el-table-column label="状态" min-width="85">
           <template slot-scope="scope">
-            <span class="st-dot" :class="{ on: scope.row.isShow }"><i></i>{{ scope.row.isShow ? '启用' : '禁用' }}</span>
+            <span class="st-dot st-dot-lg" :class="{ on: scope.row.isShow }"><i></i>{{ scope.row.isShow ? '启用' : '禁用' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="140" fixed="right">
+        <!-- 操作：彩色小按钮网格 -->
+        <el-table-column label="操作" width="196" fixed="right" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
-            <div class="op-links">
-              <template v-if="checkPermi(['admin:merchant:store:update'])">
-                <a class="op-link" @click="openEdit(scope.row)">修改</a>
-                <el-divider direction="vertical"></el-divider>
-                <a class="op-link" @click="onStatus(scope.row)">{{ scope.row.isShow ? '禁用' : '启用' }}</a>
-                <el-divider direction="vertical"></el-divider>
-              </template>
-              <a v-if="checkPermi(['admin:merchant:store:delete'])" class="op-link" @click="onDelete(scope.row)">删除</a>
+            <div class="op-grid">
+              <el-button v-if="checkPermi(['admin:merchant:store:update'])" size="mini" plain class="op-tag tint-primary" @click="openEdit(scope.row)">修改</el-button>
+              <el-button v-if="checkPermi(['admin:merchant:store:update'])" size="mini" plain class="op-tag tint-warn" @click="onStatus(scope.row)">{{ scope.row.isShow ? '禁用' : '启用' }}</el-button>
+              <el-button v-if="checkPermi(['admin:merchant:store:delete'])" size="mini" plain class="op-tag tint-danger" @click="onDelete(scope.row)">删除</el-button>
             </div>
           </template>
         </el-table-column>
@@ -181,6 +184,10 @@ export default {
       this.tableFrom.page = page;
       this.getList();
     },
+    reset() {
+      this.tableFrom = { page: 1, limit: 20, keywords: '', status: null };
+      this.getList();
+    },
     openEdit(row) {
       if (row) {
         merchantStoreInfoApi(row.id).then(res => {
@@ -234,13 +241,10 @@ export default {
 </script>
 
 <style scoped>
-/* 列表页通用规范（.toolbar/.pager/.admin-table/.op-links/.st-dot）已统一在 theme/styles.scss 全局定义 */
-.grey { color: #999; font-size: 12px; }
+/* 列表范式（summary-bar/filter-panel/table-lg/op-grid/info-* 等）已全局定义于 theme/styles.scss */
 .tc { text-align: center; }
 .switch-tip { margin-left: 10px; color: #999; font-size: 12px; }
-.store-name { font-size: 13px; font-weight: 600; color: #303133; line-height: 18px; }
-.store-addr { font-size: 12px; color: #606266; line-height: 16px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.svc-tag { display: inline-block; font-size: 11px; line-height: 18px; padding: 0 6px; border-radius: 3px; margin-right: 6px; white-space: nowrap; }
+.svc-tag { display: inline-block; font-size: 12px; line-height: 20px; padding: 0 6px; border-radius: 3px; margin-right: 6px; white-space: nowrap; }
 .svc-pickup { background: #e8f8f0; color: #0f9a58; }
 .svc-delivery { background: #e8f1ff; color: #0256ff; }
 </style>

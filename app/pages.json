@@ -958,6 +958,19 @@
 					}
 				},
 				{
+					"path": "my_referrer/index",
+					"style": {
+						"navigationBarTitleText": "我的推荐人",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
 					"path": "commission_rank/index",
 					"style": {
 						"navigationBarTitleText": "佣金排行",

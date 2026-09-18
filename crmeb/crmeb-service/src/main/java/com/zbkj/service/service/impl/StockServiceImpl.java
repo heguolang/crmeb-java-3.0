@@ -1373,6 +1373,7 @@ public class StockServiceImpl implements StockService {
             User u = userMap.get(a.getUid());
             a.setNickname(u == null ? "" : u.getNickname());
             a.setPhone(u == null ? "" : u.getPhone());
+            a.setAvatar(u == null ? "" : u.getAvatar());
             a.setParentName(parentNameMap.get(a.getParentId()) == null ? "总部" : parentNameMap.get(a.getParentId()));
         }
     }

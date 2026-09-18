@@ -876,7 +876,8 @@ body {
    · .toolbar    筛选工具栏：左筛选条件 + 右主操作按钮，底部细分隔线
    · .admin-table 表格：统一表头（浅灰底/深色加粗）
    · .pager      分页右对齐
-   · .op-links     操作列：轻量文字链 + 细分隔线，语义色（默认蓝/警告橙/危险红）
+   · .op-links     操作列（已废弃 2026-09-19）：轻量文字链 + 细分隔线，仅存量页面保留
+   · 列表页样板范式见文件末尾「订货商管理页范式」：.summary-bar/.filter-panel/.table-lg/.op-grid
    ============================================================ */
 .toolbar {
   display: flex;
@@ -917,6 +918,8 @@ body {
   margin-top: 14px;
 }
 
+/* ⚠️ DEPRECATED（2026-09-19）：操作列一律改用下方 .op-grid + .op-tag 彩色小按钮网格。
+   此处仅为存量页面保留，不再用于任何新增/改造页面。 */
 .op-links {
   display: flex;
   align-items: center;
@@ -965,5 +968,228 @@ body {
 
   &.danger i {
     background: #f56c6c;
+  }
+
+  /* 放大版：字号对齐 14px 单元格，圆点同步放大 */
+  &.st-dot-lg {
+    font-size: 14px;
+  }
+
+  &.st-dot-lg i {
+    width: 7px;
+    height: 7px;
+    margin-right: 7px;
+  }
+}
+
+/* ============================================================
+   列表页样板范式（2026-09-19 定稿，样板 = views/stock/agent/index.vue）
+   新增/改造列表页一律照这套：统计条 → 筛选面板 → 表格 → 分页
+   全局单一来源，页面只加 class，禁止再写 scoped 副本
+   ============================================================ */
+
+/* 顶部统计条：白底 + 左侧蓝色强调条，数字主题蓝 */
+.summary-bar {
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-left: 3px solid #409eff;
+  border-radius: 4px;
+  font-size: 15px;
+  color: #606266;
+  margin-bottom: 14px;
+
+  b {
+    color: #409eff;
+    font-size: 17px;
+    font-weight: 400;
+    margin: 0 2px;
+  }
+}
+
+/* 筛选面板：浅灰底块，与白卡片区分层次 */
+.filter-panel {
+  border: 1px solid #ebeef5;
+  background: #fafbfc;
+  border-radius: 4px;
+  padding: 16px 16px 0;
+  margin-bottom: 14px;
+
+  .el-form-item {
+    margin-right: 24px;
+    margin-bottom: 12px;
+  }
+
+  /* el-form--small 的内置小字号会压过普通选择器，必须 !important */
+  .el-form-item__label,
+  .el-input__inner,
+  .el-button {
+    font-size: 14px !important;
+  }
+}
+
+/* 筛选按钮行：居中 + 上方虚线分隔 */
+.filter-actions {
+  text-align: center;
+  padding: 12px 0 16px;
+  border-top: 1px dashed #ebeef5;
+
+  .el-button {
+    font-size: 14px !important;
+  }
+}
+
+/* 表格放大一档（与 .admin-table 组合使用）：表头/单元格 14px，单元格上下留白 10px */
+.table-lg {
+  &.el-table th.el-table__cell .cell {
+    font-size: 14px;
+  }
+
+  &.el-table td.el-table__cell {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  &.el-table td.el-table__cell .cell {
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  /* 倒数第二列右留白 + 末列左留白 = 两列拉开约 56px；末列右留白使按钮组整体左移 */
+  td.time-cell .cell {
+    padding-right: 24px !important;
+  }
+
+  td.op-cell .cell {
+    padding-left: 32px !important;
+    padding-right: 18px !important;
+  }
+
+  /* 表头同步同样的左留白：让"操作"标题与按钮组左缘对齐 */
+  th.op-cell .cell {
+    padding-left: 32px !important;
+  }
+}
+
+/* 头像：白色描边环，从背景里"立"起来 */
+.avatar-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f5f7fa;
+  box-shadow: 0 0 0 1px #ebeef5;
+}
+
+/* 无头像：柔和蓝底 + 深蓝字（非实底） */
+.avatar-text {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e8f3ff;
+  color: #1a73e8;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px #cfe4ff;
+}
+
+/* 主信息两行结构：首行主信息 + 次行灰色补充 */
+.info-name {
+  font-size: 14px;
+  color: #303133;
+  line-height: 24px;
+}
+
+.info-line {
+  font-size: 13px;
+  color: #909399;
+  line-height: 24px;
+}
+
+.hq {
+  color: #c0c4cc;
+}
+
+/* 层级彩签：浅蓝底，级别名不换行 */
+.lv-chip {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 3px;
+  background: #e8f3ff;
+  color: #1a73e8;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+/* 操作列：彩色小按钮网格（替代已废弃的 .op-links 文字链）
+   minmax(0,1fr) 强制三格严格等分 + 按钮 !important 拉伸铺满格子，保证多行按钮逐列对齐 */
+.op-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  justify-items: stretch;
+}
+
+/* 操作按钮：柔和着色 + 深色描边 + 深字色（不用纯色实底，保证可读不糊）
+   tint-primary 主操作 / tint-neutral 中性查看 / tint-warn 状态变更 / tint-danger 删除 */
+.op-tag {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 6px 0 !important;
+  font-size: 13px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.15s;
+
+  &.tint-primary {
+    color: #1f6fd0 !important;
+    background: #ecf5ff !important;
+    border-color: #a7d2ff !important;
+
+    &:hover {
+      color: #1a5fb0 !important;
+      background: #d9ecff !important;
+      border-color: #6cb0ff !important;
+    }
+  }
+
+  &.tint-neutral {
+    color: #4c5566 !important;
+    background: #f4f6f9 !important;
+    border-color: #dfe3e8 !important;
+
+    &:hover {
+      color: #303845 !important;
+      background: #e9eef5 !important;
+      border-color: #c3cad4 !important;
+    }
+  }
+
+  &.tint-warn {
+    color: #b8781f !important;
+    background: #fff7ec !important;
+    border-color: #f7d9b0 !important;
+
+    &:hover {
+      color: #9c6417 !important;
+      background: #fdeadb !important;
+      border-color: #edbf81 !important;
+    }
+  }
+
+  &.tint-danger {
+    color: #c45656 !important;
+    background: #fdf2f2 !important;
+    border-color: #f6cfcf !important;
+
+    &:hover {
+      color: #a94444 !important;
+      background: #fae6e6 !important;
+      border-color: #eeb2b2 !important;
+    }
   }
 }
