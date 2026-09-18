@@ -12,8 +12,11 @@ import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.StockAgentCreateRequest;
 import com.zbkj.common.request.StockOrderAddRequest;
+import com.zbkj.common.request.StockPayRequest;
 import com.zbkj.common.request.StockRequests;
 import com.zbkj.common.result.CommonResult;
+import com.zbkj.common.utils.CrmebUtil;
+import com.zbkj.service.service.StockPayService;
 import com.zbkj.service.service.StoreProductService;
 import com.zbkj.service.service.StockOrderService;
 import com.zbkj.service.service.StockRewardService;
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,6 +53,9 @@ public class StockController {
 
     @Autowired
     private StockOrderService stockOrderService;
+
+    @Autowired
+    private StockPayService stockPayService;
 
     @Autowired
     private StockRewardService stockRewardService;
@@ -154,6 +161,22 @@ public class StockController {
     @RequestMapping(value = "/order/create", method = RequestMethod.POST)
     public CommonResult<HashMap<String, Object>> createOrder(@RequestBody @Validated StockOrderAddRequest request) {
         return CommonResult.success(stockOrderService.createOrder(currentUid(), request));
+    }
+
+    @ApiOperation(value = "订货单支付（yue=余额 weixin=微信，返回 jsConfig 或余额支付结果）")
+    @RequestMapping(value = "/order/pay", method = RequestMethod.POST)
+    public CommonResult<HashMap<String, Object>> payOrder(@RequestBody @Validated StockPayRequest request,
+                                                          HttpServletRequest httpRequest) {
+        return CommonResult.success(stockPayService.pay(currentUid(), request, CrmebUtil.getClientIp(httpRequest)));
+    }
+
+    @ApiOperation(value = "取消待付款订货单")
+    @RequestMapping(value = "/order/cancel", method = RequestMethod.POST)
+    public CommonResult<String> cancelOrder(@RequestParam Integer id) {
+        if (stockOrderService.cancelStockOrder(currentUid(), id)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
     }
 
     @ApiOperation(value = "我的订货单列表")

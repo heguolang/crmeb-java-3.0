@@ -34,6 +34,9 @@ public class StockOrderProduct implements Serializable {
     @ApiModelProperty(value = "商品ID")
     private Integer productId;
 
+    @ApiModelProperty(value = "规格标识（空=商品级）")
+    private String skuKey;
+
     @ApiModelProperty(value = "商品名称（冗余）")
     private String productName;
 

@@ -448,6 +448,7 @@ public class Constants {
     //需要支付的业务类型
     public static final String SERVICE_PAY_TYPE_ORDER = "order"; //订单
     public static final String SERVICE_PAY_TYPE_RECHARGE = "recharge"; //充值
+    public static final String SERVICE_PAY_TYPE_STOCK = "stock"; //订货单
 
 
 

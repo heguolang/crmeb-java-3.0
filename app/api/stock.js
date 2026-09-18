@@ -34,6 +34,16 @@ export function createStockOrder(data) {
   return request.post('stock/order/create', data);
 }
 
+/** 订货单支付（yue=余额 weixin=微信） */
+export function payStockOrder(data) {
+  return request.post('stock/order/pay', data);
+}
+
+/** 取消待付款订货单 */
+export function cancelStockOrder(id) {
+  return request.post('stock/order/cancel?id=' + id);
+}
+
 /** 我的订货单列表 */
 export function getMyStockOrders(params) {
   return request.get('stock/order/list', params);

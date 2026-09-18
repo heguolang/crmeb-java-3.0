@@ -16,8 +16,23 @@ public interface StockOrderService {
 
     // ==================== 会员端 ====================
 
-    /** 代理下单 */
+    /** 代理下单（生成待付款订单，返回上级库存是否充足供前端提示） */
     HashMap<String, Object> createOrder(Integer uid, StockOrderAddRequest request);
+
+    /** 根据订单号查询订单 */
+    StockOrder getByOrderNo(String orderNo);
+
+    /** 订货单支付成功处理（幂等）：有货→待审核/待发货，无货→等待匹配上级(10) */
+    Boolean payStockOrder(String orderNo, Integer payType);
+
+    /** 代理主动取消待付款订单 */
+    Boolean cancelStockOrder(Integer uid, Integer orderId);
+
+    /** 定时任务：等待匹配(10)超时订单自动向上匹配有货上级 */
+    void processExpiredUpSearchOrders();
+
+    /** 定时任务：待付款超时订单自动取消(-2) */
+    void cancelExpiredUnpaidOrders();
 
     /** 我的订单列表（status: null=全部） */
     CommonPage<StockOrder> getMyOrderList(Integer uid, Integer status, com.zbkj.common.request.PageParamRequest page);

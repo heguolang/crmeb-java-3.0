@@ -93,6 +93,9 @@
         {{ detailRow.orderNo }} · {{ detailRow.nickname }} · 总额 ¥{{ detailRow.totalPrice }}
         <span v-if="detailRow.mark" style="color:#999">（备注：{{ detailRow.mark }}）</span>
       </div>
+      <div v-if="detailRow && detailRow.realName" style="margin-bottom:10px;padding:8px 12px;background:#f5f7fa;border-radius:4px;font-size:13px;color:#303133">
+        收货：{{ detailRow.realName }} {{ detailRow.phone }} · {{ detailRow.userAddress }}
+      </div>
       <el-table v-if="detailRow" :data="detailRow.productList || []" size="small">
         <el-table-column label="商品" min-width="180">
           <template slot-scope="scope">
@@ -119,7 +122,7 @@
       <el-form size="small" label-width="80px">
         <el-form-item label="审核结果">
           <el-radio-group v-model="auditForm.status">
-            <el-radio :label="1">通过（进入待付款）</el-radio>
+            <el-radio :label="1">通过（进入待发货）</el-radio>
             <el-radio :label="-1">驳回</el-radio>
           </el-radio-group>
         </el-form-item>

@@ -17,6 +17,7 @@ import com.zbkj.common.model.combination.StoreCombination;
 import com.zbkj.common.model.combination.StorePink;
 import com.zbkj.common.model.finance.UserRecharge;
 import com.zbkj.common.model.order.StoreOrder;
+import com.zbkj.common.model.stock.StockOrder;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.wechat.WechatPayInfo;
 import com.zbkj.common.model.wechat.video.PayComponentOrder;
@@ -96,6 +97,10 @@ public class CallbackServiceImpl implements CallbackService {
     @Autowired
     private WechatPayInfoService wechatPayInfoService;
 
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    private com.zbkj.service.service.StockOrderService stockOrderService;
+
     /**
      * 微信支付回调
      */
@@ -143,8 +148,10 @@ public class CallbackServiceImpl implements CallbackService {
                 throw new CrmebException("用户信息错误！");
             }
 
-            //根据类型判断是订单或者充值
-            if (!Constants.SERVICE_PAY_TYPE_ORDER.equals(attachVo.getType()) && !Constants.SERVICE_PAY_TYPE_RECHARGE.equals(attachVo.getType())) {
+            //根据类型判断是订单或者充值或者订货单
+            if (!Constants.SERVICE_PAY_TYPE_ORDER.equals(attachVo.getType())
+                    && !Constants.SERVICE_PAY_TYPE_RECHARGE.equals(attachVo.getType())
+                    && !Constants.SERVICE_PAY_TYPE_STOCK.equals(attachVo.getType())) {
                 logger.error("wechat pay err : 未知的支付类型==》" + callbackVo.getOutTradeNo());
                 throw new CrmebException("未知的支付类型！");
             }
@@ -261,6 +268,37 @@ public class CallbackServiceImpl implements CallbackService {
                     return sb.toString();
                 }
                 redisUtil.lPush(TaskConstants.ORDER_TASK_PAY_SUCCESS_AFTER, storeOrder.getOrderId());
+            }
+            // 订货单
+            if (Constants.SERVICE_PAY_TYPE_STOCK.equals(attachVo.getType())) {
+                StockOrder stockOrder = stockOrderService.getByOrderNo(callbackVo.getOutTradeNo());
+                if (ObjectUtil.isNull(stockOrder)) {
+                    logger.error("wechat pay error : 订货单不存在==》" + callbackVo.getOutTradeNo());
+                    throw new CrmebException("wechat pay error : 订货单不存在==》" + callbackVo.getOutTradeNo());
+                }
+                if (stockOrder.getPayStatus() != null && stockOrder.getPayStatus() == 1) {
+                    logger.warn("wechat pay warn : 订货单已处理==》" + callbackVo.getOutTradeNo());
+                    sb.append("<return_code><![CDATA[SUCCESS]]></return_code>");
+                    sb.append("<return_msg><![CDATA[OK]]></return_msg>");
+                    sb.append("</xml>");
+                    return sb.toString();
+                }
+                WechatPayInfo wechatPayInfo = wechatPayInfoService.getByNo(callbackVo.getOutTradeNo());
+                if (ObjectUtil.isNull(wechatPayInfo)) {
+                    logger.error("wechat pay error : 微信订单信息不存在==》" + callbackVo.getOutTradeNo());
+                    throw new CrmebException("wechat pay error : 微信订单信息不存在==》" + callbackVo.getOutTradeNo());
+                }
+                wechatPayInfo.setIsSubscribe(callbackVo.getIsSubscribe());
+                wechatPayInfo.setBankType(callbackVo.getBankType());
+                wechatPayInfo.setCashFee(callbackVo.getCashFee());
+                wechatPayInfo.setCouponFee(callbackVo.getCouponFee());
+                wechatPayInfo.setTransactionId(callbackVo.getTransactionId());
+                wechatPayInfo.setTimeEnd(callbackVo.getTimeEnd());
+                // 更新微信支付信息并完成订货单付款流转（payStockOrder 内部按 payStatus=0 幂等）
+                transactionTemplate.execute(e -> {
+                    wechatPayInfoService.updateById(wechatPayInfo);
+                    return stockOrderService.payStockOrder(stockOrder.getOrderNo(), StockOrder.PAY_TYPE_WECHAT);
+                });
             }
             // 充值
             if (Constants.SERVICE_PAY_TYPE_RECHARGE.equals(attachVo.getType())) {

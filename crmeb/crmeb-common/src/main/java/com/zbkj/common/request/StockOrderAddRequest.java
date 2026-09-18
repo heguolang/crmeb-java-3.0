@@ -24,8 +24,12 @@ public class StockOrderAddRequest implements Serializable {
     @NotEmpty(message = "请选择订货商品")
     private List<StockOrderItem> items;
 
-    @ApiModelProperty(value = "付款方式：1=微信线上支付 2=后台记账欠款")
-    private Integer payType = 2;
+    @ApiModelProperty(value = "收货地址ID（系统收货地址簿 eb_user_address）")
+    @NotNull(message = "请选择收货地址")
+    private Integer addressId;
+
+    @ApiModelProperty(value = "库存类型：1=实体 2=虚拟（二期启用虚拟，默认实体）")
+    private Integer stockType;
 
     @ApiModelProperty(value = "订单备注")
     private String mark;
@@ -43,5 +47,8 @@ public class StockOrderAddRequest implements Serializable {
         @ApiModelProperty(value = "数量")
         @NotNull(message = "数量不能为空")
         private Integer num;
+
+        @ApiModelProperty(value = "规格标识（可选，空=商品级）")
+        private String skuKey;
     }
 }

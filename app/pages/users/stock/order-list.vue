@@ -38,6 +38,10 @@
         <view v-if="o.expressNum" class="express-box">
           <text class="ex-tag">快递</text>{{ o.expressName }} {{ o.expressNum }}
         </view>
+        <view class="row-op" v-if="o.status === 1">
+          <button class="op-btn danger" size="mini" @click.stop="cancelOrder(o)">取消订单</button>
+          <button class="op-btn primary" size="mini" @click.stop="payOrder(o)">去支付</button>
+        </view>
         <view class="row-op" v-if="o.status === 3">
           <button class="op-btn primary" size="mini" @click.stop="receive(o)">确认收货</button>
         </view>
@@ -95,7 +99,7 @@
 </template>
 
 <script>
-	import { getMyStockOrders, getAuditOrders, auditStockOrder, receiveStockOrder } from '@/api/stock.js';
+	import { getMyStockOrders, getAuditOrders, auditStockOrder, receiveStockOrder, payStockOrder, cancelStockOrder } from '@/api/stock.js';
 	export default {
 		data() {
 			return {
@@ -118,12 +122,55 @@
 			if (opt.tab === 'audit') {
 				this.tabType = 'audit';
 				this.status = 'audit';
+			} else if (opt.tab === 'waitPay') {
+				this.status = 1;
 			}
 			this.load();
 		},
 		methods: {
 			statusText(s) {
-				return { 0: '待上级审核', 1: '待付款', 2: '待发货', 3: '待收货', 4: '已完成', '-1': '已驳回' }[s] || s;
+				return { 0: '待上级审核', 1: '待付款', 2: '待发货', 3: '待收货', 4: '已完成', '-1': '已驳回', 10: '匹配上级中', '-2': '已取消' }[s] || s;
+			},
+			payOrder(o) {
+				uni.showActionSheet({
+					itemList: ['余额支付', '微信支付'],
+					success: (r) => {
+						if (r.tapIndex === 0) {
+							payStockOrder({ orderNo: o.orderNo, payType: 'yue' }).then(() => {
+								uni.showToast({ title: '支付成功', icon: 'success' });
+								this.load();
+							});
+						} else {
+							payStockOrder({ orderNo: o.orderNo, payType: 'weixin', payChannel: 'routine' }).then(res => {
+								const js = (res.data && res.data.jsConfig) || {};
+								uni.requestPayment({
+									provider: 'wxpay',
+									appId: js.appId,
+									nonceStr: js.nonceStr,
+									package: js.packages,
+									signType: js.signType || 'MD5',
+									timeStamp: js.timeStamp,
+									paySign: js.paySign,
+									success: () => { uni.showToast({ title: '支付成功', icon: 'success' }); this.load(); },
+									fail: () => uni.showToast({ title: '支付未完成', icon: 'none' })
+								});
+							});
+						}
+					}
+				});
+			},
+			cancelOrder(o) {
+				uni.showModal({
+					title: '取消订单',
+					content: '确认取消该待付款订单？',
+					success: (m) => {
+						if (!m.confirm) return;
+						cancelStockOrder(o.id).then(() => {
+							uni.showToast({ title: '已取消', icon: 'success' });
+							this.load();
+						});
+					}
+				});
 			},
 			switchTab(v) {
 				this.status = v;
@@ -172,7 +219,7 @@
 				} else {
 					uni.showModal({
 						title: '通过审核',
-						content: '通过后订单流转总部云仓扣库存，请确认库存充足。',
+						content: '该订单已付款。通过后扣云仓库存进入待发货，请确认库存充足。',
 						success: (m) => {
 							if (!m.confirm) return;
 							auditStockOrder(o.id, { status: 1 }).then(() => {
@@ -329,6 +376,8 @@
   &.st3 { background: #ecf3ff; color: #2b6fe3; }
   &.st4 { background: #e9f9ec; color: #21a84f; }
   &.st-1 { background: #ffecec; color: #f56c6c; }
+  &.st10 { background: #f3ecff; color: #7c4dd4; }
+  &.st-2 { background: #f2f3f5; color: #909399; }
 }
 
 /* 下级信息（审核 tab） */
