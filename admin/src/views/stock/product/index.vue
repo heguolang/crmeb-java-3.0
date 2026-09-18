@@ -120,53 +120,90 @@
     </el-dialog>
 
     <!-- 拿货价弹窗 -->
-    <el-dialog title="设置各层级拿货价" :visible.sync="priceVisible" width="440px" append-to-body :close-on-click-modal="false">
-      <div v-if="priceRow" style="margin-bottom:10px;color:#999">{{ priceRow.storeName }}（零售价 ¥{{ priceRow.price }}）</div>
-      <div v-if="priceRow" class="ex-block">
-        <div class="ex-row">
-          <span class="ex-label">支持虚拟库存</span>
-          <el-switch v-model="stockTypeForm.supportVirtual" @change="saveStockType" />
-          <span class="ex-tip">开启后该商品可用「虚拟库存」下单（付款即入账虚拟库存，可提货/换货）</span>
-        </div>
-        <div class="ex-row">
-          <span class="ex-label">支持实体库存</span>
-          <el-switch v-model="stockTypeForm.supportPhysical" @change="saveStockType" />
-          <span class="ex-tip">开启后该商品可用「实体库存」下单（走上级审核/发货流程）</span>
-        </div>
-        <div class="ex-row">
-          <span class="ex-label">是否支持换货</span>
-          <el-switch v-model="exForm.enable" @change="saveExchangeConfig" />
-          <span class="ex-tip">{{ exForm.enable ? '允许换货' : '不允许换货' }}（未配置过的规格沿用整品设置；换货按钮精确到规格）</span>
-        </div>
-        <div class="ex-row">
-          <span class="ex-label">可换入商品</span>
-          <el-button size="mini" :disabled="!exForm.enable" @click="openExTargets">设置可换商品（已选 {{ exTargets.length }}）</el-button>
-          <span class="ex-tip">只允许换入清单内的商品，且目标拿货价不得低于原商品价</span>
+    <el-dialog title="规格与订货设置" :visible.sync="priceVisible" width="820px" append-to-body :close-on-click-modal="false" custom-class="spec-dialog">
+      <div v-if="priceRow" class="sp-head">
+        <img class="sp-thumb" :src="priceRow.image" />
+        <div class="sp-head-info">
+          <div class="sp-name">{{ priceRow.storeName }}</div>
+          <div class="sp-meta">零售价 ¥{{ priceRow.price }} · 云仓总库存 {{ priceRow.stock }} 件</div>
         </div>
       </div>
-      <el-tabs v-if="priceRow" v-model="priceSkuKey" @tab-click="onSkuChange" class="price-tabs">
-        <el-tab-pane label="整品（商品级价）" name="" />
-        <el-tab-pane v-for="s in skuOptions" :key="s.skuKey" :label="s.attrValue || s.skuKey" :name="s.skuKey" />
-      </el-tabs>
-      <el-divider v-if="priceRow" />
-      <el-table class="admin-table" v-if="priceRow" :data="priceRow.levelPrices" size="small">
-        <el-table-column prop="levelName" label="层级" width="110" />
-        <el-table-column label="拿货价">
-          <template slot-scope="scope">
-            <el-input-number v-model="scope.row.price" :min="0" :precision="2" size="mini" style="width: 150px" placeholder="留空=默认折扣" />
-            <div style="font-size:12px;color:#999">默认 {{ scope.row.discount }}% = ¥{{ (priceRow.price * scope.row.discount / 100).toFixed(2) }}</div>
-          </template>
-        </el-table-column>
-      </el-table>
+
+      <div v-if="priceRow" class="sp-card">
+        <div class="sp-card-title">支持的库存类型</div>
+        <div class="sp-inline">
+          <label class="sp-switch-item">
+            <el-switch v-model="stockTypeForm.supportVirtual" @change="saveStockType" />
+            <span>虚拟库存</span>
+          </label>
+          <span class="sp-tip">付款即入账虚拟库存，可提货 / 换货</span>
+          <label class="sp-switch-item" style="margin-left:24px">
+            <el-switch v-model="stockTypeForm.supportPhysical" @change="saveStockType" />
+            <span>实体库存</span>
+          </label>
+          <span class="sp-tip">走上级审核 → 发货流程</span>
+        </div>
+      </div>
+
+      <div v-if="priceRow" class="sp-card">
+        <div class="sp-card-title">规格选择<span class="sp-sub">（拿货价与换货设置都按规格保存）</span></div>
+        <div class="sp-chips">
+          <span class="sp-chip" :class="{ active: priceSkuKey === '' }" @click="switchSku('')">整品（不区分规格）</span>
+          <span v-for="s in skuOptions" :key="s.skuKey" class="sp-chip"
+                :class="{ active: priceSkuKey === s.skuKey }" @click="switchSku(s.skuKey)">
+            {{ s.attrValueText || s.skuKey }}
+          </span>
+          <span v-if="!skuOptions.length" class="sp-tip">该商品没有多规格，按整品配置即可</span>
+        </div>
+        <div v-if="priceSkuKey" class="sp-sku-meta">
+          当前规格云仓库存 {{ currentSku.stock }} 件 · 规格零售价 ¥{{ currentSku.price }}
+        </div>
+      </div>
+
+      <div v-if="priceRow" class="sp-cols">
+        <div class="sp-col">
+          <div class="sp-card-title">各层级拿货价<span class="sp-sub">（{{ priceSkuKey ? currentSku.attrValueText || currentSku.skuKey : '整品' }}）</span></div>
+          <el-table class="admin-table" :data="priceRow.levelPrices" size="small">
+            <el-table-column prop="levelName" label="层级" width="100" />
+            <el-table-column label="拿货价">
+              <template slot-scope="scope">
+                <el-input-number v-model="scope.row.price" :min="0" :precision="2" size="mini" style="width: 140px" placeholder="留空=默认折扣" />
+                <div class="sp-hint">默认 {{ scope.row.discount }}% = ¥{{ (priceRow.price * scope.row.discount / 100).toFixed(2) }}</div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <div class="sp-col">
+          <div class="sp-card-title">换货设置<span class="sp-sub">（仅作用于{{ priceSkuKey ? '当前规格' : '整品' }}）</span></div>
+          <div class="sp-inline">
+            <label class="sp-switch-item">
+              <el-switch v-model="exForm.enable" @change="saveExchangeConfig" />
+              <span>{{ exForm.enable ? '允许换货' : '不允许换货' }}</span>
+            </label>
+          </div>
+          <div class="sp-inline" style="margin-top:12px">
+            <el-button size="mini" :disabled="!exForm.enable" @click="openExTargets">
+              设置可换入商品（已选 {{ exTargets.length }}）
+            </el-button>
+          </div>
+          <div class="sp-tip" style="display:block;margin-top:10px;line-height:1.7">
+            · 只有「允许换货」的商品/规格，会员端才显示换货入口<br />
+            · 只能换入清单内的商品，且换入拿货价不得低于原商品<br />
+            · 规格未单独配置时，沿用整品设置
+          </div>
+        </div>
+      </div>
+
       <div slot="footer">
-        <el-button size="small" @click="priceVisible = false">取消</el-button>
-        <el-button size="small" type="primary" @click="savePrice">保存</el-button>
+        <el-button size="small" @click="priceVisible = false">关闭</el-button>
+        <el-button size="small" type="primary" @click="savePrice">保存拿货价</el-button>
       </div>
     </el-dialog>
 
-    <el-dialog title="设置可换入商品" :visible.sync="exTargetsVisible" width="460px" append-to-body :close-on-click-modal="false">
-      <div style="margin-bottom:8px;color:#999;font-size:12px">
-        {{ priceRow && priceRow.storeName }} → 允许换入以下商品（可多选，一次换货只能选其中一个）
+    <el-dialog title="设置可换入商品" :visible.sync="exTargetsVisible" width="520px" append-to-body :close-on-click-modal="false">
+      <div class="sp-tip" style="display:block;margin-bottom:10px">
+        来源：{{ priceRow && priceRow.storeName }}<span v-if="priceSkuKey">（{{ currentSku.attrValueText || currentSku.skuKey }}）</span>
+        —— 允许换入以下商品（可多选，一次换货只能选其中一个）
       </div>
       <el-select v-model="exTargets" multiple filterable placeholder="请选择可换入商品" style="width:100%">
         <el-option v-for="p in productOptions" :key="p.id" :label="p.storeName" :value="p.id" :disabled="priceRow && p.id === priceRow.id" />
@@ -234,6 +271,12 @@ export default {
       selectedIds: [],
       adding: false
     };
+  },
+  computed: {
+    currentSku() {
+      const list = this.skuOptions || [];
+      return list.find(s => s.skuKey === this.priceSkuKey) || {};
+    }
   },
   methods: {
     checkPermi,
@@ -332,13 +375,6 @@ export default {
     loadExchange(productId) {
       this.exForm = { enable: true };
       this.exTargets = [];
-      stockExchangeConfigApi(productId).then(res => {
-        const cfg = (res || []).find(x => !x.skuKey);
-        this.exForm.enable = cfg ? !!cfg.enable : true;
-      }).catch(() => {});
-      stockExchangeTargetsApi(productId, '').then(res => {
-        this.exTargets = (res || []).map(t => t.targetProductId);
-      }).catch(() => {});
       if (!this.productOptions.length) {
         stockProductListApi({ page: 1, limit: 200 }).then(res => {
           this.productOptions = (res && res.list) || [];
@@ -352,8 +388,20 @@ export default {
         }
       }).catch(() => {});
       stockProductSkuListApi(productId).then(res => {
-        this.skuOptions = res || [];
-      }).catch(() => {});
+        this.skuOptions = (res || []).map(s => {
+          let text = s.attrValue || s.skuKey;
+          try {
+            const obj = typeof s.attrValue === 'string' ? JSON.parse(s.attrValue) : s.attrValue;
+            if (obj && typeof obj === 'object') {
+              text = Object.keys(obj).map(k => obj[k]).join(' / ');
+            }
+          } catch (e) {
+            // 解析失败时保留原文
+          }
+          return { ...s, attrValueText: text };
+        });
+        this.switchSku('');
+      }).catch(() => { this.switchSku(''); });
     },
     saveStockType() {
       stockProductStockTypeSaveApi({
@@ -362,27 +410,37 @@ export default {
         supportPhysical: this.stockTypeForm.supportPhysical
       }).then(() => this.$message.success('已保存'));
     },
-    onSkuChange() {
-      const sku = this.priceSkuKey;
+    switchSku(sku) {
+      this.priceSkuKey = sku || '';
       const lv = this.priceRow.levelPrices || [];
-      if (!sku) {
+      if (!this.priceSkuKey) {
         // 切回整品：还原商品级价
         lv.forEach(p => { p.price = p._basePrice === undefined ? null : p._basePrice; });
-        return;
+      } else {
+        stockProductSkuPriceApi(this.priceRow.id, this.priceSkuKey).then(res => {
+          const map = {};
+          (res || []).forEach(x => { map[x.levelId] = x.price; });
+          lv.forEach(p => { p.price = map[p.levelId] !== undefined ? Number(map[p.levelId]) : null; });
+        }).catch(() => {});
       }
-      stockProductSkuPriceApi(this.priceRow.id, sku).then(res => {
-        const map = {};
-        (res || []).forEach(x => { map[x.levelId] = x.price; });
-        lv.forEach(p => { p.price = map[p.levelId] !== undefined ? Number(map[p.levelId]) : null; });
+      // 换货设置按「当前规格」加载（未配置则视为允许，沿用整品兜底）
+      this.exForm = { enable: true };
+      this.exTargets = [];
+      stockExchangeConfigApi(this.priceRow.id).then(res => {
+        const cfg = (res || []).find(x => (x.skuKey || '') === this.priceSkuKey);
+        this.exForm.enable = cfg ? !!cfg.enable : true;
+      }).catch(() => {});
+      stockExchangeTargetsApi(this.priceRow.id, this.priceSkuKey).then(res => {
+        this.exTargets = (res || []).map(t => t.targetProductId);
       }).catch(() => {});
     },
     saveExchangeConfig() {
       stockExchangeConfigSaveApi({
         productId: this.priceRow.id,
-        skuKey: '',
+        skuKey: this.priceSkuKey,
         enable: this.exForm.enable,
         minTargetPrice: 0
-      }).then(() => this.$message.success(this.exForm.enable ? '该商品已开放换货' : '该商品已关闭换货'));
+      }).then(() => this.$message.success((this.priceSkuKey ? '当前规格' : '整品') + (this.exForm.enable ? '已开放换货' : '已关闭换货')));
     },
     openExTargets() {
       this.exTargetsVisible = true;
@@ -390,7 +448,7 @@ export default {
     saveExTargets() {
       stockExchangeTargetsSaveApi({
         productId: this.priceRow.id,
-        skuKey: '',
+        skuKey: this.priceSkuKey,
         targets: this.exTargets.map(id => ({ targetProductId: id, targetSkuKey: '' }))
       }).then(() => {
         this.$message.success('可换商品已保存');
@@ -438,6 +496,25 @@ export default {
 .ex-row:last-child { margin-bottom: 0; }
 .ex-label { width: 84px; color: #303133; font-size: 13px; flex-shrink: 0; }
 .ex-tip { color: #909399; font-size: 12px; }
-.price-tabs { margin: 4px 0 6px; }
-.price-tabs ::v-deep .el-tabs__header { margin-bottom: 8px; }
+/* 规格与订货设置弹窗 */
+.sp-head { display: flex; align-items: center; padding-bottom: 14px; border-bottom: 1px solid #ebeef5; }
+.sp-thumb { width: 56px; height: 56px; border-radius: 6px; object-fit: cover; background: #f5f7fa; flex-shrink: 0; }
+.sp-head-info { margin-left: 12px; overflow: hidden; }
+.sp-name { font-size: 14px; font-weight: 600; color: #303133; line-height: 1.4; }
+.sp-meta { font-size: 12px; color: #909399; margin-top: 4px; }
+.sp-card { margin-top: 16px; padding: 14px 16px; background: #fafbfc; border: 1px solid #ebeef5; border-radius: 6px; }
+.sp-card-title { font-size: 13px; font-weight: 600; color: #303133; margin-bottom: 10px; }
+.sp-sub { font-weight: 400; color: #909399; font-size: 12px; margin-left: 6px; }
+.sp-inline { display: flex; align-items: center; flex-wrap: wrap; }
+.sp-switch-item { display: inline-flex; align-items: center; font-size: 13px; color: #303133; }
+.sp-switch-item span { margin-left: 8px; }
+.sp-tip { color: #909399; font-size: 12px; margin-left: 10px; }
+.sp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sp-chip { padding: 5px 14px; border: 1px solid #dcdfe6; border-radius: 14px; font-size: 12px; color: #606266; background: #fff; cursor: pointer; transition: all .15s; }
+.sp-chip:hover { border-color: #2b6fe3; color: #2b6fe3; }
+.sp-chip.active { background: #2b6fe3; border-color: #2b6fe3; color: #fff; }
+.sp-sku-meta { margin-top: 10px; font-size: 12px; color: #606266; }
+.sp-cols { display: flex; gap: 16px; margin-top: 16px; }
+.sp-col { flex: 1; min-width: 0; padding: 14px 16px; background: #fff; border: 1px solid #ebeef5; border-radius: 6px; }
+.sp-hint { font-size: 12px; color: #909399; line-height: 1.5; }
 </style>

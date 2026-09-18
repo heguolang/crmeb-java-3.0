@@ -40,27 +40,40 @@
     </view>
     <view v-if="!list.length && loaded" class="empty">暂无订货商品</view>
 
-    <!-- 规格选择弹窗（交互与商城下单规格弹窗一致） -->
-    <view v-if="skuVisible" class="sku-mask" @click="skuVisible = false">
+    <!-- 规格选择弹窗（样式与商城下单规格弹窗一致） -->
+    <view v-if="skuVisible" class="sku-mask" @click="closeSku">
       <view class="sku-pop" @click.stop>
-        <view class="sku-head">
+        <view class="sku-top">
           <image :src="skuRow.image" class="sku-img" mode="aspectFill" />
-          <view class="sku-head-info">
-            <view class="sku-price">¥{{ skuRow.myPrice }}</view>
-            <view class="sku-sub">云仓库存 {{ skuRow.skuStock !== undefined && skuRow.skuKey ? skuRow.skuStock : skuRow.stock }} 件</view>
-            <view class="sku-sel">已选：{{ skuRow.skuName || '请选择规格' }}</view>
+          <view class="sku-top-info">
+            <view class="sku-name">{{ skuRow.storeName }}</view>
+            <view class="sku-price-row">
+              <text class="sku-price">¥{{ skuRow.myPrice }}</text>
+              <text class="sku-retail">零售 ¥{{ skuRow.price }}</text>
+            </view>
+            <view class="sku-stock">库存 {{ skuRow.skuKey ? (skuRow.skuStock || 0) : skuRow.stock }} 件</view>
+            <view class="sku-chosen">已选：{{ skuRow.skuName || '请选择规格' }}</view>
           </view>
+          <text class="sku-close" @click="closeSku">✕</text>
         </view>
-        <view class="sku-body">
-          <view class="sku-attr-name">规格</view>
-          <view class="sku-values">
-            <view v-for="(s, i) in (skuRow.skus || [])" :key="i" class="sku-value"
-                  :class="{ active: skuRow.skuKey === s.skuKey }" @click="pickSku(s)">
-              {{ s.attrValue || s.skuKey }}
+        <scroll-view scroll-y class="sku-body">
+          <view v-for="(g, gi) in skuGroups" :key="gi" class="sku-group">
+            <view class="sku-group-name">{{ g.name }}</view>
+            <view class="sku-values">
+              <view v-for="(v, vi) in g.values" :key="vi" class="sku-value"
+                    :class="{ active: skuPicked[g.name] === v }" @click="pickAttr(g.name, v)">{{ v }}</view>
             </view>
           </view>
-        </view>
-        <button class="sku-confirm" @click="confirmSku">确定</button>
+          <view class="sku-group">
+            <view class="sku-group-name">数量</view>
+            <view class="num-ctrl">
+              <text class="ctrl-btn" @click="minusSku">−</text>
+              <input v-model="skuQty" type="number" class="num-input" />
+              <text class="ctrl-btn" @click="plusSku">＋</text>
+            </view>
+          </view>
+        </scroll-view>
+        <button class="sku-confirm" @click="confirmSku">加入订货单</button>
       </view>
     </view>
 
@@ -114,6 +127,9 @@
 				stockType: 1,
 				skuVisible: false,
 				skuRow: {},
+				skuGroups: [],
+				skuPicked: {},
+				skuQty: 1,
 				addrList: [],
 				selectedAddr: null,
 				showAddr: false
@@ -191,20 +207,72 @@
 					this.cartItems.splice(idx, 1);
 				}
 			},
+			parseAttr(attrValue) {
+				try {
+					const o = typeof attrValue === 'string' ? JSON.parse(attrValue) : attrValue;
+					return (o && typeof o === 'object') ? o : {};
+				} catch (e) { return {}; }
+			},
+			buildSkuGroups(skus) {
+				const map = {};
+				skus.forEach(s => {
+					const av = this.parseAttr(s.attrValue);
+					Object.keys(av).forEach(k => {
+						if (!map[k]) map[k] = [];
+						if (map[k].indexOf(av[k]) < 0) map[k].push(av[k]);
+					});
+				});
+				return Object.keys(map).map(k => ({ name: k, values: map[k] }));
+			},
 			openSku(item) {
 				this.skuRow = item;
-				this.skuRow._origSkuKey = item.skuKey || '';
+				this.skuGroups = this.buildSkuGroups(item.skus || []);
+				this.skuPicked = {};
+				const cur = (item.skus || []).find(s => s.skuKey === item.skuKey);
+				if (cur) {
+					const av = this.parseAttr(cur.attrValue);
+					Object.keys(av).forEach(k => { this.$set(this.skuPicked, k, av[k]); });
+				}
+				this.skuQty = item.buyNum > 0 ? item.buyNum : 1;
+				this.$set(item, 'skuName', item.skuName || '');
 				this.skuVisible = true;
 			},
-			pickSku(s) {
-				this.$set(this.skuRow, 'skuKey', s.skuKey);
-				this.$set(this.skuRow, 'skuName', s.attrValue || s.skuKey);
-				this.$set(this.skuRow, 'skuStock', s.stock);
-				this.$set(this.skuRow, 'myPrice', s.myPrice);
+			pickAttr(name, val) {
+				this.$set(this.skuPicked, name, val);
+				const keys = this.skuGroups.map(g => g.name);
+				if (!keys.every(k => this.skuPicked[k])) return;
+				const hit = (this.skuRow.skus || []).find(s => {
+					const av = this.parseAttr(s.attrValue);
+					return keys.every(k => av[k] === this.skuPicked[k]);
+				});
+				if (!hit) return;
+				this.$set(this.skuRow, 'skuKey', hit.skuKey);
+				this.$set(this.skuRow, 'skuName', keys.map(k => this.skuPicked[k]).join(' / '));
+				this.$set(this.skuRow, 'skuStock', hit.stock);
+				this.$set(this.skuRow, 'myPrice', hit.myPrice);
+			},
+			minusSku() {
+				if (this.skuQty <= 1) return;
+				this.skuQty = Number(this.skuQty) - 1;
+			},
+			plusSku() {
+				const max = this.skuRow.skuKey ? Number(this.skuRow.skuStock || 0) : Number(this.skuRow.stock || 0);
+				if (this.skuQty >= max) return this.$util.Tips({ title: '已达库存上限' });
+				this.skuQty = Number(this.skuQty || 0) + 1;
+			},
+			closeSku() {
+				this.skuVisible = false;
 			},
 			confirmSku() {
+				const item = this.skuRow;
+				if (this.skuGroups.length && !item.skuKey) return this.$util.Tips({ title: '请选择规格' });
+				const num = Number(this.skuQty || 0);
+				if (!num || num <= 0) return this.$util.Tips({ title: '请填写数量' });
+				const max = item.skuKey ? Number(item.skuStock || 0) : Number(item.stock || 0);
+				if (num > max) return this.$util.Tips({ title: '超过库存上限' });
+				this.$set(item, 'buyNum', num);
+				this.syncCart(item);
 				this.skuVisible = false;
-				this.syncCart(this.skuRow);
 			},
 			buy(item) {
 				if (!item.buyNum || item.buyNum <= 0) {
@@ -323,18 +391,26 @@
 .sku-chip { margin-left: 12rpx; color: #2b6fe3; border: 1rpx solid #2b6fe3; border-radius: 999rpx; padding: 0 14rpx; font-size: 21rpx; }
 .sku-mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 99; display: flex; align-items: flex-end; }
 .sku-pop { width: 100%; background: #fff; border-radius: 24rpx 24rpx 0 0; padding: 30rpx 30rpx 40rpx; }
-.sku-head { display: flex; }
-.sku-img { width: 150rpx; height: 150rpx; border-radius: 12rpx; background: #f5f6fa; }
-.sku-head-info { flex: 1; margin-left: 20rpx; }
-.sku-price { color: #e93323; font-size: 34rpx; font-weight: 700; }
-.sku-sub { color: #909399; font-size: 23rpx; margin-top: 8rpx; }
-.sku-sel { color: #606266; font-size: 23rpx; margin-top: 8rpx; }
-.sku-body { margin-top: 26rpx; }
-.sku-attr-name { font-size: 26rpx; color: #303133; font-weight: 600; }
-.sku-values { display: flex; flex-wrap: wrap; margin-top: 14rpx; }
-.sku-value { padding: 10rpx 26rpx; border-radius: 999rpx; background: #f2f3f5; color: #303133; font-size: 24rpx; margin: 0 16rpx 16rpx 0; }
+.sku-top { display: flex; position: relative; }
+.sku-img { width: 180rpx; height: 180rpx; border-radius: 12rpx; background: #f5f6fa; flex-shrink: 0; }
+.sku-top-info { flex: 1; margin-left: 22rpx; overflow: hidden; }
+.sku-name { font-size: 26rpx; color: #303133; line-height: 36rpx; font-weight: 500; }
+.sku-price-row { display: flex; align-items: baseline; margin-top: 10rpx; }
+.sku-price { color: #e93323; font-size: 40rpx; font-weight: 700; }
+.sku-retail { color: #b0b8c4; font-size: 22rpx; text-decoration: line-through; margin-left: 12rpx; }
+.sku-stock { color: #909399; font-size: 23rpx; margin-top: 8rpx; }
+.sku-chosen { color: #606266; font-size: 23rpx; margin-top: 8rpx; }
+.sku-close { position: absolute; right: 0; top: -6rpx; color: #c0c4cc; font-size: 34rpx; padding: 0 6rpx; }
+.sku-body { max-height: 46vh; margin-top: 24rpx; }
+.sku-group { margin-bottom: 22rpx; }
+.sku-group-name { font-size: 26rpx; color: #303133; font-weight: 600; margin-bottom: 14rpx; }
+.sku-values { display: flex; flex-wrap: wrap; }
+.sku-value { padding: 12rpx 30rpx; border-radius: 8rpx; background: #f2f3f5; color: #303133; font-size: 25rpx; margin: 0 16rpx 16rpx 0; }
 .sku-value.active { background: #e93323; color: #fff; }
-.sku-confirm { margin-top: 20rpx; background: #e93323; color: #fff; border-radius: 999rpx; height: 80rpx; line-height: 80rpx; font-size: 28rpx; }
+.num-ctrl { display: flex; align-items: center; }
+.sku-pop .ctrl-btn { width: 56rpx; height: 56rpx; background: #f2f3f5; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; font-size: 32rpx; color: #333; }
+.sku-pop .num-input { width: 100rpx; height: 56rpx; text-align: center; font-size: 28rpx; }
+.sku-confirm { margin-top: 6rpx; background: #e93323; color: #fff; border-radius: 999rpx; height: 84rpx; line-height: 84rpx; font-size: 29rpx; }
 .goods-op { display: flex; flex-direction: column; align-items: flex-end; }
 .num-ctrl { display: flex; align-items: center; margin-bottom: 12rpx; }
 .ctrl-btn { width: 48rpx; height: 48rpx; background: #f2f3f5; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; font-size: 30rpx; color: #333; }
