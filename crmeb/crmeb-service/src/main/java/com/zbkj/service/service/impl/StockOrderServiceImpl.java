@@ -284,6 +284,51 @@ public class StockOrderServiceImpl implements StockOrderService {
     }
 
     @Override
+    public Boolean auditOrderByAdmin(Integer orderId, StockRequests.StockAuditRequest request) {
+        StockOrder order = stockOrderDao.selectById(orderId);
+        if (order == null || order.getIsDel() == 1) {
+            throw new CrmebException("订单不存在");
+        }
+        if (!order.getStatus().equals(StockOrder.STATUS_WAIT_PARENT_AUDIT)) {
+            throw new CrmebException("订单当前状态不可介入审核（仅待上级审核状态可介入）");
+        }
+        // 上级库存不足等待中的订单暂不可审核
+        if (order.getUpSearchTime() != null) {
+            throw new CrmebException("该订单正在等待系统向上匹配有货的上级（上级库存不足），暂不可审核");
+        }
+        if (request.getStatus() == -1) {
+            if (request.getReason() == null || request.getReason().trim().isEmpty()) {
+                throw new CrmebException("驳回必须填写原因");
+            }
+            order.setStatus(StockOrder.STATUS_REJECT);
+            order.setRejectReason("[总部介入]" + request.getReason().trim());
+            stockOrderDao.updateById(order);
+            stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "订货单被驳回",
+                    "您的订货单 " + order.getOrderNo() + " 被总部驳回，原因：" + request.getReason().trim());
+            return true;
+        }
+        // 总部介入通过：直接扣云仓库存（总部发货，不走上级库存校验） -> 待付款
+        return transactionTemplate.execute(status -> {
+            List<StockOrderProduct> items = stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
+                    .eq(StockOrderProduct::getOrderId, order.getId()));
+            for (StockOrderProduct op : items) {
+                stockService.deductStock(op.getProductId(), op.getNum(), 1, order.getOrderNo(), "总部介入审核扣库存");
+            }
+            order.setStatus(StockOrder.STATUS_WAIT_PAY);
+            order.setAuditTime(new Date());
+            stockOrderDao.updateById(order);
+            stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "订货单审核通过",
+                    "您的订货单 " + order.getOrderNo() + " 已由总部审核通过，请及时付款");
+            // 审核通过后按升级规则自动升级
+            try {
+                stockService.checkAndUpgrade(order.getUid());
+            } catch (Exception ignored) {
+            }
+            return true;
+        }) != null;
+    }
+
+    @Override
     public Boolean receiveOrder(Integer uid, Integer orderId) {
         StockOrder order = stockOrderDao.selectById(orderId);
         if (order == null || order.getIsDel() == 1) {

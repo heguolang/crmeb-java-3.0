@@ -88,6 +88,11 @@ export function stockOrderPayApi(id) {
   return request({ url: '/admin/stock/order/pay', method: 'post', params: { id } });
 }
 
+/** 总部介入审核订单（仅待上级审核状态） */
+export function stockOrderAuditApi(id, data) {
+  return request({ url: '/admin/stock/order/audit', method: 'post', params: { id }, data });
+}
+
 /** 订单发货 */
 export function stockOrderSendApi(id, data) {
   return request({ url: '/admin/stock/order/send', method: 'post', params: { id }, data });

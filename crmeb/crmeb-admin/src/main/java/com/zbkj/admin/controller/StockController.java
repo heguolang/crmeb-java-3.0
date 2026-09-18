@@ -224,6 +224,17 @@ public class StockController {
         return CommonResult.success(stockOrderService.getAdminOrderList(uid, orderNo, status, payStatus, pageParamRequest));
     }
 
+    @PreAuthorize("hasAuthority('admin:stock:order:audit')")
+    @ApiOperation(value = "总部介入审核订单（仅待上级审核状态）")
+    @RequestMapping(value = "/order/audit", method = RequestMethod.POST)
+    public CommonResult<String> auditOrderByAdmin(@RequestParam Integer id,
+                                                  @RequestBody @Validated StockRequests.StockAuditRequest request) {
+        if (stockOrderService.auditOrderByAdmin(id, request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
     @PreAuthorize("hasAuthority('admin:stock:order:pay')")
     @ApiOperation(value = "确认收款")
     @RequestMapping(value = "/order/pay", method = RequestMethod.POST)

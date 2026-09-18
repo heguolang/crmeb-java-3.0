@@ -51,6 +51,9 @@ public interface StockOrderService {
     /** 全部订货单列表 */
     CommonPage<StockOrder> getAdminOrderList(Integer uid, String orderNo, Integer status, Integer payStatus, com.zbkj.common.request.PageParamRequest page);
 
+    /** 总部介入审核订单（仅待上级审核状态）：1=通过(扣云仓库存→待付款) -1=驳回 */
+    Boolean auditOrderByAdmin(Integer orderId, StockRequests.StockAuditRequest request);
+
     /** 确认收款（记账欠款 -> 已付款，状态流转到待发货） */
     Boolean confirmPay(Integer orderId);
 

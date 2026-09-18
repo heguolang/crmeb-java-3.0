@@ -57,6 +57,7 @@
         <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="scope">
             <el-button type="text" size="small" @click="detail(scope.row)">明细</el-button>
+            <el-button v-if="scope.row.status === 0 && checkPermi(['admin:stock:order:audit'])" type="text" size="small" class="orange" @click="openAudit(scope.row)">介入审核</el-button>
             <el-button v-if="scope.row.status === 1 && checkPermi(['admin:stock:order:pay'])" type="text" size="small" class="green" @click="onPay(scope.row)">确认收款</el-button>
             <el-button v-if="scope.row.status === 2 && checkPermi(['admin:stock:order:send'])" type="text" size="small" @click="openSend(scope.row)">发货</el-button>
             <el-button v-if="scope.row.status === 3 && checkPermi(['admin:stock:order:send'])" type="text" size="small" @click="onFinish(scope.row)">标记完成</el-button>
@@ -90,6 +91,30 @@
       </el-table>
     </el-dialog>
 
+    <!-- 介入审核弹窗 -->
+    <el-dialog title="总部介入审核" :visible.sync="auditVisible" width="400px">
+      <el-alert type="warning" :closable="false" style="margin-bottom:12px"
+                title="该订单尚在【待上级审核】阶段，总部介入通过后将跳过上级审核，直接扣云仓库存并进入待付款" />
+      <div v-if="auditRow" style="margin-bottom:10px;color:#666;font-size:13px">
+        {{ auditRow.orderNo }} · {{ auditRow.nickname }} · ¥{{ auditRow.totalPrice }}
+      </div>
+      <el-form size="small" label-width="80px">
+        <el-form-item label="审核结果">
+          <el-radio-group v-model="auditForm.status">
+            <el-radio :label="1">通过（进入待付款）</el-radio>
+            <el-radio :label="-1">驳回</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="auditForm.status === -1" label="驳回原因">
+          <el-input v-model="auditForm.reason" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button size="small" @click="auditVisible = false">取消</el-button>
+        <el-button size="small" type="primary" @click="saveAudit">确定</el-button>
+      </div>
+    </el-dialog>
+
     <!-- 发货弹窗 -->
     <el-dialog title="订单发货" :visible.sync="sendVisible" width="400px">
       <el-form label-width="90px" size="small">
@@ -109,7 +134,7 @@
 </template>
 
 <script>
-import { stockOrderListApi, stockOrderPayApi, stockOrderSendApi, stockOrderFinishApi } from '@/api/stock';
+import { stockOrderListApi, stockOrderPayApi, stockOrderAuditApi, stockOrderSendApi, stockOrderFinishApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -125,7 +150,10 @@ export default {
       detailRow: null,
       sendVisible: false,
       sendRow: null,
-      sendForm: { expressName: '', expressNum: '' }
+      sendForm: { expressName: '', expressNum: '' },
+      auditVisible: false,
+      auditRow: null,
+      auditForm: { status: 1, reason: '' }
     };
   },
   methods: {
@@ -148,6 +176,24 @@ export default {
     detail(row) {
       this.detailRow = row;
       this.detailVisible = true;
+    },
+    openAudit(row) {
+      this.auditRow = row;
+      this.auditForm = { status: 1, reason: '' };
+      this.auditVisible = true;
+    },
+    saveAudit() {
+      if (this.auditForm.status === -1 && !this.auditForm.reason) return this.$message.error('请填写驳回原因');
+      const tip = this.auditForm.status === 1
+        ? '总部介入通过后将跳过上级审核，直接扣云仓库存并进入待付款，确认？'
+        : '确认驳回该订单？';
+      this.$confirm(tip, '总部介入审核').then(() => {
+        stockOrderAuditApi(this.auditRow.id, this.auditForm).then(() => {
+          this.$message.success('已审核');
+          this.auditVisible = false;
+          this.getList();
+        });
+      }).catch(() => {});
     },
     onPay(row) {
       this.$confirm('确认已收到该订单款项 ¥' + row.totalPrice + '？', '确认收款').then(() => {
@@ -188,4 +234,5 @@ export default {
 <style scoped>
 .red { color: #f56c6c; }
 .green { color: #67c23a; }
+.orange { color: #e6a23c; }
 </style>
