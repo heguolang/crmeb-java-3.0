@@ -102,10 +102,12 @@
         <el-table-column prop="peerRate" label="平级奖比例%" width="90">
           <template slot-scope="scope">{{ scope.row.peerRate != null ? scope.row.peerRate : '-' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="openCond(scope.row)">升级条件</el-button>
-            <el-button type="text" size="small" class="red" @click="delLevel(scope.row)">删除</el-button>
+            <div class="op-wrap">
+              <el-button class="op-btn" type="primary" plain size="mini" @click="openCond(scope.row)">升级条件</el-button>
+              <el-button class="op-btn" type="danger" plain size="mini" @click="delLevel(scope.row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
