@@ -265,17 +265,17 @@
           </el-col>
           <el-col :span="24">
             <el-form-item label="门店服务：">
-              <el-switch
-                v-model="formValidate.isStore"
-                active-text="支持门店服务"
-                :disabled="isDisabled"
-                style="margin-right: 16px"
-              />
-              <template v-if="formValidate.isStore">
+              <div class="store-service">
+                <el-switch v-model="formValidate.isStore" :disabled="isDisabled" />
+                <span class="store-service-switch-text">{{ formValidate.isStore ? '已开启门店服务' : '未开启门店服务' }}</span>
+              </div>
+              <div v-if="formValidate.isStore" class="store-service-sub">
+                <span class="store-service-label">门店履约方式：</span>
                 <el-checkbox v-model="formValidate.storeSelfPickup" :disabled="isDisabled">到店自提</el-checkbox>
                 <el-checkbox v-model="formValidate.storeDelivery" :disabled="isDisabled">上门配送</el-checkbox>
-              </template>
-              <span class="tip">开启后该商品可在门店进行自提、配送与核销</span>
+                <span class="store-service-tip">不勾选则该商品不支持对应的门店履约方式</span>
+              </div>
+              <div class="store-service-tip">开启后该商品可在门店进行自提、配送与核销</div>
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -1481,5 +1481,33 @@ export default {
 }
 .noLeft {
   margin-left: -60px;
+}
+/* 门店服务开关区 */
+.store-service {
+  display: flex;
+  align-items: center;
+}
+.store-service-switch-text {
+  margin-left: 10px;
+  font-size: 13px;
+  color: #303133;
+}
+.store-service-sub {
+  display: flex;
+  align-items: center;
+  margin: 8px 0 4px;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  width: fit-content;
+}
+.store-service-label {
+  font-size: 13px;
+  color: #606266;
+}
+.store-service-tip {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #999;
 }
 </style>
