@@ -425,10 +425,13 @@
 					title: that.isRegister ? '注册中' : '登录中'
 				})
 				if (that.isRegister) {
+					const spreadSpid = that.spreadId && String(that.spreadId).trim()
+						? parseInt(String(that.spreadId).trim(), 10)
+						: (parseInt(that.$Cache.get("spread"), 10) || 0);
 					register({
 						account: that.account,
 						password: that.password,
-						spread_spid: (that.spreadId && String(that.spreadId).trim()) || that.$Cache.get("spread")
+						spread_spid: spreadSpid > 0 ? spreadSpid : 0
 					}).then(({data}) => {
 						this.$store.commit("LOGIN", {
 							'token': data.token

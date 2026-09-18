@@ -71,8 +71,15 @@
       </div>
     </el-card>
 
-    <!-- 添加商品弹窗 -->
-    <el-dialog title="添加商品（从商城商品中选择加入订货）" :visible.sync="addVisible" width="640px">
+    <!-- 添加商品弹窗：append-to-body 避免被布局层挡住点击；row-key 保证勾选可用 -->
+    <el-dialog
+      title="添加商品（从商城商品中选择加入订货）"
+      :visible.sync="addVisible"
+      width="640px"
+      append-to-body
+      :close-on-click-modal="false"
+      @closed="onAddClosed"
+    >
       <el-form inline size="small" @submit.native.prevent>
         <el-form-item>
           <el-input v-model="selectFrom.keywords" placeholder="搜索商品名称" clearable style="width: 240px" @keyup.enter.native="getSelectList" />
@@ -81,8 +88,17 @@
           <el-button type="primary" @click="getSelectList">搜索</el-button>
         </el-form-item>
       </el-form>
-      <el-table class="admin-table" ref="selectTable" v-loading="selectLoading" :data="selectData" size="small" max-height="360" @selection-change="onSelectChange">
-        <el-table-column type="selection" width="50" reserve-selection />
+      <el-table
+        class="admin-table"
+        ref="selectTable"
+        v-loading="selectLoading"
+        :data="selectData"
+        row-key="id"
+        size="small"
+        max-height="360"
+        @selection-change="onSelectChange"
+      >
+        <el-table-column type="selection" width="50" :reserve-selection="true" />
         <el-table-column label="商品" min-width="240">
           <template slot-scope="scope">
             <div style="display:flex;align-items:center">
@@ -98,13 +114,13 @@
         <el-pagination background layout="total, prev, pager, next" :page-size="selectFrom.limit" :current-page="selectFrom.page" :total="selectTotal" @current-change="selectPage" />
       </div>
       <div slot="footer">
-        <el-button size="small" @click="addVisible = false">取消</el-button>
+        <el-button size="small" @click="closeAdd">取消</el-button>
         <el-button size="small" type="primary" :loading="adding" :disabled="!selectedIds.length" @click="doAdd">确定添加（{{ selectedIds.length }}）</el-button>
       </div>
     </el-dialog>
 
     <!-- 拿货价弹窗 -->
-    <el-dialog title="设置各层级拿货价" :visible.sync="priceVisible" width="440px">
+    <el-dialog title="设置各层级拿货价" :visible.sync="priceVisible" width="440px" append-to-body :close-on-click-modal="false">
       <div v-if="priceRow" style="margin-bottom:10px;color:#999">{{ priceRow.storeName }}（零售价 ¥{{ priceRow.price }}）</div>
       <el-table class="admin-table" v-if="priceRow" :data="priceRow.levelPrices" size="small">
         <el-table-column prop="levelName" label="层级" width="110" />
@@ -122,7 +138,7 @@
     </el-dialog>
 
     <!-- 调库存弹窗 -->
-    <el-dialog title="调整云仓库存" :visible.sync="adjustVisible" width="400px">
+    <el-dialog title="调整云仓库存" :visible.sync="adjustVisible" width="400px" append-to-body :close-on-click-modal="false">
       <el-form v-if="adjustRow" label-width="90px" size="small">
         <el-form-item label="商品">{{ adjustRow.storeName }}</el-form-item>
         <el-form-item label="当前库存">{{ adjustRow.stock }}</el-form-item>
@@ -184,9 +200,23 @@ export default {
       }).catch(() => { this.loading = false; });
     },
     openAdd() {
+      this.selectedIds = [];
       this.addVisible = true;
-      if (!this.selectData.length) {
-        this.getSelectList();
+      this.$nextTick(() => {
+        if (this.$refs.selectTable) {
+          this.$refs.selectTable.clearSelection();
+        }
+      });
+      this.getSelectList();
+    },
+    closeAdd() {
+      this.addVisible = false;
+    },
+    onAddClosed() {
+      this.selectedIds = [];
+      this.adding = false;
+      if (this.$refs.selectTable) {
+        this.$refs.selectTable.clearSelection();
       }
     },
     getSelectList() {
@@ -202,9 +232,12 @@ export default {
       this.getSelectList();
     },
     onSelectChange(rows) {
-      this.selectedIds = rows.map(r => r.id);
+      this.selectedIds = (rows || []).map(r => r.id).filter(id => id != null);
     },
     doAdd() {
+      if (!this.selectedIds.length) {
+        return this.$message.warning('请先勾选要添加的商品');
+      }
       this.adding = true;
       stockProductAddApi(this.selectedIds).then(() => {
         this.$message.success('添加成功');

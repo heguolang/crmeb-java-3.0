@@ -122,6 +122,27 @@ public class LoginServiceImpl implements LoginService {
         }
 
         Integer spreadPid = Optional.ofNullable(loginRequest.getSpreadPid()).orElse(0);
+        if (spreadPid > 0) {
+            User spreadUser = userService.getById(spreadPid);
+            if (ObjectUtil.isNull(spreadUser) || !Boolean.TRUE.equals(spreadUser.getStatus())) {
+                throw new CrmebException("推荐人ID不存在或已禁用");
+            }
+            // 预检绑定条件，避免注册成功却静默未绑定
+            User probe = new User();
+            probe.setUid(null);
+            probe.setSpreadUid(0);
+            if (!userService.checkBingSpread(probe, spreadPid, "new")) {
+                String isOpen = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_IS_OPEN);
+                if (StrUtil.isBlank(isOpen) || "0".equals(isOpen)) {
+                    throw new CrmebException("分销功能未开启，无法绑定推荐人，请先在后台开启分销");
+                }
+                String brokerageModel = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_MODEL);
+                if (!"2".equals(brokerageModel) && !Boolean.TRUE.equals(spreadUser.getIsPromoter())) {
+                    throw new CrmebException("推荐人不是推广员，当前为指定分销模式，无法绑定");
+                }
+                throw new CrmebException("推荐人绑定失败，请检查推荐人ID或分销设置");
+            }
+        }
 
         // 复用注册主流程创建用户（含新人券/默认等级/推广关系）
         User user = userService.registerPhone(phone, spreadPid);

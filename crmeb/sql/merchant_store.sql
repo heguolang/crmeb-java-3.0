@@ -1,65 +1,69 @@
 -- ============================================================
--- 门店模块 2026-09-18：门店(提货点扩展) + 产品门店权限 + 核销记录 + 菜单
--- 幂等：可重复执行
+-- 门店模块（MySQL 5.7 / 宝塔兼容，幂等，无 DELIMITER）
 -- ============================================================
 
--- 工具：按列名幂等加列
-DROP PROCEDURE IF EXISTS crmeb_add_col;
-DELIMITER $$
-CREATE PROCEDURE crmeb_add_col(IN p_table VARCHAR(64), IN p_col VARCHAR(64), IN p_def TEXT)
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND COLUMN_NAME = p_col
-  ) THEN
-    SET @ddl = CONCAT('ALTER TABLE `', p_table, '` ADD COLUMN ', p_def);
-    PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
-  END IF;
-END$$
-DELIMITER ;
+SET @db = DATABASE();
 
-CALL crmeb_add_col('eb_system_store', 'self_pickup', '`self_pickup` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''是否支持到店自提：1=是 0=否''');
-CALL crmeb_add_col('eb_system_store', 'delivery', '`delivery` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''是否支持上门配送：1=是 0=否''');
-CALL crmeb_add_col('eb_system_store', 'delivery_radius', '`delivery_radius` decimal(10,2) NOT NULL DEFAULT 5.00 COMMENT ''配送服务半径(公里)''');
-CALL crmeb_add_col('eb_system_store', 'verify_fee', '`verify_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''门店核销服务费''');
-CALL crmeb_add_col('eb_system_store', 'pickup_fee', '`pickup_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''到店自提服务费''');
-CALL crmeb_add_col('eb_system_store', 'delivery_fee', '`delivery_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''上门配送服务费''');
-CALL crmeb_add_col('eb_system_store', 'leader_uid', '`leader_uid` int(11) NOT NULL DEFAULT 0 COMMENT ''门店负责人用户UID(eb_user.uid)''');
-CALL crmeb_add_col('eb_system_store', 'leader_name', '`leader_name` varchar(64) DEFAULT '''' COMMENT ''门店负责人昵称(冗余)''');
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='self_pickup')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `self_pickup` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''是否支持到店自提''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='delivery')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `delivery` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''是否支持上门配送''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='delivery_radius')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `delivery_radius` decimal(10,2) NOT NULL DEFAULT 5.00 COMMENT ''配送服务半径(公里)''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='verify_fee')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `verify_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''门店核销服务费''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='pickup_fee')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `pickup_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''到店自提服务费''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='delivery_fee')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `delivery_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''上门配送服务费''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='leader_uid')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `leader_uid` int(11) NOT NULL DEFAULT 0 COMMENT ''门店负责人用户UID''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='leader_name')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `leader_name` varchar(64) DEFAULT '''' COMMENT ''门店负责人昵称''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-CALL crmeb_add_col('eb_store_product', 'is_store', '`is_store` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''是否支持门店服务：1=是 0=否''');
-CALL crmeb_add_col('eb_store_product', 'store_self_pickup', '`store_self_pickup` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''门店-是否支持自提：1=是 0=否''');
-CALL crmeb_add_col('eb_store_product', 'store_delivery', '`store_delivery` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''门店-是否支持配送：1=是 0=否''');
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_store_product' AND COLUMN_NAME='is_store')=0,
+  'ALTER TABLE `eb_store_product` ADD COLUMN `is_store` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''是否支持门店服务''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_store_product' AND COLUMN_NAME='store_self_pickup')=0,
+  'ALTER TABLE `eb_store_product` ADD COLUMN `store_self_pickup` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''门店是否支持自提''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_store_product' AND COLUMN_NAME='store_delivery')=0,
+  'ALTER TABLE `eb_store_product` ADD COLUMN `store_delivery` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''门店是否支持配送''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-DROP PROCEDURE IF EXISTS crmeb_add_col;
-
--- 门店核销记录表
 CREATE TABLE IF NOT EXISTS `eb_store_verify_record` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `store_id` int(11) NOT NULL COMMENT '门店ID(eb_system_store.id)',
-  `store_name` varchar(128) DEFAULT '' COMMENT '门店名称(冗余)',
-  `order_id` int(11) DEFAULT NULL COMMENT '订单ID(eb_store_order.id)',
+  `store_id` int(11) NOT NULL COMMENT '门店ID',
+  `store_name` varchar(128) DEFAULT '' COMMENT '门店名称',
+  `order_id` int(11) DEFAULT NULL COMMENT '订单ID',
   `order_no` varchar(32) DEFAULT '' COMMENT '订单号',
   `verify_code` varchar(32) DEFAULT '' COMMENT '核销码',
   `product_info` varchar(1024) DEFAULT '' COMMENT '核销商品概要',
-  `verify_type` tinyint(4) NOT NULL DEFAULT 1 COMMENT '核销方式：1=核销码核销',
+  `verify_type` tinyint(4) NOT NULL DEFAULT 1 COMMENT '核销方式：1=核销码',
   `service_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT '本次核销服务费',
   `pay_price` decimal(10,2) DEFAULT NULL COMMENT '订单支付金额',
   `order_status` tinyint(4) DEFAULT NULL COMMENT '核销后订单状态',
-  `verify_uid` int(11) DEFAULT NULL COMMENT '核销操作人UID(用户端)',
+  `verify_uid` int(11) DEFAULT NULL COMMENT '核销操作人UID',
   `verify_name` varchar(64) DEFAULT '' COMMENT '核销操作人昵称',
-  `verify_source` tinyint(4) NOT NULL DEFAULT 1 COMMENT '核销来源：1=门店负责人端 2=平台后台',
+  `verify_source` tinyint(4) NOT NULL DEFAULT 1 COMMENT '核销来源：1=门店端 2=后台',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '核销时间',
   PRIMARY KEY (`id`),
   KEY `idx_store` (`store_id`),
   KEY `idx_order` (`order_id`),
   KEY `idx_code` (`verify_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='门店核销记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='门店核销记录';
 
--- 后台左侧栏菜单：门店
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
 SELECT 0, '门店', '', '', '/merchantStore', 'M', 96, 1, 0
-WHERE NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/merchantStore' AND `pid` = 0 AND `is_delte` = 0);
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/merchantStore' AND `pid` = 0 AND `is_delte` = 0);
 
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
 SELECT m.id, '门店管理', '', 'admin:merchant:store:list', '/merchantStore/list', 'C', 1, 1, 0

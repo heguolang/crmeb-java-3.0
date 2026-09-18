@@ -30,8 +30,19 @@ CREATE TABLE IF NOT EXISTS `eb_stock_product_rel` (
 -- 3. 菜单：订货代理 → 订货商管理
 UPDATE `eb_system_menu` SET `name` = '订货商管理' WHERE `id` = 660;
 
--- 4. 菜单：删除提现管理（含提现审核按钮）
-UPDATE `eb_system_menu` SET `is_delte` = 1 WHERE `id` IN (655, 670);
+-- 4. 菜单：删除提现管理（含提现审核按钮；不依赖固定 id）
+UPDATE `eb_system_menu`
+SET `is_delte` = 1, `is_show` = 0
+WHERE `component` = '/stock/withdraw'
+   OR `perms` LIKE 'admin:stock:withdraw%'
+   OR (`name` = '提现管理' AND (`perms` LIKE 'admin:stock:%' OR `component` LIKE '/stock/%'));
+
+UPDATE `eb_system_menu` c
+INNER JOIN `eb_system_menu` p ON c.`pid` = p.`id`
+SET c.`is_delte` = 1, c.`is_show` = 0
+WHERE p.`component` = '/stock/withdraw'
+   OR p.`perms` = 'admin:stock:withdraw:list'
+   OR (p.`name` = '提现管理' AND p.`perms` LIKE 'admin:stock:%');
 
 -- 5. 菜单：新增订货商变更记录（挂订货一级菜单 652 下，排订货商管理之后）
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)

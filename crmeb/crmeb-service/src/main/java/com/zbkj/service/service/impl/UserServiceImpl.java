@@ -1062,7 +1062,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         if (ObjectUtil.isNotNull(user.getUid()) && user.getUid().equals(spreadUid)) {
             return false;
         }
-        // 判断分销功能是否启用
+        // 判断分销功能是否启用（注册页主动填写推荐人时也要求分销开启）
         String isOpen = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_IS_OPEN);
         if (StrUtil.isBlank(isOpen) || isOpen.equals("0")) {
             return false;
@@ -1082,12 +1082,14 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         if (ObjectUtil.isNull(spreadUser) || !spreadUser.getStatus()) {
             return false;
         }
-        // 指定分销不是推广员不绑定
-        if (!spreadUser.getIsPromoter()) {
+        // 分销模式：1-指定分销（推荐人必须是推广员），2-人人分销（任意有效用户可绑）
+        String brokerageModel = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_MODEL);
+        if (!"2".equals(brokerageModel) && !Boolean.TRUE.equals(spreadUser.getIsPromoter())) {
             return false;
         }
         // 下级不能绑定自己的上级为自己的下级
-        if (ObjectUtil.isNotNull(user.getUid()) && spreadUser.getSpreadUid().equals(user.getUid())) {
+        if (ObjectUtil.isNotNull(user.getUid()) && ObjectUtil.isNotNull(spreadUser.getSpreadUid())
+                && spreadUser.getSpreadUid().equals(user.getUid())) {
             return false;
         }
         return true;

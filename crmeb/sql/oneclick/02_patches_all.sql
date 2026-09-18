@@ -1,6 +1,7 @@
 -- ============================================================
--- CRMEB Java 3.0 一键补丁合集（幂等）
--- 末尾域名: http://api.qianxutec.com
+-- CRMEB Java 3.0 一键补丁合集（MySQL 5.7 / 宝塔兼容，幂等）
+-- 修复: 去掉 ADD COLUMN IF NOT EXISTS、去掉 AFTER 依赖缺失列、去掉 DELIMITER
+-- 域名: http://api.qianxutec.com
 -- ============================================================
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -152,42 +153,42 @@ SET @s = IF(
     (SELECT COUNT(*) FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_user_level' AND COLUMN_NAME='upgrade_type') = 0,
     'ALTER TABLE `eb_system_user_level` ADD COLUMN `upgrade_type` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''升级条件类型：1=累计消费金额，2=累计订单数，3=两者同时满足'' AFTER `experience`',
-    'DO 0');
+    'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @s = IF(
     (SELECT COUNT(*) FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_user_level' AND COLUMN_NAME='consumption_trigger_type') = 0,
     'ALTER TABLE `eb_system_user_level` ADD COLUMN `consumption_trigger_type` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''消费金额统计时机：1=已付款，2=交易完成'' AFTER `upgrade_type`',
-    'DO 0');
+    'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @s = IF(
     (SELECT COUNT(*) FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_user_level' AND COLUMN_NAME='order_count_trigger_type') = 0,
     'ALTER TABLE `eb_system_user_level` ADD COLUMN `order_count_trigger_type` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''订单数统计时机：1=已付款，2=交易完成'' AFTER `consumption_trigger_type`',
-    'DO 0');
+    'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @s = IF(
     (SELECT COUNT(*) FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_user_level' AND COLUMN_NAME='upgrade_value') = 0,
     'ALTER TABLE `eb_system_user_level` ADD COLUMN `upgrade_value` int NOT NULL DEFAULT 0 COMMENT ''累计订单数升级门槛'' AFTER `order_count_trigger_type`',
-    'DO 0');
+    'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @s = IF(
     (SELECT COUNT(*) FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_user_level' AND COLUMN_NAME='give_integral') = 0,
     'ALTER TABLE `eb_system_user_level` ADD COLUMN `give_integral` int NOT NULL DEFAULT 0 COMMENT ''等级赠送积分（每单固定赠送，手输多少送多少）'' AFTER `upgrade_value`',
-    'DO 0');
+    'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @s = IF(
     (SELECT COUNT(*) FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_user_level' AND COLUMN_NAME='description') = 0,
     'ALTER TABLE `eb_system_user_level` ADD COLUMN `description` varchar(500) DEFAULT NULL COMMENT ''等级权益描述'' AFTER `give_integral`',
-    'DO 0');
+    'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ----------------------------
@@ -197,7 +198,7 @@ SET @s = IF(
     (SELECT COUNT(*) FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_user_level' AND COLUMN_NAME='give_integral') = 0,
     'ALTER TABLE `eb_user_level` ADD COLUMN `give_integral` int NOT NULL DEFAULT 0 COMMENT ''等级赠送积分''',
-    'DO 0');
+    'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ----------------------------
@@ -207,95 +208,98 @@ SET @s = IF(
     (SELECT COUNT(*) FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_user' AND COLUMN_NAME='team_level') = 0,
     'ALTER TABLE `eb_user` ADD COLUMN `team_level` int NOT NULL DEFAULT 0 COMMENT ''团队等级ID（eb_system_team_level.id），0=无''',
-    'DO 0');
+    'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ========== END: add_missing_columns.sql ==========
 
 -- ========== BEGIN: upgrade_team_level_direct.sql ==========
 -- ============================================================
--- 团队等级条件关系改版：全局 condition_relation → 每两个条件之间的链式关系
---   self_team_relation  : 自购门槛 与/或 团队门槛
---   team_direct_relation: 团队门槛 与/或 直推门槛
--- 追加：直推XX等级人数条件（等级来源于用户级别 eb_system_user_level）
---   direct_level_relation: 直推门槛 与/或 直推等级人数
---   direct_level_id      : 目标用户等级id，0=未启用
---   direct_level_count   : 直推达到该等级的人数门槛
--- 说明：脚本幂等，可重复执行。
+-- 团队等级条件关系改版（MySQL 5.7 / 宝塔兼容，幂等）
+-- 兼容旧表（仅有 self/team_order_amount）与新表
+-- 不加 AFTER：避免引用尚未存在的列导致 1054
 -- ============================================================
 
 SET @db = DATABASE();
 
--- ---------- 删除旧的全局条件关系列 ----------
+-- 工具宏：列不存在则 ADD（无 AFTER）
+-- direct_order_amount
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'direct_order_amount') = 0,
+    'ALTER TABLE `eb_system_team_level` ADD COLUMN `direct_order_amount` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''直推订单金额门槛(元)''',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'direct_order_trigger_type') = 0,
+    'ALTER TABLE `eb_system_team_level` ADD COLUMN `direct_order_trigger_type` tinyint(1) NOT NULL DEFAULT 2 COMMENT ''直推订单统计时机：1=支付成功，2=订单完成''',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'self_team_relation') = 0,
+    'ALTER TABLE `eb_system_team_level` ADD COLUMN `self_team_relation` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''自购与团队条件关系：1=与，2=或''',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'team_direct_relation') = 0,
+    'ALTER TABLE `eb_system_team_level` ADD COLUMN `team_direct_relation` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''团队与直推条件关系：1=与，2=或''',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'direct_level_relation') = 0,
+    'ALTER TABLE `eb_system_team_level` ADD COLUMN `direct_level_relation` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''直推金额与直推等级人数条件关系：1=与，2=或''',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'direct_level_id') = 0,
+    'ALTER TABLE `eb_system_team_level` ADD COLUMN `direct_level_id` int NOT NULL DEFAULT 0 COMMENT ''直推等级人数-目标用户等级id，0=未启用''',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'direct_level_count') = 0,
+    'ALTER TABLE `eb_system_team_level` ADD COLUMN `direct_level_count` int NOT NULL DEFAULT 0 COMMENT ''直推达到目标用户等级的人数门槛，0=未启用''',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'team_level_relation') = 0,
+    'ALTER TABLE `eb_system_team_level` ADD COLUMN `team_level_relation` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''直推等级人数与团队级别人数条件关系：1=与，2=或''',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'team_level_id') = 0,
+    'ALTER TABLE `eb_system_team_level` ADD COLUMN `team_level_id` int NOT NULL DEFAULT 0 COMMENT ''团队级别人数-目标用户等级id，0=未启用''',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'team_level_count') = 0,
+    'ALTER TABLE `eb_system_team_level` ADD COLUMN `team_level_count` int NOT NULL DEFAULT 0 COMMENT ''团队中达到目标用户等级的人数门槛，0=未启用''',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 删除旧的全局条件关系列（若存在）
 SET @s = IF(
     (SELECT COUNT(*) FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'condition_relation') > 0,
     'ALTER TABLE `eb_system_team_level` DROP COLUMN `condition_relation`',
-    'DO 0');
-PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- ---------- eb_system_team_level.self_team_relation ----------
-SET @s = IF(
-    (SELECT COUNT(*) FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'self_team_relation') = 0,
-    'ALTER TABLE `eb_system_team_level` ADD COLUMN `self_team_relation` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''自购与团队条件关系：1=与，2=或'' AFTER `direct_order_amount`',
-    'DO 0');
-PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- ---------- eb_system_team_level.team_direct_relation ----------
-SET @s = IF(
-    (SELECT COUNT(*) FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'team_direct_relation') = 0,
-    'ALTER TABLE `eb_system_team_level` ADD COLUMN `team_direct_relation` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''团队与直推条件关系：1=与，2=或'' AFTER `self_team_relation`',
-    'DO 0');
-PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- ---------- eb_system_team_level.direct_level_relation ----------
-SET @s = IF(
-    (SELECT COUNT(*) FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'direct_level_relation') = 0,
-    'ALTER TABLE `eb_system_team_level` ADD COLUMN `direct_level_relation` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''直推金额与直推等级人数条件关系：1=与，2=或'' AFTER `team_direct_relation`',
-    'DO 0');
-PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- ---------- eb_system_team_level.direct_level_id ----------
-SET @s = IF(
-    (SELECT COUNT(*) FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'direct_level_id') = 0,
-    'ALTER TABLE `eb_system_team_level` ADD COLUMN `direct_level_id` int NOT NULL DEFAULT 0 COMMENT ''直推等级人数-目标用户等级id(来源eb_system_user_level)，0=未启用'' AFTER `direct_level_relation`',
-    'DO 0');
-PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- ---------- eb_system_team_level.direct_level_count ----------
-SET @s = IF(
-    (SELECT COUNT(*) FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'direct_level_count') = 0,
-    'ALTER TABLE `eb_system_team_level` ADD COLUMN `direct_level_count` int NOT NULL DEFAULT 0 COMMENT ''直推达到目标用户等级的人数门槛，0=未启用'' AFTER `direct_level_id`',
-    'DO 0');
-PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- ---------- eb_system_team_level.team_level_relation ----------
-SET @s = IF(
-    (SELECT COUNT(*) FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'team_level_relation') = 0,
-    'ALTER TABLE `eb_system_team_level` ADD COLUMN `team_level_relation` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''直推等级人数与团队级别人数条件关系：1=与，2=或'' AFTER `direct_level_count`',
-    'DO 0');
-PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- ---------- eb_system_team_level.team_level_id ----------
-SET @s = IF(
-    (SELECT COUNT(*) FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'team_level_id') = 0,
-    'ALTER TABLE `eb_system_team_level` ADD COLUMN `team_level_id` int NOT NULL DEFAULT 0 COMMENT ''团队级别人数-目标用户等级id(来源eb_system_user_level)，0=未启用'' AFTER `team_level_relation`',
-    'DO 0');
-PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- ---------- eb_system_team_level.team_level_count ----------
-SET @s = IF(
-    (SELECT COUNT(*) FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'eb_system_team_level' AND COLUMN_NAME = 'team_level_count') = 0,
-    'ALTER TABLE `eb_system_team_level` ADD COLUMN `team_level_count` int NOT NULL DEFAULT 0 COMMENT ''团队中达到目标用户等级的人数门槛，0=未启用'' AFTER `team_level_id`',
-    'DO 0');
+    'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ========== END: upgrade_team_level_direct.sql ==========
@@ -816,9 +820,8 @@ JOIN (
   UNION ALL SELECT '订货订单',   'admin:stock:order:list',   '/stock/order',   3
   UNION ALL SELECT '换货管理',   'admin:stock:exchange:list','/stock/exchange',4
   UNION ALL SELECT '奖金明细',   'admin:stock:reward:list',  '/stock/reward',  5
-  UNION ALL SELECT '提现管理',   'admin:stock:withdraw:list','/stock/withdraw',6
-  UNION ALL SELECT '奖励规则',   'admin:stock:setting:list', '/stock/setting', 7
-  UNION ALL SELECT '数据报表',   'admin:stock:report:list',  '/stock/report',  8
+  UNION ALL SELECT '奖励规则',   'admin:stock:setting:list', '/stock/setting', 6
+  UNION ALL SELECT '数据报表',   'admin:stock:report:list',  '/stock/report',  7
 ) t
 WHERE m.component='/stock' AND m.menu_type='M'
   AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` x WHERE x.component = t.component AND x.menu_type='C');
@@ -839,7 +842,6 @@ JOIN (
   UNION ALL SELECT '换货管理', '换货审核',   'admin:stock:exchange:audit',  1
   UNION ALL SELECT '换货管理', '换货入库',   'admin:stock:exchange:back',   2
   UNION ALL SELECT '换货管理', '换货发货',   'admin:stock:exchange:send',   3
-  UNION ALL SELECT '提现管理', '提现审核',   'admin:stock:withdraw:audit',  1
   UNION ALL SELECT '奖励规则', '保存规则',   'admin:stock:setting:save',    1
   UNION ALL SELECT '数据报表', '导出报表',   'admin:stock:report:export',   1
 ) t
@@ -848,7 +850,6 @@ JOIN `eb_system_menu` c ON c.component = CASE t.page
     WHEN '商品与库存' THEN '/stock/product'
     WHEN '订货订单' THEN '/stock/order'
     WHEN '换货管理' THEN '/stock/exchange'
-    WHEN '提现管理' THEN '/stock/withdraw'
     WHEN '奖励规则' THEN '/stock/setting'
     WHEN '数据报表' THEN '/stock/report' END
   AND c.menu_type='C'
@@ -859,39 +860,72 @@ WHERE p.id = c.id
 
 -- ========== BEGIN: stock_upgrade_conditions.sql ==========
 -- =============================================================
---  订货商板块改造（1）：升级条件 / 平级奖 / 向上找货 / 开关 / 五级默认数据
---  执行：mysql -uroot -p123456 crmeb < crmeb/sql/stock_upgrade_conditions.sql
+-- 订货商升级条件 / 平级奖 / 向上找货（MySQL 5.7 兼容，幂等）
+-- 不用 ADD COLUMN IF NOT EXISTS（仅 MariaDB 支持）
 -- =============================================================
--- USE removed by oneclick
--- 1. 级别表新增：四项升级条件 + 条件组合方式 + 平级奖比例
-ALTER TABLE eb_stock_level
-  ADD COLUMN IF NOT EXISTS cond_self_buy       TINYINT(1)      NOT NULL DEFAULT 0    COMMENT '启用条件：自购消费满额自动升级' AFTER discount,
-  ADD COLUMN IF NOT EXISTS self_buy_amount     DECIMAL(12,2)   NOT NULL DEFAULT 0    COMMENT '自购消费门槛（元）' AFTER cond_self_buy,
-  ADD COLUMN IF NOT EXISTS cond_direct         TINYINT(1)      NOT NULL DEFAULT 0    COMMENT '启用条件：直推订单总业绩' AFTER self_buy_amount,
-  ADD COLUMN IF NOT EXISTS direct_order_amount DECIMAL(12,2)   NOT NULL DEFAULT 0    COMMENT '直推订单总业绩门槛（元）' AFTER cond_direct,
-  ADD COLUMN IF NOT EXISTS cond_team           TINYINT(1)      NOT NULL DEFAULT 0    COMMENT '启用条件：团队伞下业绩' AFTER direct_order_amount,
-  ADD COLUMN IF NOT EXISTS team_amount         DECIMAL(12,2)   NOT NULL DEFAULT 0    COMMENT '团队伞下业绩门槛（元）' AFTER cond_team,
-  ADD COLUMN IF NOT EXISTS cond_product        TINYINT(1)      NOT NULL DEFAULT 0    COMMENT '启用条件：购买指定产品升级' AFTER team_amount,
-  ADD COLUMN IF NOT EXISTS upgrade_product_ids VARCHAR(500)    NOT NULL DEFAULT ''   COMMENT '指定升级产品ID，英文逗号分隔' AFTER cond_product,
-  ADD COLUMN IF NOT EXISTS condition_logic     TINYINT(1)      NOT NULL DEFAULT 0    COMMENT '条件组合：0=满足任一(或) 1=全部满足(与)' AFTER upgrade_product_ids,
-  ADD COLUMN IF NOT EXISTS peer_rate           DECIMAL(5,2)    NOT NULL DEFAULT 0    COMMENT '平级奖比例(%)' AFTER condition_logic;
 
--- 2. 订单表新增：向上查找上级库存
-ALTER TABLE eb_stock_order
-  ADD COLUMN IF NOT EXISTS up_search_time DATETIME NULL            COMMENT '向上查找上级库存的时间' AFTER update_time,
-  ADD COLUMN IF NOT EXISTS up_search_num  INT      NOT NULL DEFAULT 0 COMMENT '已向上查找次数' AFTER up_search_time;
+SET @db = DATABASE();
 
--- 3. 后台开关配置（幂等）
+-- eb_stock_level 升级条件列
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_level' AND COLUMN_NAME='cond_self_buy')=0,
+  'ALTER TABLE eb_stock_level ADD COLUMN cond_self_buy TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''启用条件：自购消费满额自动升级''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_level' AND COLUMN_NAME='self_buy_amount')=0,
+  'ALTER TABLE eb_stock_level ADD COLUMN self_buy_amount DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT ''自购消费门槛（元）''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_level' AND COLUMN_NAME='cond_direct')=0,
+  'ALTER TABLE eb_stock_level ADD COLUMN cond_direct TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''启用条件：直推订单总业绩''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_level' AND COLUMN_NAME='direct_order_amount')=0,
+  'ALTER TABLE eb_stock_level ADD COLUMN direct_order_amount DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT ''直推订单总业绩门槛（元）''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_level' AND COLUMN_NAME='cond_team')=0,
+  'ALTER TABLE eb_stock_level ADD COLUMN cond_team TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''启用条件：团队伞下业绩''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_level' AND COLUMN_NAME='team_amount')=0,
+  'ALTER TABLE eb_stock_level ADD COLUMN team_amount DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT ''团队伞下业绩门槛（元）''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_level' AND COLUMN_NAME='cond_product')=0,
+  'ALTER TABLE eb_stock_level ADD COLUMN cond_product TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''启用条件：购买指定产品升级''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_level' AND COLUMN_NAME='upgrade_product_ids')=0,
+  'ALTER TABLE eb_stock_level ADD COLUMN upgrade_product_ids VARCHAR(500) NOT NULL DEFAULT '''' COMMENT ''指定升级产品ID，英文逗号分隔''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_level' AND COLUMN_NAME='condition_logic')=0,
+  'ALTER TABLE eb_stock_level ADD COLUMN condition_logic TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''条件组合：0=满足任一(或) 1=全部满足(与)''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_level' AND COLUMN_NAME='peer_rate')=0,
+  'ALTER TABLE eb_stock_level ADD COLUMN peer_rate DECIMAL(5,2) NOT NULL DEFAULT 0 COMMENT ''平级奖比例(%)''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- eb_stock_order 向上查找
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_order' AND COLUMN_NAME='up_search_time')=0,
+  'ALTER TABLE eb_stock_order ADD COLUMN up_search_time DATETIME NULL COMMENT ''向上查找上级库存的时间''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_order' AND COLUMN_NAME='up_search_num')=0,
+  'ALTER TABLE eb_stock_order ADD COLUMN up_search_num INT NOT NULL DEFAULT 0 COMMENT ''已向上查找次数''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 后台开关配置（幂等）
 INSERT INTO eb_system_config(name, title, form_id, value, status, create_time, update_time)
 SELECT 'stock_parent_deliver', '订货订单由上级发货', 0, '0', 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1) t WHERE EXISTS (SELECT 1 FROM eb_system_config WHERE name = 'stock_parent_deliver'));
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM eb_system_config WHERE name = 'stock_parent_deliver');
 
 INSERT INTO eb_system_config(name, title, form_id, value, status, create_time, update_time)
 SELECT 'stock_up_search_hours', '上级无库存自动向上查找等待时长(小时)', 0, '12', 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1) t WHERE EXISTS (SELECT 1 FROM eb_system_config WHERE name = 'stock_up_search_hours'));
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM eb_system_config WHERE name = 'stock_up_search_hours');
 
--- 4. 五级订货商默认数据（sort 越小层级越高）
---    由低到高：区级 80% / 市级 70% / 省级 60% / 全国 50% / 分公司 40%
+-- 五级订货商默认数据（仅更新已存在行；新区级插入）
 UPDATE eb_stock_level SET name = '分公司订货商', sort = 10, discount = 40.00,
        cond_self_buy = 1, self_buy_amount = 100000.00,
        cond_direct = 1, direct_order_amount = 500000.00,
@@ -928,7 +962,7 @@ INSERT INTO eb_stock_level(name, sort, discount, cond_self_buy, self_buy_amount,
                            cond_direct, direct_order_amount, cond_team, team_amount,
                            cond_product, upgrade_product_ids, condition_logic, peer_rate, is_del)
 SELECT '区级订货商', 50, 80.00, 1, 1000.00, 1, 5000.00, 1, 20000.00, 0, '', 0, 5.00, 0
-WHERE NOT EXISTS (SELECT 1 FROM eb_stock_level WHERE name = '区级订货商');
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM eb_stock_level WHERE name = '区级订货商');
 
 -- ========== END: stock_upgrade_conditions.sql ==========
 
@@ -965,8 +999,19 @@ CREATE TABLE IF NOT EXISTS `eb_stock_product_rel` (
 -- 3. 菜单：订货代理 → 订货商管理
 UPDATE `eb_system_menu` SET `name` = '订货商管理' WHERE `id` = 660;
 
--- 4. 菜单：删除提现管理（含提现审核按钮）
-UPDATE `eb_system_menu` SET `is_delte` = 1 WHERE `id` IN (655, 670);
+-- 4. 菜单：删除提现管理（含提现审核按钮；不依赖固定 id）
+UPDATE `eb_system_menu`
+SET `is_delte` = 1, `is_show` = 0
+WHERE `component` = '/stock/withdraw'
+   OR `perms` LIKE 'admin:stock:withdraw%'
+   OR (`name` = '提现管理' AND (`perms` LIKE 'admin:stock:%' OR `component` LIKE '/stock/%'));
+
+UPDATE `eb_system_menu` c
+INNER JOIN `eb_system_menu` p ON c.`pid` = p.`id`
+SET c.`is_delte` = 1, c.`is_show` = 0
+WHERE p.`component` = '/stock/withdraw'
+   OR p.`perms` = 'admin:stock:withdraw:list'
+   OR (p.`name` = '提现管理' AND p.`perms` LIKE 'admin:stock:%');
 
 -- 5. 菜单：新增订货商变更记录（挂订货一级菜单 652 下，排订货商管理之后）
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
@@ -998,67 +1043,71 @@ UPDATE eb_system_config SET title = '阶梯业绩奖励开关' WHERE name = 'sto
 
 -- ========== BEGIN: merchant_store.sql ==========
 -- ============================================================
--- 门店模块 2026-09-18：门店(提货点扩展) + 产品门店权限 + 核销记录 + 菜单
--- 幂等：可重复执行
+-- 门店模块（MySQL 5.7 / 宝塔兼容，幂等，无 DELIMITER）
 -- ============================================================
 
--- 工具：按列名幂等加列
-DROP PROCEDURE IF EXISTS crmeb_add_col;
-DELIMITER $$
-CREATE PROCEDURE crmeb_add_col(IN p_table VARCHAR(64), IN p_col VARCHAR(64), IN p_def TEXT)
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = p_table AND COLUMN_NAME = p_col
-  ) THEN
-    SET @ddl = CONCAT('ALTER TABLE `', p_table, '` ADD COLUMN ', p_def);
-    PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
-  END IF;
-END$$
-DELIMITER ;
+SET @db = DATABASE();
 
-CALL crmeb_add_col('eb_system_store', 'self_pickup', '`self_pickup` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''是否支持到店自提：1=是 0=否''');
-CALL crmeb_add_col('eb_system_store', 'delivery', '`delivery` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''是否支持上门配送：1=是 0=否''');
-CALL crmeb_add_col('eb_system_store', 'delivery_radius', '`delivery_radius` decimal(10,2) NOT NULL DEFAULT 5.00 COMMENT ''配送服务半径(公里)''');
-CALL crmeb_add_col('eb_system_store', 'verify_fee', '`verify_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''门店核销服务费''');
-CALL crmeb_add_col('eb_system_store', 'pickup_fee', '`pickup_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''到店自提服务费''');
-CALL crmeb_add_col('eb_system_store', 'delivery_fee', '`delivery_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''上门配送服务费''');
-CALL crmeb_add_col('eb_system_store', 'leader_uid', '`leader_uid` int(11) NOT NULL DEFAULT 0 COMMENT ''门店负责人用户UID(eb_user.uid)''');
-CALL crmeb_add_col('eb_system_store', 'leader_name', '`leader_name` varchar(64) DEFAULT '''' COMMENT ''门店负责人昵称(冗余)''');
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='self_pickup')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `self_pickup` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''是否支持到店自提''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='delivery')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `delivery` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''是否支持上门配送''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='delivery_radius')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `delivery_radius` decimal(10,2) NOT NULL DEFAULT 5.00 COMMENT ''配送服务半径(公里)''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='verify_fee')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `verify_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''门店核销服务费''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='pickup_fee')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `pickup_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''到店自提服务费''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='delivery_fee')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `delivery_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT ''上门配送服务费''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='leader_uid')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `leader_uid` int(11) NOT NULL DEFAULT 0 COMMENT ''门店负责人用户UID''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_system_store' AND COLUMN_NAME='leader_name')=0,
+  'ALTER TABLE `eb_system_store` ADD COLUMN `leader_name` varchar(64) DEFAULT '''' COMMENT ''门店负责人昵称''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-CALL crmeb_add_col('eb_store_product', 'is_store', '`is_store` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''是否支持门店服务：1=是 0=否''');
-CALL crmeb_add_col('eb_store_product', 'store_self_pickup', '`store_self_pickup` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''门店-是否支持自提：1=是 0=否''');
-CALL crmeb_add_col('eb_store_product', 'store_delivery', '`store_delivery` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''门店-是否支持配送：1=是 0=否''');
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_store_product' AND COLUMN_NAME='is_store')=0,
+  'ALTER TABLE `eb_store_product` ADD COLUMN `is_store` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''是否支持门店服务''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_store_product' AND COLUMN_NAME='store_self_pickup')=0,
+  'ALTER TABLE `eb_store_product` ADD COLUMN `store_self_pickup` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''门店是否支持自提''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_store_product' AND COLUMN_NAME='store_delivery')=0,
+  'ALTER TABLE `eb_store_product` ADD COLUMN `store_delivery` tinyint(1) NOT NULL DEFAULT 0 COMMENT ''门店是否支持配送''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-DROP PROCEDURE IF EXISTS crmeb_add_col;
-
--- 门店核销记录表
 CREATE TABLE IF NOT EXISTS `eb_store_verify_record` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `store_id` int(11) NOT NULL COMMENT '门店ID(eb_system_store.id)',
-  `store_name` varchar(128) DEFAULT '' COMMENT '门店名称(冗余)',
-  `order_id` int(11) DEFAULT NULL COMMENT '订单ID(eb_store_order.id)',
+  `store_id` int(11) NOT NULL COMMENT '门店ID',
+  `store_name` varchar(128) DEFAULT '' COMMENT '门店名称',
+  `order_id` int(11) DEFAULT NULL COMMENT '订单ID',
   `order_no` varchar(32) DEFAULT '' COMMENT '订单号',
   `verify_code` varchar(32) DEFAULT '' COMMENT '核销码',
   `product_info` varchar(1024) DEFAULT '' COMMENT '核销商品概要',
-  `verify_type` tinyint(4) NOT NULL DEFAULT 1 COMMENT '核销方式：1=核销码核销',
+  `verify_type` tinyint(4) NOT NULL DEFAULT 1 COMMENT '核销方式：1=核销码',
   `service_fee` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT '本次核销服务费',
   `pay_price` decimal(10,2) DEFAULT NULL COMMENT '订单支付金额',
   `order_status` tinyint(4) DEFAULT NULL COMMENT '核销后订单状态',
-  `verify_uid` int(11) DEFAULT NULL COMMENT '核销操作人UID(用户端)',
+  `verify_uid` int(11) DEFAULT NULL COMMENT '核销操作人UID',
   `verify_name` varchar(64) DEFAULT '' COMMENT '核销操作人昵称',
-  `verify_source` tinyint(4) NOT NULL DEFAULT 1 COMMENT '核销来源：1=门店负责人端 2=平台后台',
+  `verify_source` tinyint(4) NOT NULL DEFAULT 1 COMMENT '核销来源：1=门店端 2=后台',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '核销时间',
   PRIMARY KEY (`id`),
   KEY `idx_store` (`store_id`),
   KEY `idx_order` (`order_id`),
   KEY `idx_code` (`verify_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='门店核销记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='门店核销记录';
 
--- 后台左侧栏菜单：门店
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
 SELECT 0, '门店', '', '', '/merchantStore', 'M', 96, 1, 0
-WHERE NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/merchantStore' AND `pid` = 0 AND `is_delte` = 0);
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/merchantStore' AND `pid` = 0 AND `is_delte` = 0);
 
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
 SELECT m.id, '门店管理', '', 'admin:merchant:store:list', '/merchantStore/list', 'C', 1, 1, 0

@@ -248,9 +248,8 @@ JOIN (
   UNION ALL SELECT '订货订单',   'admin:stock:order:list',   '/stock/order',   3
   UNION ALL SELECT '换货管理',   'admin:stock:exchange:list','/stock/exchange',4
   UNION ALL SELECT '奖金明细',   'admin:stock:reward:list',  '/stock/reward',  5
-  UNION ALL SELECT '提现管理',   'admin:stock:withdraw:list','/stock/withdraw',6
-  UNION ALL SELECT '奖励规则',   'admin:stock:setting:list', '/stock/setting', 7
-  UNION ALL SELECT '数据报表',   'admin:stock:report:list',  '/stock/report',  8
+  UNION ALL SELECT '奖励规则',   'admin:stock:setting:list', '/stock/setting', 6
+  UNION ALL SELECT '数据报表',   'admin:stock:report:list',  '/stock/report',  7
 ) t
 WHERE m.component='/stock' AND m.menu_type='M'
   AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` x WHERE x.component = t.component AND x.menu_type='C');
@@ -271,7 +270,6 @@ JOIN (
   UNION ALL SELECT '换货管理', '换货审核',   'admin:stock:exchange:audit',  1
   UNION ALL SELECT '换货管理', '换货入库',   'admin:stock:exchange:back',   2
   UNION ALL SELECT '换货管理', '换货发货',   'admin:stock:exchange:send',   3
-  UNION ALL SELECT '提现管理', '提现审核',   'admin:stock:withdraw:audit',  1
   UNION ALL SELECT '奖励规则', '保存规则',   'admin:stock:setting:save',    1
   UNION ALL SELECT '数据报表', '导出报表',   'admin:stock:report:export',   1
 ) t
@@ -280,7 +278,6 @@ JOIN `eb_system_menu` c ON c.component = CASE t.page
     WHEN '商品与库存' THEN '/stock/product'
     WHEN '订货订单' THEN '/stock/order'
     WHEN '换货管理' THEN '/stock/exchange'
-    WHEN '提现管理' THEN '/stock/withdraw'
     WHEN '奖励规则' THEN '/stock/setting'
     WHEN '数据报表' THEN '/stock/report' END
   AND c.menu_type='C'
