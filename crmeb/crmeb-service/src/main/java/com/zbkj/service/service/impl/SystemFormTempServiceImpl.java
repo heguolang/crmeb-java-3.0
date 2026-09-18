@@ -91,7 +91,7 @@ public class SystemFormTempServiceImpl extends ServiceImpl<SystemFormTempDao, Sy
             systemConfigFormItemVo = JSONObject.parseObject(item, SystemConfigFormItemVo.class);
             String model = systemConfigFormItemVo.get__vModel__(); //字段 name
 
-            if(systemConfigFormItemVo.get__config__().getRequired() && map.get(model).equals("")) {
+            if(systemConfigFormItemVo.get__config__().getRequired() && StringUtils.isEmpty(map.get(model))) {
                 throw new CrmebException(systemConfigFormItemVo.get__config__().getLabel() + "不能为空！");
             }
             //正则验证
@@ -160,11 +160,13 @@ public class SystemFormTempServiceImpl extends ServiceImpl<SystemFormTempDao, Sy
      * @since 2020-04-16
      */
     private void checkRule(List<SystemConfigFormItemConfigRegListVo> regList, String value, String name) {
-        if(regList.size() > 0) {
-            for (SystemConfigFormItemConfigRegListVo systemConfigFormItemConfigRegListVo : regList) {
-                if(!ValidateFormUtil.regular(value, name, systemConfigFormItemConfigRegListVo.getPattern())) {
-                    throw new CrmebException(systemConfigFormItemConfigRegListVo.getMessage());
-                }
+        // regList 可能为 null（手工追加/老数据的表单字段未配置正则），判空兜底避免 NPE
+        if(regList == null || regList.isEmpty()) {
+            return;
+        }
+        for (SystemConfigFormItemConfigRegListVo systemConfigFormItemConfigRegListVo : regList) {
+            if(!ValidateFormUtil.regular(value, name, systemConfigFormItemConfigRegListVo.getPattern())) {
+                throw new CrmebException(systemConfigFormItemConfigRegListVo.getMessage());
             }
         }
     }
