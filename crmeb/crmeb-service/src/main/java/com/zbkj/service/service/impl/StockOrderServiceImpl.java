@@ -673,8 +673,11 @@ public class StockOrderServiceImpl implements StockOrderService {
             order.setStatus(StockOrder.STATUS_REJECT);
             order.setRejectReason(request.getReason().trim());
             stockOrderDao.updateById(order);
+            transactionTemplate.executeWithoutResult(status ->
+                    refundOrderToBalance(order, "上级驳回"));
             stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "订货单被驳回",
-                    "您的订货单 " + order.getOrderNo() + " 被上级驳回，原因：" + request.getReason().trim());
+                    "您的订货单 " + order.getOrderNo() + " 被上级驳回，原因：" + request.getReason().trim()
+                            + "。已支付货款 ¥" + order.getTotalPrice() + " 已退回您的余额");
             return true;
         }
         // 审核通过前校验上级库存
@@ -737,8 +740,11 @@ public class StockOrderServiceImpl implements StockOrderService {
             order.setStatus(StockOrder.STATUS_REJECT);
             order.setRejectReason("[总部介入]" + request.getReason().trim());
             stockOrderDao.updateById(order);
+            transactionTemplate.executeWithoutResult(status ->
+                    refundOrderToBalance(order, "总部驳回"));
             stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "订货单被驳回",
-                    "您的订货单 " + order.getOrderNo() + " 被总部驳回，原因：" + request.getReason().trim());
+                    "您的订货单 " + order.getOrderNo() + " 被总部驳回，原因：" + request.getReason().trim()
+                            + "。已支付货款 ¥" + order.getTotalPrice() + " 已退回您的余额");
             return true;
         }
         // 总部介入通过：实体单直接扣云仓库存 -> 待发货；虚拟单 -> 完成并入账虚拟库存
@@ -1221,6 +1227,7 @@ public class StockOrderServiceImpl implements StockOrderService {
             exchange.setStatus(StockExchange.STATUS_REJECT);
             exchange.setRejectReason(request.getReason().trim());
             stockExchangeDao.updateById(exchange);
+            transactionTemplate.executeWithoutResult(status -> refundExchangeDiffToBalance(exchange));
             return true;
         }
         exchange.setStatus(StockExchange.STATUS_WAIT_HQ_AUDIT);
@@ -1246,6 +1253,7 @@ public class StockOrderServiceImpl implements StockOrderService {
             exchange.setStatus(StockExchange.STATUS_REJECT);
             exchange.setRejectReason("[总部介入]" + request.getReason().trim());
             stockExchangeDao.updateById(exchange);
+            transactionTemplate.executeWithoutResult(status -> refundExchangeDiffToBalance(exchange));
             stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_AUDIT, "换货单已驳回",
                     "您的换货单 " + exchange.getExchangeNo() + " 被总部驳回：" + request.getReason().trim());
             return true;
@@ -1526,6 +1534,75 @@ public class StockOrderServiceImpl implements StockOrderService {
     }
 
     // ==================== 换货设置（是否允许换货） ====================
+
+    /**
+     * 订货单驳回退款：已支付货款全额退回下单人余额（幂等：按订单号查退款流水，已退过则跳过）
+     */
+    private void refundOrderToBalance(StockOrder order, String reason) {
+        if (order.getPayStatus() == null || order.getPayStatus() != 1
+                || order.getTotalPrice() == null || order.getTotalPrice().signum() <= 0) {
+            return;
+        }
+        int refunded = userBillService.count(new LambdaQueryWrapper<UserBill>()
+                .eq(UserBill::getLinkId, order.getId().toString())
+                .eq(UserBill::getType, Constants.USER_BILL_TYPE_PAY_PRODUCT_REFUND)
+                .eq(UserBill::getCategory, Constants.USER_BILL_CATEGORY_MONEY));
+        if (refunded > 0) {
+            return;
+        }
+        User user = userService.getById(order.getUid());
+        if (user == null) {
+            return;
+        }
+        userService.updateNowMoney(user, order.getTotalPrice(), "add");
+        UserBill bill = new UserBill();
+        bill.setPm(1);
+        bill.setUid(order.getUid());
+        bill.setLinkId(order.getId().toString());
+        bill.setTitle("订货退款");
+        bill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
+        bill.setType(Constants.USER_BILL_TYPE_PAY_PRODUCT_REFUND);
+        bill.setNumber(order.getTotalPrice());
+        bill.setBalance(user.getNowMoney().add(order.getTotalPrice()));
+        bill.setMark("订货单 " + order.getOrderNo() + " 被驳回，货款退回余额"
+                + (reason == null || reason.isEmpty() ? "" : "（" + reason + "）"));
+        userBillService.save(bill);
+    }
+
+    /**
+     * 换货单驳回退款：已支付的换货差价退回申请人余额（幂等：按换货单号查退款流水）
+     */
+    private void refundExchangeDiffToBalance(StockExchange exchange) {
+        if (exchange.getDiffPayStatus() == null || exchange.getDiffPayStatus() != 1
+                || exchange.getDiffPrice() == null || exchange.getDiffPrice().signum() <= 0) {
+            return;
+        }
+        int refunded = userBillService.count(new LambdaQueryWrapper<UserBill>()
+                .eq(UserBill::getLinkId, exchange.getId().toString())
+                .eq(UserBill::getType, Constants.USER_BILL_TYPE_PAY_PRODUCT_REFUND)
+                .eq(UserBill::getCategory, Constants.USER_BILL_CATEGORY_MONEY)
+                .like(UserBill::getMark, exchange.getExchangeNo()));
+        if (refunded > 0) {
+            return;
+        }
+        User user = userService.getById(exchange.getUid());
+        if (user == null) {
+            return;
+        }
+        userService.updateNowMoney(user, exchange.getDiffPrice(), "add");
+        UserBill bill = new UserBill();
+        bill.setPm(1);
+        bill.setUid(exchange.getUid());
+        bill.setLinkId(exchange.getId().toString());
+        bill.setTitle("换货差价退款");
+        bill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
+        bill.setType(Constants.USER_BILL_TYPE_PAY_PRODUCT_REFUND);
+        bill.setNumber(exchange.getDiffPrice());
+        bill.setBalance(user.getNowMoney().add(exchange.getDiffPrice()));
+        bill.setMark("换货单 " + exchange.getExchangeNo() + " 被驳回，差价退回余额");
+        userBillService.save(bill);
+    }
+
 
     @Override
     public List<StockExchangeConfig> getExchangeConfigList(Integer productId) {

@@ -45,7 +45,7 @@
 		},
 		methods: {
 			typeName(t) {
-				return { 1: '差价奖励', 2: '阶梯奖励', 3: '平级奖励' }[t] || '奖励';
+				return { 1: '差价奖励', 2: '阶梯奖励', 3: '平级奖励', 4: '货款成本' }[t] || '奖励';
 			},
 			load() {
 				getMyStockBonus().then(res => { this.bonus = res.data || {}; });

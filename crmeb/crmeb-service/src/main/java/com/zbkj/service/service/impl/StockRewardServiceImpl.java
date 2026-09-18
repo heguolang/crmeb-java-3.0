@@ -137,37 +137,60 @@ public class StockRewardServiceImpl implements StockRewardService {
                         + " × " + rate.stripTrailingZeros().toPlainString() + "%）");
     }
 
-    /** 差价：直接上级赚取（上级拿价 - 下级拿价）×数量 */
+    /**
+     * 货款结算（2026-09-18 汪总口径）：下级订单完成后，货款给到其【供货上级】（结算时点的挂靠上级），
+     * 分两笔入账：
+     *   1) 进货成本回款：供货上级的层级拿货价 × 数量（type=4，始终结算，不受开关控制）
+     *   2) 差价佣金：下级拿货价 − 供货上级拿货价（正数部分）× 数量（type=1，受 stock_diff_reward_status 开关）
+     * 例：区级 80 拿货、供货上级市级拿价 70 → 市级账户入 70 成本 + 10 差价；
+     *     若链路一路上浮到分公司（拿价 40）→ 分公司入 40 成本 + 40 差价，合计仍为买家实付 80。
+     * 供货价按【结算时点】实时重算：订单可能被向上匹配改挂上级，下单时的 parentPrice 快照不可用。
+     */
     private void calcDiffReward(StockOrder order) {
-        if (!"1".equals(systemConfigService.getValueByKey("stock_diff_reward_status"))) {
-            return;
-        }
         if (order.getParentAgentId() == null || order.getParentAgentId() == 0) {
             return;
         }
-        StockAgent parent = stockService.getAgentById(order.getParentAgentId());
-        if (parent == null || parent.getStatus() == 0) {
+        StockAgent supplier = stockService.getAgentById(order.getParentAgentId());
+        if (supplier == null || supplier.getStatus() == 0) {
             return;
         }
+        boolean diffEnabled = "1".equals(systemConfigService.getValueByKey("stock_diff_reward_status"));
         List<StockOrderProduct> items = stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
                 .eq(StockOrderProduct::getOrderId, order.getId()));
+        BigDecimal cost = BigDecimal.ZERO;
         BigDecimal diff = BigDecimal.ZERO;
         for (StockOrderProduct item : items) {
-            if (item.getParentPrice() == null) {
-                continue;
+            BigDecimal buyerPrice = item.getPrice() == null ? BigDecimal.ZERO : item.getPrice();
+            BigDecimal supplyPrice;
+            try {
+                supplyPrice = stockService.getProductPrice(supplier, item.getProductId(), item.getSkuKey());
+            } catch (Exception e) {
+                supplyPrice = item.getParentPrice();
             }
-            // 差价 = 下级拿货价 - 上级拿货价（例：总代拿货 80、下级拿货 100，则总代每单赚 20）
-            BigDecimal d = item.getPrice().subtract(item.getParentPrice());
+            if (supplyPrice == null || supplyPrice.signum() < 0) {
+                supplyPrice = BigDecimal.ZERO;
+            }
+            // 兜底：上级成本不超过买家实付（价格配置异常时确保上级合计不超订单金额）
+            if (supplyPrice.compareTo(buyerPrice) > 0) {
+                supplyPrice = buyerPrice;
+            }
+            BigDecimal num = new BigDecimal(item.getNum() == null ? 0 : item.getNum());
+            cost = cost.add(supplyPrice.multiply(num));
+            BigDecimal d = buyerPrice.subtract(supplyPrice);
             if (d.signum() > 0) {
-                diff = diff.add(d.multiply(new BigDecimal(item.getNum())));
+                diff = diff.add(d.multiply(num));
             }
         }
-        if (diff.signum() <= 0) {
-            return;
+        if (cost.signum() > 0) {
+            createRewardIfAbsent(supplier.getUid(), StockReward.TYPE_COST, order.getOrderNo(), order.getUid(),
+                    cost, BigDecimal.ZERO, cost,
+                    "货款成本回款：" + order.getOrderNo() + "（下级订单货款按您的拿货价结算成本）");
         }
-        createRewardIfAbsent(parent.getUid(), StockReward.TYPE_DIFF, order.getOrderNo(), order.getUid(),
-                diff, BigDecimal.ZERO, diff, "差价奖励：" + order.getOrderNo()
-                        + "（下级拿价 - 上级拿价）×" + order.getTotalNum());
+        if (diffEnabled && diff.signum() > 0) {
+            createRewardIfAbsent(supplier.getUid(), StockReward.TYPE_DIFF, order.getOrderNo(), order.getUid(),
+                    diff, BigDecimal.ZERO, diff, "差价佣金：" + order.getOrderNo()
+                            + "（下级拿价 − 您的拿价）×" + order.getTotalNum());
+        }
     }
 
     /**

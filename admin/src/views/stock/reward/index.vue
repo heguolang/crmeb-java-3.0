@@ -75,7 +75,7 @@ export default {
       this.getList();
     },
     typeName(t) {
-      return { 1: '差价奖励', 2: '阶梯奖励', 3: '平级奖励' }[t] || t;
+      return { 1: '差价奖励', 2: '阶梯奖励', 3: '平级奖励', 4: '货款成本' }[t] || t;
     }
   },
   mounted() {

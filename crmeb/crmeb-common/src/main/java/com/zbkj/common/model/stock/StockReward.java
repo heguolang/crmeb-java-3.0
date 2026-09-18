@@ -29,6 +29,7 @@ public class StockReward implements Serializable {
     public static final Integer TYPE_DIFF = 1;      // 差价奖励
     public static final Integer TYPE_LADDER = 2;    // 团队级差奖励
     public static final Integer TYPE_PEER = 3;      // 平级奖励
+    public static final Integer TYPE_COST = 4;      // 货款成本回款（下级订单货款中的进货成本部分）
 
     public static final Integer SOURCE_ORDER = 1;   // 订货单
     public static final Integer SOURCE_EXCHANGE = 2; // 换货单
