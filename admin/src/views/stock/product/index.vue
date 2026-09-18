@@ -388,7 +388,10 @@ export default {
         }
       }).catch(() => {});
       stockProductSkuListApi(productId).then(res => {
-        this.skuOptions = (res || []).map(s => {
+        // 只有多规格商品才展示规格选择（单规格=默认规格，按整品配置即可）
+        const raw = res || [];
+        const list = raw.length > 1 ? raw : [];
+        this.skuOptions = list.map(s => {
           let text = s.attrValue || s.skuKey;
           try {
             const obj = typeof s.attrValue === 'string' ? JSON.parse(s.attrValue) : s.attrValue;

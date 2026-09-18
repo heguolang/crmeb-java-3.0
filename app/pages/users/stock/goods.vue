@@ -24,7 +24,7 @@
         </view>
         <view class="goods-stock">
           云仓库存：{{ item.skuKey ? item.skuStock : item.stock }}
-          <text v-if="item.skus && item.skus.length" class="sku-chip" @click="openSku(item)">
+          <text v-if="item.skus && item.skus.length > 1" class="sku-chip" @click="openSku(item)">
             {{ item.skuName || '选择规格' }}
           </text>
         </view>
