@@ -67,6 +67,16 @@ public class UserDetailServiceImpl implements UserDetailsService {
             permissions.setSort(e.getSort());
             return permissions;
         }).collect(Collectors.toList());
+        // 超管：附加通配权限，配合 MethodSecurityConfig 放行全部接口
+        if (roles.contains(1)) {
+            SystemPermissions all = new SystemPermissions();
+            all.setId(0);
+            all.setPid(0);
+            all.setName("全部权限");
+            all.setPath("*:*:*");
+            all.setSort(0);
+            permissionsList.add(0, all);
+        }
         return new LoginUserVo(user, permissionsList);
     }
 

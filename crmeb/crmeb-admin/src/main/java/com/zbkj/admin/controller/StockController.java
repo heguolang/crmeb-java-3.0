@@ -377,11 +377,16 @@ public class StockController {
                     systemConfigService.updateOrSaveValueByName(key, v == null ? "" : String.valueOf(v));
                 }
             }
-            @SuppressWarnings("unchecked")
-            List<com.zbkj.common.model.stock.StockLadder> ladders =
-                    (List<com.zbkj.common.model.stock.StockLadder>) settingMap.get("ladders");
-            if (ladders != null && !stockService.saveLadders(ladders)) {
-                return CommonResult.failed("阶梯保存失败");
+            Object laddersObj = settingMap.get("ladders");
+            if (laddersObj != null) {
+                // Jackson 反序列化 HashMap 时 List 元素是 LinkedHashMap，需显式转 StockLadder
+                List<com.zbkj.common.model.stock.StockLadder> ladders =
+                        com.alibaba.fastjson.JSON.parseArray(
+                                com.alibaba.fastjson.JSON.toJSONString(laddersObj),
+                                com.zbkj.common.model.stock.StockLadder.class);
+                if (!stockService.saveLadders(ladders)) {
+                    return CommonResult.failed("阶梯保存失败");
+                }
             }
             return CommonResult.success();
         } catch (Exception e) {
