@@ -67,6 +67,33 @@ public class StockRequests {
     }
 
     @Data
+    @ApiModel(value = "StockAgentAdjustRequest对象", description = "后台调整订货商虚拟/实体库存请求")
+    public static class StockAgentAdjustRequest implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        @ApiModelProperty(value = "订货商ID（agentId 与 uid 二选一）")
+        private Integer agentId;
+
+        @ApiModelProperty(value = "订货商会员UID")
+        private Integer uid;
+
+        @ApiModelProperty(value = "商品ID")
+        @NotNull(message = "商品不能为空")
+        private Integer productId;
+
+        @ApiModelProperty(value = "规格key（空=整品）")
+        private String skuKey;
+
+        @ApiModelProperty(value = "调整数量（正=增加，负=扣减）")
+        @NotNull(message = "调整数量不能为空")
+        private Integer num;
+
+        @ApiModelProperty(value = "调整原因")
+        private String mark;
+    }
+
+    @Data
     @ApiModel(value = "StockExchangeApplyRequest对象", description = "换货申请请求")
     public static class StockExchangeApplyRequest implements Serializable {
 

@@ -73,7 +73,7 @@ public interface StockRewardService {
     Boolean auditWithdraw(Integer withdrawId, StockRequests.StockWithdrawAuditRequest request);
 
     /** 订货报表汇总 */
-    HashMap<String, Object> getReport(String dateLimit, PageParamRequest page);
+    HashMap<String, Object> getReport(Integer uid, String dateLimit, PageParamRequest page);
 
     /** 发送站内消息 */
     void sendNotice(Integer uid, Integer type, String title, String content);

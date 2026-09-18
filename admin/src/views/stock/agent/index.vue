@@ -4,7 +4,10 @@
       <div class="toolbar">
         <el-form inline size="small" @submit.native.prevent>
           <el-form-item label="关键词">
-            <el-input v-model="tableFrom.keywords" placeholder="昵称/手机号" clearable style="width: 180px" @keyup.enter.native="getList" />
+            <el-input v-model="tableFrom.keywords" placeholder="昵称/手机号" clearable style="width: 160px" @keyup.enter.native="getList" />
+          </el-form-item>
+          <el-form-item label="订货商UID">
+            <el-input v-model.number="tableFrom.uid" placeholder="UID精确查询" clearable style="width: 130px" @keyup.enter.native="getList" />
           </el-form-item>
           <el-form-item label="层级">
             <el-select v-model="tableFrom.levelId" placeholder="全部层级" clearable style="width: 140px">
@@ -28,6 +31,7 @@
       </div>
       <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
         <el-table-column prop="id" label="ID" width="38" />
+        <el-table-column prop="uid" label="UID" width="78" />
         <el-table-column prop="nickname" label="代理用户" min-width="120">
           <template slot-scope="scope">
             <div>{{ scope.row.nickname }}</div>
@@ -43,9 +47,9 @@
             <span class="st-dot" :class="{ on: scope.row.status === 1 }"><i></i>{{ scope.row.status === 1 ? '启用' : '禁用' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="mark" label="备注" min-width="90" show-overflow-tooltip />
-        <el-table-column prop="createTime" label="创建时间" width="136" />
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column prop="mark" label="备注" min-width="80" show-overflow-tooltip />
+        <el-table-column prop="createTime" label="创建时间" width="130" />
+        <el-table-column label="操作" width="210" fixed="right">
           <template slot-scope="scope">
             <div class="op-links">
               <template v-if="checkPermi(['admin:stock:agent:update'])">
@@ -54,6 +58,10 @@
                 <a class="op-link" @click="onStatus(scope.row)">{{ scope.row.status === 1 ? '禁用' : '启用' }}</a>
                 <el-divider direction="vertical"></el-divider>
               </template>
+              <a class="op-link" @click="openTeam(scope.row)">团队</a>
+              <el-divider direction="vertical"></el-divider>
+              <a class="op-link" @click="openStock(scope.row)">库存</a>
+              <el-divider direction="vertical"></el-divider>
               <a v-if="checkPermi(['admin:stock:agent:delete'])" class="op-link" @click="onDelete(scope.row)">删除</a>
             </div>
           </template>
@@ -87,6 +95,63 @@
       <div slot="footer">
         <el-button size="small" @click="editVisible = false">取消</el-button>
         <el-button size="small" type="primary" :loading="saving" @click="onSave">确定</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 下级团队弹窗 -->
+    <el-dialog :title="'下级团队 - ' + (teamAgent ? teamAgent.nickname : '')" :visible.sync="teamVisible" width="720px">
+      <div class="team-tip">共 {{ teamRows.length }} 位下级，含伞下全部层级</div>
+      <el-table class="admin-table" :data="teamRows" size="small" stripe max-height="440">
+        <el-table-column label="属于第几层" width="100">
+          <template slot-scope="scope">
+            <span class="depth-tag">第 {{ scope.row.depth }} 层</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="uid" label="UID" width="80" />
+        <el-table-column prop="nickname" label="昵称" min-width="110" show-overflow-tooltip />
+        <el-table-column prop="phone" label="手机号" width="120" />
+        <el-table-column prop="levelName" label="层级" width="90" />
+        <el-table-column label="状态" width="70">
+          <template slot-scope="scope">
+            <span class="st-dot" :class="{ on: scope.row.status === 1 }"><i></i>{{ scope.row.status === 1 ? '启用' : '禁用' }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div slot="footer">
+        <el-button size="small" @click="teamVisible = false">关闭</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 库存调整弹窗 -->
+    <el-dialog :title="'调整库存 - ' + (stockAgent ? stockAgent.nickname : '')" :visible.sync="stockVisible" width="560px">
+      <el-form :model="stockForm" label-width="100px" size="small">
+        <el-form-item label="库存类型">
+          <el-radio-group v-model="stockForm.stockType">
+            <el-radio :label="2">虚拟库存</el-radio>
+            <el-radio :label="1">实体库存</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="商品">
+          <el-select v-model="stockForm.productId" filterable placeholder="选择商品" style="width: 100%" @change="onStockProductChange">
+            <el-option v-for="p in productOptions" :key="p.id" :label="p.storeName" :value="p.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="规格" v-if="skuOptions.length">
+          <el-select v-model="stockForm.skuKey" clearable placeholder="不选=整品" style="width: 100%">
+            <el-option v-for="s in skuOptions" :key="s.skuKey" :label="s.attrValueText" :value="s.skuKey" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="调整数量">
+          <el-input-number v-model="stockForm.num" :step="1" style="width: 160px" />
+          <span class="switch-tip">正数增加、负数扣减</span>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="stockForm.mark" type="textarea" :rows="2" placeholder="调整原因" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button size="small" @click="stockVisible = false">取消</el-button>
+        <el-button size="small" type="primary" :loading="stockSaving" @click="submitStock">确定</el-button>
       </div>
     </el-dialog>
 
@@ -175,7 +240,7 @@
 </template>
 
 <script>
-import { stockAgentListApi, stockAgentSaveApi, stockAgentUpdateApi, stockAgentStatusApi, stockAgentDeleteApi, stockLevelListApi, stockLevelSaveApi, stockLevelDeleteApi, stockProductListApi } from '@/api/stock';
+import { stockAgentListApi, stockAgentSaveApi, stockAgentUpdateApi, stockAgentStatusApi, stockAgentDeleteApi, stockAgentTeamApi, stockAgentVirtualAdjustApi, stockAgentPhysicalAdjustApi, stockLevelListApi, stockLevelSaveApi, stockLevelDeleteApi, stockProductListApi, stockProductSkuListApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -189,14 +254,22 @@ export default {
       levels: [],
       agentOptions: [],
       productOptions: [],
-      tableFrom: { page: 1, limit: 20, keywords: '', levelId: null, status: null },
+      tableFrom: { page: 1, limit: 20, keywords: '', uid: null, levelId: null, status: null },
       editVisible: false,
       levelVisible: false,
       editForm: { id: null, uid: '', levelId: null, parentId: 0, mark: '' },
       condVisible: false,
       condSaving: false,
       condLevel: null,
-      condForm: {}
+      condForm: {},
+      teamVisible: false,
+      teamAgent: null,
+      teamRows: [],
+      stockVisible: false,
+      stockSaving: false,
+      stockAgent: null,
+      skuOptions: [],
+      stockForm: { stockType: 2, productId: null, skuKey: '', num: 0, mark: '' }
     };
   },
   methods: {
@@ -250,6 +323,67 @@ export default {
           this.getList();
         });
       }).catch(() => {});
+    },
+    // ===== 下级团队 =====
+    openTeam(row) {
+      this.teamAgent = row;
+      this.teamRows = [];
+      this.teamVisible = true;
+      stockAgentTeamApi({ agentId: row.id }).then(res => {
+        this.teamRows = res || [];
+      });
+    },
+    // ===== 库存调整 =====
+    openStock(row) {
+      this.stockAgent = row;
+      this.stockForm = { stockType: 2, productId: null, skuKey: '', num: 0, mark: '' };
+      this.skuOptions = [];
+      this.stockVisible = true;
+      if (!this.productOptions.length) {
+        stockProductListApi({ page: 1, limit: 500 }).then(res => {
+          this.productOptions = (res && res.list) || [];
+        });
+      }
+    },
+    onStockProductChange(productId) {
+      this.stockForm.skuKey = '';
+      this.skuOptions = [];
+      if (!productId) return;
+      stockProductSkuListApi(productId).then(res => {
+        const raw = res || [];
+        const list = raw.length > 1 ? raw : [];
+        this.skuOptions = list.map(s => {
+          let text = s.attrValue || s.skuKey;
+          try {
+            const obj = typeof s.attrValue === 'string' ? JSON.parse(s.attrValue) : s.attrValue;
+            if (obj && typeof obj === 'object') {
+              text = Object.keys(obj).map(k => obj[k]).join(' / ');
+            }
+          } catch (e) {
+            // 解析失败保留原文
+          }
+          return { ...s, attrValueText: text };
+        });
+      });
+    },
+    submitStock() {
+      if (!this.stockForm.productId) return this.$message.error('请选择商品');
+      if (!this.stockForm.num) return this.$message.error('调整数量不能为0');
+      this.stockSaving = true;
+      const data = {
+        agentId: this.stockAgent.id,
+        uid: this.stockAgent.uid,
+        productId: this.stockForm.productId,
+        skuKey: this.stockForm.skuKey || '',
+        num: this.stockForm.num,
+        mark: this.stockForm.mark || ''
+      };
+      const api = this.stockForm.stockType === 1 ? stockAgentPhysicalAdjustApi : stockAgentVirtualAdjustApi;
+      api(data).then(() => {
+        this.$message.success('调整成功');
+        this.stockSaving = false;
+        this.stockVisible = false;
+      }).catch(() => { this.stockSaving = false; });
     },
     openLevel() {
       this.levelVisible = true;
@@ -350,4 +484,6 @@ export default {
 .red { color: #f56c6c; }
 .grey { color: #999; font-size: 12px; }
 .switch-tip { margin-left: 12px; font-size: 12px; color: #909399; line-height: 1.5; }
+.team-tip { font-size: 13px; color: #909399; margin-bottom: 10px; }
+.depth-tag { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #ecf5ff; color: #409eff; font-size: 12px; }
 </style>

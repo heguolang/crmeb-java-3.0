@@ -27,7 +27,7 @@
       </div>
 
       <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
-        <el-table-column label="订货单号" min-width="120" show-overflow-tooltip>
+        <el-table-column label="订货单号" min-width="112" show-overflow-tooltip>
           <template slot-scope="scope">{{ scope.row.orderNo }}</template>
         </el-table-column>
         <el-table-column label="代理" min-width="100">
@@ -36,43 +36,44 @@
             <div class="sub-text">{{ scope.row.levelName }} · UID {{ scope.row.uid }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="类型" width="80">
+        <el-table-column label="类型/库存" width="78">
           <template slot-scope="scope">
             <div>{{ orderTypeText(scope.row.orderType) }}</div>
-            <div v-if="scope.row.orderType === 1" class="sub-text">{{ scope.row.stockType === 2 ? '虚拟' : '实体' }}库存</div>
+            <div class="sub-text">{{ stockTypeText(scope.row.stockType) }}库存</div>
           </template>
         </el-table-column>
-        <el-table-column label="数量/金额" width="84">
+        <el-table-column label="收货人" min-width="96">
+          <template slot-scope="scope">
+            <template v-if="scope.row.realName">
+              <div>{{ scope.row.realName }}</div>
+              <div class="sub-text">{{ scope.row.phone }}</div>
+            </template>
+            <span v-else class="sub-text">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="数量/金额" width="78">
           <template slot-scope="scope">
             <div>{{ scope.row.totalNum }} 件</div>
             <div class="price-text">¥{{ scope.row.totalPrice }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="付款" width="80">
+        <el-table-column label="付款" width="78">
           <template slot-scope="scope">
             <span class="st-dot" :class="{ on: scope.row.payStatus === 1 }"><i></i>{{ scope.row.payStatus === 1 ? '已付' : '未付' }}</span>
-            <div class="sub-text">{{ scope.row.payType === 1 ? '微信支付' : '记账欠款' }}</div>
+            <div class="sub-text">{{ payTypeText(scope.row.payType) }}</div>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="80">
           <template slot-scope="scope">
             <span class="st-dot" :class="{ warn: scope.row.status === 0 || scope.row.status === 1, on: scope.row.status === 4, danger: scope.row.status === -1 }"><i></i>{{ statusMap[scope.row.status] || scope.row.status }}</span>
             <div v-if="scope.row.status === -1" class="reject-text">{{ scope.row.rejectReason }}</div>
+            <div v-else-if="scope.row.expressNum" class="sub-text">{{ scope.row.expressName }} {{ scope.row.expressNum }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="快递" min-width="85">
-          <template slot-scope="scope">
-            <template v-if="scope.row.expressNum">
-              <div>{{ scope.row.expressName }}</div>
-              <div class="sub-text">{{ scope.row.expressNum }}</div>
-            </template>
-            <span v-else class="sub-text">—</span>
-          </template>
+        <el-table-column label="下单时间" min-width="108">
+          <template slot-scope="scope">{{ shortTime(scope.row.createTime) }}</template>
         </el-table-column>
-        <el-table-column label="下单时间" min-width="135">
-          <template slot-scope="scope">{{ scope.row.createTime }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="132" fixed="right">
+        <el-table-column label="操作" width="160" fixed="right">
           <template slot-scope="scope">
             <div class="op-links">
               <a class="op-link" @click="detail(scope.row)">明细</a>
@@ -142,14 +143,42 @@
       </div>
     </el-dialog>
 
-    <!-- 发货弹窗 -->
-    <el-dialog title="订单发货" :visible.sync="sendVisible" width="400px">
-      <el-form label-width="90px" size="small">
-        <el-form-item label="快递公司">
-          <el-input v-model="sendForm.expressName" placeholder="如：顺丰速运" />
+    <!-- 发货弹窗：复用原生发货（物流公司下拉 + 收货信息） -->
+    <el-dialog title="订单发货" :visible.sync="sendVisible" width="560px">
+      <div v-if="sendRow" class="recipient-box">
+        <div class="recipient-row"><span class="label">收货人：</span><span>{{ sendRow.realName || '-' }}</span></div>
+        <div class="recipient-row"><span class="label">联系电话：</span><span>{{ sendRow.phone || '-' }}</span></div>
+        <div class="recipient-row"><span class="label">收货地址：</span><span>{{ sendRow.userAddress || '-' }}</span></div>
+        <el-button size="mini" plain class="copy-btn" @click="copyRecipient">一键复制</el-button>
+      </div>
+      <el-form label-width="100px" size="small" style="margin-top: 14px">
+        <el-form-item label="配送方式">
+          <el-radio-group v-model="sendForm.deliveryType" @change="onDeliveryTypeChange">
+            <el-radio label="express">快递发货</el-radio>
+            <el-radio label="send">送货上门</el-radio>
+            <el-radio label="fictitious">虚拟发货</el-radio>
+          </el-radio-group>
         </el-form-item>
-        <el-form-item label="快递单号">
-          <el-input v-model="sendForm.expressNum" />
+        <template v-if="sendForm.deliveryType === 'express'">
+          <el-form-item label="快递公司">
+            <el-select v-model="sendForm.expressCode" filterable placeholder="请选择快递公司" style="width: 100%" @change="onExpressChange">
+              <el-option v-for="item in expressOptions" :key="item.code" :label="item.name" :value="item.code" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="快递单号">
+            <el-input v-model="sendForm.expressNum" placeholder="请输入快递单号" />
+          </el-form-item>
+        </template>
+        <template v-else-if="sendForm.deliveryType === 'send'">
+          <el-form-item label="送货人姓名">
+            <el-input v-model="sendForm.deliveryName" placeholder="请输入送货人姓名" />
+          </el-form-item>
+          <el-form-item label="送货人电话">
+            <el-input v-model="sendForm.deliveryTel" placeholder="请输入送货人电话" />
+          </el-form-item>
+        </template>
+        <el-form-item v-else label="虚拟发货">
+          <span class="sub-text">无需物流，直接标记已发货</span>
         </el-form-item>
       </el-form>
       <div slot="footer">
@@ -162,6 +191,7 @@
 
 <script>
 import { stockOrderListApi, stockOrderPayApi, stockOrderAuditApi, stockOrderSendApi, stockOrderFinishApi } from '@/api/stock';
+import { expressAllApi } from '@/api/sms';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -177,7 +207,8 @@ export default {
       detailRow: null,
       sendVisible: false,
       sendRow: null,
-      sendForm: { expressName: '', expressNum: '' },
+      expressOptions: [],
+      sendForm: { deliveryType: 'express', expressCode: '', expressName: '', expressNum: '', deliveryName: '', deliveryTel: '' },
       auditVisible: false,
       auditRow: null,
       auditForm: { status: 1, reason: '' }
@@ -187,6 +218,20 @@ export default {
     checkPermi,
     orderTypeText(t) {
       return { 1: '采购', 2: '提货', 3: '换货' }[t] || '采购';
+    },
+    // 库存类型标注：1=实体 2=虚拟
+    stockTypeText(t) {
+      return t === 2 ? '虚拟' : '实体';
+    },
+    // 真实支付方式：1=微信线上支付 2=后台记账欠款 3=余额支付
+    payTypeText(t) {
+      if (t === 3) return '余额支付';
+      if (t === 2) return '记账欠款';
+      return t === 1 ? '微信支付' : '未支付';
+    },
+    shortTime(t) {
+      if (!t) return '-';
+      return String(t).substring(0, 16);
     },
     getList() {
       this.loading = true;
@@ -235,12 +280,65 @@ export default {
     },
     openSend(row) {
       this.sendRow = row;
-      this.sendForm = { expressName: '', expressNum: '' };
+      this.sendForm = { deliveryType: 'express', expressCode: '', expressName: '', expressNum: '', deliveryName: '', deliveryTel: '' };
       this.sendVisible = true;
+      if (!this.expressOptions.length) {
+        expressAllApi({ type: 'normal' }).then(res => {
+          this.expressOptions = res || [];
+        }).catch(() => { this.expressOptions = []; });
+      }
+    },
+    onExpressChange(code) {
+      const item = this.expressOptions.find(e => e.code === code);
+      this.sendForm.expressName = item ? item.name : '';
+    },
+    onDeliveryTypeChange() {
+      this.sendForm.expressCode = '';
+      this.sendForm.expressName = '';
+      this.sendForm.expressNum = '';
+      this.sendForm.deliveryName = '';
+      this.sendForm.deliveryTel = '';
+    },
+    copyRecipient() {
+      const row = this.sendRow || {};
+      const text = [row.realName, row.phone, row.userAddress].filter(Boolean).join(' ');
+      if (!text) {
+        this.$message.warning('暂无收货信息可复制');
+        return;
+      }
+      const input = document.createElement('textarea');
+      input.value = text;
+      input.style.position = 'fixed';
+      input.style.left = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        this.$message.success('收货信息已复制');
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
     },
     saveSend() {
-      if (!this.sendForm.expressName || !this.sendForm.expressNum) return this.$message.error('请填写快递信息');
-      stockOrderSendApi(this.sendRow.id, this.sendForm).then(() => {
+      const f = this.sendForm;
+      let expressName = '';
+      let expressNum = '';
+      if (f.deliveryType === 'express') {
+        if (!f.expressCode) return this.$message.error('请选择快递公司');
+        if (!f.expressNum) return this.$message.error('请填写快递单号');
+        expressName = f.expressName;
+        expressNum = f.expressNum;
+      } else if (f.deliveryType === 'send') {
+        if (!f.deliveryName) return this.$message.error('请填写送货人姓名');
+        if (!f.deliveryTel) return this.$message.error('请填写送货人电话');
+        expressName = '送货上门';
+        expressNum = f.deliveryName + ' ' + f.deliveryTel;
+      } else {
+        expressName = '虚拟发货';
+        expressNum = '无需物流';
+      }
+      stockOrderSendApi(this.sendRow.id, { expressName, expressNum }).then(() => {
         this.$message.success('发货成功');
         this.sendVisible = false;
         this.getList();

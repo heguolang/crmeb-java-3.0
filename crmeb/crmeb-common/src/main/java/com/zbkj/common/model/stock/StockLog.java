@@ -62,4 +62,16 @@ public class StockLog implements Serializable {
     @ApiModelProperty(value = "商品名称")
     @TableField(exist = false)
     private String productName;
+
+    @ApiModelProperty(value = "关联会员昵称（由关联单号反查；无关联订单为空）")
+    @TableField(exist = false)
+    private String nickName;
+
+    @ApiModelProperty(value = "关联会员手机号")
+    @TableField(exist = false)
+    private String phone;
+
+    @ApiModelProperty(value = "关联会员UID")
+    @TableField(exist = false)
+    private Integer uid;
 }

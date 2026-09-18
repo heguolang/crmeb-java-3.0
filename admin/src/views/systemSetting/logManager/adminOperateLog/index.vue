@@ -2,15 +2,7 @@
   <div class="divBox">
     <el-card class="box-card">
       <el-form inline @submit.native.prevent>
-        <el-form-item>
-          <el-button
-            type="danger"
-            size="small"
-            @click="handleClear"
-            v-hasPermi="['admin:log:sensitive:delete']"
-            >清空日志</el-button
-          >
-        </el-form-item>
+        <!-- 汪总要求（2026-09-18）：移除「清空日志」功能 -->
       </el-form>
       <el-table v-loading="listLoading" :data="listData.list" size="mini">
         <el-table-column prop="id" label="ID" width="70" />
@@ -90,7 +82,7 @@
 </template>
 
 <script>
-import { sensitiveListApi, sensitiveClearApi } from '@/api/systemadmin.js';
+import { sensitiveListApi } from '@/api/systemadmin.js';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 export default {
   name: 'adminOperateLog',
@@ -119,15 +111,6 @@ export default {
     handleCurrentChange(val) {
       this.listPram.page = val;
       this.getList();
-    },
-    handleClear() {
-      this.$modalSure('清空全部操作日志，此操作不可恢复').then(() => {
-        sensitiveClearApi().then(() => {
-          this.$message.success('清空成功');
-          this.listPram.page = 1;
-          this.getList();
-        });
-      });
     },
     handlerOpenDetail(row) {
       this.detailData = row;

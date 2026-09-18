@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.product.StoreProduct;
+import com.zbkj.common.model.stock.StockAdjustLog;
 import com.zbkj.common.model.stock.StockAgent;
 import com.zbkj.common.model.stock.StockChangeLog;
 import com.zbkj.common.model.stock.StockLevel;
@@ -16,6 +17,7 @@ import com.zbkj.common.model.stock.StockPrice;
 import com.zbkj.common.model.stock.StockPriceSku;
 import com.zbkj.common.model.product.StoreProductAttrValue;
 import com.zbkj.common.model.stock.StockProductRel;
+import com.zbkj.common.model.stock.StockVirtualStock;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
@@ -92,6 +94,15 @@ public class StockServiceImpl implements StockService {
     private com.zbkj.service.dao.StockProductRelDao stockProductRelDao;
 
     @Resource
+    private com.zbkj.service.dao.StockVirtualStockDao stockVirtualStockDao;
+
+    @Resource
+    private com.zbkj.service.dao.StockExchangeDao stockExchangeDao;
+
+    @Resource
+    private com.zbkj.service.dao.StockAdjustLogDao stockAdjustLogDao;
+
+    @Resource
     private TransactionTemplate transactionTemplate;
 
     // ==================== 层级 ====================
@@ -124,28 +135,42 @@ public class StockServiceImpl implements StockService {
     // ==================== 后台代理管理 ====================
 
     @Override
-    public CommonPage<StockAgent> getAdminAgentList(String keywords, Integer levelId, Integer status, PageParamRequest pageParamRequest) {
+    public CommonPage<StockAgent> getAdminAgentList(String keywords, Integer uid, Integer levelId, Integer status, PageParamRequest pageParamRequest) {
         LambdaQueryWrapper<StockAgent> lqw = new LambdaQueryWrapper<>();
         lqw.eq(StockAgent::getIsDel, 0);
+        // 按订货商UID精确查询
+        if (uid != null && uid > 0) {
+            lqw.eq(StockAgent::getUid, uid);
+        }
         if (levelId != null && levelId > 0) {
             lqw.eq(StockAgent::getLevelId, levelId);
         }
         if (status != null) {
             lqw.eq(StockAgent::getStatus, status);
         }
-        // 关键词按用户昵称/手机号模糊（先查用户）
+        // 关键词按用户昵称/手机号/UID模糊（先查用户）
         if (keywords != null && !keywords.trim().isEmpty()) {
+            String kw = keywords.trim();
             List<User> users = userService.lambdaQuery()
-                    .and(w -> w.like(User::getNickname, keywords.trim()).or().like(User::getPhone, keywords.trim()))
+                    .and(w -> w.like(User::getNickname, kw).or().like(User::getPhone, kw))
                     .list();
             if (users.isEmpty()) {
-                return new CommonPage<>();
+                // 关键词为纯数字时按UID精确匹配订货商
+                if (kw.matches("\\d+")) {
+                    lqw.eq(StockAgent::getUid, Long.parseLong(kw));
+                } else {
+                    return new CommonPage<>();
+                }
+            } else {
+                List<Integer> uids = new ArrayList<>();
+                for (User u : users) {
+                    uids.add(u.getUid());
+                }
+                lqw.in(StockAgent::getUid, uids);
+                if (kw.matches("\\d+")) {
+                    lqw.or().eq(StockAgent::getUid, Long.parseLong(kw));
+                }
             }
-            List<Integer> uids = new ArrayList<>();
-            for (User u : users) {
-                uids.add(u.getUid());
-            }
-            lqw.in(StockAgent::getUid, uids);
         }
         lqw.orderByDesc(StockAgent::getId);
         // ★ startPage 必须紧邻目标查询（上面的用户查询会吃掉分页参数）
@@ -596,7 +621,215 @@ public class StockServiceImpl implements StockService {
         }
         lqw.orderByDesc(StockLog::getId);
         List<StockLog> list = stockLogDao.selectList(lqw);
+        fillLogs(list);
         return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    /** 库存日志补充：商品名称 + 关联会员信息（由关联单号反查订货单/换货单的会员） */
+    private void fillLogs(List<StockLog> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        HashMap<Integer, String> productNameMap = new HashMap<>();
+        for (StockLog log : list) {
+            if (log.getProductId() == null) {
+                continue;
+            }
+            if (!productNameMap.containsKey(log.getProductId())) {
+                StoreProduct p = storeProductService.getById(log.getProductId());
+                productNameMap.put(log.getProductId(), p == null ? ("商品" + log.getProductId()) : p.getStoreName());
+            }
+        }
+        // 关联单号 -> 会员（订货单号 / 换货单号）
+        List<String> linkNos = new ArrayList<>();
+        for (StockLog log : list) {
+            if (log.getLinkNo() != null && !log.getLinkNo().trim().isEmpty()) {
+                linkNos.add(log.getLinkNo().trim());
+            }
+        }
+        HashMap<String, Integer> linkUidMap = new HashMap<>();
+        if (!linkNos.isEmpty()) {
+            for (com.zbkj.common.model.stock.StockOrder o : stockOrderDao.selectList(
+                    new LambdaQueryWrapper<com.zbkj.common.model.stock.StockOrder>()
+                            .in(com.zbkj.common.model.stock.StockOrder::getOrderNo, linkNos))) {
+                linkUidMap.put(o.getOrderNo(), o.getUid());
+            }
+            for (com.zbkj.common.model.stock.StockExchange e : stockExchangeDao.selectList(
+                    new LambdaQueryWrapper<com.zbkj.common.model.stock.StockExchange>()
+                            .in(com.zbkj.common.model.stock.StockExchange::getExchangeNo, linkNos))) {
+                linkUidMap.put(e.getExchangeNo(), e.getUid());
+            }
+        }
+        HashMap<Integer, User> userMap = new HashMap<>();
+        for (Integer uid : linkUidMap.values()) {
+            if (uid != null && !userMap.containsKey(uid)) {
+                User u = userService.getById(uid);
+                if (u != null) {
+                    userMap.put(uid, u);
+                }
+            }
+        }
+        for (StockLog log : list) {
+            log.setProductName(productNameMap.get(log.getProductId()));
+            if (log.getLinkNo() == null || log.getLinkNo().trim().isEmpty()) {
+                continue;
+            }
+            Integer uid = linkUidMap.get(log.getLinkNo().trim());
+            if (uid == null) {
+                continue;
+            }
+            User u = userMap.get(uid);
+            log.setUid(uid);
+            log.setNickName(u == null ? "" : u.getNickname());
+            log.setPhone(u == null ? "" : u.getPhone());
+        }
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getAgentTeam(Integer agentId, Integer uid) {
+        List<HashMap<String, Object>> out = new ArrayList<>();
+        StockAgent root = agentId != null && agentId > 0 ? getAgentById(agentId)
+                : (uid != null && uid > 0 ? getAgentByUid(uid) : null);
+        if (root == null) {
+            return out;
+        }
+        // 按层展开（广度优先），depth=1 为直接下级
+        List<StockAgent> current = new ArrayList<>();
+        current.add(root);
+        int depth = 0;
+        Set<Integer> visited = new HashSet<>();
+        visited.add(root.getId());
+        while (!current.isEmpty() && depth < 20) {
+            depth++;
+            List<Integer> ids = new ArrayList<>();
+            for (StockAgent a : current) {
+                ids.add(a.getId());
+            }
+            List<StockAgent> children = stockAgentDao.selectList(new LambdaQueryWrapper<StockAgent>()
+                    .in(StockAgent::getParentId, ids)
+                    .eq(StockAgent::getIsDel, 0));
+            List<StockAgent> next = new ArrayList<>();
+            for (StockAgent c : children) {
+                if (visited.contains(c.getId())) {
+                    continue;
+                }
+                visited.add(c.getId());
+                fillAgent(c);
+                HashMap<String, Object> row = new HashMap<>();
+                row.put("agentId", c.getId());
+                row.put("uid", c.getUid());
+                row.put("nickname", c.getNickname());
+                row.put("phone", c.getPhone());
+                row.put("levelName", c.getLevelName());
+                row.put("status", c.getStatus());
+                row.put("depth", depth);
+                row.put("parentId", c.getParentId());
+                out.add(row);
+                next.add(c);
+            }
+            current = next;
+        }
+        return out;
+    }
+
+    @Override
+    public void adjustAgentVirtualStock(StockRequests.StockAgentAdjustRequest request) {
+        StockAgent agent = resolveAgent(request.getAgentId(), request.getUid());
+        String sku = request.getSkuKey() == null ? "" : request.getSkuKey().trim();
+        if (request.getNum() == null || request.getNum() == 0) {
+            throw new CrmebException("调整数量不能为0");
+        }
+        StoreProduct product = storeProductService.getById(request.getProductId());
+        if (product == null || product.getIsDel()) {
+            throw new CrmebException("商品不存在");
+        }
+        transactionTemplate.executeWithoutResult(status -> {
+            StockVirtualStock vs = stockVirtualStockDao.selectOne(new LambdaQueryWrapper<StockVirtualStock>()
+                    .eq(StockVirtualStock::getUid, agent.getUid())
+                    .eq(StockVirtualStock::getProductId, request.getProductId())
+                    .eq(StockVirtualStock::getSkuKey, sku)
+                    .eq(StockVirtualStock::getIsDel, 0)
+                    .last(" limit 1"));
+            if (vs == null) {
+                if (request.getNum() < 0) {
+                    throw new CrmebException("该订货商无此虚拟库存记录，无法扣减");
+                }
+                StockVirtualStock n = new StockVirtualStock();
+                n.setUid(agent.getUid());
+                n.setProductId(request.getProductId());
+                n.setProductName(product.getStoreName());
+                n.setImage(product.getImage());
+                n.setSkuKey(sku);
+                n.setNum(request.getNum());
+                n.setRemainNum(request.getNum());
+                n.setSourceOrderNo("ADJUST" + System.currentTimeMillis());
+                n.setParentAgentId(agent.getParentId() == null ? 0 : agent.getParentId());
+                n.setIsDel(0);
+                stockVirtualStockDao.insert(n);
+            } else {
+                int remain = (vs.getRemainNum() == null ? 0 : vs.getRemainNum()) + request.getNum();
+                int total = (vs.getNum() == null ? 0 : vs.getNum()) + request.getNum();
+                if (remain < 0 || total < 0) {
+                    throw new CrmebException("扣减数量超出该订货商虚拟库存（当前可提：" + vs.getRemainNum() + "）");
+                }
+                stockVirtualStockDao.update(null, new LambdaUpdateWrapper<StockVirtualStock>()
+                        .eq(StockVirtualStock::getId, vs.getId())
+                        .set(StockVirtualStock::getNum, total)
+                        .set(StockVirtualStock::getRemainNum, remain));
+            }
+            writeAgentAdjustLog(agent, request, 2);
+        });
+    }
+
+    @Override
+    public void adjustAgentPhysicalStock(StockRequests.StockAgentAdjustRequest request) {
+        StockAgent agent = resolveAgent(request.getAgentId(), request.getUid());
+        if (request.getNum() == null || request.getNum() == 0) {
+            throw new CrmebException("调整数量不能为0");
+        }
+        StoreProduct product = storeProductService.getById(request.getProductId());
+        if (product == null || product.getIsDel()) {
+            throw new CrmebException("商品不存在");
+        }
+        transactionTemplate.executeWithoutResult(status -> {
+            // 实体库存调整同步反映到云仓库存（增加=总部补货入库，减少=总部回收出库）
+            String linkNo = "ADJ" + System.currentTimeMillis();
+            if (request.getNum() > 0) {
+                addStockBySku(request.getProductId(), request.getSkuKey(), request.getNum(), 5, linkNo,
+                        "后台调整订货商实体库存（增加）");
+            } else {
+                deductStockBySku(request.getProductId(), request.getSkuKey(), -request.getNum(), 5, linkNo,
+                        "后台调整订货商实体库存（扣减）");
+            }
+            writeAgentAdjustLog(agent, request, 1);
+        });
+    }
+
+    /** 写订货商库存调整记录（实体调整参与实体库存推导，虚拟调整仅留痕） */
+    private void writeAgentAdjustLog(StockAgent agent, StockRequests.StockAgentAdjustRequest request, int stockType) {
+        StockAdjustLog log = new StockAdjustLog();
+        log.setAgentId(agent.getId());
+        log.setUid(agent.getUid());
+        log.setProductId(request.getProductId());
+        log.setSkuKey(request.getSkuKey() == null ? "" : request.getSkuKey().trim());
+        log.setStockType(stockType);
+        log.setNum(request.getNum());
+        log.setMark(request.getMark() == null ? "" : request.getMark());
+        log.setIsDel(0);
+        stockAdjustLogDao.insert(log);
+    }
+
+    private StockAgent resolveAgent(Integer agentId, Integer uid) {
+        StockAgent agent = null;
+        if (agentId != null && agentId > 0) {
+            agent = getAgentById(agentId);
+        } else if (uid != null && uid > 0) {
+            agent = getAgentByUid(uid);
+        }
+        if (agent == null) {
+            throw new CrmebException("订货商不存在");
+        }
+        return agent;
     }
 
     // ==================== 会员端 ====================
@@ -612,6 +845,17 @@ public class StockServiceImpl implements StockService {
         fillAgent(agent);
         map.put("isAgent", true);
         map.put("agent", agent);
+        // 会员端展示：订货商级别与上级UID（0/空=总部）
+        map.put("uid", agent.getUid());
+        map.put("levelName", agent.getLevelName());
+        Integer parentUid = 0;
+        if (agent.getParentId() != null && agent.getParentId() > 0) {
+            StockAgent parent = stockAgentDao.selectById(agent.getParentId());
+            if (parent != null) {
+                parentUid = parent.getUid() == null ? 0 : parent.getUid();
+            }
+        }
+        map.put("parentUid", parentUid);
         return map;
     }
 

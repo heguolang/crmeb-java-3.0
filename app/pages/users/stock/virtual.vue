@@ -7,6 +7,23 @@
       <view class="head-sub">付款即入账 · 随时提货 · 总部直发</view>
     </view>
 
+    <!-- 身份与收货信息 -->
+    <view class="info-bar">
+      <view class="info-item">
+        <text class="info-label">订货商级别</text>
+        <text class="info-val">{{ agentInfo.levelName || '—' }}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">上级UID</text>
+        <text class="info-val">{{ parentText }}</text>
+      </view>
+      <view class="info-item info-addr" @click="showAddr = true">
+        <text class="info-label">收货地址</text>
+        <text class="info-val" :class="{ placeholder: !selectedAddr }">{{ selectedAddrText || '请选择收货地址' }}</text>
+        <text class="info-arrow">›</text>
+      </view>
+    </view>
+
     <!-- 库存列表 -->
     <view class="card-list">
       <view v-for="v in list" :key="v.id" class="v-card">
@@ -54,7 +71,7 @@
 </template>
 
 <script>
-	import { getMyVirtualStock, pickupVirtual } from '@/api/stock.js';
+	import { getMyVirtualStock, pickupVirtual, getStockAgentInfo } from '@/api/stock.js';
 	import { getAddressList } from '@/api/user.js';
 	export default {
 		data() {
@@ -63,12 +80,22 @@
 				loaded: false,
 				addrList: [],
 				selectedAddr: null,
-				showAddr: false
+				showAddr: false,
+				agentInfo: { isAgent: false, levelName: '', parentUid: 0 }
 			};
+		},
+		computed: {
+			parentText() {
+				return this.agentInfo.parentUid ? ('UID ' + this.agentInfo.parentUid) : '总部';
+			},
+			selectedAddrText() {
+				return this.selectedAddr ? this.addrText(this.selectedAddr) : '';
+			}
 		},
 		onLoad() {
 			this.load();
 			this.loadAddr();
+			this.loadAgentInfo();
 		},
 		onShow() {
 			this.loadAddr();
@@ -87,6 +114,16 @@
 					if (!this.selectedAddr && this.addrList.length) {
 						this.selectedAddr = this.addrList.find(a => a.isDefault) || this.addrList[0];
 					}
+				}).catch(() => {});
+			},
+			loadAgentInfo() {
+				getStockAgentInfo().then(res => {
+					const d = res.data || {};
+					this.agentInfo = {
+						isAgent: !!d.isAgent,
+						levelName: d.levelName || '',
+						parentUid: d.parentUid || 0
+					};
 				}).catch(() => {});
 			},
 			addrText(a) {
@@ -124,7 +161,7 @@
 				}
 				uni.showModal({
 					title: '确认提货',
-					content: '将 ' + v.productName + ' ×' + num + ' 提货为实物，由总部直接发货到您的收货地址。',
+					content: '将 ' + v.productName + ' ×' + num + ' 提货为实物，由总部直接发货到：' + (this.selectedAddrText || '未选择地址'),
 					success: (m) => {
 						if (!m.confirm) return;
 						pickupVirtual({ virtualId: v.id, num, addressId: this.selectedAddr.id }).then(() => {
@@ -173,6 +210,27 @@
 }
 .head-title { position: relative; z-index: 1; margin-top: 16rpx; font-size: 38rpx; font-weight: 700; }
 .head-sub { position: relative; z-index: 1; margin-top: 10rpx; font-size: 23rpx; opacity: 0.85; }
+
+.info-bar {
+  margin-top: 20rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 8rpx 26rpx;
+  box-shadow: 0 4rpx 20rpx rgba(31, 45, 61, 0.06);
+}
+.info-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f2f4f8;
+}
+.info-item:last-child { border-bottom: none; }
+.info-label { font-size: 25rpx; color: #909399; flex-shrink: 0; }
+.info-val { font-size: 26rpx; color: #303133; font-weight: 600; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.info-val.placeholder { color: #c0c4cc; font-weight: 400; }
+.info-addr .info-val { flex: 1; margin-left: 20rpx; }
+.info-arrow { font-size: 30rpx; color: #c0c4cc; margin-left: 10rpx; }
 
 .card-list { margin-top: 8rpx; }
 .v-card {

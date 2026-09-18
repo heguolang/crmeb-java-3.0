@@ -84,10 +84,36 @@ public class StockController {
     @RequestMapping(value = "/agent/list", method = RequestMethod.GET)
     public CommonResult<CommonPage<StockAgent>> agentList(
             @RequestParam(value = "keywords", required = false) String keywords,
+            @RequestParam(value = "uid", required = false) Integer uid,
             @RequestParam(value = "levelId", required = false) Integer levelId,
             @RequestParam(value = "status", required = false) Integer status,
             @Validated PageParamRequest pageParamRequest) {
-        return CommonResult.success(stockService.getAdminAgentList(keywords, levelId, status, pageParamRequest));
+        return CommonResult.success(stockService.getAdminAgentList(keywords, uid, levelId, status, pageParamRequest));
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:agent:list')")
+    @ApiOperation(value = "订货商下级团队（伞下全部，含层级深度）")
+    @RequestMapping(value = "/agent/team", method = RequestMethod.GET)
+    public CommonResult<List<HashMap<String, Object>>> agentTeam(
+            @RequestParam(value = "agentId", required = false) Integer agentId,
+            @RequestParam(value = "uid", required = false) Integer uid) {
+        return CommonResult.success(stockService.getAgentTeam(agentId, uid));
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:agent:update')")
+    @ApiOperation(value = "调整订货商虚拟库存")
+    @RequestMapping(value = "/agent/virtual/adjust", method = RequestMethod.POST)
+    public CommonResult<String> adjustVirtualStock(@RequestBody @Validated StockRequests.StockAgentAdjustRequest request) {
+        stockService.adjustAgentVirtualStock(request);
+        return CommonResult.success();
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:agent:update')")
+    @ApiOperation(value = "调整订货商实体库存")
+    @RequestMapping(value = "/agent/physical/adjust", method = RequestMethod.POST)
+    public CommonResult<String> adjustPhysicalStock(@RequestBody @Validated StockRequests.StockAgentAdjustRequest request) {
+        stockService.adjustAgentPhysicalStock(request);
+        return CommonResult.success();
     }
 
     @PreAuthorize("hasAuthority('admin:stock:agent:save')")
@@ -483,9 +509,10 @@ public class StockController {
     @ApiOperation(value = "数据报表")
     @RequestMapping(value = "/report", method = RequestMethod.GET)
     public CommonResult<HashMap<String, Object>> report(
+            @RequestParam(value = "uid", required = false) Integer uid,
             @RequestParam(value = "dateLimit", required = false) String dateLimit,
             @Validated PageParamRequest pageParamRequest) {
-        return CommonResult.success(stockRewardService.getReport(dateLimit, pageParamRequest));
+        return CommonResult.success(stockRewardService.getReport(uid, dateLimit, pageParamRequest));
     }
 
     @PreAuthorize("hasAuthority('admin:stock:setting:save')")

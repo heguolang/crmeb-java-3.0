@@ -13,6 +13,7 @@ import com.zbkj.common.constants.Constants;
 import com.zbkj.common.constants.SysConfigConstants;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.agent.Agent;
+import com.zbkj.common.model.agent.AgentChangeLog;
 import com.zbkj.common.model.agent.AgentReward;
 import com.zbkj.common.model.order.StoreOrder;
 import com.zbkj.common.model.user.User;
@@ -22,6 +23,7 @@ import com.zbkj.common.request.AgentAdminRequest;
 import com.zbkj.common.request.AgentApplyRequest;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.utils.CrmebDateUtil;
+import com.zbkj.service.dao.AgentChangeLogDao;
 import com.zbkj.service.dao.AgentDao;
 import com.zbkj.service.dao.AgentRewardDao;
 import com.zbkj.service.service.AgentService;
@@ -56,6 +58,9 @@ public class AgentServiceImpl implements AgentService {
 
     @Autowired
     private AgentRewardDao agentRewardDao;
+
+    @Autowired
+    private AgentChangeLogDao agentChangeLogDao;
 
     @Autowired
     private UserService userService;
@@ -123,7 +128,12 @@ public class AgentServiceImpl implements AgentService {
             agent.setCheckTime(new Date());
         }
         agent.setIsDel(0);
-        return agentDao.insert(agent) > 0;
+        boolean result = agentDao.insert(agent) > 0;
+        if (result) {
+            logChange(agent.getId(), agent.getUid(), AgentChangeLog.TYPE_ADD, "",
+                    agentDesc(agent), "后台新增代理");
+        }
+        return result;
     }
 
     @Override
@@ -137,6 +147,11 @@ public class AgentServiceImpl implements AgentService {
         }
         validateRegion(request.getLevel(), request.getProvince(), request.getCity(), request.getDistrict());
         checkRegionConflict(request.getLevel(), request.getProvince(), request.getCity(), request.getDistrict(), request.getId());
+
+        // 记录变更前快照
+        String oldDesc = agentDesc(agent);
+        String oldRatio = ratioText(agent.getRatio());
+        Integer oldStatus = agent.getStatus();
 
         agent.setUid(request.getUid());
         agent.setLevel(request.getLevel());
@@ -153,7 +168,22 @@ public class AgentServiceImpl implements AgentService {
             }
         }
         agent.setApplyMark(StrUtil.nullToEmpty(request.getApplyMark()));
-        return agentDao.updateById(agent) > 0;
+        boolean updated = agentDao.updateById(agent) > 0;
+        if (updated) {
+            String newDesc = agentDesc(agent);
+            if (!newDesc.equals(oldDesc)) {
+                logChange(agent.getId(), agent.getUid(), AgentChangeLog.TYPE_LEVEL, oldDesc, newDesc, "后台修改代理级别/区域");
+            }
+            String newRatio = ratioText(agent.getRatio());
+            if (!newRatio.equals(oldRatio)) {
+                logChange(agent.getId(), agent.getUid(), AgentChangeLog.TYPE_RATIO, oldRatio, newRatio, "后台修改分成比例");
+            }
+            if (ObjectUtil.isNotNull(request.getStatus()) && !request.getStatus().equals(oldStatus)) {
+                logChange(agent.getId(), agent.getUid(), AgentChangeLog.TYPE_STATUS,
+                        statusName(oldStatus), statusName(agent.getStatus()), "后台修改代理状态");
+            }
+        }
+        return updated;
     }
 
     @Override
@@ -168,9 +198,15 @@ public class AgentServiceImpl implements AgentService {
         if (Agent.STATUS_PASS.equals(status)) {
             checkRegionConflict(agent.getLevel(), agent.getProvince(), agent.getCity(), agent.getDistrict(), id);
         }
+        Integer oldStatus = agent.getStatus();
         agent.setStatus(status);
         agent.setCheckTime(new Date());
-        return agentDao.updateById(agent) > 0;
+        boolean result = agentDao.updateById(agent) > 0;
+        if (result && !status.equals(oldStatus)) {
+            logChange(agent.getId(), agent.getUid(), AgentChangeLog.TYPE_STATUS,
+                    statusName(oldStatus), statusName(status), "后台审核代理");
+        }
+        return result;
     }
 
     @Override
@@ -180,7 +216,36 @@ public class AgentServiceImpl implements AgentService {
             throw new CrmebException("代理不存在");
         }
         agent.setIsDel(1);
-        return agentDao.updateById(agent) > 0;
+        boolean result = agentDao.updateById(agent) > 0;
+        if (result) {
+            logChange(agent.getId(), agent.getUid(), AgentChangeLog.TYPE_DELETE,
+                    agentDesc(agent), "", "后台删除代理");
+        }
+        return result;
+    }
+
+    @Override
+    public CommonPage<AgentChangeLog> getChangeLogList(Integer uid, Integer type, PageParamRequest pageParamRequest) {
+        LambdaQueryWrapper<AgentChangeLog> lqw = new LambdaQueryWrapper<>();
+        if (ObjectUtil.isNotNull(uid) && uid > 0) {
+            lqw.eq(AgentChangeLog::getUid, uid);
+        }
+        if (ObjectUtil.isNotNull(type) && type > 0) {
+            lqw.eq(AgentChangeLog::getType, type);
+        }
+        lqw.orderByDesc(AgentChangeLog::getId);
+        PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        List<AgentChangeLog> list = agentChangeLogDao.selectList(lqw);
+        if (CollUtil.isNotEmpty(list)) {
+            List<Integer> uidList = list.stream().map(AgentChangeLog::getUid).distinct().collect(Collectors.toList());
+            HashMap<Integer, User> userMap = userService.getMapListInUid(uidList);
+            list.forEach(e -> {
+                User user = userMap.get(e.getUid());
+                e.setNickname(ObjectUtil.isNotNull(user) ? user.getNickname() : "-");
+                e.setPhone(ObjectUtil.isNotNull(user) ? StrUtil.blankToDefault(user.getPhone(), user.getAccount()) : "-");
+            });
+        }
+        return CommonPage.restPage(new PageInfo<>(list));
     }
 
     @Override
@@ -192,7 +257,17 @@ public class AgentServiceImpl implements AgentService {
                 ObjectUtil.defaultIfNull(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_AGENT_APPLY_STATUS), "1"));
         map.put(SysConfigConstants.CONFIG_KEY_AGENT_CREDIT_TIMING,
                 ObjectUtil.defaultIfNull(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_AGENT_CREDIT_TIMING), "1"));
+        map.put(SysConfigConstants.CONFIG_KEY_AGENT_APPLY_REGIONS, defaultApplyRegions());
         return map;
+    }
+
+    /** 会员端可申请的代理区域级别，默认全部（1省级 2市级 3区级） */
+    private String defaultApplyRegions() {
+        String value = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_AGENT_APPLY_REGIONS);
+        if (StrUtil.isBlank(value)) {
+            return "1,2,3";
+        }
+        return value;
     }
 
     @Override
@@ -204,10 +279,25 @@ public class AgentServiceImpl implements AgentService {
             String key = entry.getKey();
             if (!SysConfigConstants.CONFIG_KEY_AGENT_FUNC_STATUS.equals(key)
                     && !SysConfigConstants.CONFIG_KEY_AGENT_APPLY_STATUS.equals(key)
-                    && !SysConfigConstants.CONFIG_KEY_AGENT_CREDIT_TIMING.equals(key)) {
+                    && !SysConfigConstants.CONFIG_KEY_AGENT_CREDIT_TIMING.equals(key)
+                    && !SysConfigConstants.CONFIG_KEY_AGENT_APPLY_REGIONS.equals(key)) {
                 continue;
             }
             String value = entry.getValue() == null ? "" : entry.getValue().toString();
+            if (SysConfigConstants.CONFIG_KEY_AGENT_APPLY_REGIONS.equals(key)) {
+                // 只允许 1/2/3 的组合，空则清空（表示不开放任何申请）
+                StringBuilder sb = new StringBuilder();
+                for (String part : value.replace("，", ",").split(",")) {
+                    String p = part.trim();
+                    if ("1".equals(p) || "2".equals(p) || "3".equals(p)) {
+                        if (sb.length() > 0) {
+                            sb.append(",");
+                        }
+                        sb.append(p);
+                    }
+                }
+                value = sb.toString();
+            }
             systemConfigService.updateOrSaveValueByName(key, value);
         }
         return Boolean.TRUE;
@@ -239,6 +329,11 @@ public class AgentServiceImpl implements AgentService {
         String applyStatus = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_AGENT_APPLY_STATUS);
         if (!"1".equals(applyStatus)) {
             throw new CrmebException("当前未开放代理申请");
+        }
+        // 校验申请的代理区域级别是否在后台配置的开放范围内
+        String allowed = defaultApplyRegions();
+        if (StrUtil.isBlank(allowed) || !("," + allowed + ",").contains("," + request.getLevel() + ",")) {
+            throw new CrmebException("当前未开放该区域级别的代理申请");
         }
         // 是否已有待审核/已通过的代理
         Integer exists = agentDao.selectCount(new LambdaQueryWrapper<Agent>()
@@ -292,6 +387,7 @@ public class AgentServiceImpl implements AgentService {
                 systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_AGENT_APPLY_STATUS), "1"));
         map.put("funcStatus", ObjectUtil.defaultIfNull(
                 systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_AGENT_FUNC_STATUS), "1"));
+        map.put("applyRegions", defaultApplyRegions());
         map.put("totalReward", totalReward);
         map.put("waitReward", waitReward);
         map.put("rewardCount", rewardCount);
@@ -513,6 +609,62 @@ public class AgentServiceImpl implements AgentService {
             return city;
         }
         return district;
+    }
+
+    // ==================== 代理商变更记录 ====================
+
+    /**
+     * 写入变更记录：失败不影响主流程
+     */
+    private void logChange(Integer agentId, Integer uid, Integer type, String oldValue, String newValue, String mark) {
+        try {
+            AgentChangeLog log = new AgentChangeLog();
+            log.setAgentId(agentId);
+            log.setUid(uid);
+            log.setType(type);
+            log.setOldValue(StrUtil.nullToEmpty(oldValue));
+            log.setNewValue(StrUtil.nullToEmpty(newValue));
+            log.setMark(StrUtil.nullToEmpty(mark));
+            log.setCreateTime(new Date());
+            agentChangeLogDao.insert(log);
+        } catch (Exception e) {
+            logger.error("写入代理商变更记录失败，agentId={}, type={}, error={}", agentId, type, e.getMessage());
+        }
+    }
+
+    /** 代理级别+区域描述 */
+    private String agentDesc(Agent agent) {
+        return StrUtil.format("{}【{}】", levelName(agent.getLevel()), StrUtil.nullToEmpty(agent.getRegionName()));
+    }
+
+    private String levelName(Integer level) {
+        if (Agent.LEVEL_PROVINCE.equals(level)) {
+            return "省级代理";
+        }
+        if (Agent.LEVEL_CITY.equals(level)) {
+            return "市级代理";
+        }
+        if (Agent.LEVEL_DISTRICT.equals(level)) {
+            return "区级代理";
+        }
+        return "未知级别";
+    }
+
+    private String statusName(Integer status) {
+        if (Agent.STATUS_WAIT_AUDIT.equals(status)) {
+            return "待审核";
+        }
+        if (Agent.STATUS_PASS.equals(status)) {
+            return "已通过";
+        }
+        if (Agent.STATUS_FAIL.equals(status)) {
+            return "已拒绝";
+        }
+        return "未知状态";
+    }
+
+    private String ratioText(BigDecimal ratio) {
+        return ObjectUtil.isNull(ratio) ? "0" : ratio.stripTrailingZeros().toPlainString();
     }
 
     private void fillUserInfo(List<Agent> list) {

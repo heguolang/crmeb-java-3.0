@@ -24,6 +24,14 @@
           </el-radio-group>
           <div class="tips">区域代理奖励自动进入代理账户佣金，可按佣金提现规则提现</div>
         </el-form-item>
+        <el-form-item label="可申请的代理区域：">
+          <el-checkbox-group v-model="applyRegions">
+            <el-checkbox :label="1">省级代理</el-checkbox>
+            <el-checkbox :label="2">市级代理</el-checkbox>
+            <el-checkbox :label="3">区级代理</el-checkbox>
+          </el-checkbox-group>
+          <div class="tips">会员端申请代理时只能选择此处勾选的区域级别；全部不勾表示会员端不可申请任何区域</div>
+        </el-form-item>
         <el-form-item>
           <el-button v-if="checkPermi(['admin:agent:setting:save'])" type="primary" :loading="saveLoading" @click="onSave"
             >保存设置</el-button
@@ -48,7 +56,9 @@ export default {
         agent_func_status: '1',
         agent_apply_status: '1',
         agent_credit_timing: '1',
+        agent_apply_regions: '1,2,3',
       },
+      applyRegions: [1, 2, 3],
     };
   },
   mounted() {
@@ -63,6 +73,11 @@ export default {
           Object.keys(this.form).forEach((k) => {
             if (res && res[k] !== undefined && res[k] !== null) this.form[k] = String(res[k]);
           });
+          const regions = (res && res.agent_apply_regions) || this.form.agent_apply_regions || '1,2,3';
+          this.applyRegions = String(regions)
+            .split(',')
+            .map((v) => parseInt(v.trim()))
+            .filter((n) => n === 1 || n === 2 || n === 3);
           this.loading = false;
         })
         .catch(() => {
@@ -71,7 +86,8 @@ export default {
     },
     onSave: function () {
       this.saveLoading = true;
-      agentSettingSaveApi({ ...this.form })
+      const payload = { ...this.form, agent_apply_regions: this.applyRegions.slice().sort().join(',') };
+      agentSettingSaveApi(payload)
         .then(() => {
           this.$message.success('保存成功');
           this.saveLoading = false;

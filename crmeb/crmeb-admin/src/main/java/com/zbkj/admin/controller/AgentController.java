@@ -1,6 +1,7 @@
 package com.zbkj.admin.controller;
 
 import com.zbkj.common.model.agent.Agent;
+import com.zbkj.common.model.agent.AgentChangeLog;
 import com.zbkj.common.model.agent.AgentReward;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.AgentAdminRequest;
@@ -93,6 +94,16 @@ public class AgentController {
             @RequestParam(value = "status", required = false) Integer status,
             @Validated PageParamRequest pageParamRequest) {
         return CommonResult.success(agentService.getRewardList(uid, orderId, status, pageParamRequest));
+    }
+
+    @PreAuthorize("hasAuthority('admin:agent:changelog:list')")
+    @ApiOperation(value = "代理商变更记录列表")
+    @RequestMapping(value = "/changelog/list", method = RequestMethod.GET)
+    public CommonResult<CommonPage<AgentChangeLog>> changeLogList(
+            @RequestParam(value = "uid", required = false) Integer uid,
+            @RequestParam(value = "type", required = false) Integer type,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(agentService.getChangeLogList(uid, type, pageParamRequest));
     }
 
     @PreAuthorize("hasAuthority('admin:agent:setting:list')")

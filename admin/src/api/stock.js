@@ -43,6 +43,21 @@ export function stockAgentDeleteApi(id) {
   return request({ url: '/admin/stock/agent/delete', method: 'post', params: { id } });
 }
 
+/** 订货商下级团队（伞下全部，含层级深度） */
+export function stockAgentTeamApi(params) {
+  return request({ url: '/admin/stock/agent/team', method: 'get', params });
+}
+
+/** 调整订货商虚拟库存 */
+export function stockAgentVirtualAdjustApi(data) {
+  return request({ url: '/admin/stock/agent/virtual/adjust', method: 'post', data });
+}
+
+/** 调整订货商实体库存 */
+export function stockAgentPhysicalAdjustApi(data) {
+  return request({ url: '/admin/stock/agent/physical/adjust', method: 'post', data });
+}
+
 /** 商品列表（含库存与拿货价，仅已加入订货的商品） */
 export function stockProductListApi(params) {
   return request({ url: '/admin/stock/product/list', method: 'get', params });

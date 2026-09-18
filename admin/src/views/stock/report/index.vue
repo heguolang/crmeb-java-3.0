@@ -1,14 +1,20 @@
 <template>
   <div class="divBg addContent-wrapper">
     <el-card :bordered="false" shadow="never" class="mt16">
-      <el-form inline size="small">
-        <el-form-item label="时间范围">
-          <el-date-picker v-model="dateRange" type="daterange" value-format="yyyy-MM-dd" range-separator="至" start-placeholder="开始" end-placeholder="结束" size="small" style="width: 240px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="getList">查询</el-button>
-        </el-form-item>
-      </el-form>
+      <div class="toolbar">
+        <el-form inline size="small" @submit.native.prevent>
+          <el-form-item label="代理商UID">
+            <el-input v-model.number="tableFrom.uid" placeholder="按UID查询单个代理商" clearable style="width: 180px" @keyup.enter.native="getList" />
+          </el-form-item>
+          <el-form-item label="时间范围">
+            <el-date-picker v-model="dateRange" type="daterange" value-format="yyyy-MM-dd" range-separator="至" start-placeholder="开始" end-placeholder="结束" size="small" style="width: 240px" />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" size="small" @click="getList">查询</el-button>
+            <el-button size="small" @click="reset">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
       <el-row :gutter="16">
         <el-col v-for="card in cards" :key="card.label" :span="6">
           <div class="stat-card">
@@ -25,8 +31,9 @@
         <b>代理业绩/奖励汇总</b>
         <el-button size="mini" @click="exportCsv">导出 CSV</el-button>
       </div>
-      <el-table v-loading="loading" :data="rows" size="small" highlight-current-row>
-        <el-table-column prop="nickname" label="代理" min-width="110" />
+      <el-table v-loading="loading" :data="rows" size="small" class="admin-table" stripe highlight-current-row>
+        <el-table-column prop="uid" label="代理商UID" width="100" />
+        <el-table-column prop="nickname" label="代理" min-width="110" show-overflow-tooltip />
         <el-table-column prop="phone" label="手机号" width="120" />
         <el-table-column prop="levelName" label="层级" width="90" />
         <el-table-column prop="orderAmount" label="订货金额" width="110" />
@@ -37,7 +44,7 @@
           <template slot-scope="scope"><b class="green">¥{{ scope.row.rewardSum }}</b></template>
         </el-table-column>
       </el-table>
-      <div class="block">
+      <div class="pager">
         <el-pagination background :page-size="tableFrom.limit" :current-page="tableFrom.page" layout="total, prev, pager, next, jumper" :total="total" @current-change="pageChange" />
       </div>
     </el-card>
@@ -56,7 +63,7 @@ export default {
       summary: {},
       rows: [],
       total: 0,
-      tableFrom: { page: 1, limit: 20 }
+      tableFrom: { page: 1, limit: 20, uid: null }
     };
   },
   computed: {
@@ -76,20 +83,25 @@ export default {
   methods: {
     getList() {
       this.loading = true;
-      stockReportApi({ dateLimit: this.dateLimit, page: this.tableFrom.page, limit: this.tableFrom.limit }).then(res => {
+      stockReportApi({ uid: this.tableFrom.uid, dateLimit: this.dateLimit, page: this.tableFrom.page, limit: this.tableFrom.limit }).then(res => {
         this.summary = res || {};
         this.rows = (res && res.agentRows) || [];
         this.total = (res && res.total) || this.rows.length;
         this.loading = false;
       }).catch(() => { this.loading = false; });
     },
+    reset() {
+      this.tableFrom = { page: 1, limit: 20, uid: null };
+      this.dateRange = null;
+      this.getList();
+    },
     pageChange(page) {
       this.tableFrom.page = page;
       this.getList();
     },
     exportCsv() {
-      const header = '代理,手机号,层级,订货金额,订货单数,个人业绩,团队业绩,奖励合计';
-      const lines = this.rows.map(r => [r.nickname, r.phone, r.levelName, r.orderAmount, r.orderCount, r.selfPerformance, r.teamPerformance, r.rewardSum].join(','));
+      const header = '代理商UID,代理,手机号,层级,订货金额,订货单数,个人业绩,团队业绩,奖励合计';
+      const lines = this.rows.map(r => [r.uid, r.nickname, r.phone, r.levelName, r.orderAmount, r.orderCount, r.selfPerformance, r.teamPerformance, r.rewardSum].join(','));
       const csv = '\ufeff' + header + '\n' + lines.join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const link = document.createElement('a');

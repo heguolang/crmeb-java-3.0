@@ -22,6 +22,12 @@ const dailiRouter = {
       meta: { title: '代理管理', icon: '' },
     },
     {
+      path: 'changeLog',
+      component: () => import('@/views/daili/changeLog/index'),
+      name: 'AgentChangeLog',
+      meta: { title: '代理商变更记录', icon: '' },
+    },
+    {
       path: 'agentReward',
       component: () => import('@/views/daili/agentReward/index'),
       name: 'AgentReward',

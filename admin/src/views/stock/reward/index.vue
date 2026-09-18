@@ -29,16 +29,22 @@
             <el-tag size="mini" :type="['', 'success', 'primary', 'warning'][scope.row.type]">{{ typeName(scope.row.type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="orderNo" label="关联单号" width="180" />
-        <el-table-column label="业绩来源" width="90">
-          <template slot-scope="scope">{{ scope.row.linkUid ? 'UID ' + scope.row.linkUid : '-' }}</template>
+        <el-table-column prop="orderNo" label="关联单号" width="170" />
+        <el-table-column label="业绩来源" width="140">
+          <template slot-scope="scope">
+            <template v-if="scope.row.linkUid">
+              <div class="cell-main">{{ scope.row.linkNickname || '—' }}</div>
+              <div class="cell-sub">UID {{ scope.row.linkUid }}</div>
+            </template>
+            <span v-else>—</span>
+          </template>
         </el-table-column>
         <el-table-column prop="basePrice" label="计算基数" width="100" />
         <el-table-column prop="rate" label="比例%" width="80" />
         <el-table-column prop="rewardPrice" label="奖励金额" width="100">
           <template slot-scope="scope"><b class="green">¥{{ scope.row.rewardPrice }}</b></template>
         </el-table-column>
-        <el-table-column prop="mark" label="说明" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="mark" label="说明" min-width="150" show-overflow-tooltip />
         <el-table-column prop="createTime" label="时间" width="150" />
       </el-table>
       <div class="block">
@@ -86,4 +92,6 @@ export default {
 
 <style scoped>
 .green { color: #67c23a; }
+.cell-main { font-size: 13px; color: #303133; }
+.cell-sub { font-size: 12px; color: #909399; }
 </style>

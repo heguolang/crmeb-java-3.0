@@ -29,7 +29,7 @@ public interface StockService {
     Boolean deleteLevel(Integer id);
 
     /** 代理分页列表（联用户/层级/上级昵称） */
-    CommonPage<StockAgent> getAdminAgentList(String keywords, Integer levelId, Integer status, com.zbkj.common.request.PageParamRequest page);
+    CommonPage<StockAgent> getAdminAgentList(String keywords, Integer uid, Integer levelId, Integer status, com.zbkj.common.request.PageParamRequest page);
 
     /** 后台新增/修改代理 */
     Boolean saveAgent(StockAgentRequest request);
@@ -69,6 +69,15 @@ public interface StockService {
 
     /** 库存变动日志 */
     CommonPage<StockLog> getLogList(Integer productId, Integer type, com.zbkj.common.request.PageParamRequest page);
+
+    /** 订货商下级团队（伞下全部，含层级深度 level=1 表示直接下级） */
+    List<HashMap<String, Object>> getAgentTeam(Integer agentId, Integer uid);
+
+    /** 后台调整订货商虚拟库存（正增负减，同步改 num/remain_num） */
+    void adjustAgentVirtualStock(StockRequests.StockAgentAdjustRequest request);
+
+    /** 后台调整订货商实体库存（写调整记录参与实体库存推导，同步扣/补云仓） */
+    void adjustAgentPhysicalStock(StockRequests.StockAgentAdjustRequest request);
 
     // ==================== 会员端 ====================
 

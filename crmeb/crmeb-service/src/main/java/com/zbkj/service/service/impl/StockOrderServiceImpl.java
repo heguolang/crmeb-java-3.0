@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zbkj.common.constants.Constants;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.product.StoreProduct;
+import com.zbkj.common.model.stock.StockAdjustLog;
 import com.zbkj.common.model.stock.StockAgent;
 import com.zbkj.common.model.stock.StockExchange;
 import com.zbkj.common.model.stock.StockExchangeConfig;
@@ -81,6 +82,9 @@ public class StockOrderServiceImpl implements StockOrderService {
 
     @Resource
     private com.zbkj.service.dao.StockExchangeTargetDao stockExchangeTargetDao;
+
+    @Resource
+    private com.zbkj.service.dao.StockAdjustLogDao stockAdjustLogDao;
 
     @Resource
     private com.zbkj.service.service.UserBillService userBillService;
@@ -452,14 +456,24 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockOfflineSale::getIsDel, 0))) {
             sold.merge(s.getProductId(), s.getNum() == null ? 0 : s.getNum(), Integer::sum);
         }
+        // 后台实体库存调整（正=增加，负=扣减）
+        Map<Integer, Integer> adjustMap = new HashMap<>();
+        for (StockAdjustLog a : stockAdjustLogDao.selectList(new LambdaQueryWrapper<StockAdjustLog>()
+                .eq(StockAdjustLog::getAgentId, agent.getId())
+                .eq(StockAdjustLog::getStockType, StockAdjustLog.STOCK_TYPE_PHYSICAL)
+                .eq(StockAdjustLog::getIsDel, 0))) {
+            adjustMap.merge(a.getProductId(), a.getNum() == null ? 0 : a.getNum(), Integer::sum);
+        }
         // 净持有量 > 0 的商品（含已完成换货的换入/+、换出/-）
         Map<Integer, Integer> exDelta = exchangeStockDeltaMap(agent.getId());
         java.util.Set<Integer> pids = new java.util.HashSet<>(purchased.keySet());
         pids.addAll(exDelta.keySet());
+        pids.addAll(adjustMap.keySet());
         for (Integer pid : pids) {
             int net = purchased.getOrDefault(pid, 0)
                     - supplied.getOrDefault(pid, 0)
                     - sold.getOrDefault(pid, 0)
+                    + adjustMap.getOrDefault(pid, 0)
                     + exDelta.getOrDefault(pid, 0);
             if (net <= 0) {
                 continue;
@@ -1474,7 +1488,16 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockOfflineSale::getIsDel, 0))) {
             sold += s.getNum() == null ? 0 : s.getNum();
         }
-        return purchased - supplied - sold + exchangeStockDeltaMap(agent.getId()).getOrDefault(productId, 0);
+        // 后台实体库存调整（正=增加，负=扣减）
+        int adjusted = 0;
+        for (StockAdjustLog a : stockAdjustLogDao.selectList(new LambdaQueryWrapper<StockAdjustLog>()
+                .eq(StockAdjustLog::getAgentId, agent.getId())
+                .eq(StockAdjustLog::getProductId, productId)
+                .eq(StockAdjustLog::getStockType, StockAdjustLog.STOCK_TYPE_PHYSICAL)
+                .eq(StockAdjustLog::getIsDel, 0))) {
+            adjusted += a.getNum() == null ? 0 : a.getNum();
+        }
+        return purchased - supplied - sold + adjusted + exchangeStockDeltaMap(agent.getId()).getOrDefault(productId, 0);
     }
 
     /**

@@ -1,7 +1,7 @@
 <template>
   <div class="divBg addContent-wrapper">
     <el-card :bordered="false" shadow="never" class="mt16">
-      <div slot="header"><b>奖励规则配置</b></div>
+      <div slot="header"><b>订货商设置</b></div>
       <el-form label-width="170px" size="small" style="max-width: 720px">
         <el-form-item label="订单上级审核">
           <el-switch v-model="form.stock_order_audit" :active-value="'1'" :inactive-value="'0'" />

@@ -1,6 +1,7 @@
 package com.zbkj.service.service;
 
 import com.zbkj.common.model.agent.Agent;
+import com.zbkj.common.model.agent.AgentChangeLog;
 import com.zbkj.common.model.agent.AgentReward;
 import com.zbkj.common.model.order.StoreOrder;
 import com.zbkj.common.model.user.UserBrokerageRecord;
@@ -42,6 +43,9 @@ public interface AgentService {
 
     /** 奖励明细列表（后台） */
     CommonPage<AgentReward> getRewardList(Integer uid, String orderId, Integer status, PageParamRequest pageParamRequest);
+
+    /** 代理商变更记录列表（后台） */
+    CommonPage<AgentChangeLog> getChangeLogList(Integer uid, Integer type, PageParamRequest pageParamRequest);
 
     // ==================== 会员端 ====================
 

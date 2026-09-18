@@ -53,8 +53,23 @@
     <el-card :bordered="false" shadow="never" class="mt16">
       <div slot="header"><b>库存变动日志</b></div>
       <el-table class="admin-table" :data="logs" size="small">
-        <el-table-column prop="id" label="ID" width="64" />
-        <el-table-column prop="linkNo" label="关联单号" width="180" />
+        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column label="产品信息" min-width="150" show-overflow-tooltip>
+          <template slot-scope="scope">
+            <div class="cell-main">{{ scope.row.productName || ('商品ID ' + scope.row.productId) }}</div>
+            <div class="cell-sub">{{ scope.row.skuKey || '整品' }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="会员信息" width="150">
+          <template slot-scope="scope">
+            <template v-if="scope.row.uid">
+              <div class="cell-main">{{ scope.row.nickName || '-' }}</div>
+              <div class="cell-sub">{{ scope.row.phone }}（UID {{ scope.row.uid }}）</div>
+            </template>
+            <span v-else>—</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="linkNo" label="关联单号" width="170" />
         <el-table-column label="类型" width="130">
           <template slot-scope="scope">{{ typeName(scope.row.type) }}</template>
         </el-table-column>
@@ -63,7 +78,7 @@
         </el-table-column>
         <el-table-column prop="beforeStock" label="变动前" width="80" />
         <el-table-column prop="afterStock" label="变动后" width="80" />
-        <el-table-column prop="mark" label="备注" min-width="160" />
+        <el-table-column prop="mark" label="备注" min-width="130" show-overflow-tooltip />
         <el-table-column prop="createTime" label="时间" width="150" />
       </el-table>
       <div class="pager">
@@ -520,4 +535,6 @@ export default {
 .sp-cols { display: flex; gap: 16px; margin-top: 16px; }
 .sp-col { flex: 1; min-width: 0; padding: 14px 16px; background: #fff; border: 1px solid #ebeef5; border-radius: 6px; }
 .sp-hint { font-size: 12px; color: #909399; line-height: 1.5; }
+.cell-main { font-size: 13px; color: #303133; }
+.cell-sub { font-size: 12px; color: #909399; }
 </style>

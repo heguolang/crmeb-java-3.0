@@ -261,7 +261,7 @@ public class StockRewardServiceImpl implements StockRewardService {
             PageParamRequest bigPage = new PageParamRequest();
             bigPage.setPage(1);
             bigPage.setLimit(10000);
-            agents = stockService.getAdminAgentList(null, null, null, bigPage).getList();
+            agents = stockService.getAdminAgentList(null, null, null, null, bigPage).getList();
             for (StockAgent agent : agents) {
                 BigDecimal teamPerf = teamPerformance(agent, range);
                 if (teamPerf.signum() <= 0) {
@@ -562,7 +562,7 @@ public class StockRewardServiceImpl implements StockRewardService {
     }
 
     @Override
-    public HashMap<String, Object> getReport(String dateLimit, PageParamRequest page) {
+    public HashMap<String, Object> getReport(Integer uid, String dateLimit, PageParamRequest page) {
         String[] range = parseDateLimit(dateLimit);
         HashMap<String, Object> map = new HashMap<>();
         // 订货总览
@@ -611,9 +611,10 @@ public class StockRewardServiceImpl implements StockRewardService {
         // 按代理汇总（分页）
         List<HashMap<String, Object>> rows = new ArrayList<>();
         com.zbkj.common.page.CommonPage<StockAgent> agentPage =
-                stockService.getAdminAgentList(null, null, null, page);
+                stockService.getAdminAgentList(null, uid, null, null, page);
         for (StockAgent agent : agentPage.getList()) {
             HashMap<String, Object> row = new HashMap<>();
+            row.put("agentId", agent.getId());
             row.put("uid", agent.getUid());
             row.put("nickname", agent.getNickname());
             row.put("phone", agent.getPhone());

@@ -92,6 +92,17 @@ export function agentSettingSaveApi(data) {
 }
 
 /**
+ * 代理商变更记录
+ */
+export function agentChangeLogListApi(params) {
+  return request({
+    url: '/admin/agent/changelog/list',
+    method: 'get',
+    params,
+  });
+}
+
+/**
  * 省市区树
  */
 export function cityTreeApi() {

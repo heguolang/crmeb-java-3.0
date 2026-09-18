@@ -27,15 +27,7 @@
     </el-card>
     <el-card class="box-card mt14">
       <el-form inline @submit.native.prevent>
-        <el-form-item>
-          <el-button
-            type="danger"
-            size="small"
-            @click="handleClear"
-            v-hasPermi="['admin:log:login:delete']"
-            >清空日志</el-button
-          >
-        </el-form-item>
+        <!-- 汪总要求（2026-09-18）：移除「清空日志」功能 -->
       </el-form>
       <el-table v-loading="listLoading" :data="listData.list" size="mini">
         <el-table-column prop="id" label="ID" width="70" />
@@ -80,11 +72,7 @@
             <span>{{ scope.row.createTime | filterEmpty }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="80" fixed="right">
-          <template slot-scope="scope">
-            <a @click="handleDelete(scope.row)" v-hasPermi="['admin:log:login:delete']">删除</a>
-          </template>
-        </el-table-column>
+        <!-- 汪总要求（2026-09-18）：登录日志只保留查询，移除单条删除 -->
       </el-table>
       <el-pagination
         :current-page="listPram.page"
@@ -100,7 +88,7 @@
 </template>
 
 <script>
-import { loginLogListApi, loginLogDeleteApi, loginLogClearApi } from '@/api/systemadmin.js';
+import { loginLogListApi } from '@/api/systemadmin.js';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 export default {
   name: 'adminLoginLog',
@@ -150,22 +138,6 @@ export default {
     handleCurrentChange(val) {
       this.listPram.page = val;
       this.getList();
-    },
-    handleDelete(row) {
-      this.$modalSure('删除当前日志').then(() => {
-        loginLogDeleteApi({ id: row.id }).then(() => {
-          this.$message.success('删除成功');
-          this.getList();
-        });
-      });
-    },
-    handleClear() {
-      this.$modalSure('清空全部登录日志，此操作不可恢复').then(() => {
-        loginLogClearApi().then(() => {
-          this.$message.success('清空成功');
-          this.handleSearch();
-        });
-      });
     },
     getList() {
       this.listLoading = true;

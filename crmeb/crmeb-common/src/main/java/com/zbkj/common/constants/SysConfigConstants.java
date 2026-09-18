@@ -75,6 +75,8 @@ public class SysConfigConstants {
     public static final String CONFIG_KEY_AGENT_APPLY_STATUS = "agent_apply_status";
     /** 区域代理奖励到账方式：1-支付订单到账，2-订单完成后到账 */
     public static final String CONFIG_KEY_AGENT_CREDIT_TIMING = "agent_credit_timing";
+    /** 会员端可申请的代理区域级别：1=省级 2=市级 3=区级，英文逗号分隔，如 "1,2" */
+    public static final String CONFIG_KEY_AGENT_APPLY_REGIONS = "agent_apply_regions";
 
 
 

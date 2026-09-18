@@ -53,7 +53,13 @@ export default {
       path: 'setting',
       component: () => import('@/views/stock/setting/index'),
       name: 'StockSetting',
-      meta: { title: '奖励规则', icon: '' }
+      meta: { title: '订货商设置', icon: '' }
+    },
+    {
+      path: 'level',
+      component: () => import('@/views/stock/level/index'),
+      name: 'StockLevel',
+      meta: { title: '层级显示', icon: '' }
     },
     {
       path: 'report',

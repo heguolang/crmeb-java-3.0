@@ -75,44 +75,5 @@ public class LogController {
         return CommonResult.success(adminLoginLogService.getById(id));
     }
 
-    /**
-     * 删除管理员登录日志
-     */
-    @PreAuthorize("hasAuthority('admin:log:login:delete')")
-    @ApiOperation(value = "删除管理员登录日志")
-    @ApiImplicitParam(name = "id", value = "日志id", dataType = "integer")
-    @RequestMapping(value = "/login/delete", method = RequestMethod.GET)
-    public CommonResult<String> deleteLoginLog(@RequestParam(value = "id") Integer id) {
-        if (adminLoginLogService.deleteById(id)) {
-            return CommonResult.success();
-        }
-        return CommonResult.failed();
-    }
-
-    /**
-     * 清空管理员登录日志
-     */
-    @PreAuthorize("hasAuthority('admin:log:login:delete')")
-    @ApiOperation(value = "清空管理员登录日志")
-    @RequestMapping(value = "/login/clear", method = RequestMethod.GET)
-    public CommonResult<String> clearLoginLog() {
-        if (adminLoginLogService.clearAll()) {
-            return CommonResult.success();
-        }
-        return CommonResult.failed();
-    }
-
-    /**
-     * 清空敏感操作日志
-     */
-    @PreAuthorize("hasAuthority('admin:log:sensitive:delete')")
-    @ApiOperation(value = "清空敏感操作日志")
-    @RequestMapping(value = "/sensitive/clear", method = RequestMethod.GET)
-    public CommonResult<String> clearSensitiveLog() {
-        if (sensitiveMethodLogService.clearAll()) {
-            return CommonResult.success();
-        }
-        return CommonResult.failed();
-    }
-
+    // 汪总要求（2026-09-18）：移除「清空日志」与登录日志单条删除，日志只保留查询
 }

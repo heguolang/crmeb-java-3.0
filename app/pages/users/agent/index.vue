@@ -76,7 +76,7 @@
 						<view class="f-row">
 							<text class="f-label">选择区域</text>
 							<picker mode="multiSelector" :value="multiIndex" :range="multiArray" @change="onRegionChange" @columnchange="onRegionColumnChange">
-								<view class="f-value" :class="{ placeholder: !regionText }">{{ regionText || '请选择省市区' }}<text class="iconfont icon-xiangyou"></text></view>
+								<view class="f-value" :class="{ placeholder: !regionText }">{{ regionText || regionPlaceholder }}<text class="iconfont icon-xiangyou"></text></view>
 							</picker>
 						</view>
 						<view class="f-row">
@@ -134,8 +134,8 @@
 					waitReward: 0,
 					rewardCount: 0,
 				},
-				levelNames: ['省级代理', '市级代理', '区级代理'],
 				levelIndex: 0,
+				applyRegions: '1,2,3',
 				regionText: '',
 				regionArr: [],
 				district: [],
@@ -155,9 +155,35 @@
 			hasPending() {
 				return (this.info.agentList || []).some((a) => a.status === 0);
 			},
+			// 后台配置的会员端可申请区域级别（1省级 2市级 3区级）
+			levelOptions() {
+				const all = [
+					{ level: 1, name: '省级代理' },
+					{ level: 2, name: '市级代理' },
+					{ level: 3, name: '区级代理' },
+				];
+				const allow = String(this.applyRegions || '')
+					.split(',')
+					.map((s) => Number(String(s).trim()))
+					.filter((n) => n === 1 || n === 2 || n === 3);
+				if (!allow.length) return [];
+				return all.filter((o) => allow.indexOf(o.level) > -1);
+			},
+			levelNames() {
+				return this.levelOptions.map((o) => o.name);
+			},
+			currentLevel() {
+				const o = this.levelOptions[this.levelIndex];
+				return o ? o.level : 1;
+			},
+			regionPlaceholder() {
+				const map = { 1: '请选择省份', 2: '请选择省市', 3: '请选择省市区' };
+				return map[this.currentLevel] || '请选择区域';
+			},
 			canApply() {
 				if (this.info.funcStatus !== '1') return false;
 				if (this.info.isAgent || this.hasPending) return false;
+				if (!this.levelOptions.length) return false;
 				return this.info.applyStatus === '1';
 			},
 		},
@@ -192,6 +218,12 @@
 				getAgentInfo()
 					.then((res) => {
 						if (res.data) this.info = res.data;
+						// 后台配置的可申请区域级别
+						if (res.data && res.data.applyRegions !== undefined && res.data.applyRegions !== null) {
+							this.applyRegions = String(res.data.applyRegions);
+						}
+						this.levelIndex = 0;
+						this.resetRegion();
 					})
 					.catch(() => {});
 			},
@@ -220,20 +252,27 @@
 			},
 			onLevelChange(e) {
 				this.levelIndex = Number(e.detail.value) || 0;
+				this.resetRegion();
+			},
+			// 切换级别时重置区域选择，并按级别联动出对应列数（省级只到省、市级到市、区级到区县）
+			resetRegion() {
+				this.regionArr = [];
+				this.regionText = '';
+				this.buildMultiArray(this.currentLevel);
 			},
 			// 加载省市区数据（与地址管理同源，优先走本地缓存）
 			loadCityList() {
 				const cached = this.$Cache && this.$Cache.getItem('cityList');
 				if (cached && cached.length) {
 					this.district = cached;
-					this.buildMultiArray();
+					this.buildMultiArray(this.currentLevel);
 					return;
 				}
 				uni.showLoading({ title: '数据加载中...' });
 				getCityList()
 					.then((res) => {
 						this.district = res || [];
-						this.buildMultiArray();
+						this.buildMultiArray(this.currentLevel);
 						uni.hideLoading();
 					})
 					.catch(() => {
@@ -241,15 +280,24 @@
 					});
 			},
 			// 依据 district 构建三级联动列数据
-			buildMultiArray() {
+			buildMultiArray(level) {
 				if (!this.district || !this.district.length) return;
+				const lv = Number(level) || 1;
 				const province = this.district.map((item) => item.name);
 				const cityChildren = (this.district[0] && this.district[0].child) || [];
 				const city = cityChildren.map((item) => item.name);
 				const areaChildren = (cityChildren[0] && cityChildren[0].child) || [];
 				const area = areaChildren.map((item) => item.name);
-				this.multiArray = [province, city, area];
-				this.multiIndex = [0, 0, 0];
+				if (lv === 1) {
+					this.multiArray = [province];
+					this.multiIndex = [0];
+				} else if (lv === 2) {
+					this.multiArray = [province, city];
+					this.multiIndex = [0, 0];
+				} else {
+					this.multiArray = [province, city, area];
+					this.multiIndex = [0, 0, 0];
+				}
 			},
 			// 滚动某一列时联动刷新后续列
 			onRegionColumnChange(e) {
@@ -260,17 +308,21 @@
 				multiIndex[column] = value;
 				if (column === 0) {
 					const cities = (this.district[value] && this.district[value].child) || [];
-					multiArray[1] = cities.map((item) => item.name);
-					const areas = (cities[0] && cities[0].child) || [];
-					multiArray[2] = areas.map((item) => item.name);
-					multiIndex[1] = 0;
-					multiIndex[2] = 0;
+					if (multiArray.length > 1) multiArray[1] = cities.map((item) => item.name);
+					if (multiArray.length > 2) {
+						const areas = (cities[0] && cities[0].child) || [];
+						multiArray[2] = areas.map((item) => item.name);
+					}
+					if (multiIndex.length > 1) multiIndex[1] = 0;
+					if (multiIndex.length > 2) multiIndex[2] = 0;
 				} else if (column === 1) {
 					const province = this.district[multiIndex[0]] || {};
 					const cities = province.child || [];
-					const areas = (cities[value] && cities[value].child) || [];
-					multiArray[2] = areas.map((item) => item.name);
-					multiIndex[2] = 0;
+					if (multiArray.length > 2) {
+						const areas = (cities[value] && cities[value].child) || [];
+						multiArray[2] = areas.map((item) => item.name);
+						multiIndex[2] = 0;
+					}
 				}
 				this.multiArray = multiArray;
 				this.multiIndex = multiIndex;
@@ -279,14 +331,13 @@
 			onRegionChange(e) {
 				const value = (e.detail && e.detail.value) || [];
 				this.multiIndex = value;
-				const province = (this.multiArray[0] || [])[value[0]] || '';
-				const city = (this.multiArray[1] || [])[value[1]] || '';
-				const district = (this.multiArray[2] || [])[value[2]] || '';
-				this.regionArr = [province, city, district];
+				this.regionArr = value.map((v, i) => (this.multiArray[i] || [])[v] || '');
 				this.regionText = this.regionArr.filter(Boolean).join(' / ');
 			},
 			onApply() {
-				const level = this.levelIndex + 1;
+				const opt = this.levelOptions[this.levelIndex];
+				if (!opt) return this.$util.Tips({ title: '当前未开放该区域级别的申请' });
+				const level = opt.level;
 				if (!this.regionArr.length) return this.$util.Tips({ title: '请选择区域' });
 				if (level >= 2 && !this.regionArr[1]) return this.$util.Tips({ title: '请选择城市' });
 				if (level >= 3 && !this.regionArr[2]) return this.$util.Tips({ title: '请选择区/县' });

@@ -60,13 +60,13 @@
           </template>
         </el-table-column>
         <el-table-column prop="applyMark" label="备注" min-width="90" show-overflow-tooltip />
-        <el-table-column label="时间" width="178">
+        <el-table-column label="时间" width="160">
           <template slot-scope="scope">
             <div>创建 {{ scope.row.createTime || '-' }}</div>
             <div class="sub-text">审核 {{ scope.row.checkTime || '—' }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="scope">
             <div class="op-links">
               <template v-if="checkPermi(['admin:agent:update'])">
@@ -99,7 +99,13 @@
     <el-dialog :title="editForm.id ? '修改代理' : '添加代理'" :visible.sync="editVisible" width="520px">
       <el-form :model="editForm" :rules="editRules" ref="editForm" label-width="90px" size="small">
         <el-form-item label="代理用户：" prop="uid">
-          <el-input v-model="editForm.uid" placeholder="请输入用户UID" style="width: 320px" />
+          <div class="user-picker">
+            <el-input :value="userLabel" placeholder="请选择代理用户" readonly style="width: 300px">
+              <template slot="append">
+                <el-button :disabled="!!editForm.id" @click="openUserPicker">选择用户</el-button>
+              </template>
+            </el-input>
+          </div>
         </el-form-item>
         <el-form-item label="代理级别：" prop="level">
           <el-select v-model="editForm.level" placeholder="请选择级别" style="width: 320px" @change="onLevelChange">
@@ -110,12 +116,13 @@
         </el-form-item>
         <el-form-item label="代理区域：" prop="regionArr">
           <el-cascader
-            :options="cityOptions"
+            :key="editForm.level"
+            :options="regionOptions"
             :props="propsCity"
             filterable
             v-model="editForm.regionArr"
             style="width: 320px"
-            placeholder="请选择省市区"
+            :placeholder="regionPlaceholder"
           />
         </el-form-item>
         <el-form-item label="奖励比例：" prop="ratio">
@@ -138,11 +145,41 @@
         <el-button type="primary" :loading="submitLoading" @click="onSubmit">确定</el-button>
       </span>
     </el-dialog>
+
+    <!-- 选择代理用户 -->
+    <el-dialog title="选择代理用户" :visible.sync="userPickerVisible" width="720px" append-to-body>
+      <el-form inline size="small" @submit.native.prevent>
+        <el-form-item>
+          <el-input v-model="userKeyword" placeholder="UID / 手机号 / 昵称" clearable style="width: 240px" @keyup.enter.native="searchUsers" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" size="small" @click="searchUsers">搜索</el-button>
+        </el-form-item>
+      </el-form>
+      <el-table class="admin-table" v-loading="userLoading" :data="userList" size="small" stripe highlight-current-row max-height="380">
+        <el-table-column label="" width="50">
+          <template slot-scope="scope">
+            <el-radio v-model="pickUid" :label="scope.row.uid" @change="onPickUser(scope.row)">&nbsp;</el-radio>
+          </template>
+        </el-table-column>
+        <el-table-column prop="uid" label="UID" width="90" />
+        <el-table-column prop="nickname" label="昵称" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="phone" label="手机号" width="130" />
+      </el-table>
+      <div class="pager">
+        <el-pagination background layout="total, prev, pager, next" :page-size="userFrom.limit" :current-page="userFrom.page" :total="userTotal" @current-change="userPageChange" />
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="userPickerVisible = false">取消</el-button>
+        <el-button type="primary" :disabled="!pickUid" @click="confirmUser">确定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import { agentListApi, agentSaveApi, agentUpdateApi, agentAuditApi, agentDeleteApi, cityTreeApi } from '@/api/daili';
+import { userListApi } from '@/api/user';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 import { Debounce } from '@/utils/validate';
 
@@ -176,12 +213,49 @@ export default {
         applyMark: '',
       },
       editRules: {
-        uid: [{ required: true, message: '请输入用户UID', trigger: 'blur' }],
+        uid: [{ required: true, message: '请选择代理用户', trigger: 'change' }],
         level: [{ required: true, message: '请选择代理级别', trigger: 'change' }],
         regionArr: [{ required: true, type: 'array', min: 1, message: '请选择代理区域', trigger: 'change' }],
         ratio: [{ required: true, message: '请填写奖励比例', trigger: 'blur' }],
       },
+      // 用户选择器
+      userPickerVisible: false,
+      userKeyword: '',
+      userLoading: false,
+      userList: [],
+      userTotal: 0,
+      userFrom: { page: 1, limit: 10 },
+      pickUid: null,
+      pickedUser: null,
+      selectedUser: null,
     };
+  },
+  computed: {
+    // 区域联动：省级只到省、市级到市、区级到区县
+    regionOptions() {
+      const depth = Number(this.editForm.level) || 1;
+      const trim = (arr, remain) =>
+        (arr || []).map((item) => {
+          const o = { ...item };
+          if (remain > 1 && item.child && item.child.length) {
+            o.child = trim(item.child, remain - 1);
+          } else {
+            delete o.child;
+          }
+          return o;
+        });
+      return trim(this.cityOptions, depth);
+    },
+    regionPlaceholder() {
+      const map = { 1: '请选择省份', 2: '请选择省市', 3: '请选择省市区' };
+      return map[Number(this.editForm.level)] || '请选择区域';
+    },
+    userLabel() {
+      if (this.selectedUser) {
+        return this.selectedUser.nickname + '（UID:' + this.selectedUser.uid + '）';
+      }
+      return this.editForm.uid ? 'UID:' + this.editForm.uid : '';
+    },
   },
   mounted() {
     this.getList();
@@ -252,10 +326,56 @@ export default {
         ratio: row ? Number(row.ratio) : 5,
         applyMark: row ? row.applyMark : '',
       };
+      this.selectedUser = row ? { uid: row.uid, nickname: row.nickname || '-' } : null;
       this.editVisible = true;
       this.$nextTick(() => {
         this.$refs.editForm && this.$refs.editForm.clearValidate();
       });
+    },
+    // ===== 选择代理用户 =====
+    openUserPicker() {
+      this.userPickerVisible = true;
+      this.userKeyword = '';
+      this.pickUid = this.editForm.uid ? Number(this.editForm.uid) : null;
+      this.pickedUser = this.selectedUser;
+      this.userFrom.page = 1;
+      this.searchUsers();
+    },
+    searchUsers() {
+      this.userLoading = true;
+      this.userFrom.page = 1;
+      this.loadUsers();
+    },
+    loadUsers() {
+      this.userLoading = true;
+      const params = { page: this.userFrom.page, limit: this.userFrom.limit, searchType: 'all' };
+      if (this.userKeyword) params.content = this.userKeyword;
+      userListApi(params)
+        .then((res) => {
+          this.userList = (res && res.list) || [];
+          this.userTotal = (res && res.total) || 0;
+          this.userLoading = false;
+        })
+        .catch(() => {
+          this.userLoading = false;
+        });
+    },
+    userPageChange(page) {
+      this.userFrom.page = page;
+      this.loadUsers();
+    },
+    onPickUser(row) {
+      this.pickedUser = { uid: row.uid, nickname: row.nickname, phone: row.phone };
+    },
+    confirmUser() {
+      if (!this.pickedUser && this.pickUid) {
+        this.pickedUser = this.userList.find((u) => u.uid === this.pickUid) || null;
+      }
+      if (!this.pickedUser) return;
+      this.selectedUser = { uid: this.pickedUser.uid, nickname: this.pickedUser.nickname };
+      this.editForm.uid = String(this.pickedUser.uid);
+      this.userPickerVisible = false;
+      this.$refs.editForm && this.$refs.editForm.validateField('uid');
     },
     onLevelChange() {
       // 切换级别时截断区域选择：省级留1位、市级留2位
@@ -325,5 +445,8 @@ export default {
 .sub-text {
   color: #999;
   font-size: 12px;
+}
+.user-picker {
+  display: inline-block;
 }
 </style>
