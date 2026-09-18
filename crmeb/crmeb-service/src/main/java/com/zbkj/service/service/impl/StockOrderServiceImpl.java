@@ -549,7 +549,9 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (exchange == null || exchange.getIsDel() == 1) {
             throw new CrmebException("换货单不存在");
         }
-        if (!exchange.getStatus().equals(StockExchange.STATUS_WAIT_HQ_AUDIT)) {
+        // 后台可介入审核：待上级审核(0)阶段可直接介入，待总部审核(1)为正常流程
+        boolean intervene = exchange.getStatus().equals(StockExchange.STATUS_WAIT_PARENT_AUDIT);
+        if (!intervene && !exchange.getStatus().equals(StockExchange.STATUS_WAIT_HQ_AUDIT)) {
             throw new CrmebException("换货单当前状态不可总部审核");
         }
         if (request.getStatus() == -1) {
@@ -557,11 +559,18 @@ public class StockOrderServiceImpl implements StockOrderService {
                 throw new CrmebException("驳回必须填写原因");
             }
             exchange.setStatus(StockExchange.STATUS_REJECT);
-            exchange.setRejectReason(request.getReason().trim());
+            exchange.setRejectReason("[总部介入]" + request.getReason().trim());
             stockExchangeDao.updateById(exchange);
+            stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_AUDIT, "换货单已驳回",
+                    "您的换货单 " + exchange.getExchangeNo() + " 被总部驳回：" + request.getReason().trim());
             return true;
         }
+        // 通过：正常流程(1)进入待旧品退回；介入(0)跳过上级审核与总部复审，直接进入待旧品退回
         exchange.setStatus(StockExchange.STATUS_WAIT_BACK);
+        if (intervene) {
+            stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_AUDIT, "换货单审核通过",
+                    "您的换货单 " + exchange.getExchangeNo() + " 已由总部审核通过，请寄回旧品并填写退回快递");
+        }
         exchange.setHqAuditTime(new Date());
         return stockExchangeDao.updateById(exchange) > 0;
     }

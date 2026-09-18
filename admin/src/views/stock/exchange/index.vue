@@ -37,6 +37,7 @@
         <el-table-column prop="createTime" label="申请时间" width="150" />
         <el-table-column label="操作" width="150" fixed="right">
           <template slot-scope="scope">
+            <el-button v-if="scope.row.status === 0 && checkPermi(['admin:stock:exchange:audit'])" type="text" size="small" class="orange" @click="audit(scope.row)">介入审核</el-button>
             <el-button v-if="scope.row.status === 1 && checkPermi(['admin:stock:exchange:audit'])" type="text" size="small" class="green" @click="audit(scope.row)">总部审核</el-button>
             <el-button v-if="scope.row.status === 2 && checkPermi(['admin:stock:exchange:back'])" type="text" size="small" class="green" @click="confirmBack(scope.row)">旧品入库</el-button>
             <el-button v-if="scope.row.status === 3 && checkPermi(['admin:stock:exchange:send'])" type="text" size="small" @click="openSend(scope.row)">发新品</el-button>
@@ -49,10 +50,12 @@
     </el-card>
 
     <el-dialog title="换货审核" :visible.sync="auditVisible" width="400px">
+      <el-alert v-if="auditRow && auditRow.status === 0" type="warning" :closable="false" style="margin-bottom:12px"
+                title="该换货单尚在【待上级审核】阶段，总部介入后将跳过上级审核，直接进入待旧品退回" />
       <el-form size="small" label-width="80px">
         <el-form-item label="审核结果">
           <el-radio-group v-model="auditForm.status">
-            <el-radio :label="1">通过（待旧品退回）</el-radio>
+            <el-radio :label="1">{{ auditRow && auditRow.status === 0 ? '通过（跳过上级，直接待旧品退回）' : '通过（待旧品退回）' }}</el-radio>
             <el-radio :label="-1">驳回</el-radio>
           </el-radio-group>
         </el-form-item>
@@ -124,11 +127,14 @@ export default {
     },
     saveAudit() {
       if (this.auditForm.status === -1 && !this.auditForm.reason) return this.$message.error('请填写驳回原因');
-      stockExchangeAuditApi(this.auditRow.id, this.auditForm).then(() => {
-        this.$message.success('已审核');
-        this.auditVisible = false;
-        this.getList();
-      });
+      const tip = this.auditRow.status === 0 ? '总部介入审核后将跳过上级审核，确认？' : '确认提交审核结果？';
+      this.$confirm(tip, '换货审核').then(() => {
+        stockExchangeAuditApi(this.auditRow.id, this.auditForm).then(() => {
+          this.$message.success('已审核');
+          this.auditVisible = false;
+          this.getList();
+        });
+      }).catch(() => {});
     },
     confirmBack(row) {
       this.$confirm('确认旧品已核验入库？入库后将自动回补云仓库存。', '提示').then(() => {
@@ -160,4 +166,5 @@ export default {
 
 <style scoped>
 .green { color: #67c23a; }
+.orange { color: #e6a23c; }
 </style>
