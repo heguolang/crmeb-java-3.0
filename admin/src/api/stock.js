@@ -152,3 +152,13 @@ export function stockReportApi(params) {
 export function stockMonthlySettleApi(data) {
   return request({ url: '/admin/stock/reward/monthlySettle', method: 'post', data });
 }
+
+/** 换货设置列表（按商品） */
+export function stockExchangeConfigApi(productId) {
+  return request({ url: '/admin/stock/exchange/config', method: 'get', params: { productId } });
+}
+
+/** 保存换货设置 */
+export function stockExchangeConfigSaveApi(data) {
+  return request({ url: '/admin/stock/exchange/config/save', method: 'post', data });
+}

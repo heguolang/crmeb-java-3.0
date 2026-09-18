@@ -87,6 +87,27 @@ public class StockRequests {
     }
 
     @Data
+    @ApiModel(value = "StockExchangeConfigRequest对象", description = "换货设置请求")
+    public static class StockExchangeConfigRequest implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        @ApiModelProperty(value = "商品ID")
+        @NotNull(message = "请选择商品")
+        private Integer productId;
+
+        @ApiModelProperty(value = "规格key（留空=该商品整品）")
+        private String skuKey;
+
+        @ApiModelProperty(value = "是否允许换货")
+        @NotNull(message = "请选择是否允许换货")
+        private Boolean enable;
+
+        @ApiModelProperty(value = "换入商品最低价")
+        private java.math.BigDecimal minTargetPrice;
+    }
+
+    @Data
     @ApiModel(value = "StockSendRequest对象", description = "发货请求")
     public static class StockSendRequest implements Serializable {
 

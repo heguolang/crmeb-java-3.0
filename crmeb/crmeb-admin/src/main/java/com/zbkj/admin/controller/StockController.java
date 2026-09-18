@@ -308,6 +308,22 @@ public class StockController {
         return CommonResult.failed();
     }
 
+    @PreAuthorize("hasAuthority('admin:stock:exchange:list')")
+    @ApiOperation(value = "换货设置列表（按商品）")
+    @RequestMapping(value = "/exchange/config", method = RequestMethod.GET)
+    public CommonResult<java.util.List<com.zbkj.common.model.stock.StockExchangeConfig>> exchangeConfigList(
+            @RequestParam Integer productId) {
+        return CommonResult.success(stockOrderService.getExchangeConfigList(productId));
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:exchange:list')")
+    @ApiOperation(value = "保存换货设置（商品级或规格级）")
+    @RequestMapping(value = "/exchange/config/save", method = RequestMethod.POST)
+    public CommonResult<String> saveExchangeConfig(@RequestBody @Validated StockRequests.StockExchangeConfigRequest request) {
+        stockOrderService.saveExchangeConfig(request);
+        return CommonResult.success();
+    }
+
     // ==================== 奖金与提现 ====================
 
     @PreAuthorize("hasAuthority('admin:stock:reward:list')")

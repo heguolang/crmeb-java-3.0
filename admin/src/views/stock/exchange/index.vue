@@ -10,6 +10,9 @@
         <el-form-item>
           <el-button type="primary" @click="getList">查询</el-button>
         </el-form-item>
+        <el-form-item>
+          <el-button v-if="checkPermi(['admin:stock:exchange:list'])" @click="openConfig">换货设置</el-button>
+        </el-form-item>
       </el-form>
       <el-table v-loading="loading" :data="tableData" size="small" highlight-current-row>
         <el-table-column prop="exchangeNo" label="换货单号" width="190" />
@@ -79,11 +82,35 @@
         <el-button size="small" type="primary" @click="saveSend">确定发货</el-button>
       </div>
     </el-dialog>
+
+    <el-dialog title="换货设置" :visible.sync="configVisible" width="460px" :close-on-click-modal="false">
+      <el-alert type="info" :closable="false" style="margin-bottom:12px"
+                title="按商品控制是否允许下级换货；未设置过的商品默认允许换货。最低换入价为可选门槛（换入商品拿货价不得低于该值，且始终不得低于原商品价）。" />
+      <el-form label-width="110px" size="small">
+        <el-form-item label="商品">
+          <el-select v-model="configForm.productId" filterable placeholder="请选择订货商品" style="width:100%" @change="loadConfig">
+            <el-option v-for="p in productOptions" :key="p.id" :label="p.storeName" :value="p.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="是否允许换货">
+          <el-switch v-model="configForm.enable" :disabled="!configForm.productId" />
+          <span style="margin-left:8px;color:#909399;font-size:12px">{{ configForm.enable ? '允许换货' : '不允许换货' }}</span>
+        </el-form-item>
+        <el-form-item label="最低换入价">
+          <el-input-number v-model="configForm.minTargetPrice" :min="0" :precision="2" :step="1" :disabled="!configForm.productId" />
+          <span style="margin-left:8px;color:#909399;font-size:12px">0 = 不额外设限</span>
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button size="small" @click="configVisible = false">取消</el-button>
+        <el-button size="small" type="primary" :disabled="!configForm.productId" @click="saveConfig">保存</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { stockExchangeListApi, stockExchangeAuditApi, stockExchangeBackApi, stockExchangeSendApi } from '@/api/stock';
+import { stockExchangeListApi, stockExchangeAuditApi, stockExchangeBackApi, stockExchangeSendApi, stockExchangeConfigApi, stockExchangeConfigSaveApi, stockProductListApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -100,7 +127,10 @@ export default {
       auditForm: { status: 1, reason: '' },
       sendVisible: false,
       sendRow: null,
-      sendForm: { expressName: '', expressNum: '' }
+      sendForm: { expressName: '', expressNum: '' },
+      configVisible: false,
+      productOptions: [],
+      configForm: { productId: null, enable: true, minTargetPrice: 0 }
     };
   },
   methods: {
@@ -155,6 +185,35 @@ export default {
         this.$message.success('新品已发出，库存已扣减');
         this.sendVisible = false;
         this.getList();
+      });
+    },
+    openConfig() {
+      this.configForm = { productId: null, enable: true, minTargetPrice: 0 };
+      this.configVisible = true;
+      if (!this.productOptions.length) {
+        stockProductListApi({ page: 1, limit: 200 }).then(res => {
+          this.productOptions = (res && res.list) || [];
+        }).catch(() => {});
+      }
+    },
+    loadConfig(productId) {
+      if (!productId) return;
+      stockExchangeConfigApi(productId).then(res => {
+        const list = res || [];
+        const cfg = list.find(x => !x.skuKey);
+        this.configForm.enable = cfg ? !!cfg.enable : true;
+        this.configForm.minTargetPrice = cfg && cfg.minTargetPrice ? Number(cfg.minTargetPrice) : 0;
+      }).catch(() => {});
+    },
+    saveConfig() {
+      stockExchangeConfigSaveApi({
+        productId: this.configForm.productId,
+        skuKey: '',
+        enable: this.configForm.enable,
+        minTargetPrice: this.configForm.minTargetPrice
+      }).then(() => {
+        this.$message.success('换货设置已保存');
+        this.configVisible = false;
       });
     }
   },

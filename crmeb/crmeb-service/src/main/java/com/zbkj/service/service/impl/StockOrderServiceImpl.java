@@ -9,6 +9,7 @@ import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.stock.StockAgent;
 import com.zbkj.common.model.stock.StockExchange;
+import com.zbkj.common.model.stock.StockExchangeConfig;
 import com.zbkj.common.model.stock.StockLevel;
 import com.zbkj.common.model.stock.StockOfflineSale;
 import com.zbkj.common.model.stock.StockNotice;
@@ -71,6 +72,9 @@ public class StockOrderServiceImpl implements StockOrderService {
 
     @Resource
     private com.zbkj.service.dao.StockOfflineSaleDao stockOfflineSaleDao;
+
+    @Resource
+    private com.zbkj.service.dao.StockExchangeConfigDao stockExchangeConfigDao;
 
     @Autowired
     private StockService stockService;
@@ -536,8 +540,7 @@ public class StockOrderServiceImpl implements StockOrderService {
             int rows = stockVirtualStockDao.update(null, new LambdaUpdateWrapper<StockVirtualStock>()
                     .eq(StockVirtualStock::getId, vs.getId())
                     .ge(StockVirtualStock::getRemainNum, request.getNum())
-                    .setSql("remain_num = remain_num - " + request.getNum())
-                    .set(StockVirtualStock::getSourceOrderNo, orderNo));
+                    .setSql("remain_num = remain_num - " + request.getNum()));
             if (rows == 0) {
                 throw new CrmebException("可提货数量不足，请刷新后重试");
             }
@@ -787,6 +790,15 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockOrderProduct::getProductId, request.getProductId()));
         if (item == null) {
             throw new CrmebException("该订单中没有此商品");
+        }
+        // 换货开关：商品/规格级配置优先，未配置则沿用原行为（允许）
+        if (!isExchangeAllowed(request.getProductId(), item.getSkuKey())) {
+            throw new CrmebException("该商品未开放换货，请联系您的上级");
+        }
+        // 一次一件（配置 stock_exchange_single=1 时生效）
+        String singleCfg = systemConfigService.getValueByKey("stock_exchange_single");
+        if ("1".equals(singleCfg) && !Integer.valueOf(1).equals(request.getNum())) {
+            throw new CrmebException("换货一次只能申请一件");
         }
         if (request.getNum() == null || request.getNum() <= 0 || request.getNum() > item.getNum()) {
             throw new CrmebException("换货数量不合法");
@@ -1278,6 +1290,56 @@ public class StockOrderServiceImpl implements StockOrderService {
             record.setIsDel(0);
             stockOfflineSaleDao.insert(record);
         });
+    }
+
+    // ==================== 换货设置（是否允许换货） ====================
+
+    @Override
+    public List<StockExchangeConfig> getExchangeConfigList(Integer productId) {
+        return stockExchangeConfigDao.selectList(new LambdaQueryWrapper<StockExchangeConfig>()
+                .eq(StockExchangeConfig::getProductId, productId)
+                .orderByAsc(StockExchangeConfig::getSkuKey));
+    }
+
+    @Override
+    public void saveExchangeConfig(StockRequests.StockExchangeConfigRequest request) {
+        String skuKey = request.getSkuKey() == null ? "" : request.getSkuKey().trim();
+        BigDecimal minPrice = request.getMinTargetPrice() == null ? BigDecimal.ZERO : request.getMinTargetPrice();
+        StockExchangeConfig exist = stockExchangeConfigDao.selectOne(new LambdaQueryWrapper<StockExchangeConfig>()
+                .eq(StockExchangeConfig::getProductId, request.getProductId())
+                .eq(StockExchangeConfig::getSkuKey, skuKey)
+                .last(" limit 1"));
+        if (exist != null) {
+            stockExchangeConfigDao.update(null, new LambdaUpdateWrapper<StockExchangeConfig>()
+                    .eq(StockExchangeConfig::getId, exist.getId())
+                    .set(StockExchangeConfig::getEnable, request.getEnable())
+                    .set(StockExchangeConfig::getMinTargetPrice, minPrice));
+        } else {
+            StockExchangeConfig cfg = new StockExchangeConfig();
+            cfg.setProductId(request.getProductId());
+            cfg.setSkuKey(skuKey);
+            cfg.setEnable(request.getEnable());
+            cfg.setMinTargetPrice(minPrice);
+            stockExchangeConfigDao.insert(cfg);
+        }
+    }
+
+    @Override
+    public boolean isExchangeAllowed(Integer productId, String skuKey) {
+        String sku = skuKey == null ? "" : skuKey;
+        StockExchangeConfig cfg = stockExchangeConfigDao.selectOne(new LambdaQueryWrapper<StockExchangeConfig>()
+                .eq(StockExchangeConfig::getProductId, productId)
+                .eq(StockExchangeConfig::getSkuKey, sku)
+                .last(" limit 1"));
+        if (cfg == null && !sku.isEmpty()) {
+            // 规格未单独配置时回退整品级
+            cfg = stockExchangeConfigDao.selectOne(new LambdaQueryWrapper<StockExchangeConfig>()
+                    .eq(StockExchangeConfig::getProductId, productId)
+                    .eq(StockExchangeConfig::getSkuKey, "")
+                    .last(" limit 1"));
+        }
+        // 未配置过 = 不限制（沿用原行为，允许换货）
+        return cfg == null || Boolean.TRUE.equals(cfg.getEnable());
     }
 
     /** 校验上级对订单明细各项均有足够库存 */

@@ -48,6 +48,15 @@ public interface StockOrderService {
     /** 线下销售出库：登记出库记录并扣减云仓库存（后续从实体可供应量中扣减） */
     void sellOffline(Integer uid, StockRequests.StockOfflineSaleRequest request);
 
+    /** 换货设置列表（按商品，含整品与各规格） */
+    List<com.zbkj.common.model.stock.StockExchangeConfig> getExchangeConfigList(Integer productId);
+
+    /** 保存换货设置（商品级或规格级） */
+    void saveExchangeConfig(StockRequests.StockExchangeConfigRequest request);
+
+    /** 某商品（规格）是否允许换货：规格级优先，回退整品级，都未配置则不限制 */
+    boolean isExchangeAllowed(Integer productId, String skuKey);
+
     /** 我的订单列表（status: null=全部） */
     CommonPage<StockOrder> getMyOrderList(Integer uid, Integer status, com.zbkj.common.request.PageParamRequest page);
 
