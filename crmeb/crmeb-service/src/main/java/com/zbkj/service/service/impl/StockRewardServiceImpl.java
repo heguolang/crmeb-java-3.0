@@ -98,6 +98,45 @@ public class StockRewardServiceImpl implements StockRewardService {
         });
     }
 
+    /**
+     * 换货差价奖励：换货人补付的差价 × 配置比例，奖励给其直接上级（幂等，按换货单号去重）
+     */
+    @Override
+    public void settleExchangeDiffReward(com.zbkj.common.model.stock.StockExchange exchange) {
+        if (exchange == null || exchange.getDiffPrice() == null || exchange.getDiffPrice().signum() <= 0) {
+            return;
+        }
+        if (!"1".equals(systemConfigService.getValueByKey("stock_exchange_diff"))) {
+            return;
+        }
+        if (exchange.getParentAgentId() == null || exchange.getParentAgentId() <= 0) {
+            return;
+        }
+        BigDecimal rate;
+        try {
+            String r = systemConfigService.getValueByKey("stock_exchange_diff_parent_rate");
+            rate = (r == null || r.trim().isEmpty()) ? BigDecimal.ZERO : new BigDecimal(r.trim());
+        } catch (Exception e) {
+            rate = BigDecimal.ZERO;
+        }
+        if (rate.signum() <= 0) {
+            return;
+        }
+        BigDecimal reward = exchange.getDiffPrice().multiply(rate)
+                .divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+        if (reward.signum() <= 0) {
+            return;
+        }
+        StockAgent parent = stockService.getAgentById(exchange.getParentAgentId());
+        if (parent == null || parent.getStatus() == 0) {
+            return;
+        }
+        createRewardIfAbsent(parent.getUid(), StockReward.TYPE_DIFF, exchange.getExchangeNo(), exchange.getUid(),
+                exchange.getDiffPrice(), rate, reward,
+                "换货差价奖励：" + exchange.getExchangeNo() + "（差价 " + exchange.getDiffPrice()
+                        + " × " + rate.stripTrailingZeros().toPlainString() + "%）");
+    }
+
     /** 差价：直接上级赚取（上级拿价 - 下级拿价）×数量 */
     private void calcDiffReward(StockOrder order) {
         if (!"1".equals(systemConfigService.getValueByKey("stock_diff_reward_status"))) {

@@ -267,6 +267,20 @@ public class StockController {
         return CommonResult.failed();
     }
 
+    @ApiOperation(value = "可换入商品清单（含目标拿货价与差价）")
+    @RequestMapping(value = "/exchange/options", method = RequestMethod.GET)
+    public CommonResult<List<HashMap<String, Object>>> exchangeOptions(
+            @RequestParam Integer productId,
+            @RequestParam(value = "skuKey", required = false) String skuKey) {
+        return CommonResult.success(stockOrderService.getExchangeOptions(currentUid(), productId, skuKey));
+    }
+
+    @ApiOperation(value = "支付换货差价（按比例奖励直接上级）")
+    @RequestMapping(value = "/exchange/payDiff", method = RequestMethod.POST)
+    public CommonResult<HashMap<String, Object>> payExchangeDiff(@RequestBody @Validated StockRequests.StockExchangeDiffPayRequest request) {
+        return CommonResult.success(stockOrderService.payExchangeDiff(currentUid(), request));
+    }
+
     // ==================== 虚拟库存（二期） ====================
 
     @ApiOperation(value = "我的虚拟库存列表（剩余可提货>0）")

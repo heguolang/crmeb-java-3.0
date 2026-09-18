@@ -15,6 +15,7 @@
           <view class="p-name">{{ p.productName }}</view>
           <view class="p-meta">可供应数量 <text class="p-num">{{ p.num }}</text></view>
         </view>
+        <button class="ex-btn" size="mini" @click="goExchange(p)">换货</button>
         <button class="sell-btn" size="mini" @click="openSell(p)">线下销售</button>
       </view>
     </view>
@@ -74,6 +75,9 @@
 			},
 			navGoods() {
 				uni.navigateTo({ url: '/pages/users/stock/goods' });
+			},
+			goExchange(p) {
+				uni.navigateTo({ url: '/pages/users/stock/exchange?productId=' + p.productId + '&num=' + (p.num || 1) });
 			},
 			openSell(p) {
 				this.sellRow = p;
@@ -164,6 +168,7 @@
 .p-meta { font-size: 23rpx; color: #909399; margin-top: 10rpx; }
 .p-num { color: #2b6fe3; font-weight: 700; font-size: 30rpx; margin-left: 6rpx; }
 .sell-btn { background: linear-gradient(135deg, #1f5fc4, #2b7de9); color: #fff; border-radius: 999rpx; font-size: 24rpx; padding: 0 28rpx; flex-shrink: 0; }
+.ex-btn { background: #fff; color: #2b6fe3; border: 1rpx solid #2b6fe3; border-radius: 999rpx; font-size: 24rpx; padding: 0 24rpx; flex-shrink: 0; margin-right: 12rpx; }
 
 .empty-box { display: flex; flex-direction: column; align-items: center; padding: 110rpx 0 40rpx; }
 .empty-title { font-size: 28rpx; color: #606266; font-weight: 600; }

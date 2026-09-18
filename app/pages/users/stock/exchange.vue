@@ -15,6 +15,20 @@
         <input v-model="form.num" type="number" class="f-input" placeholder="1" />
       </view>
       <view class="form-item">
+        <text class="f-label">换入商品</text>
+        <view class="opt-list">
+          <view v-for="(o, i) in options" :key="i" class="opt-item" :class="{ active: selectedTarget && selectedTarget.targetProductId === o.targetProductId }" @click="selectedTarget = o">
+            <view class="opt-name">{{ o.targetProductName }}</view>
+            <view class="opt-price">拿货价 ¥{{ o.targetPrice }} · 需补差价 ¥{{ o.diffPrice }}</view>
+          </view>
+          <view v-if="!options.length" class="opt-none">该商品暂无可换入商品（需后台在「设置拿货价」中配置）</view>
+        </view>
+        <button class="opt-load-btn" size="mini" @click="loadOptions">加载可换商品</button>
+      </view>
+      <view v-if="selectedTarget" class="diff-tip">
+        换 {{ form.num || 1 }} 件需补差价 <text class="diff-amt">¥{{ (selectedTarget.diffPrice * (form.num || 1)).toFixed(2) }}</text>
+      </view>
+      <view class="form-item">
         <text class="f-label">换货原因</text>
         <textarea v-model="form.reason" class="f-textarea" placeholder="请描述换货原因" />
       </view>
@@ -28,10 +42,16 @@
         <text class="ex-status" :class="'st' + e.status">{{ statusText(e.status) }}</text>
       </view>
       <view class="ex-row">{{ e.productName }} × {{ e.num }}（原单 {{ e.orderNo }}）</view>
+      <view v-if="e.targetProductName" class="ex-row">换入：{{ e.targetProductName }}
+        <text v-if="Number(e.diffPrice) > 0" class="diff-amt"> 需补差价 ¥{{ e.diffPrice }}</text>
+      </view>
       <view class="ex-row grey">原因：{{ e.reason }}</view>
       <view v-if="e.status === -1" class="ex-row red">驳回原因：{{ e.rejectReason }}</view>
       <view v-if="e.backExpressNum" class="ex-row blue">旧品退回：{{ e.backExpressName }} {{ e.backExpressNum }}</view>
       <view v-if="e.newExpressNum" class="ex-row blue">新品发出：{{ e.newExpressName }} {{ e.newExpressNum }}</view>
+      <view class="row-op" v-if="Number(e.diffPrice) > 0 && e.diffPayStatus !== 1 && e.status !== -1">
+        <button class="op-btn primary" size="mini" @click="payDiff(e)">支付差价 ¥{{ e.diffPrice }}</button>
+      </view>
       <view class="row-op" v-if="e.status === 2">
         <button class="op-btn primary" size="mini" @click="fillBack(e)">填写旧品退回快递</button>
       </view>
@@ -45,13 +65,16 @@
 </template>
 
 <script>
-	import { getMyExchanges, applyStockExchange, fillExchangeBackExpress, auditStockExchange } from '@/api/stock.js';
+	import { getMyExchanges, applyStockExchange, fillExchangeBackExpress, auditStockExchange, getExchangeOptions, payExchangeDiff } from '@/api/stock.js';
 	export default {
 		data() {
 			return {
 				list: [],
 				loaded: false,
 				canApply: false,
+				options: [],
+				selectedTarget: null,
+				skuKeyParam: '',
 				form: { orderId: '', productId: '', num: '1', reason: '' }
 			};
 		},
@@ -59,6 +82,13 @@
 			if (opt.orderId) {
 				this.form.orderId = opt.orderId;
 				this.canApply = true;
+			}
+			if (opt.productId) {
+				this.form.productId = opt.productId;
+				this.skuKeyParam = opt.skuKey || '';
+				if (opt.num) this.form.num = opt.num;
+				this.canApply = true;
+				this.loadOptions();
 			}
 			this.load();
 		},
@@ -72,14 +102,38 @@
 					this.loaded = true;
 				}).catch(() => { this.loaded = true; });
 			},
+			loadOptions() {
+				if (!this.form.productId) return this.$util.Tips({ title: '请先填写商品ID' });
+				getExchangeOptions(Number(this.form.productId), this.skuKeyParam || '').then(res => {
+					this.options = res.data || [];
+					this.selectedTarget = this.options.length ? this.options[0] : null;
+					if (!this.options.length) this.$util.Tips({ title: '该商品未开放换货或暂无可换入商品' });
+				}).catch(() => {});
+			},
+			payDiff(e) {
+				uni.showModal({
+					title: '支付换货差价',
+					content: '需支付差价 ¥' + e.diffPrice + '（从余额扣除，支付后按比例奖励您的上级）',
+					success: (m) => {
+						if (!m.confirm) return;
+						payExchangeDiff({ exchangeId: e.id, payType: 'yue' }).then(() => {
+							uni.showToast({ title: '差价支付成功', icon: 'success' });
+							this.load();
+						});
+					}
+				});
+			},
 			submit() {
 				if (!this.form.orderId || !this.form.productId) return this.$util.Tips({ title: '请填写原订单与商品ID' });
+				if (!this.selectedTarget) return this.$util.Tips({ title: '请选择要换入的商品' });
 				if (!this.form.reason) return this.$util.Tips({ title: '请填写换货原因' });
 				applyStockExchange({
 					orderId: Number(this.form.orderId),
 					productId: Number(this.form.productId),
 					num: Number(this.form.num || 1),
-					reason: this.form.reason
+					reason: this.form.reason,
+					targetProductId: this.selectedTarget.targetProductId,
+					targetSkuKey: this.selectedTarget.targetSkuKey || ''
 				}).then(() => {
 					this.$util.Tips({ title: '申请已提交' });
 					this.load();
@@ -127,6 +181,15 @@
 </script>
 
 <style lang="scss" scoped>
+.opt-list { margin-top: 10rpx; }
+.opt-item { border: 1rpx solid #ebeef5; border-radius: 12rpx; padding: 16rpx 20rpx; margin-bottom: 12rpx; }
+.opt-item.active { border-color: #2b6fe3; background: #f0f6ff; }
+.opt-name { font-size: 26rpx; color: #303133; font-weight: 600; }
+.opt-price { font-size: 22rpx; color: #909399; margin-top: 6rpx; }
+.opt-none { font-size: 23rpx; color: #b0b8c4; padding: 12rpx 0; }
+.opt-load-btn { margin-top: 10rpx; background: #f2f3f5; color: #333; border-radius: 999rpx; }
+.diff-tip { margin: 10rpx 0 16rpx; font-size: 24rpx; color: #e6a23c; }
+.diff-amt { color: #e93323; font-weight: 700; }
 .exchange-page { min-height: 100vh; background: #f5f6f8; padding: 24rpx; }
 .apply-card, .ex-card { background: #fff; border-radius: 16rpx; padding: 26rpx; margin-bottom: 20rpx; }
 .card-title, .list-title { font-size: 30rpx; font-weight: 600; color: #333; margin-bottom: 20rpx; }

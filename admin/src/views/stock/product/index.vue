@@ -122,6 +122,19 @@
     <!-- 拿货价弹窗 -->
     <el-dialog title="设置各层级拿货价" :visible.sync="priceVisible" width="440px" append-to-body :close-on-click-modal="false">
       <div v-if="priceRow" style="margin-bottom:10px;color:#999">{{ priceRow.storeName }}（零售价 ¥{{ priceRow.price }}）</div>
+      <div v-if="priceRow" class="ex-block">
+        <div class="ex-row">
+          <span class="ex-label">是否支持换货</span>
+          <el-switch v-model="exForm.enable" @change="saveExchangeConfig" />
+          <span class="ex-tip">{{ exForm.enable ? '允许换货' : '不允许换货' }}（未配置过的规格沿用整品设置；换货按钮精确到规格）</span>
+        </div>
+        <div class="ex-row">
+          <span class="ex-label">可换入商品</span>
+          <el-button size="mini" :disabled="!exForm.enable" @click="openExTargets">设置可换商品（已选 {{ exTargets.length }}）</el-button>
+          <span class="ex-tip">只允许换入清单内的商品，且目标拿货价不得低于原商品价</span>
+        </div>
+      </div>
+      <el-divider v-if="priceRow" />
       <el-table class="admin-table" v-if="priceRow" :data="priceRow.levelPrices" size="small">
         <el-table-column prop="levelName" label="层级" width="110" />
         <el-table-column label="拿货价">
@@ -134,6 +147,19 @@
       <div slot="footer">
         <el-button size="small" @click="priceVisible = false">取消</el-button>
         <el-button size="small" type="primary" @click="savePrice">保存</el-button>
+      </div>
+    </el-dialog>
+
+    <el-dialog title="设置可换入商品" :visible.sync="exTargetsVisible" width="460px" append-to-body :close-on-click-modal="false">
+      <div style="margin-bottom:8px;color:#999;font-size:12px">
+        {{ priceRow && priceRow.storeName }} → 允许换入以下商品（可多选，一次换货只能选其中一个）
+      </div>
+      <el-select v-model="exTargets" multiple filterable placeholder="请选择可换入商品" style="width:100%">
+        <el-option v-for="p in productOptions" :key="p.id" :label="p.storeName" :value="p.id" :disabled="priceRow && p.id === priceRow.id" />
+      </el-select>
+      <div slot="footer">
+        <el-button size="small" @click="exTargetsVisible = false">取消</el-button>
+        <el-button size="small" type="primary" @click="saveExTargets">保存</el-button>
       </div>
     </el-dialog>
 
@@ -159,7 +185,7 @@
 </template>
 
 <script>
-import { stockProductListApi, stockProductSelectListApi, stockProductAddApi, stockProductRemoveApi, stockPriceSaveApi, stockAdjustApi, stockLogListApi } from '@/api/stock';
+import { stockProductListApi, stockProductSelectListApi, stockProductAddApi, stockProductRemoveApi, stockPriceSaveApi, stockAdjustApi, stockLogListApi, stockExchangeConfigApi, stockExchangeConfigSaveApi, stockExchangeTargetsApi, stockExchangeTargetsSaveApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -176,6 +202,10 @@ export default {
       logFrom: { page: 1, limit: 10, productId: null, type: null },
       priceVisible: false,
       priceRow: null,
+      exForm: { enable: true },
+      exTargets: [],
+      exTargetsVisible: false,
+      productOptions: [],
       adjustVisible: false,
       adjustRow: null,
       adjustForm: { productId: null, changeNum: 0, mark: '' },
@@ -278,6 +308,44 @@ export default {
     openPrice(row) {
       this.priceRow = JSON.parse(JSON.stringify(row));
       this.priceVisible = true;
+      this.loadExchange(row.id);
+    },
+    loadExchange(productId) {
+      this.exForm = { enable: true };
+      this.exTargets = [];
+      stockExchangeConfigApi(productId).then(res => {
+        const cfg = (res || []).find(x => !x.skuKey);
+        this.exForm.enable = cfg ? !!cfg.enable : true;
+      }).catch(() => {});
+      stockExchangeTargetsApi(productId, '').then(res => {
+        this.exTargets = (res || []).map(t => t.targetProductId);
+      }).catch(() => {});
+      if (!this.productOptions.length) {
+        stockProductListApi({ page: 1, limit: 200 }).then(res => {
+          this.productOptions = (res && res.list) || [];
+        }).catch(() => {});
+      }
+    },
+    saveExchangeConfig() {
+      stockExchangeConfigSaveApi({
+        productId: this.priceRow.id,
+        skuKey: '',
+        enable: this.exForm.enable,
+        minTargetPrice: 0
+      }).then(() => this.$message.success(this.exForm.enable ? '该商品已开放换货' : '该商品已关闭换货'));
+    },
+    openExTargets() {
+      this.exTargetsVisible = true;
+    },
+    saveExTargets() {
+      stockExchangeTargetsSaveApi({
+        productId: this.priceRow.id,
+        skuKey: '',
+        targets: this.exTargets.map(id => ({ targetProductId: id, targetSkuKey: '' }))
+      }).then(() => {
+        this.$message.success('可换商品已保存');
+        this.exTargetsVisible = false;
+      });
     },
     savePrice() {
       const prices = this.priceRow.levelPrices.map(p => ({ levelId: p.levelId, price: p.price }));
@@ -315,4 +383,9 @@ export default {
 <style scoped>
 /* 列表页通用规范（.toolbar/.pager/.admin-table/.op-wrap/.op-btn）已统一在 theme/styles.scss 全局定义 */
 .red { color: #f56c6c; }
+.ex-block { border: 1px solid #ebeef5; border-radius: 6px; padding: 10px 12px; background: #fafbfc; }
+.ex-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ex-row:last-child { margin-bottom: 0; }
+.ex-label { width: 84px; color: #303133; font-size: 13px; flex-shrink: 0; }
+.ex-tip { color: #909399; font-size: 12px; }
 </style>

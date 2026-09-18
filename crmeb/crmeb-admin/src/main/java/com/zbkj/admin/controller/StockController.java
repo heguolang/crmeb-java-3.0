@@ -324,6 +324,23 @@ public class StockController {
         return CommonResult.success();
     }
 
+    @PreAuthorize("hasAuthority('admin:stock:exchange:list')")
+    @ApiOperation(value = "换货可选目标清单")
+    @RequestMapping(value = "/exchange/targets", method = RequestMethod.GET)
+    public CommonResult<java.util.List<com.zbkj.common.model.stock.StockExchangeTarget>> exchangeTargets(
+            @RequestParam Integer productId,
+            @RequestParam(value = "skuKey", required = false) String skuKey) {
+        return CommonResult.success(stockOrderService.getExchangeTargetList(productId, skuKey));
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:exchange:list')")
+    @ApiOperation(value = "保存换货可选目标清单（覆盖式）")
+    @RequestMapping(value = "/exchange/targets/save", method = RequestMethod.POST)
+    public CommonResult<String> saveExchangeTargets(@RequestBody @Validated StockRequests.StockExchangeTargetSaveRequest request) {
+        stockOrderService.saveExchangeTargets(request);
+        return CommonResult.success();
+    }
+
     // ==================== 奖金与提现 ====================
 
     @PreAuthorize("hasAuthority('admin:stock:reward:list')")
@@ -370,7 +387,9 @@ public class StockController {
         String[] keys = {"stock_order_audit", "stock_diff_reward_status", "stock_exchange_diff",
                 "stock_ladder_status", "stock_ladder_cycle", "stock_peer_status",
                 "stock_peer_rate", "stock_peer_generations",
-                "stock_parent_deliver", "stock_up_search_hours"};
+                "stock_parent_deliver", "stock_up_search_hours",
+                "stock_virtual_audit", "stock_wait_pay_hours",
+                "stock_exchange_single", "stock_exchange_diff_parent_rate"};
         for (String key : keys) {
             map.put(key, systemConfigService.getValueByKey(key));
         }
@@ -386,7 +405,9 @@ public class StockController {
             String[] keys = {"stock_order_audit", "stock_diff_reward_status", "stock_exchange_diff",
                     "stock_ladder_status", "stock_ladder_cycle", "stock_peer_status",
                     "stock_peer_rate", "stock_peer_generations",
-                    "stock_parent_deliver", "stock_up_search_hours"};
+                    "stock_parent_deliver", "stock_up_search_hours",
+                    "stock_virtual_audit", "stock_wait_pay_hours",
+                    "stock_exchange_single", "stock_exchange_diff_parent_rate"};
             for (String key : keys) {
                 if (settingMap.containsKey(key)) {
                     Object v = settingMap.get(key);

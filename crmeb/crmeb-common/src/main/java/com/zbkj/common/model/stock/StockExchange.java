@@ -54,6 +54,51 @@ public class StockExchange implements Serializable {
     @ApiModelProperty(value = "商品ID")
     private Integer productId;
 
+    @ApiModelProperty(value = "原商品规格key")
+    private String skuKey;
+
+    @ApiModelProperty(value = "换货类型：1=虚拟换货 2=实体换货")
+    private Integer exchangeType;
+
+    @ApiModelProperty(value = "换入商品ID")
+    private Integer targetProductId;
+
+    @ApiModelProperty(value = "换入商品规格key")
+    private String targetSkuKey;
+
+    @ApiModelProperty(value = "换入商品名称")
+    private String targetProductName;
+
+    @ApiModelProperty(value = "换入商品拿货价")
+    private java.math.BigDecimal targetPrice;
+
+    @ApiModelProperty(value = "原商品拿货价")
+    private java.math.BigDecimal originPrice;
+
+    @ApiModelProperty(value = "需补差价 =（换入价 - 原价）× 数量")
+    private java.math.BigDecimal diffPrice;
+
+    @ApiModelProperty(value = "差价支付状态：0=未付 1=已付")
+    private Integer diffPayStatus;
+
+    @ApiModelProperty(value = "差价支付方式 yue/weixin")
+    private String diffPayType;
+
+    @ApiModelProperty(value = "差价支付时间")
+    private Date diffPayTime;
+
+    @ApiModelProperty(value = "新品收货人")
+    private String realName;
+
+    @ApiModelProperty(value = "新品收货电话")
+    private String phone;
+
+    @ApiModelProperty(value = "新品收货地址")
+    private String userAddress;
+
+    @ApiModelProperty(value = "收货地址ID")
+    private Integer addressId;
+
     @ApiModelProperty(value = "商品名称（冗余）")
     private String productName;
 

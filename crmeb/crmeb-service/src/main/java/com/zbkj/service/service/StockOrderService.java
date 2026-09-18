@@ -57,6 +57,18 @@ public interface StockOrderService {
     /** 某商品（规格）是否允许换货：规格级优先，回退整品级，都未配置则不限制 */
     boolean isExchangeAllowed(Integer productId, String skuKey);
 
+    /** 换货可选目标清单（源商品+规格 → 目标商品+规格） */
+    List<com.zbkj.common.model.stock.StockExchangeTarget> getExchangeTargetList(Integer productId, String skuKey);
+
+    /** 保存换货可选目标（覆盖式） */
+    void saveExchangeTargets(StockRequests.StockExchangeTargetSaveRequest request);
+
+    /** 会员端：该商品规格可换入的目标（含目标拿货价与差价，已过滤低于原价的目标） */
+    List<HashMap<String, Object>> getExchangeOptions(Integer uid, Integer productId, String skuKey);
+
+    /** 换货差价支付（yue=余额 weixin=微信），支付成功后按比例奖励直接上级 */
+    HashMap<String, Object> payExchangeDiff(Integer uid, StockRequests.StockExchangeDiffPayRequest request);
+
     /** 我的订单列表（status: null=全部） */
     CommonPage<StockOrder> getMyOrderList(Integer uid, Integer status, com.zbkj.common.request.PageParamRequest page);
 

@@ -20,6 +20,7 @@
               <input v-model="v.pickNum" type="number" class="num-input" />
               <text class="ctrl-btn" @click="plus(v)">＋</text>
             </view>
+            <button class="ex-btn" size="mini" @click="goExchange(v)">换货</button>
             <button class="pickup-btn" size="mini" @click="pickup(v)">提货</button>
           </view>
         </view>
@@ -101,6 +102,9 @@
 			},
 			navGoods() {
 				uni.navigateTo({ url: '/pages/users/stock/goods' });
+			},
+			goExchange(v) {
+				uni.navigateTo({ url: '/pages/users/stock/exchange?productId=' + v.productId + '&skuKey=' + (v.skuKey || '') + '&num=' + (v.remainNum || 1) });
 			},
 			plus(v) {
 				if (v.pickNum >= v.remainNum) return this.$util.Tips({ title: '已达可提数量上限' });
@@ -189,6 +193,7 @@
 .ctrl-btn { width: 48rpx; height: 48rpx; background: #f2f3f5; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; font-size: 30rpx; color: #333; }
 .num-input { width: 80rpx; height: 48rpx; text-align: center; font-size: 26rpx; }
 .pickup-btn { background: linear-gradient(135deg, #b8860b, #daa520); color: #fff; border-radius: 999rpx; font-size: 24rpx; padding: 0 40rpx; }
+.ex-btn { background: #fff; color: #2b6fe3; border: 1rpx solid #2b6fe3; border-radius: 999rpx; font-size: 24rpx; padding: 0 24rpx; margin-right: 12rpx; }
 
 .empty-box { display: flex; flex-direction: column; align-items: center; padding: 110rpx 0 40rpx; }
 .empty-title { font-size: 28rpx; color: #606266; font-weight: 600; }

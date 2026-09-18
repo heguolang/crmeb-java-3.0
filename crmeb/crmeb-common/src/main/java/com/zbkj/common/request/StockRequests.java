@@ -84,6 +84,58 @@ public class StockRequests {
         @ApiModelProperty(value = "换货原因")
         @NotBlank(message = "换货原因不能为空")
         private String reason;
+
+        @ApiModelProperty(value = "原商品规格key")
+        private String skuKey;
+
+        @ApiModelProperty(value = "要换入的商品ID（一次只能换一个目标商品）")
+        @NotNull(message = "请选择要换入的商品")
+        private Integer targetProductId;
+
+        @ApiModelProperty(value = "要换入的规格key")
+        private String targetSkuKey;
+    }
+
+    @Data
+    @ApiModel(value = "StockExchangeTargetSaveRequest对象", description = "换货可选目标保存请求")
+    public static class StockExchangeTargetSaveRequest implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        @ApiModelProperty(value = "源商品ID")
+        @NotNull(message = "请选择商品")
+        private Integer productId;
+
+        @ApiModelProperty(value = "源规格key（空=整品）")
+        private String skuKey;
+
+        @ApiModelProperty(value = "可换入的目标清单")
+        private List<TargetItem> targets;
+
+        @Data
+        @ApiModel(value = "TargetItem对象", description = "可换入目标项")
+        public static class TargetItem implements Serializable {
+            private static final long serialVersionUID = 1L;
+            @ApiModelProperty(value = "目标商品ID")
+            private Integer targetProductId;
+            @ApiModelProperty(value = "目标规格key")
+            private String targetSkuKey;
+        }
+    }
+
+    @Data
+    @ApiModel(value = "StockExchangeDiffPayRequest对象", description = "换货差价支付请求")
+    public static class StockExchangeDiffPayRequest implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        @ApiModelProperty(value = "换货单ID")
+        @NotNull(message = "请选择换货单")
+        private Integer exchangeId;
+
+        @ApiModelProperty(value = "支付方式：yue=余额 weixin=微信")
+        @NotBlank(message = "请选择支付方式")
+        private String payType;
     }
 
     @Data

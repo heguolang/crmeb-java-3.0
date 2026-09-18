@@ -162,3 +162,13 @@ export function stockExchangeConfigApi(productId) {
 export function stockExchangeConfigSaveApi(data) {
   return request({ url: '/admin/stock/exchange/config/save', method: 'post', data });
 }
+
+/** 换货可选目标清单 */
+export function stockExchangeTargetsApi(productId, skuKey) {
+  return request({ url: '/admin/stock/exchange/targets', method: 'get', params: { productId, skuKey } });
+}
+
+/** 保存换货可选目标清单 */
+export function stockExchangeTargetsSaveApi(data) {
+  return request({ url: '/admin/stock/exchange/targets/save', method: 'post', data });
+}

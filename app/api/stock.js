@@ -99,6 +99,16 @@ export function getMyExchanges(params) {
   return request.get('stock/exchange/list', params);
 }
 
+/** 可换入商品清单（含目标拿货价与差价） */
+export function getExchangeOptions(productId, skuKey) {
+  return request.get('stock/exchange/options', { productId, skuKey: skuKey || '' });
+}
+
+/** 支付换货差价 */
+export function payExchangeDiff(data) {
+  return request.post('stock/exchange/payDiff', data);
+}
+
 /** 填写旧品退回快递 */
 export function fillExchangeBackExpress(id, data) {
   return request.post('stock/exchange/backExpress?id=' + id, data);

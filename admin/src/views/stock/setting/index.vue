@@ -15,6 +15,14 @@
           <el-input-number v-model="upSearchHoursNum" :min="1" :max="168" :precision="0" size="small" style="width: 140px" />
           <span class="switch-tip">小时。上级库存不足时订单挂起，超过该时长自动为下级向上匹配有货的更高级上级（都没有则挂总部）</span>
         </el-form-item>
+        <el-form-item label="待付款超时时长">
+          <el-input-number v-model="waitPayHoursNum" :min="1" :max="720" :precision="0" size="small" style="width: 140px" />
+          <span class="switch-tip">小时。超过该时长仍未付款的订货单自动取消（状态：已取消），库存不占用</span>
+        </el-form-item>
+        <el-form-item label="虚拟库存单需上级审核">
+          <el-switch v-model="form.stock_virtual_audit" :active-value="'1'" :inactive-value="'0'" />
+          <span class="switch-tip">开启：虚拟库存单付款后先由上级审核，通过才入账虚拟库存；关闭：付款即入账（推荐关闭）</span>
+        </el-form-item>
         <el-divider />
         <el-form-item label="差价奖励">
           <el-switch v-model="form.stock_diff_reward_status" :active-value="'1'" :inactive-value="'0'" />
@@ -24,7 +32,27 @@
           <el-switch v-model="form.stock_exchange_diff" :active-value="'1'" :inactive-value="'0'" />
           <span class="switch-tip">开启：换货完成时同样按差价发放奖励</span>
         </el-form-item>
+        <el-form-item label="换货差价给上级比例">
+          <el-input-number v-model="exchangeDiffRateNum" :min="0" :max="100" :precision="0" size="small" style="width: 140px" />
+          <span class="switch-tip">%。换货需补的差价支付后，按此比例奖励给换货人的直接上级（100=全额给上级）</span>
+        </el-form-item>
+        <el-form-item label="换货一次一件">
+          <el-switch v-model="form.stock_exchange_single" :active-value="'1'" :inactive-value="'0'" />
+          <span class="switch-tip">开启：一次换货申请只能换 1 件；关闭：可按数量整单换（如同一商品 5 件换 5 件，但一次只能换一个目标商品）</span>
+        </el-form-item>
         <el-divider />
+        <el-form-item label="平级奖">
+          <el-switch v-model="form.stock_peer_status" :active-value="'1'" :inactive-value="'0'" />
+          <span class="switch-tip">开启：同层级订货商之间按下级业绩发放平级奖励</span>
+        </el-form-item>
+        <el-form-item label="平级奖比例">
+          <el-input-number v-model="peerRateNum" :min="0" :max="100" :precision="2" size="small" style="width: 140px" />
+          <span class="switch-tip">%。按下级订单金额的此比例发放平级奖</span>
+        </el-form-item>
+        <el-form-item label="平级奖代数">
+          <el-input-number v-model="peerGenerationsNum" :min="1" :max="10" :precision="0" size="small" style="width: 140px" />
+          <span class="switch-tip">代。向上追溯的平级代数（1=仅同层直接平级）</span>
+        </el-form-item>
         <el-form-item label="阶梯业绩奖励">
           <el-switch v-model="form.stock_ladder_status" :active-value="'1'" :inactive-value="'0'" />
           <span class="switch-tip">开启：团队业绩达到阶梯后按【固定金额 或 业绩×比例】二选一奖励，每个订货商规则相同，按下方周期一次性自动结算</span>
@@ -85,7 +113,14 @@ export default {
         stock_ladder_status: '1',
         stock_ladder_cycle: '1',
         stock_parent_deliver: '0',
-        stock_up_search_hours: '12'
+        stock_up_search_hours: '12',
+        stock_virtual_audit: '0',
+        stock_wait_pay_hours: '24',
+        stock_exchange_single: '0',
+        stock_exchange_diff_parent_rate: '100',
+        stock_peer_status: '1',
+        stock_peer_rate: '5',
+        stock_peer_generations: '1'
       },
       ladders: [],
       settleMonth: ''
@@ -95,6 +130,22 @@ export default {
     upSearchHoursNum: {
       get() { return Number(this.form.stock_up_search_hours) || 12; },
       set(v) { this.form.stock_up_search_hours = String(v); }
+    },
+    waitPayHoursNum: {
+      get() { return Number(this.form.stock_wait_pay_hours) || 24; },
+      set(v) { this.form.stock_wait_pay_hours = String(v); }
+    },
+    exchangeDiffRateNum: {
+      get() { return Number(this.form.stock_exchange_diff_parent_rate) || 0; },
+      set(v) { this.form.stock_exchange_diff_parent_rate = String(v); }
+    },
+    peerRateNum: {
+      get() { return Number(this.form.stock_peer_rate) || 0; },
+      set(v) { this.form.stock_peer_rate = String(v); }
+    },
+    peerGenerationsNum: {
+      get() { return Number(this.form.stock_peer_generations) || 1; },
+      set(v) { this.form.stock_peer_generations = String(v); }
     }
   },
   methods: {
