@@ -2,70 +2,86 @@
 	<view :data-theme="theme">
 		<view class="agent-page">
 			<!-- 功能关闭 -->
-			<view class="closed-box borRadius14" v-if="info.funcStatus === '0'">
+			<view class="closed-box" v-if="info.funcStatus === '0'">
 				<text class="iconfont icon-huangguan4 closed-icon"></text>
 				<view class="closed-text">代理功能暂未开启</view>
 			</view>
 
 			<template v-else>
-				<!-- 统计卡片（已是代理才显示） -->
-				<view class="stat-card borRadius14" v-if="info.isAgent">
-					<view class="stat-title">代理收益（元）</view>
-					<view class="stat-row acea-row">
-						<view class="stat-item">
-							<view class="num">{{ info.totalReward || 0 }}</view>
-							<view class="label">累计已入账</view>
+				<!-- 代理身份 + 收益头卡（已是代理才显示） -->
+				<view class="head-card" v-if="info.isAgent">
+					<view class="badge">区域代理</view>
+					<view class="earn-label">代理收益（元）</view>
+					<view class="earn-num">{{ info.totalReward || 0 }}</view>
+					<view class="head-divider"></view>
+					<view class="h-stat-row">
+						<view class="h-stat">
+							<view class="h-num">{{ info.waitReward || 0 }}</view>
+							<view class="h-label">待入账</view>
 						</view>
-						<view class="stat-item">
-							<view class="num">{{ info.waitReward || 0 }}</view>
-							<view class="label">待入账</view>
-						</view>
-						<view class="stat-item">
-							<view class="num">{{ info.rewardCount || 0 }}</view>
-							<view class="label">奖励笔数</view>
+						<view class="h-stat-divider"></view>
+						<view class="h-stat">
+							<view class="h-num">{{ info.rewardCount || 0 }}</view>
+							<view class="h-label">奖励笔数</view>
 						</view>
 					</view>
-					<view class="tips">奖励自动进入佣金，可按佣金提现规则提现</view>
+					<view class="head-tips">奖励自动进入佣金，可按佣金提现规则提现</view>
 				</view>
 
 				<!-- 我的代理区域 -->
-				<view class="region-card borRadius14" v-if="info.agentList && info.agentList.length">
-					<view class="card-title">我的代理区域</view>
-					<view class="region-item acea-row row-between-wrapper" v-for="(item, index) in info.agentList" :key="index">
-						<view>
+				<view class="region-card" v-if="info.agentList && info.agentList.length">
+					<view class="card-title"><view class="ct-dot"></view>我的代理区域</view>
+					<view class="region-item" v-for="(item, index) in info.agentList" :key="index">
+						<view class="region-left">
 							<view class="region-name line1">{{ item.regionName }}</view>
 							<view class="region-sub">{{ levelLabel(item.level) }}<text v-if="item.ratio > 0"> · 奖励比例 {{ item.ratio }}%</text></view>
 						</view>
-						<el-tag :type="statusType(item.status)"><text class="tag-text">{{ statusLabel(item.status) }}</text></el-tag>
+						<text class="st-pill" :class="'s' + item.status">{{ statusLabel(item.status) }}</text>
 					</view>
 				</view>
 
 				<!-- 审核中提示 -->
-				<view class="pending-box borRadius14" v-if="hasPending">
+				<view class="pending-box" v-if="hasPending">
 					<text class="iconfont icon-jiazai pending-icon"></text>
 					<view class="pending-text">您的代理申请正在审核中，请耐心等待</view>
 				</view>
 
 				<!-- 申请表单（无有效代理时显示） -->
-				<view class="apply-card borRadius14" v-if="canApply">
-					<view class="card-title">申请成为区域代理</view>
+				<view class="apply-card" v-if="canApply">
+					<view class="card-title"><view class="ct-dot"></view>申请成为区域代理</view>
+					<view class="apply-steps">
+						<view class="as-item">
+							<view class="as-no">1</view>
+							<view class="as-text">选择级别区域</view>
+						</view>
+						<view class="as-arrow"></view>
+						<view class="as-item">
+							<view class="as-no">2</view>
+							<view class="as-text">提交平台审核</view>
+						</view>
+						<view class="as-arrow"></view>
+						<view class="as-item">
+							<view class="as-no">3</view>
+							<view class="as-text">奖励比例生效</view>
+						</view>
+					</view>
 					<view class="apply-desc">锁定对应区域所有自然订单收益，订单收货地址归属您的代理区域时，自动按比例获得奖励</view>
-					<view class="apply-form">
-						<view class="form-item acea-row row-between-wrapper">
-							<text class="form-label">申请级别</text>
+					<view class="form-box">
+						<view class="f-row">
+							<text class="f-label">申请级别</text>
 							<picker :range="levelNames" :value="levelIndex" @change="onLevelChange">
-								<view class="picker-value">{{ levelNames[levelIndex] }}<text class="iconfont icon-xiangyou"></text></view>
+								<view class="f-value">{{ levelNames[levelIndex] }}<text class="iconfont icon-xiangyou"></text></view>
 							</picker>
 						</view>
-						<view class="form-item acea-row row-between-wrapper">
-							<text class="form-label">选择区域</text>
+						<view class="f-row">
+							<text class="f-label">选择区域</text>
 							<picker mode="multiSelector" :value="multiIndex" :range="multiArray" @change="onRegionChange" @columnchange="onRegionColumnChange">
-								<view class="picker-value" :class="{ placeholder: !regionText }">{{ regionText || '请选择省市区' }}<text class="iconfont icon-xiangyou"></text></view>
+								<view class="f-value" :class="{ placeholder: !regionText }">{{ regionText || '请选择省市区' }}<text class="iconfont icon-xiangyou"></text></view>
 							</picker>
 						</view>
-						<view class="form-item acea-row">
-							<text class="form-label">申请说明</text>
-							<input class="form-input" v-model="applyMark" placeholder="选填" placeholder-class="placeholder-input" />
+						<view class="f-row">
+							<text class="f-label">申请说明</text>
+							<input class="f-input" v-model="applyMark" placeholder="选填" placeholder-class="placeholder-input" />
 						</view>
 					</view>
 					<button class="apply-btn" @click="onApply">提交申请</button>
@@ -73,9 +89,9 @@
 				</view>
 
 				<!-- 奖励明细（已是代理或有奖励记录时显示） -->
-				<view class="reward-card borRadius14" v-if="info.isAgent || rewardList.length">
-					<view class="card-title">区域奖励明细</view>
-					<view class="reward-item acea-row row-between-wrapper" v-for="(item, index) in rewardList" :key="index">
+				<view class="reward-card" v-if="info.isAgent || rewardList.length">
+					<view class="card-title"><view class="ct-dot"></view>区域奖励明细</view>
+					<view class="reward-item" v-for="(item, index) in rewardList" :key="index">
 						<view class="reward-left">
 							<view class="reward-order line1">订单 {{ item.orderId }}</view>
 							<view class="reward-sub">{{ item.createTime }} · {{ item.regionName }} · {{ item.ratio }}%</view>
@@ -85,7 +101,7 @@
 							<view class="reward-status" :class="'st' + item.status">{{ statusTextLabel(item.status) }}</view>
 						</view>
 					</view>
-					<view class="loadingicon acea-row row-center-wrapper" v-if="rewardList.length">
+					<view class="loadingicon" v-if="rewardList.length">
 						<text class='loading iconfont icon-jiazai' :hidden='loading == false'></text>{{ loadTitle }}
 					</view>
 					<view v-if="!rewardList.length && !loading">
@@ -167,10 +183,6 @@
 			statusLabel(status) {
 				const map = { 0: '审核中', 1: '生效中', 2: '已拒绝' };
 				return map[status] || '-';
-			},
-			statusType(status) {
-				const map = { 0: 'warning', 1: 'success', 2: 'danger' };
-				return map[status] || 'info';
 			},
 			statusTextLabel(status) {
 				const map = { 1: '待入账', 2: '已入账', 3: '已失效' };
@@ -300,146 +312,340 @@
 
 <style lang="scss" scoped>
 	.agent-page {
-		padding: 24rpx 24rpx 40rpx;
+		min-height: 100vh;
+		padding: 24rpx 24rpx 60rpx;
+		background: #f5f6fa;
+		box-sizing: border-box;
 	}
-	.closed-box,
-	.pending-box {
-		background: #ffffff;
-		padding: 60rpx 30rpx;
+
+	/* ---------- 功能关闭 ---------- */
+	.closed-box {
+		background: #fff;
+		border-radius: 24rpx;
+		padding: 90rpx 30rpx;
 		text-align: center;
-		margin-bottom: 24rpx;
+		box-shadow: 0 4rpx 20rpx rgba(31, 45, 61, 0.06);
 	}
-	.closed-icon,
-	.pending-icon {
-		font-size: 60rpx;
-		color: #e93323;
+	.closed-icon {
+		font-size: 70rpx;
+		color: #d9dee8;
 	}
-	.closed-text,
-	.pending-text {
-		margin-top: 16rpx;
-		color: #666;
+	.closed-text {
+		margin-top: 20rpx;
+		color: #8a94a6;
 		font-size: 28rpx;
 	}
-	.stat-card {
-		background: linear-gradient(135deg, #2f2e38 0%, #454350 100%);
+
+	/* ---------- 代理身份 + 收益头卡 ---------- */
+	.head-card {
+		position: relative;
+		overflow: hidden;
+		background: linear-gradient(135deg, #6a3df2 0%, #8d63ff 55%, #a98bff 100%);
+		border-radius: 24rpx;
+		padding: 36rpx 32rpx 32rpx;
 		color: #fff;
-		padding: 34rpx 30rpx;
-		margin-bottom: 24rpx;
-		.stat-title {
-			font-size: 26rpx;
-			opacity: 0.8;
+		box-shadow: 0 10rpx 30rpx rgba(106, 61, 242, 0.28);
+
+		&::before,
+		&::after {
+			content: '';
+			position: absolute;
+			border-radius: 50%;
+			background: rgba(255, 255, 255, 0.12);
 		}
-		.stat-row {
-			margin-top: 24rpx;
-			.stat-item {
-				flex: 1;
-				text-align: center;
-				.num {
-					font-size: 40rpx;
-					font-weight: 600;
-				}
-				.label {
-					margin-top: 6rpx;
-					font-size: 22rpx;
-					opacity: 0.8;
-				}
-			}
+		&::before {
+			width: 220rpx;
+			height: 220rpx;
+			right: -70rpx;
+			top: -90rpx;
 		}
-		.tips {
-			margin-top: 24rpx;
-			font-size: 20rpx;
-			opacity: 0.6;
+		&::after {
+			width: 140rpx;
+			height: 140rpx;
+			right: 90rpx;
+			bottom: -70rpx;
 		}
 	}
+	.badge {
+		display: inline-block;
+		background: rgba(255, 255, 255, 0.25);
+		border: 1rpx solid rgba(255, 255, 255, 0.4);
+		border-radius: 999rpx;
+		padding: 4rpx 18rpx;
+		font-size: 22rpx;
+		letter-spacing: 2rpx;
+		position: relative;
+		z-index: 1;
+	}
+	.earn-label {
+		margin-top: 22rpx;
+		font-size: 24rpx;
+		opacity: 0.8;
+		position: relative;
+		z-index: 1;
+	}
+	.earn-num {
+		margin-top: 6rpx;
+		font-size: 64rpx;
+		font-weight: 700;
+		line-height: 76rpx;
+		position: relative;
+		z-index: 1;
+	}
+	.head-divider {
+		margin: 26rpx 0 22rpx;
+		height: 1rpx;
+		background: rgba(255, 255, 255, 0.28);
+		position: relative;
+		z-index: 1;
+	}
+	.h-stat-row {
+		display: flex;
+		align-items: center;
+		position: relative;
+		z-index: 1;
+	}
+	.h-stat {
+		flex: 1;
+		text-align: center;
+	}
+	.h-num {
+		font-size: 36rpx;
+		font-weight: 700;
+	}
+	.h-label {
+		margin-top: 6rpx;
+		font-size: 22rpx;
+		opacity: 0.8;
+	}
+	.h-stat-divider {
+		width: 1rpx;
+		height: 56rpx;
+		background: rgba(255, 255, 255, 0.28);
+	}
+	.head-tips {
+		margin-top: 24rpx;
+		font-size: 20rpx;
+		opacity: 0.65;
+		position: relative;
+		z-index: 1;
+	}
+
+	/* ---------- 通用卡片 ---------- */
 	.region-card,
 	.reward-card,
-	.apply-card {
-		background: #ffffff;
-		padding: 28rpx 30rpx;
+	.apply-card,
+	.pending-box {
+		background: #fff;
+		border-radius: 24rpx;
+		padding: 30rpx 28rpx;
 		margin-bottom: 24rpx;
+		box-shadow: 0 4rpx 20rpx rgba(31, 45, 61, 0.06);
 	}
 	.card-title {
+		display: flex;
+		align-items: center;
 		font-size: 30rpx;
 		font-weight: 600;
-		color: #282828;
-		margin-bottom: 20rpx;
+		color: #303133;
+		margin-bottom: 22rpx;
 	}
+	.ct-dot {
+		width: 10rpx;
+		height: 10rpx;
+		border-radius: 50%;
+		background: #6a3df2;
+		margin-right: 12rpx;
+	}
+
+	/* ---------- 我的代理区域 ---------- */
 	.region-item {
-		padding: 20rpx 0;
-		border-bottom: 1rpx solid #f5f5f5;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 22rpx 0;
+		border-bottom: 1rpx solid #f0f2f6;
 		&:last-child {
 			border-bottom: none;
+			padding-bottom: 4rpx;
+		}
+		.region-left {
+			flex: 1;
+			overflow: hidden;
+			margin-right: 20rpx;
 		}
 		.region-name {
 			font-size: 28rpx;
-			color: #282828;
+			font-weight: 600;
+			color: #303133;
 		}
 		.region-sub {
-			margin-top: 6rpx;
+			margin-top: 8rpx;
 			font-size: 22rpx;
-			color: #999;
+			color: #98a2b3;
 		}
 	}
-	.tag-text {
+	.st-pill {
+		flex-shrink: 0;
 		font-size: 22rpx;
+		border-radius: 999rpx;
+		padding: 6rpx 18rpx;
+		&.s0 {
+			color: #c99a25;
+			background: #fdf5e2;
+		}
+		&.s1 {
+			color: #12b76a;
+			background: #e9f9ec;
+		}
+		&.s2 {
+			color: #98a2b3;
+			background: #f0f2f6;
+		}
 	}
+
+	/* ---------- 审核中 ---------- */
+	.pending-box {
+		text-align: center;
+		padding: 44rpx 30rpx;
+		background: #fdf5e2;
+	}
+	.pending-icon {
+		font-size: 56rpx;
+		color: #c99a25;
+	}
+	.pending-text {
+		margin-top: 14rpx;
+		color: #8a6d1d;
+		font-size: 26rpx;
+	}
+
+	/* ---------- 申请表单 ---------- */
 	.apply-desc {
 		font-size: 24rpx;
-		color: #999;
-		line-height: 1.6;
+		color: #98a2b3;
+		line-height: 1.7;
+		margin-bottom: 22rpx;
+	}
+	.apply-steps {
+		display: flex;
+		align-items: flex-start;
+		background: #f7f4ff;
+		border-radius: 16rpx;
+		padding: 24rpx 12rpx 20rpx;
 		margin-bottom: 24rpx;
 	}
-	.form-item {
-		padding: 22rpx 0;
-		border-bottom: 1rpx solid #f5f5f5;
-		.form-label {
-			width: 150rpx;
-			font-size: 28rpx;
-			color: #282828;
+	.as-item {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	.as-no {
+		width: 44rpx;
+		height: 44rpx;
+		line-height: 44rpx;
+		text-align: center;
+		border-radius: 50%;
+		background: #6a3df2;
+		color: #fff;
+		font-size: 22rpx;
+		font-weight: 700;
+	}
+	.as-text {
+		margin-top: 12rpx;
+		font-size: 22rpx;
+		color: #606266;
+		text-align: center;
+		line-height: 32rpx;
+	}
+	.as-arrow {
+		flex-shrink: 0;
+		width: 32rpx;
+		height: 32rpx;
+		margin-top: 6rpx;
+		border-top: 4rpx solid #d5c8ff;
+		border-right: 4rpx solid #d5c8ff;
+		transform: rotate(45deg);
+	}
+	.form-box {
+		background: #f8f9fc;
+		border-radius: 16rpx;
+		padding: 6rpx 24rpx;
+	}
+	.f-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 28rpx 0;
+		border-bottom: 1rpx solid #eef0f4;
+		&:last-child {
+			border-bottom: none;
 		}
-		.picker-value {
+		.f-label {
+			width: 150rpx;
+			flex-shrink: 0;
+			font-size: 26rpx;
+			color: #8a94a6;
+		}
+		.f-value {
 			flex: 1;
 			text-align: right;
 			font-size: 28rpx;
-			color: #282828;
+			color: #303133;
+			font-weight: 500;
 			.iconfont {
 				margin-left: 8rpx;
 				font-size: 22rpx;
-				color: #bbb;
+				color: #c3cad6;
 			}
 		}
 		.placeholder {
-			color: #bbb;
+			color: #b8c0cc;
+			font-weight: 400;
 		}
-		.form-input {
+		.f-input {
 			flex: 1;
 			text-align: right;
 			font-size: 28rpx;
+			color: #303133;
 		}
 	}
 	.placeholder-input {
-		color: #bbb;
+		color: #b8c0cc;
 	}
 	.apply-btn {
-		margin-top: 34rpx;
+		margin-top: 36rpx;
 		height: 84rpx;
 		line-height: 84rpx;
-		background: #e93323;
+		background: linear-gradient(135deg, #e93323, #ff6a4d);
 		color: #fff;
 		font-size: 30rpx;
-		border-radius: 42rpx;
+		font-weight: 600;
+		letter-spacing: 2rpx;
+		border-radius: 16rpx;
+		box-shadow: 0 8rpx 18rpx rgba(233, 51, 35, 0.28);
+		&::after {
+			border: none;
+		}
 	}
 	.apply-note {
 		margin-top: 18rpx;
 		text-align: center;
 		font-size: 20rpx;
-		color: #bbb;
+		color: #b8c0cc;
 	}
+
+	/* ---------- 奖励明细 ---------- */
 	.reward-item {
-		padding: 20rpx 0;
-		border-bottom: 1rpx solid #f5f5f5;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 22rpx 0;
+		border-bottom: 1rpx solid #f0f2f6;
 		&:last-child {
 			border-bottom: none;
+			padding-bottom: 4rpx;
 		}
 		.reward-left {
 			flex: 1;
@@ -447,37 +653,40 @@
 			margin-right: 20rpx;
 			.reward-order {
 				font-size: 26rpx;
-				color: #282828;
+				font-weight: 600;
+				color: #303133;
 			}
 			.reward-sub {
-				margin-top: 6rpx;
+				margin-top: 8rpx;
 				font-size: 22rpx;
-				color: #999;
+				color: #98a2b3;
 			}
 		}
 		.reward-right {
+			flex-shrink: 0;
 			text-align: right;
 			.reward-num {
-				font-size: 30rpx;
-				font-weight: 600;
-				color: #e93323;
+				font-size: 32rpx;
+				font-weight: 700;
+				color: #ff5a2c;
 			}
 			.reward-status {
 				margin-top: 6rpx;
 				font-size: 20rpx;
-				color: #999;
+				color: #b8c0cc;
 				&.st2 {
-					color: #2dbd6e;
+					color: #12b76a;
 				}
 				&.st3 {
-					color: #bbb;
+					color: #c3cad6;
 				}
 			}
 		}
 	}
 	.loadingicon {
 		font-size: 24rpx;
-		color: #999;
-		padding: 16rpx 0;
+		color: #98a2b3;
+		padding: 16rpx 0 4rpx;
+		text-align: center;
 	}
 </style>

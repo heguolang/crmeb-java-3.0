@@ -58,11 +58,40 @@
     </view>
 
     <!-- 空态引导 -->
-    <view v-else class="empty-guide">
+    <view v-if="!order" class="empty-guide">
       <view class="eg-box">
         <view class="eg-icon"><view class="eg-ring"></view><view class="eg-handle"></view></view>
         <text class="eg-text">输入核销码后，订单信息将显示在这里</text>
       </view>
+    </view>
+
+    <!-- 核销流程 -->
+    <view v-if="!order" class="flow-card">
+      <view class="fc-title">核销流程</view>
+      <view class="flow-steps">
+        <view class="f-step">
+          <view class="fs-no">1</view>
+          <view class="fs-text">客户出示核销码</view>
+        </view>
+        <view class="f-arrow"></view>
+        <view class="f-step">
+          <view class="fs-no">2</view>
+          <view class="fs-text">输入码查询订单</view>
+        </view>
+        <view class="f-arrow"></view>
+        <view class="f-step">
+          <view class="fs-no">3</view>
+          <view class="fs-text">核对后确认核销</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 温馨提示 -->
+    <view v-if="!order" class="tips-card">
+      <view class="tc-title">温馨提示</view>
+      <view class="tc-item">· 核销服务费按订单收取，核销成功后自动计入累计服务费</view>
+      <view class="tc-item">· 请当面核对商品与订单信息后再确认核销</view>
+      <view class="tc-item">· 对订单有疑问请联系平台客服处理</view>
     </view>
   </view>
 </template>
@@ -357,5 +386,77 @@
   margin-top: 20rpx;
   font-size: 24rpx;
   color: #b8c0cc;
+}
+
+/* ---------- 核销流程 ---------- */
+.flow-card {
+  margin: 24rpx 24rpx 0;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 30rpx 28rpx;
+  box-shadow: 0 4rpx 20rpx rgba(31, 45, 61, 0.06);
+}
+.fc-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #303133;
+}
+.flow-steps {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 28rpx;
+}
+.f-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.fs-no {
+  width: 48rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #fff1e8;
+  color: #ff7a45;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+.fs-text {
+  margin-top: 14rpx;
+  font-size: 22rpx;
+  color: #606266;
+  text-align: center;
+  line-height: 32rpx;
+}
+.f-arrow {
+  flex-shrink: 0;
+  width: 40rpx;
+  height: 40rpx;
+  margin-top: 4rpx;
+  border-top: 4rpx solid #ffd6bd;
+  border-right: 4rpx solid #ffd6bd;
+  transform: rotate(45deg);
+}
+
+/* ---------- 温馨提示 ---------- */
+.tips-card {
+  margin: 24rpx 24rpx 0;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 30rpx 28rpx;
+  box-shadow: 0 4rpx 20rpx rgba(31, 45, 61, 0.06);
+}
+.tc-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #303133;
+}
+.tc-item {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #8a94a6;
+  line-height: 36rpx;
 }
 </style>
