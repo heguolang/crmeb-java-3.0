@@ -1,70 +1,88 @@
 <template>
   <div class="divBg addContent-wrapper">
     <el-card :bordered="false" shadow="never" class="mt16">
-      <el-form inline size="small" @submit.native.prevent>
-        <el-form-item label="订单号">
-          <el-input v-model="tableFrom.orderNo" placeholder="订货单号" clearable style="width: 190px" @keyup.enter.native="getList" />
-        </el-form-item>
-        <el-form-item label="用户UID">
-          <el-input v-model.number="tableFrom.uid" placeholder="UID" clearable style="width: 110px" @keyup.enter.native="getList" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="tableFrom.status" placeholder="全部" clearable style="width: 130px">
-            <el-option v-for="(v, k) in statusMap" :key="k" :label="v" :value="Number(k)" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="付款">
-          <el-select v-model="tableFrom.payStatus" placeholder="全部" clearable style="width: 110px">
-            <el-option label="未付款" :value="0" />
-            <el-option label="已付款" :value="1" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="getList">查询</el-button>
-        </el-form-item>
-      </el-form>
-      <el-table v-loading="loading" :data="tableData" size="small" highlight-current-row>
-        <el-table-column prop="orderNo" label="订货单号" width="190" />
-        <el-table-column label="代理" min-width="120">
+      <div class="toolbar">
+        <el-form inline size="small" @submit.native.prevent>
+          <el-form-item label="订单号">
+            <el-input v-model="tableFrom.orderNo" placeholder="订货单号" clearable style="width: 190px" @keyup.enter.native="getList" />
+          </el-form-item>
+          <el-form-item label="用户UID">
+            <el-input v-model.number="tableFrom.uid" placeholder="UID" clearable style="width: 110px" @keyup.enter.native="getList" />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="tableFrom.status" placeholder="全部" clearable style="width: 130px">
+              <el-option v-for="(v, k) in statusMap" :key="k" :label="v" :value="Number(k)" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="付款">
+            <el-select v-model="tableFrom.payStatus" placeholder="全部" clearable style="width: 110px">
+              <el-option label="未付款" :value="0" />
+              <el-option label="已付款" :value="1" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" icon="el-icon-search" @click="getList">查询</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
+        <el-table-column label="订货单号" min-width="140" show-overflow-tooltip>
+          <template slot-scope="scope">{{ scope.row.orderNo }}</template>
+        </el-table-column>
+        <el-table-column label="代理" min-width="115">
           <template slot-scope="scope">
             <div>{{ scope.row.nickname }}</div>
-            <div style="color:#999;font-size:12px">{{ scope.row.levelName }} · UID {{ scope.row.uid }}</div>
+            <div class="sub-text">{{ scope.row.levelName }} · UID {{ scope.row.uid }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="totalNum" label="数量" width="70" />
-        <el-table-column prop="totalPrice" label="金额" width="100" />
-        <el-table-column label="付款方式" width="100">
-          <template slot-scope="scope">{{ scope.row.payType === 1 ? '微信支付' : '记账欠款' }}</template>
-        </el-table-column>
-        <el-table-column label="付款" width="80">
+        <el-table-column label="数量/金额" width="88">
           <template slot-scope="scope">
-            <el-tag :type="scope.row.payStatus === 1 ? 'success' : 'warning'" size="mini">{{ scope.row.payStatus === 1 ? '已付' : '未付' }}</el-tag>
+            <div>{{ scope.row.totalNum }} 件</div>
+            <div class="price-text">¥{{ scope.row.totalPrice }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="110">
+        <el-table-column label="付款" width="90">
           <template slot-scope="scope">
-            <el-tag :type="statusTag(scope.row.status)" size="mini">{{ statusMap[scope.row.status] || scope.row.status }}</el-tag>
-            <div v-if="scope.row.status === -1" style="color:#f56c6c;font-size:12px">{{ scope.row.rejectReason }}</div>
+            <span class="st-dot" :class="{ on: scope.row.payStatus === 1 }"><i></i>{{ scope.row.payStatus === 1 ? '已付' : '未付' }}</span>
+            <div class="sub-text">{{ scope.row.payType === 1 ? '微信支付' : '记账欠款' }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="快递" width="150">
+        <el-table-column label="状态" width="88">
           <template slot-scope="scope">
-            <div v-if="scope.row.expressNum">{{ scope.row.expressName }}</div>
-            <div v-if="scope.row.expressNum" style="font-size:12px">{{ scope.row.expressNum }}</div>
+            <span class="st-dot" :class="{ warn: scope.row.status === 0 || scope.row.status === 1, on: scope.row.status === 4, danger: scope.row.status === -1 }"><i></i>{{ statusMap[scope.row.status] || scope.row.status }}</span>
+            <div v-if="scope.row.status === -1" class="reject-text">{{ scope.row.rejectReason }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="下单时间" width="150" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="快递" min-width="100">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="detail(scope.row)">明细</el-button>
-            <el-button v-if="scope.row.status === 0 && checkPermi(['admin:stock:order:audit'])" type="text" size="small" class="orange" @click="openAudit(scope.row)">介入审核</el-button>
-            <el-button v-if="scope.row.status === 1 && checkPermi(['admin:stock:order:pay'])" type="text" size="small" class="green" @click="onPay(scope.row)">确认收款</el-button>
-            <el-button v-if="scope.row.status === 2 && checkPermi(['admin:stock:order:send'])" type="text" size="small" @click="openSend(scope.row)">发货</el-button>
-            <el-button v-if="scope.row.status === 3 && checkPermi(['admin:stock:order:send'])" type="text" size="small" @click="onFinish(scope.row)">标记完成</el-button>
+            <template v-if="scope.row.expressNum">
+              <div>{{ scope.row.expressName }}</div>
+              <div class="sub-text">{{ scope.row.expressNum }}</div>
+            </template>
+            <span v-else class="sub-text">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="下单时间" min-width="143">
+          <template slot-scope="scope">{{ scope.row.createTime }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="132" fixed="right">
+          <template slot-scope="scope">
+            <div class="op-links">
+              <a class="op-link" @click="detail(scope.row)">明细</a>
+              <el-divider v-if="scope.row.status === 0 && checkPermi(['admin:stock:order:audit'])" direction="vertical"></el-divider>
+              <a v-if="scope.row.status === 0 && checkPermi(['admin:stock:order:audit'])" class="op-link" @click="openAudit(scope.row)">介入审核</a>
+              <el-divider v-if="scope.row.status === 1 && checkPermi(['admin:stock:order:pay'])" direction="vertical"></el-divider>
+              <a v-if="scope.row.status === 1 && checkPermi(['admin:stock:order:pay'])" class="op-link" @click="onPay(scope.row)">确认收款</a>
+              <el-divider v-if="scope.row.status === 2 && checkPermi(['admin:stock:order:send'])" direction="vertical"></el-divider>
+              <a v-if="scope.row.status === 2 && checkPermi(['admin:stock:order:send'])" class="op-link" @click="openSend(scope.row)">发货</a>
+              <el-divider v-if="scope.row.status === 3 && checkPermi(['admin:stock:order:send'])" direction="vertical"></el-divider>
+              <a v-if="scope.row.status === 3 && checkPermi(['admin:stock:order:send'])" class="op-link" @click="onFinish(scope.row)">标记完成</a>
+            </div>
           </template>
         </el-table-column>
       </el-table>
-      <div class="block">
+      <div class="pager">
         <el-pagination background :page-size="tableFrom.limit" :current-page="tableFrom.page" layout="total, prev, pager, next, jumper" :total="total" @current-change="pageChange" />
       </div>
     </el-card>
@@ -232,7 +250,19 @@ export default {
 </script>
 
 <style scoped>
-.red { color: #f56c6c; }
-.green { color: #67c23a; }
-.orange { color: #e6a23c; }
+.sub-text {
+  color: #999;
+  font-size: 12px;
+}
+.price-text {
+  color: #e93323;
+  font-weight: 600;
+  font-size: 12px;
+}
+.reject-text {
+  color: #f56c6c;
+  font-size: 12px;
+  line-height: 18px;
+  margin-top: 2px;
+}
 </style>

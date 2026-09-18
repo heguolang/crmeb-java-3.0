@@ -929,6 +929,17 @@ body {
   line-height: 22px;
 }
 
+/* 操作列分隔线：显式钉死几何尺寸，避免 el-divider 默认 height:1em 受继承 font-size 影响而不显示 */
+.op-links .el-divider--vertical {
+  display: inline-block;
+  width: 1px;
+  height: 12px;
+  margin: 0 9px;
+  background-color: #dcdfe6;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
 /* 状态圆点 */
 .st-dot {
   display: inline-flex;
@@ -946,5 +957,13 @@ body {
 
   &.on i {
     background: #19be6b;
+  }
+
+  &.warn i {
+    background: #ff9900;
+  }
+
+  &.danger i {
+    background: #f56c6c;
   }
 }

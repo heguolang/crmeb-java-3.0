@@ -1,110 +1,97 @@
 <template>
-  <div class="divBox">
-    <el-card :bordered="false" shadow="never" class="ivu-mt" :body-style="{ padding: 0 }">
-      <div class="padding-add">
-        <el-form inline size="small" :model="tableFrom" label-width="80px">
-          <el-form-item label="关键字：">
+  <div class="divBg addContent-wrapper">
+    <el-card :bordered="false" shadow="never" class="mt16">
+      <div class="toolbar">
+        <el-form inline size="small" :model="tableFrom" @submit.native.prevent>
+          <el-form-item label="关键字">
             <el-input
               v-model="tableFrom.keywords"
               placeholder="UID/区域"
               clearable
-              class="selWidth"
+              style="width: 180px"
               @keyup.enter.native="searchList"
             />
           </el-form-item>
-          <el-form-item label="级别：">
-            <el-select v-model="tableFrom.level" placeholder="全部级别" clearable class="selWidth">
+          <el-form-item label="级别">
+            <el-select v-model="tableFrom.level" placeholder="全部级别" clearable style="width: 120px">
               <el-option label="省级" :value="1" />
               <el-option label="市级" :value="2" />
               <el-option label="区级" :value="3" />
             </el-select>
           </el-form-item>
-          <el-form-item label="状态：">
-            <el-select v-model="tableFrom.status" placeholder="全部状态" clearable class="selWidth">
+          <el-form-item label="状态">
+            <el-select v-model="tableFrom.status" placeholder="全部状态" clearable style="width: 120px">
               <el-option label="待审核" :value="0" />
               <el-option label="已通过" :value="1" />
               <el-option label="已拒绝" :value="2" />
             </el-select>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="searchList">搜索</el-button>
-            <el-button @click="resetList">重置</el-button>
-            <el-button v-if="checkPermi(['admin:agent:save'])" type="success" @click="openEdit()">添加代理</el-button>
+            <el-button type="primary" icon="el-icon-search" @click="searchList">搜索</el-button>
+            <el-button icon="el-icon-refresh" @click="resetList">重置</el-button>
           </el-form-item>
         </el-form>
+        <div class="toolbar-actions">
+          <el-button v-if="checkPermi(['admin:agent:save'])" type="success" icon="el-icon-plus" @click="openEdit()">添加代理</el-button>
+        </div>
       </div>
-    </el-card>
-    <el-card class="box-card mt14">
-      <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" highlight-current-row>
-        <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column label="代理用户" min-width="150">
+
+      <el-table class="admin-table" v-loading="listLoading" :data="tableData.data" size="small" stripe highlight-current-row>
+        <el-table-column label="代理用户" min-width="130">
           <template slot-scope="scope">
             <div>{{ scope.row.nickname || '-' }}</div>
             <div class="sub-text">UID: {{ scope.row.uid }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="级别" width="90">
+        <el-table-column label="级别" width="70">
           <template slot-scope="scope">
             <el-tag size="mini">{{ levelLabel(scope.row.level) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="regionName" label="代理区域" min-width="150" show-overflow-tooltip />
-        <el-table-column label="奖励比例" width="100">
+        <el-table-column prop="regionName" label="代理区域" min-width="110" show-overflow-tooltip />
+        <el-table-column label="奖励比例" width="75">
           <template slot-scope="scope">{{ scope.row.ratio }}%</template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column label="状态" width="78">
           <template slot-scope="scope">
-            <el-tag size="mini" :type="statusTagType(scope.row.status)">{{ statusLabel(scope.row.status) }}</el-tag>
+            <span class="st-dot" :class="{ on: scope.row.status === 1, warn: scope.row.status === 0, danger: scope.row.status === 2 }">
+              <i></i>{{ statusLabel(scope.row.status) }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column prop="applyMark" label="备注" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="checkTime" label="审核时间" width="160" />
-        <el-table-column prop="createTime" label="创建时间" width="160" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column prop="applyMark" label="备注" min-width="90" show-overflow-tooltip />
+        <el-table-column label="时间" width="178">
           <template slot-scope="scope">
-            <el-button
-              v-if="checkPermi(['admin:agent:update'])"
-              type="text"
-              size="small"
-              @click="openEdit(scope.row)"
-              >修改</el-button
-            >
-            <el-button
-              v-if="checkPermi(['admin:agent:audit']) && scope.row.status === 0"
-              type="text"
-              size="small"
-              @click="onAudit(scope.row, 1)"
-              >通过</el-button
-            >
-            <el-button
-              v-if="checkPermi(['admin:agent:audit']) && scope.row.status === 0"
-              type="text"
-              size="small"
-              class="danger-text"
-              @click="onAudit(scope.row, 2)"
-              >拒绝</el-button
-            >
-            <el-button
-              v-if="checkPermi(['admin:agent:delete'])"
-              type="text"
-              size="small"
-              class="danger-text"
-              @click="onDelete(scope.row)"
-              >删除</el-button
-            >
+            <div>创建 {{ scope.row.createTime || '-' }}</div>
+            <div class="sub-text">审核 {{ scope.row.checkTime || '—' }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160" fixed="right">
+          <template slot-scope="scope">
+            <div class="op-links">
+              <template v-if="checkPermi(['admin:agent:update'])">
+                <a class="op-link" @click="openEdit(scope.row)">修改</a>
+                <el-divider direction="vertical"></el-divider>
+              </template>
+              <template v-if="checkPermi(['admin:agent:audit']) && scope.row.status === 0">
+                <a class="op-link" @click="onAudit(scope.row, 1)">通过</a>
+                <el-divider direction="vertical"></el-divider>
+                <a class="op-link" @click="onAudit(scope.row, 2)">拒绝</a>
+                <el-divider direction="vertical"></el-divider>
+              </template>
+              <a v-if="checkPermi(['admin:agent:delete'])" class="op-link" @click="onDelete(scope.row)">删除</a>
+            </div>
           </template>
         </el-table-column>
       </el-table>
-      <div class="block">
+      <div class="pager">
         <el-pagination
-          :page-sizes="[20, 40, 60, 80]"
+          background
           :page-size="tableFrom.limit"
           :current-page="tableFrom.page"
-          layout="total, sizes, prev, pager, next, jumper"
+          layout="total, prev, pager, next, jumper"
           :total="tableData.total"
-          @size-change="handleSizeChange"
           @current-change="pageChange"
-          background
         />
       </div>
     </el-card>
@@ -335,14 +322,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.selWidth {
-  width: 220px;
-}
 .sub-text {
   color: #999;
   font-size: 12px;
-}
-.danger-text {
-  color: #f56c6c;
 }
 </style>
