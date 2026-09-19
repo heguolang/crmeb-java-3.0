@@ -1,5 +1,9 @@
 # CRMEB Java 3.0 本地部署文档（Windows）
 
+> ⭐ **部署后数据库只需执行这一个脚本**：`crmeb/sql/oneclick/ALL_IN_ONE.sql`
+> `mysql -uroot -p密码 --default-character-set=utf8mb4 < ALL_IN_ONE.sql`（建库+全量结构数据+全量补丁）
+> 已有生产库只补功能时改跑 `crmeb/sql/oneclick/02_patches_all.sql`（幂等，不清数据）。
+
 > 部署日期：2026-09-17　部署目录：`D:\crmeb-java-3.0`　代码来源：`https://github.com/heguolang/crmeb-java-3.0.git`（master @ abe4b36）
 
 ---
