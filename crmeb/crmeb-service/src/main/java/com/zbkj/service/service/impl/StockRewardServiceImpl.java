@@ -89,6 +89,10 @@ public class StockRewardServiceImpl implements StockRewardService {
 
     @Override
     public void settleOrderReward(StockOrder order) {
+        // 团队奖开关：关闭时不结算任何订单奖励（差价/平级）
+        if (!"1".equals(systemConfigService.getValueByKey("sys_switch_team_reward"))) {
+            return;
+        }
         transactionTemplate.executeWithoutResult(status -> {
             // 1) 差价奖励
             calcDiffReward(order);
@@ -237,6 +241,10 @@ public class StockRewardServiceImpl implements StockRewardService {
      */
     @Override
     public Boolean settleLadderReward(Integer type, String month) {
+        // 团队奖开关：关闭时阶梯奖同样停发
+        if (!"1".equals(systemConfigService.getValueByKey("sys_switch_team_reward"))) {
+            throw new CrmebException("团队奖未开启");
+        }
         if (!"1".equals(systemConfigService.getValueByKey("stock_ladder_status"))) {
             throw new CrmebException("阶梯业绩奖励未开启");
         }

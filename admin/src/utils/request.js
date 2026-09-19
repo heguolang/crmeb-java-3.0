@@ -88,6 +88,10 @@ service.interceptors.response.use(
     }
   },
   (error) => {
+    // 模块开关关闭时接口返回 404（接口已隐藏），静默处理避免已打开页签反复弹错
+    if (error.response && error.response.status === 404) {
+      return Promise.reject(error);
+    }
     Message({
       message: error.message,
       type: 'error',

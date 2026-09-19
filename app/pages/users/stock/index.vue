@@ -94,6 +94,7 @@
 
 <script>
 	import { getStockAgentInfo } from '@/api/stock.js';
+	import { guardModule } from '@/libs/moduleSwitch.js';
 	import emptyPage from '@/components/emptyPage.vue';
 	export default {
 		components: { emptyPage },
@@ -105,6 +106,7 @@
 			};
 		},
 		onShow() {
+			guardModule('stock');
 			this.loadInfo();
 		},
 		methods: {

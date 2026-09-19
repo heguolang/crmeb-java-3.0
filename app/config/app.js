@@ -8,8 +8,10 @@
 // | Author: CRMEB Team <admin@crmeb.com>
 // +----------------------------------------------------------------------
 //移动端商城API
-// 本地开发：crmeb-front (8081)
+// 生产（部署默认）
 let domain = 'http://api.qianxutec.com'
+// 本地调试用：crmeb-front (8081)
+// let domain = 'http://127.0.0.1:8081'
 // 演示站
 // let domain = 'https://apif.java.crmeb.net'
 // 深度演示站
@@ -21,8 +23,10 @@ module.exports = {
 		// HTTP_REQUEST_URL:'',
 		HTTP_REQUEST_URL: domain,
 		// H5商城地址
-		// 开发站
+		// 生产（部署默认）
 		HTTP_H5_URL: 'http://app.qianxutec.com',
+		// 本地调试用：H5 dev (8090)
+		// HTTP_H5_URL: 'http://127.0.0.1:8090',
 		// 演示站
 		// HTTP_H5_URL: 'http://java.crmeb.net',
 		// 深度演示站

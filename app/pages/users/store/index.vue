@@ -69,6 +69,7 @@
 
 <script>
 	import { getMyStoreInfo } from '@/api/merchantStore.js';
+	import { guardModule } from '@/libs/moduleSwitch.js';
 	import emptyPage from '@/components/emptyPage.vue';
 	export default {
 		components: { emptyPage },
@@ -82,6 +83,7 @@
 			};
 		},
 		onLoad() {
+			guardModule('store');
 			this.loadData();
 		},
 		methods: {

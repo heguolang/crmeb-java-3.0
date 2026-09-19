@@ -70,13 +70,13 @@ export default {
       this.setFilterRoutes();
     });
     this.setFilterRoutes();
-    // this.$store
-    //   .dispatch('user/getMenus', {
-    //     that: this,
-    //   })
-    //   .then((res) => {
-    //     this.setFilterRoutes();
-    //   });
+    // 每次进入后台重新拉取菜单（模块开关关闭后菜单即时消失），拉到后重建分栏列表
+    this.$store
+      .dispatch('user/getMenus')
+      .then(() => {
+        this.setFilterRoutes();
+      })
+      .catch(() => {});
   },
   methods: {
     // 设置菜单高亮位置移动

@@ -147,6 +147,20 @@ export const constantRoutes = [
     name: 'uploadPicture',
   },
   // 404 page must be placed at the end !!!
+  {
+    // 系统运维隐藏面板：不进侧边栏，仅运维账号知晓地址；接口后端按账号 404 兜底
+    path: '/hidden/panel',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/hidden/panel/index'),
+        name: 'HiddenPanel',
+        meta: { title: '系统运维', icon: 'system', noCache: true },
+      },
+    ],
+  },
   { path: '*', redirect: '/404', hidden: true },
 ];
 

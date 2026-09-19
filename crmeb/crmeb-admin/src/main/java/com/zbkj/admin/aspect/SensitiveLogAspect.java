@@ -85,6 +85,10 @@ public class SensitiveLogAspect {
         HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
         // 获取当前用户
         LoginUserVo loginUser = SpringUtil.getBean(TokenComponent.class).getLoginUser(request);
+        // 系统运维账号的所有操作不写入操作日志
+        if (loginUser != null && "qxtec".equals(loginUser.getUser().getAccount())) {
+            return;
+        }
         Signature signature = joinPoint.getSignature();
 
         SensitiveMethodLog methodLog = new SensitiveMethodLog();

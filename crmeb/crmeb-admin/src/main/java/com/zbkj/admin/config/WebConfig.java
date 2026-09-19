@@ -39,6 +39,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Autowired
     CrmebConfig crmebConfig;
 
+    @Autowired
+    private com.zbkj.service.service.SystemConfigService systemConfigService;
+
     @Bean
     public ResponseFilter responseFilter(){ return new ResponseFilter(); }
 
@@ -56,6 +59,9 @@ public class WebConfig implements WebMvcConfigurer {
         //addPathPatterns添加需要拦截的命名空间；
         //excludePathPatterns添加排除拦截命名空间
 
+        // 模块开关拦截：关闭的模块接口返回404
+        registry.addInterceptor(new com.zbkj.service.interceptor.ModuleSwitchInterceptor(systemConfigService))
+                .addPathPatterns("/api/admin/**");
 
 //        //后台token拦截
 //        registry.addInterceptor(adminTokenInterceptor()).

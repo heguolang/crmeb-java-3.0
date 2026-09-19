@@ -115,6 +115,7 @@
 
 <script>
 	import { getAgentInfo, agentApply, getAgentRewardList } from '@/api/user.js';
+	import { guardModule } from '@/libs/moduleSwitch.js';
 	import { getCityList } from '@/utils';
 	import { toLogin } from '@/libs/login.js';
 	import { mapGetters } from 'vuex';
@@ -188,6 +189,7 @@
 			},
 		},
 		onLoad() {
+			guardModule('daili');
 			this.loadCityList();
 		},
 		onShow() {

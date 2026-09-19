@@ -74,7 +74,13 @@ export default {
     },
   },
   mounted() {
-    // this.getMenus()
+    // 每次进入后台都重新拉取菜单，保证模块开关关闭后菜单立即消失（不依赖 localStorage 旧缓存）
+    this.$store
+      .dispatch('user/getMenus')
+      .then(() => {
+        this.setFilterRoutes();
+      })
+      .catch(() => {});
   },
   created() {
     this.initMenuFixed(document.body.clientWidth);

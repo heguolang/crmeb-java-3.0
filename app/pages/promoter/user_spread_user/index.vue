@@ -71,7 +71,8 @@
 	import { openExtrctSubscribe } from '@/utils/SubscribeMessage.js';
 	import {toLogin} from '@/libs/login.js';
 	import {mapGetters} from "vuex";
-	import {setThemeColor} from '@/utils/setTheme.js'
+	import { setThemeColor } from '@/utils/setTheme.js'
+	import { guardModule } from '@/libs/moduleSwitch.js'
 	const app = getApp();
 	export default {
 		data() {
@@ -95,6 +96,7 @@
 		},
 		onShow() {
 			let that = this;
+			guardModule('spread');
 			that.bgColor = setThemeColor();
 			uni.setNavigationBarColor({
 				frontColor: '#ffffff',

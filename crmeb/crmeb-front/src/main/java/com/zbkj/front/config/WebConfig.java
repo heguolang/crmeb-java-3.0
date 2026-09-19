@@ -41,6 +41,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Bean
     public ResponseFilter responseFilter(){ return new ResponseFilter(); }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.zbkj.service.service.SystemConfigService systemConfigService;
+
     @Value("${swagger.basic.username}")
     private String username;
     @Value("${swagger.basic.password}")
@@ -58,6 +61,10 @@ public class WebConfig implements WebMvcConfigurer {
         //添加token拦截器
         //addPathPatterns添加需要拦截的命名空间；
         //excludePathPatterns添加排除拦截命名空间
+
+        // 模块开关拦截：关闭的模块接口返回404
+        registry.addInterceptor(new com.zbkj.service.interceptor.ModuleSwitchInterceptor(systemConfigService))
+                .addPathPatterns("/api/front/**");
 
         //前端用户登录token
         registry.addInterceptor(frontTokenInterceptor()).
@@ -119,6 +126,7 @@ public class WebConfig implements WebMvcConfigurer {
                 excludePathPatterns("/api/front/combination/detail/*").
 
                 excludePathPatterns("/api/front/splash/ad/info").
+                excludePathPatterns("/api/front/hidden/switches").
 
                 excludePathPatterns("/swagger-resources/**", "/webjars/**", "/v2/**", "/swagger-ui.html/**");
     }
