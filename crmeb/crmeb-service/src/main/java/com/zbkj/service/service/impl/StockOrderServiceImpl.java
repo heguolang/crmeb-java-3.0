@@ -501,12 +501,17 @@ public class StockOrderServiceImpl implements StockOrderService {
      * 实体采购单查询条件：已付款 + 采购单(order_type=1) + 实体库存单(stock_type=1 或历史空值) + 未删除
      * 虚拟采购单只入虚拟库存、不占云仓；提货单(order_type=2)不参与实体库存推导
      */
+    /**
+     * 已付款的实体采购单过滤条件（用于推导代理可供应量）
+     * 注意：必须排除已驳回(-1)与已取消(-2)的订单，否则上级驳回后仍占用上级可供应量，导致库存无法释放
+     */
     private LambdaQueryWrapper<StockOrder> physicalPurchaseWrapper() {
         return new LambdaQueryWrapper<StockOrder>()
                 .eq(StockOrder::getPayStatus, 1)
                 .eq(StockOrder::getOrderType, StockOrder.ORDER_TYPE_PURCHASE)
                 .and(w -> w.eq(StockOrder::getStockType, StockOrder.STOCK_TYPE_PHYSICAL)
                         .or().isNull(StockOrder::getStockType))
+                .notIn(StockOrder::getStatus, StockOrder.STATUS_REJECT, StockOrder.STATUS_CANCEL)
                 .eq(StockOrder::getIsDel, 0);
     }
 
@@ -1445,6 +1450,67 @@ public class StockOrderServiceImpl implements StockOrderService {
             vs.setIsDel(0);
             stockVirtualStockDao.insert(vs);
         }
+        // 虚拟库存转卖：下级入账的同时，从直接上级虚拟库存中等量扣减
+        transferVirtualStockFromParent(order, op);
+    }
+
+    /**
+     * 虚拟库存转卖（须在事务内调用）：下级虚拟单入账时，从直接上级的虚拟库存中等量扣减，保证总量守恒。
+     * 上级虚拟库存不足时不阻断（视为上级以自有实体库存供货），仅扣至 0 并写调整流水留痕。
+     */
+    private void transferVirtualStockFromParent(StockOrder order, StockOrderProduct op) {
+        Integer parentAgentId = order.getParentAgentId();
+        if (parentAgentId == null || parentAgentId <= 0) {
+            return; // 总部直供，无上级虚拟库存可扣
+        }
+        StockAgent parent = stockService.getAgentById(parentAgentId);
+        if (parent == null) {
+            return;
+        }
+        int num = op.getNum() == null ? 0 : op.getNum();
+        if (num <= 0) {
+            return;
+        }
+        // 幂等：该订单已做过转卖留痕则跳过
+        int existed = stockAdjustLogDao.selectCount(new LambdaQueryWrapper<StockAdjustLog>()
+                .eq(StockAdjustLog::getAgentId, parent.getId())
+                .eq(StockAdjustLog::getStockType, StockAdjustLog.STOCK_TYPE_VIRTUAL)
+                .like(StockAdjustLog::getMark, order.getOrderNo()));
+        if (existed > 0) {
+            return;
+        }
+        String sku = op.getSkuKey() == null ? "" : op.getSkuKey();
+        List<StockVirtualStock> list = stockVirtualStockDao.selectList(new LambdaQueryWrapper<StockVirtualStock>()
+                .eq(StockVirtualStock::getUid, parent.getUid())
+                .eq(StockVirtualStock::getProductId, op.getProductId())
+                .eq(StockVirtualStock::getSkuKey, sku)
+                .eq(StockVirtualStock::getIsDel, 0)
+                .gt(StockVirtualStock::getRemainNum, 0)
+                .orderByAsc(StockVirtualStock::getId));
+        int need = num;
+        for (StockVirtualStock v : list) {
+            if (need <= 0) {
+                break;
+            }
+            int cut = Math.min(need, v.getRemainNum());
+            stockVirtualStockDao.update(null, new LambdaUpdateWrapper<StockVirtualStock>()
+                    .eq(StockVirtualStock::getId, v.getId())
+                    .ge(StockVirtualStock::getRemainNum, cut)
+                    .setSql("remain_num = remain_num - " + cut));
+            need -= cut;
+        }
+        int transferred = num - need;
+        StockAdjustLog log = new StockAdjustLog();
+        log.setAgentId(parent.getId());
+        log.setUid(parent.getUid());
+        log.setProductId(op.getProductId());
+        log.setSkuKey(sku);
+        log.setNum(-transferred);
+        log.setStockType(StockAdjustLog.STOCK_TYPE_VIRTUAL);
+        log.setMark("虚拟库存转卖给下级（订单 " + order.getOrderNo() + "），本次扣减 " + transferred
+                + (need > 0 ? ("，上级虚拟库存不足 " + need + " 件，以自有实体库存供货") : ""));
+        log.setIsDel(0);
+        stockAdjustLogDao.insert(log);
     }
 
     /**
@@ -1973,6 +2039,8 @@ public class StockOrderServiceImpl implements StockOrderService {
         }
         boolean updated = stockOrderDao.update(null, wrapper) > 0;
         if (updated) {
+            // 同步内存对象，后续入账/结算/转卖扣减均以新上级为准
+            order.setParentAgentId(targetParentAgentId);
             if (!needAudit && virtual) {
                 // 审核开关关闭：虚拟单直接完成并入账虚拟库存
                 for (StockOrderProduct op : items) {
