@@ -579,10 +579,15 @@ export default {
   mounted() {
     if (this.formValidate.specType) {
       this.productGetRule(); //加载商品规格选项
+      if (!Array.isArray(this.formValidate.attr)) {
+        this.$set(this.formValidate, 'attr', []);
+      }
       // 添加 optionList 字段
       this.createOptionList(this.formValidate.attr);
-      // 生成规格属性数据
-      this.generateAttr(this.formValidate.attr);
+      // 生成规格属性数据（无规格时不强制生成，避免空数据卡死）
+      if (this.formValidate.attr.length) {
+        this.generateAttr(this.formValidate.attr);
+      }
     }
   },
   methods: {
@@ -690,19 +695,20 @@ export default {
     },
     // 添加 optionList 字段
     createOptionList(attr) {
-      // 如果 optionList 字段无内容
-      if (attr[0].optionList.length == 0) {
-        // 添加 optionList 内容
-        this.attrs = attr.map((item) => {
-          const attrValueList = item.attrValues.split(',');
+      if (!Array.isArray(attr) || !attr.length) {
+        return;
+      }
+      attr.forEach((item) => {
+        if (!item.optionList || !item.optionList.length) {
+          const attrValueList = (item.attrValues || '').split(',').filter((v) => v !== '');
           item.optionList = attrValueList.map((val) => {
             return {
               value: val,
               image: '',
             };
           });
-        });
-      }
+        }
+      });
     },
     // 生成商品规格表头
     generateHeader(attr) {

@@ -1,0 +1,20 @@
+=== Test DB dump analysis ===
+Tables: 138
+Products: 6
+Products with attr: 0
+Products with attr_value: 0
+Products missing attr: 6
+Products missing attr_value: 6
+  ids: 101,159,167,168,170,171
+localUploadUrl etc: {}
+localhost URL hits (lines): 0, tables: 
+theme has 127.0.0.1:8080: false
+diy has 127.0.0.1:8080: false
+support_virtual col: true
+support_physical col: true
+eb_stock_order.address_id: true
+eb_stock_exchange.address_id: true
+missing qrtz tables: none
+qrtz tables present: qrtz_blob_triggers,qrtz_cron_triggers,qrtz_fired_triggers,qrtz_job_details,qrtz_locks,qrtz_paused_trigger_grps,qrtz_scheduler_state,qrtz_simple_triggers,qrtz_simprop_triggers,qrtz_triggers
+level menu /stock/level: true
+duplicate config names: 0

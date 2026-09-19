@@ -828,8 +828,8 @@ export default {
             isHot: info.isHot,
             isBest: info.isBest,
             tempId: info.tempId,
-            attr: info.attr,
-            attrValue: info.attrValue,
+            attr: info.attr || [],
+            attrValue: info.attrValue || [],
             selectRule: info.selectRule,
             isSub: info.isSub,
             content: info.content ? this.$selfUtil.replaceImgSrcHttps(info.content) : '',
@@ -885,7 +885,10 @@ export default {
             // 设置多规格商品属性数据
             this.generateManyAttr();
           } else {
-            this.OneattrValue = info.attrValue;
+            this.OneattrValue =
+              info.attrValue && info.attrValue.length
+                ? info.attrValue
+                : [Object.assign({}, defaultObj.attrValue[0])];
             // this.formValidate.attr = [] //单规格商品规格设置为空
           }
           this.fullscreenLoading = false;
@@ -999,15 +1002,20 @@ export default {
           }
         }
       } else {
+        const oldAttrId =
+          this.formValidate.attr && this.formValidate.attr.length ? this.formValidate.attr[0].id : 0;
         this.formValidate.attr = [
           {
             attrName: '规格',
             attrValues: '默认',
-            id: this.$route.params.id ? this.formValidate.attr[0].id : 0,
+            id: this.$route.params.id ? oldAttrId : 0,
             isShowImage: false,
             optionList: [{ value: '默认' }],
           },
         ];
+        if (!this.OneattrValue || !this.OneattrValue.length) {
+          this.OneattrValue = [Object.assign({}, defaultObj.attrValue[0])];
+        }
         this.OneattrValue.map((item) => {
           this.$set(item, 'attrValue', JSON.stringify({ 规格: '默认' }));
           // 如果佣金设置为默认
@@ -1248,15 +1256,37 @@ export default {
     },
     // 设置多规格商品的表格数据
     generateManyAttr() {
-      // 多规格属性赋值
-      this.ManyAttrValue = this.formValidate.attrValue;
-      this.ManyAttrValue.forEach((val) => {
-        val.image = this.$selfUtil.setDomain(val.image);
-        val.attrValue = JSON.parse(val.attrValue);
+      // 多规格属性赋值（导库后可能缺规格，需兜底避免页面卡死）
+      const list = Array.isArray(this.formValidate.attrValue) ? this.formValidate.attrValue : [];
+      this.formValidate.attr = Array.isArray(this.formValidate.attr) ? this.formValidate.attr : [];
+      this.ManyAttrValue = list.map((val) => {
+        const row = Object.assign({}, val);
+        row.image = this.$selfUtil.setDomain(row.image);
+        if (typeof row.attrValue === 'string') {
+          try {
+            row.attrValue = JSON.parse(row.attrValue || '{}');
+          } catch (e) {
+            row.attrValue = {};
+          }
+        } else if (!row.attrValue || typeof row.attrValue !== 'object') {
+          row.attrValue = {};
+        }
+        return row;
       });
       this.ManyAttrValue = [...this.oneFormBatch, ...this.ManyAttrValue];
       // 此处手动实现后台原本value0 value1的逻辑
+      this.formValidate.attrValue = list;
       this.formValidate.attrValue.forEach((item) => {
+        if (typeof item.attrValue === 'string') {
+          try {
+            item.attrValue = JSON.parse(item.attrValue || '{}');
+          } catch (e) {
+            item.attrValue = {};
+          }
+        }
+        if (!item.attrValue || typeof item.attrValue !== 'object') {
+          item.attrValue = {};
+        }
         for (let attrValueKey in item.attrValue) {
           item[attrValueKey] = item.attrValue[attrValueKey];
         }
