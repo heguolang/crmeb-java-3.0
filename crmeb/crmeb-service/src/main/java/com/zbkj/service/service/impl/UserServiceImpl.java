@@ -355,6 +355,71 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     /**
+     * 后台修改会员佣金账户（增/减，并写佣金账单流水）
+     */
+    @Override
+    public Boolean updateBrokerage(UserOperateBrokerageRequest request) {
+        if (ObjectUtil.isNull(request.getBrokerageValue()) || request.getBrokerageValue().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new CrmebException("修改佣金金额必须大于0");
+        }
+        User user = getById(request.getUid());
+        if (ObjectUtil.isNull(user)) {
+            throw new CrmebException("用户不存在");
+        }
+        BigDecimal now = user.getBrokeragePrice() == null ? BigDecimal.ZERO : user.getBrokeragePrice();
+        if (request.getBrokerageType().equals(2) && now.subtract(request.getBrokerageValue()).compareTo(BigDecimal.ZERO) < 0) {
+            throw new CrmebException("佣金扣减后不能小于0，当前佣金：" + now);
+        }
+        if (request.getBrokerageType().equals(1)
+                && now.add(request.getBrokerageValue()).compareTo(new BigDecimal("99999999.99")) > 0) {
+            throw new CrmebException("佣金添加后不能大于99999999.99");
+        }
+        Boolean execute = transactionTemplate.execute(e -> {
+            UserBill userBill = new UserBill();
+            userBill.setUid(user.getUid());
+            userBill.setLinkId("0");
+            userBill.setTitle("后台修改佣金");
+            userBill.setCategory(Constants.USER_BILL_CATEGORY_BROKERAGE_PRICE);
+            userBill.setType(Constants.USER_BILL_TYPE_BROKERAGE);
+            userBill.setNumber(request.getBrokerageValue());
+            userBill.setStatus(1);
+            userBill.setCreateTime(CrmebDateUtil.nowDateTime());
+            if (request.getBrokerageType() == 1) {
+                userBill.setPm(1);
+                userBill.setBalance(now.add(request.getBrokerageValue()));
+                userBill.setMark(StrUtil.format("后台操作增加了{}佣金", request.getBrokerageValue()));
+            } else {
+                userBill.setPm(0);
+                userBill.setBalance(now.subtract(request.getBrokerageValue()));
+                userBill.setMark(StrUtil.format("后台操作减少了{}佣金", request.getBrokerageValue()));
+            }
+            userBillService.save(userBill);
+            operationBrokeragePrice(user.getUid(), request.getBrokerageValue(),
+                    request.getBrokerageType() == 1 ? "add" : "sub");
+            return Boolean.TRUE;
+        });
+        if (!execute) {
+            throw new CrmebException("修改佣金失败");
+        }
+        return execute;
+    }
+
+    /**
+     * 增减佣金余额（带余额不为负的兜底校验）
+     */
+    private void operationBrokeragePrice(Integer uid, BigDecimal price, String type) {
+        LambdaUpdateWrapper<User> lambdaUpdateWrapper = Wrappers.lambdaUpdate();
+        if (type.equals("add")) {
+            lambdaUpdateWrapper.setSql(StrUtil.format("brokerage_price = brokerage_price + {}", price));
+        } else {
+            lambdaUpdateWrapper.setSql(StrUtil.format("brokerage_price = brokerage_price - {}", price));
+            lambdaUpdateWrapper.apply(StrUtil.format("brokerage_price - {} >= 0", price));
+        }
+        lambdaUpdateWrapper.eq(User::getUid, uid);
+        update(lambdaUpdateWrapper);
+    }
+
+    /**
      * 更新用户金额
      *
      * @param user  用户

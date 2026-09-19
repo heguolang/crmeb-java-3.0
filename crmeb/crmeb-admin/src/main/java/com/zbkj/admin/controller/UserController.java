@@ -155,11 +155,25 @@ public class UserController {
      * 操作积分
      */
     @PreAuthorize("hasAuthority('admin:user:operate:founds')")
-    @ApiOperation(value = "积分余额")
-    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "操作会员积分余额")
+    @ApiOperation(value = "账户充减")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "操作会员账户充减")
     @RequestMapping(value = "/operate/founds", method = RequestMethod.GET)
     public CommonResult<Object> founds(@Validated UserOperateIntegralMoneyRequest request) {
         if (userService.updateIntegralMoney(request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    /**
+     * 修改佣金
+     */
+    @PreAuthorize("hasAuthority('admin:user:operate:founds')")
+    @ApiOperation(value = "修改佣金")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员佣金账户")
+    @RequestMapping(value = "/operate/brokerage", method = RequestMethod.GET)
+    public CommonResult<Object> brokerage(@Validated UserOperateBrokerageRequest request) {
+        if (userService.updateBrokerage(request)) {
             return CommonResult.success();
         }
         return CommonResult.failed();

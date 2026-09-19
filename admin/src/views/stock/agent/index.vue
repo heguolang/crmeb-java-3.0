@@ -68,13 +68,14 @@
           <template slot-scope="scope">{{ fmtTime(scope.row.createTime) }}</template>
         </el-table-column>
         <!-- 操作：着色小按钮网格（左留间距拉开时间列，右留白使整组按钮左移） -->
-        <el-table-column label="操作" width="196" fixed="right" class-name="op-cell" label-class-name="op-cell">
+        <el-table-column label="操作" width="250" fixed="right" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
             <div class="op-grid">
               <el-button size="mini" plain class="op-tag tint-primary" @click="openEdit(scope.row)">修改</el-button>
               <el-button v-if="checkPermi(['admin:stock:agent:update'])" size="mini" plain class="op-tag tint-warn" @click="onStatus(scope.row)">{{ scope.row.status === 1 ? '禁用' : '启用' }}</el-button>
               <el-button size="mini" plain class="op-tag tint-neutral" @click="openTeam(scope.row)">团队</el-button>
               <el-button size="mini" plain class="op-tag tint-neutral" @click="openStock(scope.row)">库存</el-button>
+              <el-button size="mini" plain class="op-tag tint-neutral" @click="openStockLog(scope.row)">库存记录</el-button>
               <el-button v-if="checkPermi(['admin:stock:agent:delete'])" size="mini" plain class="op-tag tint-danger" @click="onDelete(scope.row)">删除</el-button>
             </div>
           </template>
@@ -167,11 +168,71 @@
         <el-button size="small" type="primary" :loading="stockSaving" @click="submitStock">确定</el-button>
       </div>
     </el-dialog>
+
+    <!-- 库存记录（溯源）+ 当前库存情况 -->
+    <el-drawer :title="'库存记录 - ' + (logAgent ? logAgent.nickname : '')" :visible.sync="logVisible" size="760px">
+      <div style="padding: 0 20px 20px">
+        <el-divider content-position="left">当前库存情况</el-divider>
+        <el-table :data="curPhysical" size="mini" v-loading="logLoading" style="margin-bottom: 10px">
+          <el-table-column label="实体库存" min-width="200">
+            <template slot-scope="scope">
+              <img v-if="scope.row.image" :src="scope.row.image" style="width: 24px; height: 24px; margin-right: 6px; border-radius: 4px" />
+              <span>{{ scope.row.productName }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="num" label="可供应量" width="100" />
+        </el-table>
+        <el-table :data="curVirtual" size="mini" v-loading="logLoading" style="margin-bottom: 10px">
+          <el-table-column label="虚拟库存" min-width="200">
+            <template slot-scope="scope">
+              <img v-if="scope.row.image" :src="scope.row.image" style="width: 24px; height: 24px; margin-right: 6px; border-radius: 4px" />
+              <span>{{ scope.row.productName }}</span>
+              <span v-if="scope.row.skuKey" style="color: #909399">（{{ scope.row.skuKey }}）</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="num" label="累计" width="80" />
+          <el-table-column prop="remainNum" label="剩余" width="80" />
+        </el-table>
+        <div v-if="!curPhysical.length && !curVirtual.length" class="switch-tip">该会员暂无库存</div>
+
+        <el-divider content-position="left">库存修改记录</el-divider>
+        <el-table :data="logList" size="mini" v-loading="logLoading">
+          <el-table-column prop="createTime" label="时间" width="160">
+            <template slot-scope="scope">{{ fmtTime(scope.row.createTime) }}</template>
+          </el-table-column>
+          <el-table-column prop="stockTypeText" label="类型" width="90" />
+          <el-table-column label="商品" min-width="160">
+            <template slot-scope="scope">
+              <span>{{ scope.row.productName || ('商品' + scope.row.productId) }}</span>
+              <span v-if="scope.row.skuKey" style="color: #909399">（{{ scope.row.skuKey }}）</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="变动" width="80">
+            <template slot-scope="scope">
+              <span :style="{ color: scope.row.num >= 0 ? '#f56c6c' : '#67c23a' }">{{ scope.row.num > 0 ? '+' : '' }}{{ scope.row.num }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="mark" label="原因" min-width="200" show-overflow-tooltip />
+        </el-table>
+        <div v-if="!logList.length && !logLoading" class="switch-tip" style="padding: 12px 0">暂无修改记录</div>
+        <div class="pager" style="text-align: right; margin-top: 10px">
+          <el-pagination
+            background
+            small
+            layout="total, prev, pager, next"
+            :page-size="logFrom.limit"
+            :current-page="logFrom.page"
+            :total="logTotal"
+            @current-change="onLogPageChange"
+          />
+        </div>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
 <script>
-import { stockAgentListApi, stockAgentSaveApi, stockAgentUpdateApi, stockAgentStatusApi, stockAgentDeleteApi, stockAgentTeamApi, stockAgentVirtualAdjustApi, stockAgentPhysicalAdjustApi, stockLevelListApi, stockProductListApi, stockProductSkuListApi } from '@/api/stock';
+import { stockAgentListApi, stockAgentSaveApi, stockAgentUpdateApi, stockAgentStatusApi, stockAgentDeleteApi, stockAgentTeamApi, stockAgentVirtualAdjustApi, stockAgentPhysicalAdjustApi, stockLevelListApi, stockProductListApi, stockProductSkuListApi, stockAdjustLogListApi, stockAgentStockApi } from '@/api/stock';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -194,6 +255,14 @@ export default {
       stockVisible: false,
       stockSaving: false,
       stockAgent: null,
+      logVisible: false,
+      logLoading: false,
+      logAgent: null,
+      logList: [],
+      logTotal: 0,
+      logFrom: { page: 1, limit: 10 },
+      curPhysical: [],
+      curVirtual: [],
       skuOptions: [],
       stockForm: { stockType: 2, productId: null, skuKey: '', num: 0, mark: '' }
     };
@@ -316,7 +385,38 @@ export default {
         this.$message.success('调整成功');
         this.stockSaving = false;
         this.stockVisible = false;
+        if (this.logVisible && this.logAgent && this.logAgent.id === this.stockAgent.id) {
+          this.loadStockLog();
+        }
       }).catch(() => { this.stockSaving = false; });
+    },
+    openStockLog(row) {
+      this.logAgent = row;
+      this.logFrom.page = 1;
+      this.logVisible = true;
+      this.loadStockLog();
+    },
+    loadStockLog() {
+      this.logLoading = true;
+      stockAdjustLogListApi({ agentId: this.logAgent.id, page: this.logFrom.page, limit: this.logFrom.limit })
+        .then((res) => {
+          const data = res.data || {};
+          this.logList = data.list || [];
+          this.logTotal = data.total || 0;
+          this.logLoading = false;
+        })
+        .catch(() => { this.logLoading = false; });
+      stockAgentStockApi(this.logAgent.uid)
+        .then((res) => {
+          const d = res.data || {};
+          this.curPhysical = d.physical || [];
+          this.curVirtual = d.virtual || [];
+        })
+        .catch(() => {});
+    },
+    onLogPageChange(page) {
+      this.logFrom.page = page;
+      this.loadStockLog();
     }
   },
   mounted() {

@@ -21,6 +21,7 @@
       <view v-for="o in list" :key="o.id" class="order-card" @click="toggleDetail(o)">
         <view class="row-1">
           <text class="order-no">{{ o.orderNo }}</text>
+          <text v-if="o.exchanged === 1" class="st-pill ex-pill">已换货</text>
           <text class="st-pill" :class="'st' + o.status">{{ statusText(o.status) }}</text>
         </view>
         <view v-for="p in o.productList" :key="p.id" class="row-p">
@@ -35,6 +36,12 @@
           共 {{ o.totalNum }} 件 · 合计 <text class="total-price">¥{{ o.totalPrice }}</text>
         </view>
         <view v-if="o.status === -1" class="reject-box">驳回原因：{{ o.rejectReason }}</view>
+        <view v-if="o.status === 10 && o.waitDurationText" class="reject-box">
+          {{ o.waitDurationText }} · 当前上级暂无库存，正在向上匹配有货的上级
+        </view>
+        <view v-if="o.exchanged === 1" class="reject-box">
+          该订单已换货（换货单号 {{ o.exchangeNo }}），不可重复申请换货
+        </view>
         <view v-if="o.expressNum" class="express-box">
           <text class="ex-tag">快递</text>{{ o.expressName }} {{ o.expressNum }}
         </view>
@@ -45,7 +52,7 @@
         <view class="row-op" v-if="o.status === 3">
           <button class="op-btn primary" size="mini" @click.stop="receive(o)">确认收货</button>
         </view>
-        <view class="row-op" v-if="o.status === 4">
+        <view class="row-op" v-if="o.status === 4 && o.exchanged !== 1">
           <button class="op-btn ghost" size="mini" @click.stop="applyExchange(o)">申请换货</button>
         </view>
       </view>
@@ -378,6 +385,13 @@
   &.st-1 { background: #ffecec; color: #f56c6c; }
   &.st10 { background: #f3ecff; color: #7c4dd4; }
   &.st-2 { background: #f2f3f5; color: #909399; }
+}
+
+/* 已换货标记 */
+.ex-pill {
+  margin-right: 12rpx;
+  background: #e6f4ff;
+  color: #1677ff;
 }
 
 /* 下级信息（审核 tab） */

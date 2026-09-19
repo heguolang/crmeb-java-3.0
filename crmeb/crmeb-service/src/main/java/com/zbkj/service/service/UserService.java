@@ -38,6 +38,11 @@ public interface UserService extends IService<User> {
     Boolean updateIntegralMoney(UserOperateIntegralMoneyRequest request);
 
     /**
+     * 后台修改会员佣金账户
+     */
+    Boolean updateBrokerage(UserOperateBrokerageRequest request);
+
+    /**
      * 更新余额
      * @param user 用户
      * @param price 金额

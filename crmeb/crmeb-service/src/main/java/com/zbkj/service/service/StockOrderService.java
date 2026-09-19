@@ -107,6 +107,16 @@ public interface StockOrderService {
     /** 总部介入审核订单（仅待上级审核状态）：1=通过(扣云仓库存→待付款) -1=驳回 */
     Boolean auditOrderByAdmin(Integer orderId, StockRequests.StockAuditRequest request);
 
+    /**
+     * 后台手动跳过匹配：对等待匹配上级(状态10)的订单立即沿上级链向上找有库存的上级
+     */
+    Boolean skipMatchUpOrder(Integer orderId);
+
+    /**
+     * 等待匹配上级的订单列表（后台）
+     */
+    CommonPage<StockOrder> getWaitMatchOrderList(com.zbkj.common.request.PageParamRequest page);
+
     /** 确认收款（记账欠款 -> 已付款，状态流转到待发货） */
     Boolean confirmPay(Integer orderId);
 

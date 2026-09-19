@@ -116,6 +116,7 @@ public class StockOrderServiceImpl implements StockOrderService {
     private static final String CFG_UP_SEARCH_HOURS = "stock_up_search_hours";
     private static final String CFG_WAIT_PAY_HOURS = "stock_wait_pay_hours";
     private static final String CFG_VIRTUAL_AUDIT = "stock_virtual_audit";
+    private static final String CFG_EXCHANGE_ONCE = "stock_exchange_once";
 
     // ==================== 会员端 ====================
 
@@ -801,6 +802,38 @@ public class StockOrderServiceImpl implements StockOrderService {
     }
 
     @Override
+    public Boolean skipMatchUpOrder(Integer orderId) {
+        StockOrder order = stockOrderDao.selectById(orderId);
+        if (order == null || order.getIsDel() == 1) {
+            throw new CrmebException("订单不存在");
+        }
+        if (!StockOrder.STATUS_WAIT_MATCH.equals(order.getStatus())) {
+            throw new CrmebException("只有「等待匹配上级」状态的订单才能跳过匹配");
+        }
+        StockAgent agent = stockService.getAgentById(order.getAgentId());
+        if (agent == null || agent.getStatus() == 0) {
+            throw new CrmebException("下单代理不存在或已被禁用");
+        }
+        if (order.getUpSearchTime() == null) {
+            order.setUpSearchTime(new Date());
+        }
+        matchUpOrder(order, agent);
+        return true;
+    }
+
+    @Override
+    public CommonPage<StockOrder> getWaitMatchOrderList(PageParamRequest page) {
+        PageHelper.startPage(page.getPage(), page.getLimit());
+        List<StockOrder> list = stockOrderDao.selectList(new LambdaQueryWrapper<StockOrder>()
+                .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_MATCH)
+                .eq(StockOrder::getIsDel, 0)
+                .orderByAsc(StockOrder::getUpSearchTime)
+                .orderByDesc(StockOrder::getId));
+        fillOrders(list);
+        return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    @Override
     public Boolean receiveOrder(Integer uid, Integer orderId) {
         StockOrder order = stockOrderDao.selectById(orderId);
         if (order == null || order.getIsDel() == 1) {
@@ -868,6 +901,16 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .last(" limit 1"));
         if (item == null) {
             throw new CrmebException("该订单中没有此商品");
+        }
+        // 一单一换：该订单已有有效换货单（非驳回）则不允许再次申请（开关 stock_exchange_once=0 时关闭）
+        if (!"0".equals(systemConfigService.getValueByKey(CFG_EXCHANGE_ONCE))) {
+            int exist = stockExchangeDao.selectCount(new LambdaQueryWrapper<StockExchange>()
+                    .eq(StockExchange::getOrderId, order.getId())
+                    .ne(StockExchange::getStatus, StockExchange.STATUS_REJECT)
+                    .eq(StockExchange::getIsDel, 0));
+            if (exist > 0) {
+                throw new CrmebException("该订单已申请过换货，不能重复申请换货");
+            }
         }
         // 累计换货数量校验：同订单同商品的有效换货单（未驳回）已换数量 + 本次不得超过购买数量
         int used = 0;
@@ -2108,6 +2151,15 @@ public class StockOrderServiceImpl implements StockOrderService {
         for (User u : userService.lambdaQuery().in(User::getUid, uids).list()) {
             userMap.put(u.getUid(), u);
         }
+        // 换货标记：存在非驳回的换货单即视为已换货（取最近一张用于展示单号与状态）
+        HashMap<Integer, StockExchange> exchangeMap = new HashMap<>();
+        for (StockExchange e : stockExchangeDao.selectList(new LambdaQueryWrapper<StockExchange>()
+                .in(StockExchange::getOrderId, orderIds)
+                .ne(StockExchange::getStatus, StockExchange.STATUS_REJECT)
+                .eq(StockExchange::getIsDel, 0)
+                .orderByDesc(StockExchange::getId))) {
+            exchangeMap.putIfAbsent(e.getOrderId(), e);
+        }
         for (StockOrder o : orders) {
             o.setProductList(itemMap.get(o.getId()));
             User u = userMap.get(o.getUid());
@@ -2115,6 +2167,16 @@ public class StockOrderServiceImpl implements StockOrderService {
             // phone 为收货电话快照（新单）；历史订单快照为空时回退显示用户手机号
             if (o.getPhone() == null || o.getPhone().isEmpty()) {
                 o.setPhone(u == null ? "" : u.getPhone());
+            }
+            StockExchange e = exchangeMap.get(o.getId());
+            o.setExchanged(e == null ? 0 : 1);
+            o.setExchangeNo(e == null ? "" : e.getExchangeNo());
+            o.setExchangeStatus(e == null ? null : e.getStatus());
+            // 等待匹配上级：展示已等待时长
+            if (StockOrder.STATUS_WAIT_MATCH.equals(o.getStatus()) && o.getUpSearchTime() != null) {
+                long minutes = (System.currentTimeMillis() - o.getUpSearchTime().getTime()) / 60000;
+                o.setWaitDurationText(minutes < 60 ? ("已等待 " + minutes + " 分钟")
+                        : ("已等待 " + (minutes / 60) + " 小时" + (minutes % 60) + " 分"));
             }
         }
     }

@@ -304,6 +304,44 @@ public class StockController {
         return CommonResult.failed();
     }
 
+    @PreAuthorize("hasAuthority('admin:stock:order:audit')")
+    @ApiOperation(value = "跳过匹配上级（对等待匹配状态订单立即沿上级链向上找有库存的上级）")
+    @RequestMapping(value = "/order/skipMatch", method = RequestMethod.POST)
+    public CommonResult<String> skipMatchUpOrder(@RequestParam Integer id) {
+        if (stockOrderService.skipMatchUpOrder(id)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:order:list')")
+    @ApiOperation(value = "等待匹配上级的订单列表")
+    @RequestMapping(value = "/order/waitMatch", method = RequestMethod.GET)
+    public CommonResult<CommonPage<StockOrder>> waitMatchOrderList(@Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(stockOrderService.getWaitMatchOrderList(pageParamRequest));
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:order:list')")
+    @ApiOperation(value = "订货商库存修改记录（溯源）")
+    @RequestMapping(value = "/adjustLog/list", method = RequestMethod.GET)
+    public CommonResult<CommonPage<HashMap<String, Object>>> adjustLogList(
+            @RequestParam(value = "agentId", required = false) Integer agentId,
+            @RequestParam(value = "uid", required = false) Integer uid,
+            @RequestParam(value = "stockType", required = false) Integer stockType,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(stockService.getAdjustLogList(agentId, uid, stockType, pageParamRequest));
+    }
+
+    @PreAuthorize("hasAuthority('admin:stock:order:list')")
+    @ApiOperation(value = "某会员的当前库存情况（实体 + 虚拟）")
+    @RequestMapping(value = "/agent/stock", method = RequestMethod.GET)
+    public CommonResult<HashMap<String, Object>> agentStock(@RequestParam Integer uid) {
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("physical", stockOrderService.getMyPhysicalStock(uid));
+        map.put("virtual", stockOrderService.getMyVirtualStock(uid));
+        return CommonResult.success(map);
+    }
+
     @PreAuthorize("hasAuthority('admin:stock:order:pay')")
     @ApiOperation(value = "确认收款")
     @RequestMapping(value = "/order/pay", method = RequestMethod.POST)

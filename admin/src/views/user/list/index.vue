@@ -278,7 +278,12 @@
                 <el-dropdown-item
                   @click.native="editPoint(scope.row.uid)"
                   v-if="checkPermi(['admin:user:operate:founds'])"
-                  >积分余额</el-dropdown-item
+                  >账户充减</el-dropdown-item
+                >
+                <el-dropdown-item
+                  @click.native="editBrokerage(scope.row.uid)"
+                  v-if="checkPermi(['admin:user:operate:founds'])"
+                  >修改佣金</el-dropdown-item
                 >
                 <el-dropdown-item @click.native="setBatch('group', scope.row)" v-if="checkPermi(['admin:user:group'])"
                   >设置分组</el-dropdown-item
@@ -434,9 +439,9 @@
     <el-dialog title="编辑" :visible.sync="visible" width="900px">
       <edit-from v-if="visible" :uid="uid" @resetForm="resetForm"></edit-from>
     </el-dialog>
-    <!--积分余额-->
+    <!--账户充减-->
     <el-dialog
-      title="积分余额"
+      title="账户充减"
       :visible.sync="VisiblePoint"
       width="540px"
       :close-on-click-modal="false"
@@ -488,6 +493,44 @@
         <el-button type="primary" :loading="loadingBtn" @click="submitPointForm('PointValidateForm')">确定</el-button>
       </span>
     </el-dialog>
+    <!--修改佣金-->
+    <el-dialog
+      title="修改佣金"
+      :visible.sync="VisibleBrokerage"
+      width="540px"
+      :close-on-click-modal="false"
+      :before-close="handleBrokerageClose"
+    >
+      <el-form
+        :model="BrokerageValidateForm"
+        ref="BrokerageValidateForm"
+        label-width="100px"
+        v-loading="loadingBrokerage"
+      >
+        <el-form-item label="修改佣金：" required>
+          <el-radio-group v-model="BrokerageValidateForm.brokerageType">
+            <el-radio :label="1">增加</el-radio>
+            <el-radio :label="2">减少</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="佣金金额：" required>
+          <el-input-number
+            controls-position="right"
+            v-model="BrokerageValidateForm.brokerageValue"
+            :precision="2"
+            :step="0.1"
+            :min="0"
+            :max="999999"
+          ></el-input-number>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="handleBrokerageClose">取消</el-button>
+        <el-button type="primary" :loading="loadingBtn" @click="submitBrokerageForm('BrokerageValidateForm')"
+          >确定</el-button
+        >
+      </span>
+    </el-dialog>
     <!--账户详情-->
     <user-details ref="userDetailFrom" :userNo="uid"></user-details>
     <!-- 用户等级 -->
@@ -510,6 +553,7 @@ import {
   groupPiApi,
   tagPiApi,
   foundsApi,
+  brokerageApi,
   updateSpreadApi,
   updatePhoneApi,
   updatePasswordApi,
@@ -571,6 +615,13 @@ export default {
       },
       loadingPoint: false,
       VisiblePoint: false,
+      BrokerageValidateForm: {
+        brokerageType: 1,
+        brokerageValue: 0,
+        uid: '',
+      },
+      loadingBrokerage: false,
+      VisibleBrokerage: false,
       visible: false,
       userIds: '',
       dialogVisible: false,
@@ -910,7 +961,7 @@ export default {
       };
       this.teamLevelVisible = true;
     },
-    // 积分余额
+    // 账户充减
     editPoint(id) {
       this.uid = id;
       this.VisiblePoint = true;
@@ -936,7 +987,7 @@ export default {
         }
       });
     }),
-    // 积分余额
+    // 账户充减
     handlePointClose() {
       this.VisiblePoint = false;
       this.PointValidateForm = {
@@ -944,6 +995,45 @@ export default {
         integralValue: 0,
         moneyType: 2,
         moneyValue: 0,
+        uid: '',
+      };
+    },
+    // 修改佣金
+    editBrokerage(id) {
+      this.uid = id;
+      this.VisibleBrokerage = true;
+    },
+    // 修改佣金
+    submitBrokerageForm: Debounce(function (formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          if (!this.BrokerageValidateForm.brokerageValue || this.BrokerageValidateForm.brokerageValue <= 0) {
+            this.$message.error('佣金金额必须大于0');
+            return false;
+          }
+          this.BrokerageValidateForm.uid = this.uid;
+          this.loadingBtn = true;
+          brokerageApi(this.BrokerageValidateForm)
+            .then(() => {
+              this.$message.success('设置成功');
+              this.loadingBtn = false;
+              this.handleBrokerageClose();
+              this.getList();
+            })
+            .catch(() => {
+              this.loadingBtn = false;
+            });
+        } else {
+          return false;
+        }
+      });
+    }),
+    // 修改佣金
+    handleBrokerageClose() {
+      this.VisibleBrokerage = false;
+      this.BrokerageValidateForm = {
+        brokerageType: 1,
+        brokerageValue: 0,
         uid: '',
       };
     },

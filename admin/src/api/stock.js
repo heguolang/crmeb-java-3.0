@@ -207,3 +207,18 @@ export function stockProductSkuListApi(productId) {
 export function stockProductSkuPriceApi(productId, skuKey) {
   return request({ url: '/admin/stock/product/skuPrice', method: 'get', params: { productId, skuKey } });
 }
+
+/** 跳过匹配上级（等待匹配状态订单立即向上找有货上级） */
+export function stockOrderSkipMatchApi(id) {
+  return request({ url: '/admin/stock/order/skipMatch', method: 'post', params: { id } });
+}
+
+/** 订货商库存修改记录（溯源） */
+export function stockAdjustLogListApi(params) {
+  return request({ url: '/admin/stock/adjustLog/list', method: 'get', params });
+}
+
+/** 某会员当前库存情况（实体 + 虚拟） */
+export function stockAgentStockApi(uid) {
+  return request({ url: '/admin/stock/agent/stock', method: 'get', params: { uid } });
+}

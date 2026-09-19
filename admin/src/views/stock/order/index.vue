@@ -37,6 +37,8 @@
             <span class="head-time">{{ shortTime(row.createTime) }}</span>
             <span class="head-status" :class="statusClass(row.status)">{{ statusMap[row.status] || row.status }}</span>
             <span v-if="row.status === -1 && row.rejectReason" class="head-reason" :title="row.rejectReason">（{{ row.rejectReason }}）</span>
+            <span v-if="row.status === 10 && row.waitDurationText" class="head-reason" :title="'等待期间订单可被人工跳过匹配，直接向上寻找有库存的上级'">{{ row.waitDurationText }}</span>
+            <span v-if="row.exchanged === 1" class="head-reason" :title="'换货单号：' + (row.exchangeNo || '')">（已换货）</span>
           </div>
           <!-- 卡片体：商品 | 收货 | 金额 | 代理 | 付款/状态 | 操作 -->
           <div class="card-body">
@@ -85,6 +87,7 @@
               <el-button v-if="row.status === 1 && checkPermi(['admin:stock:order:pay'])" size="mini" type="warning" plain class="op-btn" @click="onPay(row)">确认收款</el-button>
               <el-button v-if="row.status === 2 && checkPermi(['admin:stock:order:send'])" size="mini" type="primary" plain class="op-btn" @click="openSend(row)">订单发货</el-button>
               <el-button v-if="row.status === 3 && checkPermi(['admin:stock:order:send'])" size="mini" type="success" plain class="op-btn" @click="onFinish(row)">标记完成</el-button>
+              <el-button v-if="row.status === 10 && checkPermi(['admin:stock:order:audit'])" size="mini" type="warning" plain class="op-btn" @click="onSkipMatch(row)">跳过匹配上级</el-button>
             </div>
           </div>
         </div>
@@ -202,7 +205,7 @@
 </template>
 
 <script>
-import { stockOrderListApi, stockOrderPayApi, stockOrderAuditApi, stockOrderSendApi, stockOrderFinishApi } from '@/api/stock';
+import { stockOrderListApi, stockOrderPayApi, stockOrderAuditApi, stockOrderSendApi, stockOrderFinishApi, stockOrderSkipMatchApi } from '@/api/stock';
 import { expressAllApi } from '@/api/sms';
 import { checkPermi } from '@/utils/permission';
 
@@ -214,7 +217,7 @@ export default {
       tableData: [],
       total: 0,
       tableFrom: { page: 1, limit: 20, orderNo: '', uid: null, status: null, payStatus: null },
-      statusMap: { 0: '待上级审核', 1: '待付款', 2: '待发货', 3: '待收货', 4: '已完成', '-1': '已驳回' },
+      statusMap: { 0: '待上级审核', 1: '待付款', 2: '待发货', 3: '待收货', 4: '已完成', '-1': '已驳回', 10: '等待匹配上级', '-2': '已取消' },
       detailVisible: false,
       detailRow: null,
       sendVisible: false,
@@ -380,6 +383,14 @@ export default {
       this.$confirm('确认标记该订单为已完成？完成后将自动核算代理奖励。', '提示').then(() => {
         stockOrderFinishApi(row.id).then(() => {
           this.$message.success('已完成，奖励已核算');
+          this.getList();
+        });
+      }).catch(() => {});
+    },
+    onSkipMatch(row) {
+      this.$confirm('跳过当前直接上级，立即沿上级链向上寻找有库存的上级？若全链无货将挂到总部。', '跳过匹配上级', { type: 'warning' }).then(() => {
+        stockOrderSkipMatchApi(row.id).then(() => {
+          this.$message.success('已重新匹配上级');
           this.getList();
         });
       }).catch(() => {});

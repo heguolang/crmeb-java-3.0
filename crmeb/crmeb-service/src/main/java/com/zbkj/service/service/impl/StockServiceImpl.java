@@ -451,8 +451,7 @@ public class StockServiceImpl implements StockService {
     // ==================== 订货商变更记录 ====================
 
     @Override
-    public CommonPage<StockChangeLog> getChangeLogList(Integer uid, Integer type, PageParamRequest pageParamRequest) {
-        LambdaQueryWrapper<StockChangeLog> lqw = new LambdaQueryWrapper<>();
+    public CommonPage<StockChangeLog> getChangeLogList(Integer uid, Integer type, PageParamRequest pageParamRequest) {        LambdaQueryWrapper<StockChangeLog> lqw = new LambdaQueryWrapper<>();
         if (uid != null && uid > 0) {
             lqw.eq(StockChangeLog::getUid, uid);
         }
@@ -478,6 +477,68 @@ public class StockServiceImpl implements StockService {
             }
         }
         return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    @Override
+    public CommonPage<HashMap<String, Object>> getAdjustLogList(Integer agentId, Integer uid, Integer stockType,
+                                                               PageParamRequest pageParamRequest) {
+        LambdaQueryWrapper<StockAdjustLog> lqw = new LambdaQueryWrapper<>();
+        if (agentId != null && agentId > 0) {
+            lqw.eq(StockAdjustLog::getAgentId, agentId);
+        }
+        if (uid != null && uid > 0) {
+            lqw.eq(StockAdjustLog::getUid, uid);
+        }
+        if (stockType != null && stockType > 0) {
+            lqw.eq(StockAdjustLog::getStockType, stockType);
+        }
+        lqw.eq(StockAdjustLog::getIsDel, 0).orderByDesc(StockAdjustLog::getId);
+        PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        List<StockAdjustLog> list = stockAdjustLogDao.selectList(lqw);
+        List<HashMap<String, Object>> result = new ArrayList<>();
+        if (!list.isEmpty()) {
+            List<Integer> uids = new ArrayList<>();
+            List<Integer> productIds = new ArrayList<>();
+            for (StockAdjustLog log : list) {
+                if (log.getUid() != null) {
+                    uids.add(log.getUid());
+                }
+                if (log.getProductId() != null) {
+                    productIds.add(log.getProductId());
+                }
+            }
+            Map<Integer, User> userMap = new HashMap<>();
+            if (!uids.isEmpty()) {
+                for (User u : userService.lambdaQuery().in(User::getUid, uids).list()) {
+                    userMap.put(u.getUid(), u);
+                }
+            }
+            Map<Integer, String> productNameMap = new HashMap<>();
+            if (!productIds.isEmpty()) {
+                for (com.zbkj.common.model.product.StoreProduct p : storeProductService.listByIds(productIds)) {
+                    productNameMap.put(p.getId(), p.getStoreName());
+                }
+            }
+            for (StockAdjustLog log : list) {
+                HashMap<String, Object> row = new HashMap<>();
+                row.put("id", log.getId());
+                row.put("agentId", log.getAgentId());
+                row.put("uid", log.getUid());
+                User u = log.getUid() == null ? null : userMap.get(log.getUid());
+                row.put("nickname", u == null ? "" : u.getNickname());
+                row.put("phone", u == null ? "" : u.getPhone());
+                row.put("productId", log.getProductId());
+                row.put("productName", productNameMap.getOrDefault(log.getProductId(), ""));
+                row.put("skuKey", log.getSkuKey());
+                row.put("stockType", log.getStockType());
+                row.put("stockTypeText", Integer.valueOf(2).equals(log.getStockType()) ? "虚拟库存" : "实体库存");
+                row.put("num", log.getNum());
+                row.put("mark", log.getMark());
+                row.put("createTime", log.getCreateTime());
+                result.add(row);
+            }
+        }
+        return CommonPage.restPage(new PageInfo<>(result));
     }
 
     @Override

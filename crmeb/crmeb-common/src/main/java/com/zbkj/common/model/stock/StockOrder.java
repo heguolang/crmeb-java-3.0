@@ -149,4 +149,20 @@ public class StockOrder implements Serializable {
     @ApiModelProperty(value = "订单明细")
     @TableField(exist = false)
     private List<StockOrderProduct> productList;
+
+    @ApiModelProperty(value = "是否已换货：0=否 1=是（存在非驳回的换货单）")
+    @TableField(exist = false)
+    private Integer exchanged;
+
+    @ApiModelProperty(value = "最近一张有效换货单号")
+    @TableField(exist = false)
+    private String exchangeNo;
+
+    @ApiModelProperty(value = "最近一张有效换货单状态")
+    @TableField(exist = false)
+    private Integer exchangeStatus;
+
+    @ApiModelProperty(value = "等待匹配上级已耗时文案（状态10时）")
+    @TableField(exist = false)
+    private String waitDurationText;
 }

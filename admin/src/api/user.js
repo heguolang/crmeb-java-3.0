@@ -143,12 +143,24 @@ export function tagPiApi(params) {
 }
 
 /**
- * 会员管理 积分余额
+ * 会员管理 账户充减（余额/积分）
  * @param pram
  */
 export function foundsApi(params) {
   return request({
     url: `/admin/user/operate/founds`,
+    method: 'get',
+    params,
+  });
+}
+
+/**
+ * 会员管理 修改佣金
+ * @param pram
+ */
+export function brokerageApi(params) {
+  return request({
+    url: `/admin/user/operate/brokerage`,
     method: 'get',
     params,
   });

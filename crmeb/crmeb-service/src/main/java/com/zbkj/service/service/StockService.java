@@ -70,6 +70,12 @@ public interface StockService {
     /** 库存变动日志 */
     CommonPage<StockLog> getLogList(Integer productId, Integer type, com.zbkj.common.request.PageParamRequest page);
 
+    /**
+     * 订货商库存调整记录（后台「库存修改记录」）：可按代理/会员/库存类型筛选，用于溯源
+     */
+    CommonPage<java.util.HashMap<String, Object>> getAdjustLogList(Integer agentId, Integer uid, Integer stockType,
+                                                                  com.zbkj.common.request.PageParamRequest page);
+
     /** 订货商下级团队（伞下全部，含层级深度 level=1 表示直接下级） */
     List<HashMap<String, Object>> getAgentTeam(Integer agentId, Integer uid);
 
