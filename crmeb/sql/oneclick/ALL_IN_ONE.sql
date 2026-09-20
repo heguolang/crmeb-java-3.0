@@ -9535,6 +9535,7 @@ CREATE TABLE `eb_stock_exchange` (
   `target_product_id` int NOT NULL DEFAULT '0',
   `target_sku_key` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `target_product_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `target_stock_type` tinyint NULL DEFAULT '1' COMMENT '换入库存类型：1=实体 2=虚拟（虚拟换货时会员可选）；NULL/1=实体',
   `target_price` decimal(10,2) NOT NULL DEFAULT '0.00',
   `origin_price` decimal(10,2) NOT NULL DEFAULT '0.00',
   `diff_price` decimal(10,2) NOT NULL DEFAULT '0.00',
@@ -20720,5 +20721,17 @@ SELECT t.name, t.title, 0, '1', 0, NOW(), NOW() FROM (
 WHERE NOT EXISTS (SELECT 1 FROM eb_system_config c WHERE c.name = t.name);
 
 -- ========== PART 4 END ==========
+
+-- ========== PART 5: 增量补丁（与 02_patches_all.sql 末尾保持一致） ==========
+-- stock_exchange_target_type.sql：换入库存类型（幂等）
+SET @db = DATABASE();
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_exchange' AND COLUMN_NAME='target_stock_type') = 0,
+    'ALTER TABLE `eb_stock_exchange` ADD COLUMN `target_stock_type` tinyint NULL DEFAULT 1 COMMENT ''换入库存类型：1=实体 2=虚拟（虚拟换货时会员可选）；NULL/1=实体'' AFTER `target_sku_key`',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ========== PART 5 END ==========
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'CRMEB ALL_IN_ONE deploy done' AS result;

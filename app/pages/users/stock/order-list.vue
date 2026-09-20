@@ -93,10 +93,23 @@
             <view class="p-num">换货数量 × {{ e.num }} <text class="p-x">原单 {{ e.orderNo }}</text></view>
           </view>
         </view>
-        <view class="ex-target">
-          换入：{{ e.targetProductName }}
-          <text v-if="Number(e.diffPrice) > 0" class="diff-amt">需补差价 ¥{{ e.diffPrice }}</text>
-          <text v-else class="same-amt">无需补差价</text>
+        <view class="ex-target-card">
+          <view class="et-head">
+            <text class="et-tag">换入</text>
+            <text class="et-type">{{ e.targetStockType === 2 ? '虚拟库存' : '实体商品' }}</text>
+            <text v-if="Number(e.diffPrice) > 0" class="diff-amt">需补差价 ¥{{ e.diffPrice }}</text>
+            <text v-else class="same-amt">无需补差价</text>
+          </view>
+          <view class="row-p">
+            <image v-if="e.targetProductImage" :src="e.targetProductImage" class="p-img" mode="aspectFill" />
+            <view v-else class="p-img p-img-empty">{{ (e.targetProductName || '?').slice(0, 1) }}</view>
+            <view class="p-info">
+              <view class="p-name">{{ e.targetProductName }}</view>
+              <view class="p-num">
+                <text v-if="e.targetSkuName">规格：{{ e.targetSkuName }} · </text>换入价 ¥{{ e.targetPrice }} <text class="p-x">× {{ e.num }}</text>
+              </view>
+            </view>
+          </view>
         </view>
         <view class="ex-reason">换货原因：{{ e.reason }}</view>
         <view class="row-op">
@@ -851,17 +864,39 @@
 .sf-btn { flex-shrink: 0; }
 
 /* ---------- 换货审核卡（待我审核 tab） ---------- */.ex-card { border-left: 6rpx solid #ffb54d; }
-.ex-target {
+/* 换入商品卡片：与上方原商品卡片同款（缩略图+名称+规格+价格），外层换入色带区分 */
+.ex-target-card {
   margin-top: 16rpx;
   background: #fff8ee;
-  border-radius: 12rpx;
-  padding: 14rpx 18rpx;
-  font-size: 23rpx;
-  color: #b8781f;
-  line-height: 34rpx;
+  border-radius: 14rpx;
+  padding: 16rpx 18rpx 18rpx;
+  border: 1rpx solid #ffe3bd;
 }
-.diff-amt { color: #e93323; font-weight: 700; margin-left: 6rpx; }
-.same-amt { color: #21a84f; margin-left: 6rpx; }
+.et-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14rpx;
+}
+.et-tag {
+  background: linear-gradient(135deg, #ffb056, #f08a1d);
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 700;
+  border-radius: 8rpx;
+  padding: 3rpx 12rpx;
+  margin-right: 12rpx;
+}
+.et-type { font-size: 22rpx; color: #b8781f; font-weight: 600; }
+.p-img-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c3cad6;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+.diff-amt { color: #e93323; font-weight: 700; margin-left: auto; padding-left: 12rpx; }
+.same-amt { color: #21a84f; margin-left: auto; padding-left: 12rpx; font-weight: 600; }
 .ex-reason {
   margin-top: 10rpx;
   font-size: 23rpx;

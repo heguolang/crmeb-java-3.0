@@ -63,16 +63,25 @@
       <view class="bottom-tip">— 门店中心 —</view>
     </template>
 
-    <emptyPage v-if="loaded && !isLeader" :title="'您还不是门店负责人，请联系管理员在后台门店管理中绑定'"></emptyPage>
+    <!-- 非门店负责人：品牌化空态 -->
+    <view v-if="loaded && !isLeader" class="gate">
+      <view class="gate-card">
+        <view class="gate-ico">店</view>
+        <view class="gate-title">您还不是门店负责人</view>
+        <view class="gate-desc">门店中心提供门店核销、核销记录查询等经营能力</view>
+        <view class="gate-line"></view>
+        <view class="gate-tip">请联系管理员在后台「门店管理」中，将您绑定为门店负责人</view>
+        <view class="gate-sub">绑定后重新进入即可使用</view>
+      </view>
+      <view class="gate-back" @click="goHome">返回首页</view>
+    </view>
   </view>
 </template>
 
 <script>
 	import { getMyStoreInfo } from '@/api/merchantStore.js';
 	import { guardModule } from '@/libs/moduleSwitch.js';
-	import emptyPage from '@/components/emptyPage.vue';
 	export default {
-		components: { emptyPage },
 		data() {
 			return {
 				loaded: false,
@@ -104,6 +113,9 @@
 			},
 			nav(url) {
 				uni.navigateTo({ url });
+			},
+			goHome() {
+				uni.switchTab({ url: '/pages/index/index' });
 			}
 		}
 	};
@@ -339,5 +351,68 @@
   font-size: 22rpx;
   color: #c3cad6;
   letter-spacing: 4rpx;
+}
+
+/* ---------- 非门店负责人品牌化空态 ---------- */
+.gate {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 60rpx 120rpx;
+  background: linear-gradient(180deg, #eaf7f0 0%, #f4f6fb 42%);
+}
+.gate-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 66rpx 44rpx 54rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 14rpx 44rpx rgba(24, 90, 58, 0.10);
+}
+.gate-ico {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 36rpx;
+  background: linear-gradient(135deg, #43cf7d, #18a852);
+  color: #fff;
+  font-size: 56rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12rpx 28rpx rgba(24, 168, 82, 0.30);
+}
+.gate-title { margin-top: 34rpx; font-size: 34rpx; font-weight: 700; color: #26324b; }
+.gate-desc {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  color: #8a94a6;
+  line-height: 38rpx;
+  text-align: center;
+}
+.gate-line {
+  width: 88rpx;
+  height: 6rpx;
+  border-radius: 3rpx;
+  margin: 34rpx 0 26rpx;
+  background: linear-gradient(90deg, #43cf7d, #18a852);
+}
+.gate-tip { font-size: 26rpx; color: #3d4a5f; font-weight: 600; text-align: center; line-height: 40rpx; }
+.gate-sub { margin-top: 10rpx; font-size: 22rpx; color: #a4adc0; }
+.gate-back {
+  margin-top: 46rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  padding: 0 88rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  border: 2rpx solid #b5e3c6;
+  color: #18a852;
+  font-size: 27rpx;
+  font-weight: 600;
 }
 </style>

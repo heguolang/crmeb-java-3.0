@@ -71,6 +71,9 @@ public interface StockRewardService {
     /** 未读消息数 */
     Long unreadNoticeCount(Integer uid);
 
+    /** 一键全部已读，返回处理条数 */
+    Integer readAllNotices(Integer uid);
+
     // ==================== 后台 ====================
 
     /** 奖金明细列表 */

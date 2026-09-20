@@ -6,6 +6,11 @@
       <view class="top-deco d2"></view>
       <view class="page-title">消息通知</view>
       <view class="page-sub">{{ unreadCount ? ('您有 ' + unreadCount + ' 条未读消息，点击卡片可标记已读') : '消息已全部读完' }}</view>
+      <view class="top-actions">
+        <view v-if="unreadCount" class="readall-btn" :class="{ doing: readingAll }" @click.stop="readAll">
+          {{ readingAll ? '处理中…' : '一键已读' }}
+        </view>
+      </view>
     </view>
 
     <view class="page-body">
@@ -36,12 +41,13 @@
 </template>
 
 <script>
-	import { getStockNotices, readStockNotice } from '@/api/stock.js';
+	import { getStockNotices, readStockNotice, readAllStockNotices } from '@/api/stock.js';
 	export default {
 		data() {
 			return {
 				list: [],
-				loaded: false
+				loaded: false,
+				readingAll: false
 			};
 		},
 		computed: {
@@ -68,6 +74,15 @@
 			read(n) {
 				if (n.isRead) return;
 				readStockNotice(n.id).then(() => { n.isRead = 1; });
+			},
+			readAll() {
+				if (this.readingAll || !this.unreadCount) return;
+				this.readingAll = true;
+				readAllStockNotices().then(() => {
+					this.list.forEach(n => { n.isRead = 1; });
+					uni.showToast({ title: '已全部标记为已读', icon: 'none' });
+					this.readingAll = false;
+				}).catch(() => { this.readingAll = false; });
 			}
 		}
 	};
@@ -102,6 +117,24 @@
   font-size: 23rpx;
   color: rgba(255, 255, 255, 0.88);
   letter-spacing: 1rpx;
+}
+/* 一键已读：白底描边胶囊，跟随文档流右对齐（不能用绝对定位——正文 margin-top 上移会盖住它，导致点不到） */
+.top-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 22rpx;
+}
+.readall-btn {
+  background: rgba(255, 255, 255, 0.92);
+  color: #2b6fe3;
+  font-size: 23rpx;
+  font-weight: 700;
+  border-radius: 999rpx;
+  padding: 10rpx 30rpx;
+  box-shadow: 0 6rpx 16rpx rgba(10, 31, 78, 0.18);
+  &.doing { opacity: 0.6; }
 }
 
 .page-body {

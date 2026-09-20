@@ -429,11 +429,29 @@ public class StockOrderServiceImpl implements StockOrderService {
 
     @Override
     public List<StockVirtualStock> getMyVirtualStock(Integer uid) {
-        return stockVirtualStockDao.selectList(new LambdaQueryWrapper<StockVirtualStock>()
+        List<StockVirtualStock> list = stockVirtualStockDao.selectList(new LambdaQueryWrapper<StockVirtualStock>()
                 .eq(StockVirtualStock::getUid, uid)
                 .eq(StockVirtualStock::getIsDel, 0)
                 .gt(StockVirtualStock::getRemainNum, 0)
                 .orderByDesc(StockVirtualStock::getId));
+        // 附加「换货入库」累计：虚拟库存入账会并入已有行，无法从本表区分来源，改为从已完成换货单推导
+        if (!list.isEmpty()) {
+            Map<String, Integer> exIn = new HashMap<>();
+            for (StockExchange e : stockExchangeDao.selectList(new LambdaQueryWrapper<StockExchange>()
+                    .eq(StockExchange::getUid, uid)
+                    .eq(StockExchange::getIsDel, 0)
+                    .eq(StockExchange::getStatus, StockExchange.STATUS_COMPLETE)
+                    .eq(StockExchange::getTargetStockType, 2)
+                    .gt(StockExchange::getNum, 0))) {
+                String key = e.getTargetProductId() + "_" + (e.getTargetSkuKey() == null ? "" : e.getTargetSkuKey());
+                exIn.merge(key, e.getNum(), Integer::sum);
+            }
+            for (StockVirtualStock v : list) {
+                String key = v.getProductId() + "_" + (v.getSkuKey() == null ? "" : v.getSkuKey());
+                v.setExchangeInNum(exIn.getOrDefault(key, 0));
+            }
+        }
+        return list;
     }
 
     @Override
@@ -469,17 +487,20 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockAdjustLog::getIsDel, 0))) {
             adjustMap.merge(a.getProductId(), a.getNum() == null ? 0 : a.getNum(), Integer::sum);
         }
-        // 净持有量 > 0 的商品（含已完成换货的换入/+、换出/-）
+        // 净持有量 > 0 的商品（含已完成换货的换入/+、换出/-，以及下级换货发出新品对上级的扣减）
         Map<Integer, Integer> exDelta = exchangeStockDeltaMap(agent.getId());
+        Map<Integer, Integer> exOutDelta = exchangeOutDeltaMap(agent.getId());
         java.util.Set<Integer> pids = new java.util.HashSet<>(purchased.keySet());
         pids.addAll(exDelta.keySet());
+        pids.addAll(exOutDelta.keySet());
         pids.addAll(adjustMap.keySet());
         for (Integer pid : pids) {
             int net = purchased.getOrDefault(pid, 0)
                     - supplied.getOrDefault(pid, 0)
                     - sold.getOrDefault(pid, 0)
                     + adjustMap.getOrDefault(pid, 0)
-                    + exDelta.getOrDefault(pid, 0);
+                    + exDelta.getOrDefault(pid, 0)
+                    + exOutDelta.getOrDefault(pid, 0);
             if (net <= 0) {
                 continue;
             }
@@ -961,11 +982,12 @@ public class StockOrderServiceImpl implements StockOrderService {
             throw new CrmebException("只有已完成的订单才能申请换货");
         }
         // 带规格key时精确匹配明细（防止同订单同商品多规格取错/多行抛错）
+        // 注意：取值表达式必须用局部变量，直接写 request.getSkuKey().trim() 会在 skuKey 为 null 时先求值而 NPE
+        String reqSkuKey = request.getSkuKey() == null ? "" : request.getSkuKey().trim();
         StockOrderProduct item = stockOrderProductDao.selectOne(new LambdaQueryWrapper<StockOrderProduct>()
                 .eq(StockOrderProduct::getOrderId, order.getId())
                 .eq(StockOrderProduct::getProductId, request.getProductId())
-                .eq(request.getSkuKey() != null && !request.getSkuKey().trim().isEmpty(),
-                        StockOrderProduct::getSkuKey, request.getSkuKey().trim())
+                .eq(!reqSkuKey.isEmpty(), StockOrderProduct::getSkuKey, reqSkuKey)
                 .last(" limit 1"));
         if (item == null) {
             throw new CrmebException("该订单中没有此商品");
@@ -1038,6 +1060,44 @@ public class StockOrderServiceImpl implements StockOrderService {
         BigDecimal diffPrice = targetPrice.subtract(originPrice)
                 .multiply(new BigDecimal(request.getNum()));
         boolean virtualExchange = isVirtualOrder(order);
+        // 换入库存类型：虚拟库存换货由会员选择（换实体/换虚拟）；实体库存换货只能换实体
+        int targetStockType;
+        if (virtualExchange) {
+            Integer ts = request.getTargetStockType();
+            if (ts == null || (ts != 1 && ts != 2)) {
+                throw new CrmebException("请选择换入实体库存还是虚拟库存");
+            }
+            targetStockType = ts;
+        } else {
+            if (request.getTargetStockType() != null && request.getTargetStockType() != 1) {
+                throw new CrmebException("实体库存换货只能换实体商品");
+            }
+            targetStockType = 1;
+        }
+        // 换入实体商品必须有收货地址（默认带原订单地址，可在申请时改选）
+        Integer addressId = order.getAddressId();
+        if (targetStockType == 1 && request.getAddressId() != null && request.getAddressId() > 0) {
+            UserAddress addr = userAddressService.getById(request.getAddressId());
+            if (addr == null || addr.getIsDel() || !addr.getUid().equals(uid)) {
+                throw new CrmebException("收货地址不存在");
+            }
+            addressId = addr.getId();
+        }
+        if (targetStockType == 1 && (addressId == null || addressId <= 0)) {
+            throw new CrmebException("换入实体商品需要填写收货地址");
+        }
+        // 换入虚拟商品：上级（或总部）需有对应虚拟库存可换出，提前校验给出明确提示
+        if (targetStockType == 2 && hasParentStockCheckNeeded(order)) {
+            StockAgent parent = stockService.getAgentById(order.getParentAgentId());
+            if (parent == null) {
+                throw new CrmebException("上级订货商不存在，无法换入虚拟库存");
+            }
+            int parentVirtual = getParentVirtualStockNum(parent.getUid(), targetProductId,
+                    request.getTargetSkuKey() == null ? "" : request.getTargetSkuKey());
+            if (parentVirtual < request.getNum()) {
+                throw new CrmebException("上级虚拟库存不足，当前可换：" + parentVirtual);
+            }
+        }
 
         StockExchange exchange = new StockExchange();
         exchange.setExchangeNo("HE" + System.currentTimeMillis() + String.valueOf((int) ((Math.random() * 9 + 1) * 1000)));
@@ -1054,6 +1114,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         exchange.setTargetProductId(targetProductId);
         exchange.setTargetSkuKey(request.getTargetSkuKey() == null ? "" : request.getTargetSkuKey());
         exchange.setTargetProductName(targetProduct.getStoreName());
+        exchange.setTargetStockType(targetStockType);
         exchange.setOriginPrice(originPrice);
         exchange.setTargetPrice(targetPrice);
         exchange.setDiffPrice(diffPrice);
@@ -1061,17 +1122,13 @@ public class StockOrderServiceImpl implements StockOrderService {
         exchange.setRealName(order.getRealName());
         exchange.setPhone(order.getPhone());
         exchange.setUserAddress(order.getUserAddress());
-        exchange.setAddressId(order.getAddressId());
+        exchange.setAddressId(addressId);
         // 原订单的直接上级：为 0/null 表示下单时的上级就是总部（自有订货商）
         boolean hasParentAgent = order.getParentAgentId() != null && order.getParentAgentId() > 0;
-        // 虚拟库存换货：总部直发（待发新品）且立即扣减本人虚拟库存；
-        // 实体换货：有直接上级 → 待上级审核；无直接上级（总部直属）→ 直接待总部审核，
-        // 否则会卡在"待上级审核"没有任何人能审（会员端没有上级、后台也看不到处理入口）。
-        if (virtualExchange) {
-            exchange.setStatus(StockExchange.STATUS_WAIT_SEND);
-        } else {
-            exchange.setStatus(hasParentAgent ? StockExchange.STATUS_WAIT_PARENT_AUDIT : StockExchange.STATUS_WAIT_HQ_AUDIT);
-        }
+        // 统一走审核流：实体换货审核后走旧品退回/发新品；
+        // 虚拟换虚拟审核通过后直接扣上级虚拟库存并入账给申请人（无需地址/发货）；
+        // 虚拟换实体审核后进入待发新品，由总部/上级发货。
+        exchange.setStatus(hasParentAgent ? StockExchange.STATUS_WAIT_PARENT_AUDIT : StockExchange.STATUS_WAIT_HQ_AUDIT);
         exchange.setIsDel(0);
 
         boolean ok;
@@ -1084,16 +1141,13 @@ public class StockOrderServiceImpl implements StockOrderService {
             ok = stockExchangeDao.insert(exchange) > 0;
         }
         if (ok) {
-            if (virtualExchange) {
-                stockRewardService.sendNotice(uid, StockNotice.TYPE_ORDER_SEND, "换货申请已提交",
-                        "虚拟库存换货单 " + exchange.getExchangeNo() + " 已提交"
-                                + (diffPrice.signum() > 0 ? "，请先支付差价 ¥" + diffPrice : "")
-                                + "，总部将尽快发货");
-            } else if (hasParentAgent) {
+            String targetDesc = targetStockType == 2 ? "换入虚拟库存" : "换入实体商品";
+            if (hasParentAgent) {
                 StockAgent parent = stockService.getAgentById(exchange.getParentAgentId());
                 if (parent != null) {
                     stockRewardService.sendNotice(parent.getUid(), StockNotice.TYPE_ORDER_AUDIT, "换货单待审核",
-                            "您的下级【" + nickOf(uid) + "】提交了换货申请 " + exchange.getExchangeNo() + "，请及时审核");
+                            "您的下级【" + nickOf(uid) + "】提交了换货申请 " + exchange.getExchangeNo()
+                                    + "（" + targetDesc + "），请及时审核");
                 }
                 stockRewardService.sendNotice(uid, StockNotice.TYPE_ORDER_AUDIT, "换货申请已提交",
                         "换货单 " + exchange.getExchangeNo() + " 已提交，等待您的上级【" + nickOf(parent == null ? 0 : parent.getUid())
@@ -1104,6 +1158,63 @@ public class StockOrderServiceImpl implements StockOrderService {
             }
         }
         return ok;
+    }
+
+    /** 虚拟换货换入虚拟库存时，是否需要校验上级虚拟库存（上级为总部时无需校验） */
+    private boolean hasParentStockCheckNeeded(StockOrder order) {
+        return order.getParentAgentId() != null && order.getParentAgentId() > 0;
+    }
+
+    /** 查询某用户指定商品的虚拟库存可提总量 */
+    private int getParentVirtualStockNum(Integer uid, Integer productId, String skuKey) {
+        int total = 0;
+        for (StockVirtualStock v : stockVirtualStockDao.selectList(new LambdaQueryWrapper<StockVirtualStock>()
+                .eq(StockVirtualStock::getUid, uid)
+                .eq(StockVirtualStock::getProductId, productId)
+                .eq(StockVirtualStock::getSkuKey, skuKey == null ? "" : skuKey)
+                .eq(StockVirtualStock::getIsDel, 0))) {
+            total += v.getRemainNum() == null ? 0 : v.getRemainNum();
+        }
+        return total;
+    }
+
+    /** 按规格回补虚拟库存（合并到已有行；无则新增），驳回换货/取消时恢复使用 */
+    private void creditVirtualStockNum(Integer uid, Integer productId, String skuKey, Integer num) {
+        if (num == null || num <= 0) {
+            return;
+        }
+        String sku = skuKey == null ? "" : skuKey;
+        StockVirtualStock exist = stockVirtualStockDao.selectOne(new LambdaQueryWrapper<StockVirtualStock>()
+                .eq(StockVirtualStock::getUid, uid)
+                .eq(StockVirtualStock::getProductId, productId)
+                .eq(StockVirtualStock::getSkuKey, sku)
+                .eq(StockVirtualStock::getIsDel, 0)
+                .last(" limit 1"));
+        if (exist != null) {
+            stockVirtualStockDao.update(null, new LambdaUpdateWrapper<StockVirtualStock>()
+                    .eq(StockVirtualStock::getId, exist.getId())
+                    .setSql("remain_num = remain_num + " + num));
+        } else {
+            StockVirtualStock v = new StockVirtualStock();
+            v.setUid(uid);
+            v.setProductId(productId);
+            v.setProductName("");
+            v.setImage("");
+            v.setSkuKey(sku);
+            v.setNum(num);
+            v.setRemainNum(num);
+            v.setIsDel(0);
+            stockVirtualStockDao.insert(v);
+        }
+    }
+
+    /** 扣减上级的虚拟库存（换入虚拟商品时，新品从上级虚拟库存中出） */
+    private void deductParentVirtualStock(Integer parentAgentId, Integer productId, String skuKey, Integer num) {
+        StockAgent parent = stockService.getAgentById(parentAgentId);
+        if (parent == null) {
+            throw new CrmebException("上级订货商不存在");
+        }
+        deductVirtualStock(parent.getUid(), productId, skuKey, num);
     }
 
     /** 按 (uid, 商品, 规格) 顺序扣减虚拟库存可提数量，不足则抛异常（调用方需在事务内） */
@@ -1192,6 +1303,37 @@ public class StockOrderServiceImpl implements StockOrderService {
         exchange.setBackExpressName(request.getBackExpressName());
         exchange.setBackExpressNum(request.getBackExpressNum());
         return stockExchangeDao.updateById(exchange) > 0;
+    }
+
+    @Override
+    public HashMap<String, Integer> myPendingCounts(Integer uid) {
+        HashMap<String, Integer> map = new HashMap<>();
+        map.put("audit", 0);
+        map.put("send", 0);
+        map.put("exchangeAudit", 0);
+        StockAgent agent = stockService.getAgentByUid(uid);
+        if (agent == null) {
+            return map;
+        }
+        // 待我审核的订货单（0 待上级审核 + 10 等待匹配上级，与「订单审核」列表口径一致）
+        Integer audit = stockOrderDao.selectCount(new LambdaQueryWrapper<StockOrder>()
+                .eq(StockOrder::getParentAgentId, agent.getId())
+                .eq(StockOrder::getIsDel, 0)
+                .in(StockOrder::getStatus, StockOrder.STATUS_WAIT_PARENT_AUDIT, StockOrder.STATUS_WAIT_MATCH));
+        // 待我发货的订货单（2 待发货，上级发货模式下需要我发出）
+        Integer send = stockOrderDao.selectCount(new LambdaQueryWrapper<StockOrder>()
+                .eq(StockOrder::getParentAgentId, agent.getId())
+                .eq(StockOrder::getIsDel, 0)
+                .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_SEND));
+        // 待我审核的换货单
+        Integer exchangeAudit = stockExchangeDao.selectCount(new LambdaQueryWrapper<StockExchange>()
+                .eq(StockExchange::getParentAgentId, agent.getId())
+                .eq(StockExchange::getIsDel, 0)
+                .eq(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT));
+        map.put("audit", audit == null ? 0 : audit);
+        map.put("send", send == null ? 0 : send);
+        map.put("exchangeAudit", exchangeAudit == null ? 0 : exchangeAudit);
+        return map;
     }
 
     // ==================== 后台 ====================
@@ -1477,12 +1619,72 @@ public class StockOrderServiceImpl implements StockOrderService {
             exchange.setStatus(StockExchange.STATUS_REJECT);
             exchange.setRejectReason(request.getReason().trim());
             stockExchangeDao.updateById(exchange);
-            transactionTemplate.executeWithoutResult(status -> refundExchangeDiffToBalance(exchange));
+            transactionTemplate.executeWithoutResult(status -> {
+                refundExchangeDiffToBalance(exchange);
+                // 虚拟库存换货申请时已扣旧品虚拟库存，驳回后原样恢复
+                restoreVirtualOnReject(exchange);
+            });
             return true;
         }
-        exchange.setStatus(StockExchange.STATUS_WAIT_HQ_AUDIT);
+        // 通过
+        if (isVirtualExchange(exchange)) {
+            if (isVirtualTarget(exchange)) {
+                // 虚拟换虚拟：上级审核通过即完成 —— 扣上级虚拟库存、入账给申请人，无需地址与发货
+                requireDiffPaid(exchange);
+                transactionTemplate.executeWithoutResult(status -> completeVirtualToVirtual(exchange, "您的上级"));
+            } else {
+                // 虚拟换实体：无需旧品退回，直接进入待发新品
+                exchange.setStatus(StockExchange.STATUS_WAIT_SEND);
+                stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_AUDIT, "换货单审核通过",
+                        "您的换货单 " + exchange.getExchangeNo() + " 已审核通过，新品将尽快发出");
+            }
+        } else {
+            exchange.setStatus(StockExchange.STATUS_WAIT_HQ_AUDIT);
+        }
         exchange.setAuditTime(new Date());
         return stockExchangeDao.updateById(exchange) > 0;
+    }
+
+    /** 换货来源是否虚拟库存（exchangeType=1） */
+    private boolean isVirtualExchange(StockExchange exchange) {
+        return exchange.getExchangeType() != null && exchange.getExchangeType() == 1;
+    }
+
+    /** 换入是否虚拟库存（NULL/1=实体） */
+    private boolean isVirtualTarget(StockExchange exchange) {
+        return exchange.getTargetStockType() != null && exchange.getTargetStockType() == 2;
+    }
+
+    /** 有差价未支付时禁止推进（发货/完成） */
+    private void requireDiffPaid(StockExchange exchange) {
+        if (exchange.getDiffPrice() != null && exchange.getDiffPrice().signum() > 0
+                && (exchange.getDiffPayStatus() == null || exchange.getDiffPayStatus() != 1)) {
+            throw new CrmebException("会员尚未支付换货差价 ¥" + exchange.getDiffPrice());
+        }
+    }
+
+    /** 虚拟换虚拟审核通过：扣上级虚拟库存 → 入账申请人 → 直接完成（须在事务内调用） */
+    private void completeVirtualToVirtual(StockExchange exchange, String auditorDesc) {
+        if (exchange.getParentAgentId() != null && exchange.getParentAgentId() > 0) {
+            deductParentVirtualStock(exchange.getParentAgentId(), exchange.getTargetProductId(),
+                    exchange.getTargetSkuKey(), exchange.getNum());
+        }
+        creditVirtualStockNum(exchange.getUid(), exchange.getTargetProductId(),
+                exchange.getTargetSkuKey(), exchange.getNum());
+        exchange.setStatus(StockExchange.STATUS_COMPLETE);
+        exchange.setFinishTime(new Date());
+        stockExchangeDao.updateById(exchange);
+        stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_SEND, "换货完成",
+                "您的换货单 " + exchange.getExchangeNo() + " 已由" + auditorDesc + "审核通过，"
+                        + "新品虚拟库存已入账，可在【虚拟库存】中查看");
+    }
+
+    /** 驳回时恢复申请时扣减的虚拟库存（仅虚拟来源换货） */
+    private void restoreVirtualOnReject(StockExchange exchange) {
+        if (!isVirtualExchange(exchange)) {
+            return;
+        }
+        creditVirtualStockNum(exchange.getUid(), exchange.getProductId(), exchange.getSkuKey(), exchange.getNum());
     }
 
     @Override
@@ -1503,14 +1705,29 @@ public class StockOrderServiceImpl implements StockOrderService {
             exchange.setStatus(StockExchange.STATUS_REJECT);
             exchange.setRejectReason("[总部介入]" + request.getReason().trim());
             stockExchangeDao.updateById(exchange);
-            transactionTemplate.executeWithoutResult(status -> refundExchangeDiffToBalance(exchange));
+            transactionTemplate.executeWithoutResult(status -> {
+                refundExchangeDiffToBalance(exchange);
+                // 虚拟库存换货申请时已扣旧品虚拟库存，驳回后原样恢复
+                restoreVirtualOnReject(exchange);
+            });
             stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_AUDIT, "换货单已驳回",
                     "您的换货单 " + exchange.getExchangeNo() + " 被总部驳回：" + request.getReason().trim());
             return true;
         }
-        // 通过：正常流程(1)进入待旧品退回；介入(0)跳过上级审核与总部复审，直接进入待旧品退回
+        // 通过：实体换货 → 待旧品退回（总部介入时跳过上级复审，同样进入待旧品退回）；
+        // 虚拟换虚拟 → 直接完成（扣上级虚拟库存并入账）；虚拟换实体 → 直接待发新品
+        if (isVirtualExchange(exchange) && isVirtualTarget(exchange)) {
+            requireDiffPaid(exchange);
+            transactionTemplate.executeWithoutResult(status -> completeVirtualToVirtual(exchange, "总部"));
+            return true;
+        }
         exchange.setStatus(StockExchange.STATUS_WAIT_BACK);
-        if (intervene) {
+        if (isVirtualExchange(exchange)) {
+            // 虚拟换实体：没有旧品可退，跳过旧品退回直接待发新品
+            exchange.setStatus(StockExchange.STATUS_WAIT_SEND);
+            stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_AUDIT, "换货单审核通过",
+                    "您的换货单 " + exchange.getExchangeNo() + " 已由总部审核通过，新品将尽快发出");
+        } else if (intervene) {
             stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_AUDIT, "换货单审核通过",
                     "您的换货单 " + exchange.getExchangeNo() + " 已由总部审核通过，请寄回旧品并填写退回快递");
         }
@@ -1807,11 +2024,15 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockAdjustLog::getIsDel, 0))) {
             adjusted += a.getNum() == null ? 0 : a.getNum();
         }
-        return purchased - supplied - sold + adjusted + exchangeStockDeltaMap(agent.getId()).getOrDefault(productId, 0);
+        return purchased - supplied - sold + adjusted
+                + exchangeStockDeltaMap(agent.getId()).getOrDefault(productId, 0)
+                + exchangeOutDeltaMap(agent.getId()).getOrDefault(productId, 0);
     }
 
     /**
-     * 已完成换货对该代理实体库存的净影响：换入商品 +num、换出商品 -num
+     * 已完成换货对该代理【自身】实体库存的净影响：
+     * - 换出商品 -num：仅实体来源换货（虚拟来源的旧品扣的是虚拟库存，与实体无关）
+     * - 换入商品 +num：仅换入实体商品（换入虚拟的记在虚拟库存）
      */
     private Map<Integer, Integer> exchangeStockDeltaMap(Integer agentId) {
         Map<Integer, Integer> map = new HashMap<>();
@@ -1821,12 +2042,32 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockExchange::getIsDel, 0));
         for (StockExchange e : done) {
             int num = e.getNum() == null ? 0 : e.getNum();
-            if (e.getProductId() != null) {
+            if (!isVirtualExchange(e) && e.getProductId() != null) {
                 map.merge(e.getProductId(), -num, Integer::sum);
             }
-            if (e.getTargetProductId() != null && e.getTargetProductId() > 0) {
+            if (!isVirtualTarget(e) && e.getTargetProductId() != null && e.getTargetProductId() > 0) {
                 map.merge(e.getTargetProductId(), num, Integer::sum);
             }
+        }
+        return map;
+    }
+
+    /**
+     * 已完成换货对【上级】实体库存的影响：下级换货发出新品 = 从上级实体库存中出库，
+     * 上级对应商品可供应量 -num。仅统计换入实体商品的换货单（虚拟换虚拟不走发货）。
+     */
+    private Map<Integer, Integer> exchangeOutDeltaMap(Integer agentId) {
+        Map<Integer, Integer> map = new HashMap<>();
+        List<StockExchange> done = stockExchangeDao.selectList(new LambdaQueryWrapper<StockExchange>()
+                .eq(StockExchange::getParentAgentId, agentId)
+                .eq(StockExchange::getStatus, StockExchange.STATUS_COMPLETE)
+                .eq(StockExchange::getIsDel, 0));
+        for (StockExchange e : done) {
+            if (isVirtualTarget(e) || e.getTargetProductId() == null || e.getTargetProductId() <= 0) {
+                continue;
+            }
+            int num = e.getNum() == null ? 0 : e.getNum();
+            map.merge(e.getTargetProductId(), -num, Integer::sum);
         }
         return map;
     }
@@ -2028,7 +2269,73 @@ public class StockOrderServiceImpl implements StockOrderService {
         return null;
     }
 
-    // ==================== 换货可选目标与差价 ====================
+    @Override
+    public HashMap<String, Object> getExchangeQuota(Integer uid, Integer productId, String skuKey, Integer orderId, Integer sourceStockType) {
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("orderId", orderId == null ? 0 : orderId);
+        map.put("orderNo", "");
+        map.put("purchased", 0);   // 原订单该商品购买数量
+        map.put("exchanged", 0);   // 该单该商品已申请换货数量（含在途，驳回不计）
+        map.put("remain", 0);      // 还可申请数量
+        map.put("blocked", false); // 一单一换开关下是否已有有效换货单
+        map.put("blockedExchangeNo", "");
+        StockAgent agent = stockService.getAgentByUid(uid);
+        if (agent == null || productId == null) {
+            return map;
+        }
+        StockOrder order;
+        if (orderId != null) {
+            order = stockOrderDao.selectById(orderId);
+        } else {
+            order = findLatestCompletedOrder(uid, productId, sourceStockType);
+        }
+        if (order == null || order.getIsDel() == 1 || !order.getUid().equals(uid)
+                || !order.getStatus().equals(StockOrder.STATUS_COMPLETE)) {
+            map.put("blocked", true);
+            map.put("blockedReason", "未找到可换货的已完成订单");
+            return map;
+        }
+        String sku = skuKey == null ? "" : skuKey.trim();
+        StockOrderProduct item = stockOrderProductDao.selectOne(new LambdaQueryWrapper<StockOrderProduct>()
+                .eq(StockOrderProduct::getOrderId, order.getId())
+                .eq(StockOrderProduct::getProductId, productId)
+                .eq(!sku.isEmpty(), StockOrderProduct::getSkuKey, sku)
+                .last(" limit 1"));
+        if (item == null) {
+            map.put("blocked", true);
+            map.put("blockedReason", "该订单中没有此商品");
+            return map;
+        }
+        int purchased = item.getNum() == null ? 0 : item.getNum();
+        int used = 0;
+        for (StockExchange e : stockExchangeDao.selectList(new LambdaQueryWrapper<StockExchange>()
+                .eq(StockExchange::getOrderId, order.getId())
+                .eq(StockExchange::getProductId, productId)
+                .ne(StockExchange::getStatus, StockExchange.STATUS_REJECT)
+                .eq(StockExchange::getIsDel, 0))) {
+            used += e.getNum() == null ? 0 : e.getNum();
+        }
+        map.put("orderId", order.getId());
+        map.put("orderNo", order.getOrderNo());
+        map.put("purchased", purchased);
+        map.put("exchanged", used);
+        map.put("remain", Math.max(0, purchased - used));
+        // 一单一换：已有有效换货单（非驳回）则整单不可再申请
+        if (!"0".equals(systemConfigService.getValueByKey(CFG_EXCHANGE_ONCE))) {
+            StockExchange active = stockExchangeDao.selectOne(new LambdaQueryWrapper<StockExchange>()
+                    .eq(StockExchange::getOrderId, order.getId())
+                    .ne(StockExchange::getStatus, StockExchange.STATUS_REJECT)
+                    .eq(StockExchange::getIsDel, 0)
+                    .orderByDesc(StockExchange::getId)
+                    .last(" limit 1"));
+            if (active != null) {
+                map.put("blocked", true);
+                map.put("blockedExchangeNo", active.getExchangeNo());
+                map.put("blockedReason", "该订单已申请过换货，不能重复申请换货");
+            }
+        }
+        return map;
+    }
 
     @Override
     public List<StockExchangeTarget> getExchangeTargetList(Integer productId, String skuKey) {
@@ -2073,6 +2380,8 @@ public class StockOrderServiceImpl implements StockOrderService {
             }
         });
     }
+
+    // ==================== 换货可选目标与差价 ====================
 
     @Override
     public List<HashMap<String, Object>> getExchangeOptions(Integer uid, Integer productId, String skuKey) {
@@ -2577,11 +2886,14 @@ public class StockOrderServiceImpl implements StockOrderService {
             orderNoMap.put(o.getId(), o.getOrderNo());
             stockTypeMap.put(o.getId(), o.getStockType());
         }
-        // 商品缩略图
+        // 商品缩略图（原商品 + 换入商品）
         List<Integer> productIds = new ArrayList<>();
         for (StockExchange e : list) {
             if (e.getProductId() != null && !productIds.contains(e.getProductId())) {
                 productIds.add(e.getProductId());
+            }
+            if (e.getTargetProductId() != null && e.getTargetProductId() > 0 && !productIds.contains(e.getTargetProductId())) {
+                productIds.add(e.getTargetProductId());
             }
         }
         HashMap<Integer, String> productImageMap = new HashMap<>();
@@ -2590,12 +2902,40 @@ public class StockOrderServiceImpl implements StockOrderService {
                 productImageMap.put(p.getId(), p.getImage());
             }
         }
+        // 换入商品规格名（按商品聚合规格后匹配 attrValue）
+        HashMap<String, String> skuNameMap = new HashMap<>();
+        for (StockExchange e : list) {
+            String sku = e.getTargetSkuKey() == null ? "" : e.getTargetSkuKey().trim();
+            if (sku.isEmpty() || e.getTargetProductId() == null || skuNameMap.containsKey(e.getTargetProductId() + "::" + sku)) {
+                continue;
+            }
+            String skuName = "";
+            for (HashMap<String, Object> skuItem : stockService.getProductSkuList(e.getTargetProductId())) {
+                if (sku.equals(String.valueOf(skuItem.get("skuKey")))) {
+                    Object avText = skuItem.get("attrValue");
+                    String raw = avText == null ? "" : String.valueOf(avText);
+                    if (raw.startsWith("{")) {
+                        raw = raw.replace("{", "").replace("}", "").replace("\"", "")
+                                .replace(":", "：").replace(",", " / ");
+                    }
+                    skuName = raw;
+                    break;
+                }
+            }
+            skuNameMap.put(e.getTargetProductId() + "::" + sku, skuName);
+        }
         for (StockExchange e : list) {
             User u = userMap.get(e.getUid());
             e.setNickname(u == null ? "" : u.getNickname());
             e.setOrderNo(orderNoMap.get(e.getOrderId()) == null ? "" : orderNoMap.get(e.getOrderId()));
             e.setProductImage(productImageMap.get(e.getProductId()) == null ? "" : productImageMap.get(e.getProductId()));
             e.setStockType(stockTypeMap.get(e.getOrderId()));
+            if (e.getTargetProductId() != null && e.getTargetProductId() > 0) {
+                e.setTargetProductImage(productImageMap.get(e.getTargetProductId()) == null
+                        ? "" : productImageMap.get(e.getTargetProductId()));
+                String sku = e.getTargetSkuKey() == null ? "" : e.getTargetSkuKey().trim();
+                e.setTargetSkuName(skuNameMap.getOrDefault(e.getTargetProductId() + "::" + sku, ""));
+            }
         }
     }
 }

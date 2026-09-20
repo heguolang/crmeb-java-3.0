@@ -218,7 +218,7 @@
               <span v-else style="color: #c0c4cc">—</span>
             </template>
           </el-table-column>
-          <el-table-column label="下级订单号" width="180" show-overflow-tooltip>
+          <el-table-column label="关联单号" width="180" show-overflow-tooltip>
             <template slot-scope="scope">
               <span v-if="scope.row.orderNo">{{ scope.row.orderNo }}</span>
               <span v-else style="color: #c0c4cc">—</span>

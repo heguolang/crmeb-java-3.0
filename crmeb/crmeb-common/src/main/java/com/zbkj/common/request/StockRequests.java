@@ -126,6 +126,12 @@ public class StockRequests {
 
         @ApiModelProperty(value = "要换入的规格key")
         private String targetSkuKey;
+
+        @ApiModelProperty(value = "换入库存类型：1=实体 2=虚拟（虚拟库存换货时必选；实体库存换货固定为1）")
+        private Integer targetStockType;
+
+        @ApiModelProperty(value = "收货地址ID（换入实体商品时必填，用于总部/上级发新品）")
+        private Integer addressId;
     }
 
     @Data

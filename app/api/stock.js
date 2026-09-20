@@ -129,6 +129,11 @@ export function getExchangeOptions(productId, skuKey) {
   return request.get('stock/exchange/options', { productId, skuKey: skuKey || '' });
 }
 
+/** 换货可申请余量（原单购买数/已换数/还可申请数；一单一换时 blocked=true） */
+export function getExchangeQuota(params) {
+  return request.get('stock/exchange/quota', params || {});
+}
+
 /** 支付换货差价 */
 export function payExchangeDiff(data) {
   return request.post('stock/exchange/payDiff', data);
@@ -177,4 +182,9 @@ export function getStockNoticeUnread() {
 /** 标记消息已读 */
 export function readStockNotice(id) {
   return request.post('stock/notice/read?id=' + id);
+}
+
+/** 一键全部已读 */
+export function readAllStockNotices() {
+  return request.post('stock/notice/readAll');
 }

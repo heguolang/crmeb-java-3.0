@@ -431,56 +431,61 @@ public class AgentServiceImpl implements AgentService {
         if (CollUtil.isEmpty(activeAgents)) {
             return new ArrayList<>();
         }
-        Agent matched = matchAgent(address, activeAgents);
-        if (ObjectUtil.isNull(matched)) {
-            return new ArrayList<>();
-        }
-        if (ObjectUtil.isNull(matched.getRatio()) || matched.getRatio().compareTo(BigDecimal.ZERO) <= 0) {
-            logger.warn("区域代理【{}】奖励比例未设置，跳过订单{}", matched.getRegionName(), storeOrder.getOrderId());
-            return new ArrayList<>();
-        }
-
-        // 奖励金额 = 订单实付金额 * 比例
-        BigDecimal reward = storeOrder.getPayPrice()
-                .multiply(matched.getRatio())
-                .divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
-        if (reward.compareTo(BigDecimal.ZERO) <= 0) {
+        // 逐级匹配：省/市/区各级各取一个最匹配的代理，全部参与分润
+        // （修复：原先 matchAgent 只取一个"最优"代理，订单落到南明区时只给区代 2%，
+        //   贵阳市代 3% 和贵州省代 5% 拿不到 —— 三级代理是独立区域授权，应同时生效）
+        List<Agent> matchedList = matchAgents(address, activeAgents);
+        if (CollUtil.isEmpty(matchedList)) {
             return new ArrayList<>();
         }
 
         String frozenTime = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_EXTRACT_TIME);
         int frozenDays = Integer.parseInt(StrUtil.blankToDefault(frozenTime, "0"));
 
-        // 佣金记录（与团队奖同模式：先CREATE，按到账方式入账）
-        UserBrokerageRecord record = new UserBrokerageRecord();
-        record.setUid(matched.getUid());
-        record.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
-        record.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
-        record.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_AGENT);
-        record.setPrice(reward);
-        record.setMark(StrUtil.format("订单【{}】实付{}元，收货地址命中代理区域【{}】，比例{}%",
-                storeOrder.getOrderId(), storeOrder.getPayPrice(), matched.getRegionName(), matched.getRatio()));
-        record.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE);
-        record.setFrozenTime(frozenDays);
-        record.setCreateTime(CrmebDateUtil.nowDateTime());
-        record.setBrokerageLevel(BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT);
-
-        // 奖励明细
-        AgentReward rewardRow = new AgentReward();
-        rewardRow.setAgentId(matched.getId());
-        rewardRow.setUid(matched.getUid());
-        rewardRow.setOrderId(storeOrder.getOrderId());
-        rewardRow.setOrderPayPrice(storeOrder.getPayPrice());
-        rewardRow.setRatio(matched.getRatio());
-        rewardRow.setRewardPrice(reward);
-        rewardRow.setRegionName(matched.getRegionName());
-        rewardRow.setRecordId(0);
-        rewardRow.setStatus(AgentReward.STATUS_WAIT);
-        rewardRow.setCreateTime(new Date());
-        agentRewardDao.insert(rewardRow);
-
         ArrayList<UserBrokerageRecord> list = new ArrayList<>();
-        list.add(record);
+        for (Agent matched : matchedList) {
+            if (ObjectUtil.isNull(matched.getRatio()) || matched.getRatio().compareTo(BigDecimal.ZERO) <= 0) {
+                logger.warn("区域代理【{}】奖励比例未设置，跳过订单{}", matched.getRegionName(), storeOrder.getOrderId());
+                continue;
+            }
+            // 奖励金额 = 订单实付金额 * 比例（各级独立计算，互不影响）
+            BigDecimal reward = storeOrder.getPayPrice()
+                    .multiply(matched.getRatio())
+                    .divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
+            if (reward.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+
+            // 佣金记录（与团队奖同模式：先CREATE，按到账方式入账）
+            UserBrokerageRecord record = new UserBrokerageRecord();
+            record.setUid(matched.getUid());
+            record.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+            record.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
+            record.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_AGENT);
+            record.setPrice(reward);
+            record.setMark(StrUtil.format("订单【{}】实付{}元，收货地址命中代理区域【{}】，比例{}%",
+                    storeOrder.getOrderId(), storeOrder.getPayPrice(), matched.getRegionName(), matched.getRatio()));
+            record.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE);
+            record.setFrozenTime(frozenDays);
+            record.setCreateTime(CrmebDateUtil.nowDateTime());
+            record.setBrokerageLevel(BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT);
+
+            // 奖励明细
+            AgentReward rewardRow = new AgentReward();
+            rewardRow.setAgentId(matched.getId());
+            rewardRow.setUid(matched.getUid());
+            rewardRow.setOrderId(storeOrder.getOrderId());
+            rewardRow.setOrderPayPrice(storeOrder.getPayPrice());
+            rewardRow.setRatio(matched.getRatio());
+            rewardRow.setRewardPrice(reward);
+            rewardRow.setRegionName(matched.getRegionName());
+            rewardRow.setRecordId(0);
+            rewardRow.setStatus(AgentReward.STATUS_WAIT);
+            rewardRow.setCreateTime(new Date());
+            agentRewardDao.insert(rewardRow);
+
+            list.add(record);
+        }
         return list;
     }
 
@@ -502,12 +507,16 @@ public class AgentServiceImpl implements AgentService {
                 .collect(Collectors.toList());
         Date now = new Date();
         for (AgentReward reward : rewardList) {
+            // 同一订单可能产生多条代理奖励（省/市/区逐级分润），且各级可能是同一个人；
+            // 必须按 uid + 金额一一配对（配对即从池中移除），否则同人多条奖励会重复关联到同一条记录
             UserBrokerageRecord matched = recordList.stream()
                     .filter(r -> r.getUid().equals(reward.getUid()))
+                    .filter(r -> r.getPrice() != null && r.getPrice().compareTo(reward.getRewardPrice()) == 0)
                     .findFirst().orElse(null);
             if (ObjectUtil.isNull(matched)) {
                 continue;
             }
+            recordList.remove(matched);
             if (BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE.equals(matched.getStatus())) {
                 reward.setStatus(AgentReward.STATUS_CREDITED);
                 reward.setCreditTime(now);
@@ -523,12 +532,19 @@ public class AgentServiceImpl implements AgentService {
     // ==================== 私有方法 ====================
 
     /**
-     * 按收货地址匹配区域代理：地址包含省/市/区关键词即命中，得分越高（含更多层级）越优先
+     * 按收货地址逐级匹配区域代理：省/市/区各级各取一个得分最高的代理（可全部命中、全部分润）。
+     * 单个代理的命中规则与原 matchAgent 一致：地址需包含该代理自身的区域关键词（matchKey）。
      */
-    private Agent matchAgent(String address, List<Agent> agents) {
-        Agent best = null;
-        int bestScore = 0;
-        int bestLen = 0;
+    private List<Agent> matchAgents(String address, List<Agent> agents) {
+        Agent bestProvince = null;
+        Agent bestCity = null;
+        Agent bestDistrict = null;
+        int scoreProvince = 0;
+        int scoreCity = 0;
+        int scoreDistrict = 0;
+        int lenProvince = 0;
+        int lenCity = 0;
+        int lenDistrict = 0;
         for (Agent agent : agents) {
             int score = 0;
             if (StrUtil.isNotBlank(agent.getProvince()) && address.contains(agent.getProvince())) {
@@ -546,13 +562,39 @@ public class AgentServiceImpl implements AgentService {
                 continue;
             }
             int len = selfKey.length();
-            if (score > bestScore || (score == bestScore && len > bestLen)) {
-                best = agent;
-                bestScore = score;
-                bestLen = len;
+            Integer level = agent.getLevel();
+            if (Agent.LEVEL_PROVINCE.equals(level)) {
+                if (score > scoreProvince || (score == scoreProvince && len > lenProvince)) {
+                    bestProvince = agent;
+                    scoreProvince = score;
+                    lenProvince = len;
+                }
+            } else if (Agent.LEVEL_CITY.equals(level)) {
+                if (score > scoreCity || (score == scoreCity && len > lenCity)) {
+                    bestCity = agent;
+                    scoreCity = score;
+                    lenCity = len;
+                }
+            } else if (Agent.LEVEL_DISTRICT.equals(level)) {
+                if (score > scoreDistrict || (score == scoreDistrict && len > lenDistrict)) {
+                    bestDistrict = agent;
+                    scoreDistrict = score;
+                    lenDistrict = len;
+                }
             }
         }
-        return best;
+        List<Agent> result = new ArrayList<>();
+        // 返回顺序：省 → 市 → 区（从大到小），便于日志与明细阅读
+        if (bestProvince != null) {
+            result.add(bestProvince);
+        }
+        if (bestCity != null) {
+            result.add(bestCity);
+        }
+        if (bestDistrict != null) {
+            result.add(bestDistrict);
+        }
+        return result;
     }
 
     private void validateRegion(Integer level, String province, String city, String district) {

@@ -72,6 +72,9 @@ public interface StockOrderService {
     /** 会员端：该商品规格可换入的目标（含目标拿货价与差价，已过滤低于原价的目标） */
     List<HashMap<String, Object>> getExchangeOptions(Integer uid, Integer productId, String skuKey);
 
+    /** 换货可申请余量：原单购买数 / 已换数 / 还可申请数（一单一换时 blocked=true） */
+    HashMap<String, Object> getExchangeQuota(Integer uid, Integer productId, String skuKey, Integer orderId, Integer sourceStockType);
+
     /** 换货差价支付（yue=余额 weixin=微信），支付成功后按比例奖励直接上级 */
     HashMap<String, Object> payExchangeDiff(Integer uid, StockRequests.StockExchangeDiffPayRequest request);
 
@@ -122,6 +125,11 @@ public interface StockOrderService {
 
     /** 代理填写旧品退回快递 */
     Boolean fillBackExpress(Integer uid, Integer exchangeId, StockRequests.StockExchangeBackRequest request);
+
+    /**
+     * 订货中心角标计数：audit=待我审核的订货单、send=待我发货的订货单、exchangeAudit=待我审核的换货单
+     */
+    HashMap<String, Integer> myPendingCounts(Integer uid);
 
     // ==================== 后台 ====================
 

@@ -102,6 +102,9 @@ public class StockExchange implements Serializable {
     @ApiModelProperty(value = "商品名称（冗余）")
     private String productName;
 
+    @ApiModelProperty(value = "换入库存类型：1=实体 2=虚拟（虚拟换货时可选择；NULL/1=实体）")
+    private Integer targetStockType;
+
     @ApiModelProperty(value = "换货数量")
     private Integer num;
 
@@ -158,6 +161,14 @@ public class StockExchange implements Serializable {
     @ApiModelProperty(value = "商品缩略图")
     @TableField(exist = false)
     private String productImage;
+
+    @ApiModelProperty(value = "换入商品缩略图")
+    @TableField(exist = false)
+    private String targetProductImage;
+
+    @ApiModelProperty(value = "换入商品规格名（attrValue 可读文本）")
+    @TableField(exist = false)
+    private String targetSkuName;
 
     @ApiModelProperty(value = "库存类型：1=实体 2=虚拟（取自关联订货单）")
     @TableField(exist = false)

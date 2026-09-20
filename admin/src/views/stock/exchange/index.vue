@@ -35,7 +35,19 @@
                 <span v-else class="goods-img goods-img-empty">{{ (row.productName || '?').slice(0, 1) }}</span>
                 <div class="goods-info">
                   <div class="goods-name" :title="row.productName">{{ row.productName }}</div>
-                  <div class="goods-num">共 {{ row.num }} 件<span v-if="row.reason" class="goods-reason"> · {{ row.reason }}</span></div>
+                  <div class="goods-num">共 {{ row.num }} 件<span class="goods-price"> · 拿货 ¥{{ row.originPrice }}</span></div>
+                </div>
+              </div>
+              <div class="goods-arrow"><i class="el-icon-bottom"></i> 换入</div>
+              <div class="goods-item is-target">
+                <img v-if="row.targetProductImage" :src="row.targetProductImage" class="goods-img" />
+                <span v-else class="goods-img goods-img-empty">{{ (row.targetProductName || '?').slice(0, 1) }}</span>
+                <div class="goods-info">
+                  <div class="goods-name" :title="row.targetProductName">{{ row.targetProductName || '—' }}</div>
+                  <div class="goods-num">
+                    <span v-if="row.targetSkuName">规格：{{ row.targetSkuName }} · </span>拿货 ¥{{ row.targetPrice }}
+                    <span v-if="Number(row.diffPrice) > 0" class="goods-diff">需补差价 ¥{{ row.diffPrice }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -115,6 +127,7 @@
       </div>
     </el-dialog>
 
+    <!-- 发新品弹窗：复用订货订单发货同款样式与逻辑（配送方式 + 快递公司下拉） -->
     <el-dialog title="发新品" :visible.sync="sendVisible" width="520px">
       <!-- 收货信息卡 -->
       <div v-if="sendRow" class="ship-recipient">
@@ -132,9 +145,37 @@
         <span class="sub-text">新品：{{ sendRow.targetProductName || sendRow.productName }} × {{ sendRow.num }}</span>
       </div>
 
+      <!-- 配送方式选择卡（与订货订单发货弹窗同款） -->
+      <div class="ship-types">
+        <div v-for="t in deliveryTypes" :key="t.value" class="ship-type" :class="{ active: sendForm.deliveryType === t.value }" @click="setDeliveryType(t.value)">
+          <i :class="t.icon" class="st-icon"></i>
+          <div class="st-name">{{ t.name }}</div>
+          <div class="st-desc">{{ t.desc }}</div>
+        </div>
+      </div>
+
       <el-form label-width="90px" size="small" style="margin-top: 16px">
-        <el-form-item label="快递公司"><el-input v-model="sendForm.expressName" placeholder="请输入快递公司" /></el-form-item>
-        <el-form-item label="快递单号"><el-input v-model="sendForm.expressNum" placeholder="请输入快递单号" /></el-form-item>
+        <template v-if="sendForm.deliveryType === 'express'">
+          <el-form-item label="快递公司">
+            <el-select v-model="sendForm.expressCode" filterable placeholder="请选择快递公司" style="width: 100%" @change="onExpressChange">
+              <el-option v-for="item in expressOptions" :key="item.code" :label="item.name" :value="item.code" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="快递单号">
+            <el-input v-model="sendForm.expressNum" placeholder="请输入快递单号" />
+          </el-form-item>
+        </template>
+        <template v-else-if="sendForm.deliveryType === 'send'">
+          <el-form-item label="送货人姓名">
+            <el-input v-model="sendForm.deliveryName" placeholder="请输入送货人姓名" />
+          </el-form-item>
+          <el-form-item label="送货人电话">
+            <el-input v-model="sendForm.deliveryTel" placeholder="请输入送货人电话" />
+          </el-form-item>
+        </template>
+        <el-form-item v-else label="虚拟发货">
+          <span class="sub-text">无需物流，确认后直接标记已发货</span>
+        </el-form-item>
       </el-form>
       <div slot="footer">
         <el-button size="small" @click="sendVisible = false">取消</el-button>
@@ -146,6 +187,7 @@
 
 <script>
 import { stockExchangeListApi, stockExchangeAuditApi, stockExchangeBackApi, stockExchangeSendApi } from '@/api/stock';
+import { expressAllApi } from '@/api/sms';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -162,7 +204,13 @@ export default {
       auditForm: { status: 1, reason: '' },
       sendVisible: false,
       sendRow: null,
-      sendForm: { expressName: '', expressNum: '' }
+      expressOptions: [],
+      sendForm: { deliveryType: 'express', expressCode: '', expressName: '', expressNum: '', deliveryName: '', deliveryTel: '' },
+      deliveryTypes: [
+        { value: 'express', name: '快递发货', desc: '填写快递单号', icon: 'el-icon-truck' },
+        { value: 'send', name: '送货上门', desc: '登记送货人', icon: 'el-icon-user' },
+        { value: 'fictitious', name: '虚拟发货', desc: '无需物流', icon: 'el-icon-message' }
+      ]
     };
   },
   methods: {
@@ -217,8 +265,28 @@ export default {
     },
     openSend(row) {
       this.sendRow = row;
-      this.sendForm = { expressName: '', expressNum: '' };
+      this.sendForm = { deliveryType: 'express', expressCode: '', expressName: '', expressNum: '', deliveryName: '', deliveryTel: '' };
       this.sendVisible = true;
+      // 快递公司列表（与订货订单发货共用同一接口）
+      if (!this.expressOptions.length) {
+        expressAllApi({ type: 'normal' }).then(res => {
+          this.expressOptions = res || [];
+        }).catch(() => { this.expressOptions = []; });
+      }
+    },
+    onExpressChange(code) {
+      const item = this.expressOptions.find(e => e.code === code);
+      this.sendForm.expressName = item ? item.name : '';
+    },
+    // 切换配送方式时清空对应表单（与订货订单发货一致）
+    setDeliveryType(v) {
+      if (this.sendForm.deliveryType === v) return;
+      this.sendForm.deliveryType = v;
+      this.sendForm.expressCode = '';
+      this.sendForm.expressName = '';
+      this.sendForm.expressNum = '';
+      this.sendForm.deliveryName = '';
+      this.sendForm.deliveryTel = '';
     },
     // 复制收货信息（姓名 + 电话 + 地址）
     copyRecipient() {
@@ -243,8 +311,24 @@ export default {
       document.body.removeChild(input);
     },
     saveSend() {
-      if (!this.sendForm.expressName || !this.sendForm.expressNum) return this.$message.error('请填写快递信息');
-      stockExchangeSendApi(this.sendRow.id, this.sendForm).then(() => {
+      const f = this.sendForm;
+      let expressName = '';
+      let expressNum = '';
+      if (f.deliveryType === 'express') {
+        if (!f.expressCode) return this.$message.error('请选择快递公司');
+        if (!f.expressNum) return this.$message.error('请填写快递单号');
+        expressName = f.expressName;
+        expressNum = f.expressNum;
+      } else if (f.deliveryType === 'send') {
+        if (!f.deliveryName) return this.$message.error('请填写送货人姓名');
+        if (!f.deliveryTel) return this.$message.error('请填写送货人电话');
+        expressName = '送货上门';
+        expressNum = f.deliveryName + ' ' + f.deliveryTel;
+      } else {
+        expressName = '虚拟发货';
+        expressNum = '无需物流';
+      }
+      stockExchangeSendApi(this.sendRow.id, { expressName, expressNum }).then(() => {
         this.$message.success('新品已发出，库存已扣减');
         this.sendVisible = false;
         this.getList();
@@ -363,6 +447,26 @@ export default {
 .goods-item {
   display: flex;
   align-items: center;
+}
+/* 换入商品块：与原商品之间加浅色分隔与箭头 */
+.goods-item.is-target {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #ebeef5;
+}
+.goods-arrow {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #409eff;
+  line-height: 16px;
+}
+.goods-diff {
+  margin-left: 6px;
+  color: #f56c6c;
+  font-weight: 600;
+}
+.goods-price {
+  color: #e6a23c;
 }
 .goods-img {
   width: 48px;
@@ -494,6 +598,49 @@ export default {
 /* ===== 发新品弹窗：收货信息卡（与订货订单发货弹窗同款） ===== */
 .ship-goods {
   margin-top: 10px;
+}
+/* 配送方式选择卡（与订货订单发货弹窗同款） */
+.ship-types {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.ship-type {
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ship-type:hover {
+  border-color: #c6e2ff;
+}
+.ship-type.active {
+  border-color: #409eff;
+  background: #f0f7ff;
+}
+.ship-type .st-icon {
+  font-size: 22px;
+  color: #909399;
+}
+.ship-type.active .st-icon {
+  color: #409eff;
+}
+.ship-type .st-name {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #303133;
+  font-weight: 600;
+}
+.ship-type.active .st-name {
+  color: #409eff;
+}
+.ship-type .st-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #c0c4cc;
 }
 .ship-recipient {
   display: flex;

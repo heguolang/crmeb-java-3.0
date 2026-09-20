@@ -92,7 +92,7 @@
           <view class="sheet-title">{{ ordAgent.nickname }} 的订货订单</view>
           <text class="modal-close sheet-close" @click="ordVisible = false">✕</text>
         </view>
-        <view class="sheet-sub">{{ ordAgent.levelName }} · UID {{ ordAgent.uid }} · 共 {{ ordTotal }} 单</view>
+        <view class="sheet-sub">{{ ordAgent.levelName }} · ID {{ ordAgent.uid }} · 共 {{ ordTotal }} 单</view>
 
         <view class="ord-tabs">
           <view

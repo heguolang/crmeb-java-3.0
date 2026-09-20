@@ -14,7 +14,7 @@
             <view class="meta-line">
               <view class="badge">★ {{ agent.levelName || '订货代理' }}</view>
               <view class="upstream">上级 {{ parentUid > 0 ? (agent.parentName || '上级代理') : '总部' }}</view>
-              <view v-if="parentUid > 0" class="up-id">UID {{ parentUid }}</view>
+              <view v-if="parentUid > 0" class="up-id">ID {{ parentUid }}</view>
             </view>
           </view>
         </view>
@@ -52,14 +52,17 @@
           </view>
           <view class="g-item" hover-class="g-press" :hover-stay-time="80" @click="nav('/pages/users/stock/order-list?tab=audit')">
             <view class="g-icon ic-red">审</view>
+            <view v-if="badges.audit > 0" class="g-badge">{{ badgeText(badges.audit) }}</view>
             <view class="g-label">订单审核</view>
           </view>
           <view v-if="parentDeliver" class="g-item" hover-class="g-press" :hover-stay-time="80" @click="nav('/pages/users/stock/order-list?tab=send')">
             <view class="g-icon ic-green">发</view>
+            <view v-if="badges.send > 0" class="g-badge">{{ badgeText(badges.send) }}</view>
             <view class="g-label">订单发货</view>
           </view>
           <view class="g-item" hover-class="g-press" :hover-stay-time="80" @click="nav('/pages/users/stock/exchange')">
             <view class="g-icon ic-purple">换</view>
+            <view v-if="badges.exchangeAudit > 0" class="g-badge">{{ badgeText(badges.exchangeAudit) }}</view>
             <view class="g-label">换货管理</view>
           </view>
           <view class="g-item" hover-class="g-press" :hover-stay-time="80" @click="nav('/pages/users/stock/stock-log')">
@@ -89,6 +92,7 @@
           </view>
           <view class="g-item" hover-class="g-press" :hover-stay-time="80" @click="nav('/pages/users/stock/notice')">
             <view class="g-icon ic-grey">信</view>
+            <view v-if="badges.notice > 0" class="g-badge">{{ badgeText(badges.notice) }}</view>
             <view class="g-label">消息通知</view>
           </view>
         </view>
@@ -97,23 +101,34 @@
       </view>
     </template>
 
-    <emptyPage v-if="loaded && !isAgent" :title="'您还不是订货代理，请联系上级代理或总部开通订货权限'"></emptyPage>
+    <!-- 非订货商：品牌化空态 -->
+    <view v-if="loaded && !isAgent" class="gate">
+      <view class="gate-card">
+        <view class="gate-ico">订</view>
+        <view class="gate-title">您还不是订货代理</view>
+        <view class="gate-desc">订货中心为您提供专价拿货、库存管理、团队订货奖励等服务</view>
+        <view class="gate-line"></view>
+        <view class="gate-tip">请联系您的上级代理或总部为您开通订货权限</view>
+        <view class="gate-sub">开通后重新进入即可使用</view>
+      </view>
+      <view class="gate-back" @click="goHome">返回首页</view>
+    </view>
   </view>
 </template>
 
 <script>
 	import { getStockAgentInfo } from '@/api/stock.js';
 	import { guardModule } from '@/libs/moduleSwitch.js';
-	import emptyPage from '@/components/emptyPage.vue';
 	export default {
-		components: { emptyPage },
 		data() {
 			return {
 				loaded: false,
 				isAgent: false,
 				parentUid: 0,
 				parentDeliver: false,
-				agent: {}
+				agent: {},
+				// 角标计数：audit=待审核订单 / send=待发货订单 / exchangeAudit=待审核换货 / notice=未读消息
+				badges: { audit: 0, send: 0, exchangeAudit: 0, notice: 0 }
 			};
 		},
 		onShow() {
@@ -125,12 +140,27 @@
 				getStockAgentInfo().then(res => {
 					this.isAgent = res.data.isAgent;
 					this.agent = res.data.agent || {};
-					// 上级UID：0 表示上级是总部（此时不展示ID，只显示"总部"）
+					// 上级ID：0 表示上级是总部（此时不展示ID，只显示"总部"）
 					this.parentUid = res.data.parentUid || 0;
 					// 上级发货模式：开启时展示「订单发货」入口（仅实体订货单由上级发货）
 					this.parentDeliver = !!(res.data.parentDeliver);
+					// 未处理事项角标
+					const d = res.data || {};
+					this.badges = {
+						audit: Number(d.audit) || 0,
+						send: Number(d.send) || 0,
+						exchangeAudit: Number(d.exchangeAudit) || 0,
+						notice: Number(d.notice) || 0
+					};
 					this.loaded = true;
 				}).catch(() => { this.loaded = true; });
+			},
+			// 角标文本：超过 99 显示 99+
+			badgeText(n) {
+				return Number(n) > 99 ? '99+' : String(n);
+			},
+			goHome() {
+				uni.switchTab({ url: '/pages/index/index' });
 			},
 			nav(url) {
 				uni.navigateTo({ url });
@@ -239,7 +269,7 @@
   text-overflow: ellipsis;
   min-width: 0;
 }
-/* 上级UID：细胶囊，总部时不渲染 */
+/* 上级ID：细胶囊，总部时不渲染 */
 .up-id {
   margin-left: 12rpx;
   flex-shrink: 0;
@@ -344,6 +374,92 @@
 .ic-grey   { background: linear-gradient(135deg, #aab5c6, #7b8698); box-shadow: 0 8rpx 18rpx rgba(123, 134, 152, 0.30); }
 .ic-indigo { background: linear-gradient(135deg, #7f8ff4, #4b5bd6); box-shadow: 0 8rpx 18rpx rgba(75, 91, 214, 0.30); }
 .g-label { margin-top: 14rpx; font-size: 24rpx; color: #3d4a5f; }
+
+/* ---------- 入口红点角标 ---------- */
+.g-item { position: relative; }
+.g-badge {
+  position: absolute;
+  top: 16rpx;
+  left: 50%;
+  margin-left: 14rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  padding: 0 9rpx;
+  box-sizing: border-box;
+  text-align: center;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #ff7a7a, #e93323);
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 700;
+  border: 3rpx solid #fff;
+  box-shadow: 0 4rpx 10rpx rgba(233, 51, 35, 0.35);
+  z-index: 2;
+}
+
+/* ---------- 非订货商品牌化空态 ---------- */
+.gate {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 60rpx 120rpx;
+  background: linear-gradient(180deg, #eaf2ff 0%, #f4f6fb 42%);
+}
+.gate-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 66rpx 44rpx 54rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 14rpx 44rpx rgba(22, 51, 124, 0.10);
+}
+.gate-ico {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 36rpx;
+  background: linear-gradient(135deg, #5aa7f8, #2b6fe3);
+  color: #fff;
+  font-size: 56rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12rpx 28rpx rgba(43, 111, 227, 0.32);
+}
+.gate-title { margin-top: 34rpx; font-size: 34rpx; font-weight: 700; color: #26324b; }
+.gate-desc {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  color: #8a94a6;
+  line-height: 38rpx;
+  text-align: center;
+}
+.gate-line {
+  width: 88rpx;
+  height: 6rpx;
+  border-radius: 3rpx;
+  margin: 34rpx 0 26rpx;
+  background: linear-gradient(90deg, #4a9df8, #2b6fe3);
+}
+.gate-tip { font-size: 26rpx; color: #3d4a5f; font-weight: 600; text-align: center; line-height: 40rpx; }
+.gate-sub { margin-top: 10rpx; font-size: 22rpx; color: #a4adc0; }
+.gate-back {
+  margin-top: 46rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  padding: 0 88rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  border: 2rpx solid #b9cff2;
+  color: #2b6fe3;
+  font-size: 27rpx;
+  font-weight: 600;
+}
 
 .bottom-tip {
   margin-top: 60rpx;

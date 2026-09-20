@@ -1,6 +1,7 @@
 package com.zbkj.common.model.stock;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
@@ -65,4 +66,8 @@ public class StockVirtualStock implements Serializable {
 
     @ApiModelProperty(value = "是否删除")
     private Integer isDel;
+
+    @ApiModelProperty(value = "换货入库累计件数（已完成虚拟换入，派生字段不落库）")
+    @TableField(exist = false)
+    private Integer exchangeInNum;
 }

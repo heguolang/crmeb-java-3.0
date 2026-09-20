@@ -28,7 +28,7 @@
 
     <!-- 记录列表 -->
     <view class="list">
-      <view v-for="r in list" :key="r.id" class="rec">
+      <view v-for="r in list" :key="r.rowKey" class="rec">
         <image v-if="r.image" :src="r.image" class="rec-img" mode="aspectFill" />
         <view v-else class="rec-img rec-img-ph">{{ (r.productName || '?').slice(0, 1) }}</view>
         <view class="rec-main">
@@ -45,10 +45,9 @@
           <view v-if="r.linkNickname" class="rec-buyer">
             <text class="rb-tag">采购人</text>
             <text class="rb-name">{{ r.linkNickname }}</text>
-            <text v-if="r.linkAgentName" class="rb-lv">{{ r.linkAgentName }}</text>
-            <text v-if="r.linkPhone" class="rb-phone">{{ r.linkPhone }}</text>
+            <text class="rb-uid">ID:{{ r.linkUid }}</text>
           </view>
-          <view v-if="r.orderNo" class="rec-orderno">下级订单号：{{ r.orderNo }}</view>
+          <view v-if="r.orderNo" class="rec-orderno">订单号：{{ r.orderNo }}</view>
         </view>
         <view class="rec-num" :class="Number(r.num) >= 0 ? 'up' : 'down'">{{ Number(r.num) > 0 ? '+' : '' }}{{ r.num }}</view>
       </view>
@@ -278,15 +277,7 @@
   margin-right: 12rpx;
 }
 .rb-name { font-size: 23rpx; color: #2b3445; font-weight: 600; }
-.rb-lv {
-  font-size: 19rpx;
-  color: #b8860b;
-  background: #fdf6e3;
-  border-radius: 6rpx;
-  padding: 2rpx 10rpx;
-  margin-left: 12rpx;
-}
-.rb-phone { font-size: 22rpx; color: #909399; margin-left: 12rpx; }
+.rb-uid { font-size: 21rpx; color: #909399; margin-left: 12rpx; }
 .rec-orderno {
   margin-top: 8rpx;
   font-size: 21rpx;

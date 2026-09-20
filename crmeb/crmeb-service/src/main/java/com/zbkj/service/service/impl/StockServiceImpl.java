@@ -118,6 +118,10 @@ public class StockServiceImpl implements StockService {
     private static final java.util.regex.Pattern ADJUST_MARK_ORDER_NO =
             java.util.regex.Pattern.compile("订单\\s*([A-Za-z0-9]{6,})");
 
+    /** 库存台账时间统一格式（DateTimeFormatter 线程安全） */
+    private static final java.time.format.DateTimeFormatter LEDGER_TIME_FMT =
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     // ==================== 层级 ====================
 
     @Override
@@ -495,146 +499,245 @@ public class StockServiceImpl implements StockService {
     @Override
     public CommonPage<HashMap<String, Object>> getAdjustLogList(Integer agentId, Integer uid, Integer stockType,
                                                                PageParamRequest pageParamRequest) {
-        LambdaQueryWrapper<StockAdjustLog> lqw = new LambdaQueryWrapper<>();
+        // 库存台账按「订货商」归属：实体库存的订单类变动（采购/供货/线下/换货）都挂在 agent_id 上
+        StockAgent agent = null;
         if (agentId != null && agentId > 0) {
-            lqw.eq(StockAdjustLog::getAgentId, agentId);
+            agent = getAgentById(agentId);
+        } else if (uid != null && uid > 0) {
+            agent = getAgentByUid(uid);
         }
-        if (uid != null && uid > 0) {
-            lqw.eq(StockAdjustLog::getUid, uid);
-        }
-        if (stockType != null && stockType > 0) {
-            lqw.eq(StockAdjustLog::getStockType, stockType);
-        }
-        lqw.eq(StockAdjustLog::getIsDel, 0).orderByDesc(StockAdjustLog::getId);
         PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
-        List<StockAdjustLog> list = stockAdjustLogDao.selectList(lqw);
-        // 必须在转换前先取出分页信息：list 是 PageHelper 的 Page，转换后的 result 只是普通 List，
-        // 直接拿 result 构造 PageInfo 会丢掉真实 total/pageSize（退化成 size/size）。
-        PageInfo<StockAdjustLog> originPageInfo = new PageInfo<>(list);
-        List<HashMap<String, Object>> result = new ArrayList<>();
-        if (!list.isEmpty()) {
-            // 1) 虚拟库存转卖出库行：从备注解析下级订单号（无论 link_uid 是否已写入，均可展示订单号）
-            Map<Integer, String> transferOrderNoMap = new HashMap<>(); // logId -> 下级订单号
-            List<String> transferOrderNos = new ArrayList<>();
-            for (StockAdjustLog log : list) {
-                boolean transferOut = Integer.valueOf(2).equals(log.getStockType())
-                        && log.getNum() != null && log.getNum() < 0;
-                if (transferOut) {
-                    String orderNo = extractOrderNo(log.getMark());
-                    if (orderNo != null) {
-                        transferOrderNoMap.put(log.getId(), orderNo);
-                        transferOrderNos.add(orderNo);
-                    }
-                }
+        List<HashMap<String, Object>> rows;
+        PageInfo<HashMap<String, Object>> originPageInfo;
+        if (agent != null) {
+            // 统一台账：后台调整流水 UNION 订单推导出的实体库存变动
+            // （实体库存是推导式的，采购入库/供货出库等从不落 eb_stock_adjust_log，必须在这里合并）
+            rows = stockAdjustLogDao.selectAgentLedger(agent.getId(), stockType);
+            // rows 是 PageHelper 的 Page，必须在转换前取分页信息，否则 total 会退化成当前页条数
+            originPageInfo = new PageInfo<>(rows);
+        } else {
+            // 兜底：只有 uid 且查不到订货商时，退回只读调整流水
+            LambdaQueryWrapper<StockAdjustLog> lqw = new LambdaQueryWrapper<>();
+            if (uid != null && uid > 0) {
+                lqw.eq(StockAdjustLog::getUid, uid);
             }
-            // 下级订单号 -> 下单人uid（用于兼容 link_uid 上线前的历史流水）
-            Map<String, Integer> orderBuyerMap = new HashMap<>();
-            if (!transferOrderNos.isEmpty()) {
-                for (StockOrder so : stockOrderDao.selectList(new LambdaQueryWrapper<StockOrder>()
-                        .in(StockOrder::getOrderNo, transferOrderNos))) {
-                    orderBuyerMap.put(so.getOrderNo(), so.getUid());
-                }
+            if (stockType != null && stockType > 0) {
+                lqw.eq(StockAdjustLog::getStockType, stockType);
             }
-            List<Integer> productIds = new ArrayList<>();
-            Set<Integer> selfUids = new HashSet<>();
-            Set<Integer> linkUids = new HashSet<>();
-            for (StockAdjustLog log : list) {
-                if (log.getUid() != null && log.getUid() > 0) {
-                    selfUids.add(log.getUid());
-                }
-                if (log.getProductId() != null) {
-                    productIds.add(log.getProductId());
-                }
-                Integer linkUid = resolveLinkUid(log, transferOrderNoMap, orderBuyerMap);
-                if (linkUid != null && linkUid > 0) {
-                    linkUids.add(linkUid);
-                }
+            lqw.eq(StockAdjustLog::getIsDel, 0).orderByDesc(StockAdjustLog::getId);
+            List<StockAdjustLog> list = stockAdjustLogDao.selectList(lqw);
+            PageInfo<StockAdjustLog> entityPageInfo = new PageInfo<>(list);
+            rows = new ArrayList<>();
+            for (StockAdjustLog l : list) {
+                HashMap<String, Object> m = new HashMap<>();
+                m.put("id", l.getId());
+                m.put("agentId", l.getAgentId());
+                m.put("uid", l.getUid());
+                m.put("linkUid", l.getLinkUid());
+                m.put("productId", l.getProductId());
+                m.put("skuKey", l.getSkuKey());
+                m.put("stockType", l.getStockType());
+                m.put("num", l.getNum());
+                m.put("mark", l.getMark());
+                m.put("createTime", l.getCreateTime());
+                rows.add(m);
             }
-            Map<Integer, User> userMap = new HashMap<>();
-            if (!selfUids.isEmpty()) {
-                for (User u : userService.lambdaQuery().in(User::getUid, selfUids).list()) {
-                    userMap.put(u.getUid(), u);
-                }
-            }
-            // 采购人（下级）昵称 / 手机号
-            Map<Integer, User> linkUserMap = new HashMap<>();
-            if (!linkUids.isEmpty()) {
-                for (User u : userService.lambdaQuery().in(User::getUid, linkUids).list()) {
-                    linkUserMap.put(u.getUid(), u);
-                }
-            }
-            // 采购人代理等级名
-            Map<Integer, String> linkLevelNameMap = new HashMap<>();
-            if (!linkUids.isEmpty()) {
-                List<StockAgent> linkAgents = stockAgentDao.selectList(new LambdaQueryWrapper<StockAgent>()
-                        .in(StockAgent::getUid, linkUids));
-                Set<Integer> levelIds = new HashSet<>();
-                for (StockAgent a : linkAgents) {
-                    if (a.getLevelId() != null && a.getLevelId() > 0) {
-                        levelIds.add(a.getLevelId());
-                    }
-                }
-                Map<Integer, String> levelNameMap = new HashMap<>();
-                if (!levelIds.isEmpty()) {
-                    for (StockLevel l : stockLevelDao.selectList(new LambdaQueryWrapper<StockLevel>()
-                            .in(StockLevel::getId, levelIds))) {
-                        levelNameMap.put(l.getId(), l.getName());
-                    }
-                }
-                for (StockAgent a : linkAgents) {
-                    String name = a.getLevelId() == null ? null : levelNameMap.get(a.getLevelId());
-                    if (name != null && !name.isEmpty()) {
-                        linkLevelNameMap.put(a.getUid(), name);
-                    }
-                }
-            }
-            Map<Integer, String> productNameMap = new HashMap<>();
-            Map<Integer, String> productImageMap = new HashMap<>();
-            if (!productIds.isEmpty()) {
-                for (com.zbkj.common.model.product.StoreProduct p : storeProductService.listByIds(productIds)) {
-                    productNameMap.put(p.getId(), p.getStoreName());
-                    productImageMap.put(p.getId(), p.getImage());
-                }
-            }
-            for (StockAdjustLog log : list) {
-                HashMap<String, Object> row = new HashMap<>();
-                row.put("id", log.getId());
-                row.put("agentId", log.getAgentId());
-                row.put("uid", log.getUid());
-                User u = log.getUid() == null ? null : userMap.get(log.getUid());
-                row.put("nickname", u == null ? "" : u.getNickname());
-                row.put("phone", u == null ? "" : u.getPhone());
-                row.put("productId", log.getProductId());
-                row.put("productName", productNameMap.getOrDefault(log.getProductId(), ""));
-                row.put("image", productImageMap.getOrDefault(log.getProductId(), ""));
-                row.put("skuKey", log.getSkuKey());
-                row.put("stockType", log.getStockType());
-                row.put("stockTypeText", Integer.valueOf(2).equals(log.getStockType()) ? "虚拟库存" : "实体库存");
-                row.put("num", log.getNum());
-                row.put("mark", log.getMark());
-                row.put("createTime", log.getCreateTime());
-                // 采购人（下级）溯源：谁采购了本行的库存
-                Integer linkUid = resolveLinkUid(log, transferOrderNoMap, orderBuyerMap);
-                row.put("linkUid", linkUid == null ? 0 : linkUid);
-                User lu = linkUid == null ? null : linkUserMap.get(linkUid);
-                row.put("linkNickname", lu == null ? "" : lu.getNickname());
-                row.put("linkPhone", lu == null ? "" : lu.getPhone());
-                row.put("linkAgentName", linkUid == null ? "" : linkLevelNameMap.getOrDefault(linkUid, ""));
-                row.put("orderNo", transferOrderNoMap.getOrDefault(log.getId(), ""));
-                result.add(row);
-            }
+            originPageInfo = new PageInfo<>(rows);
+            originPageInfo.setTotal(entityPageInfo.getTotal());
+            originPageInfo.setPageNum(entityPageInfo.getPageNum());
+            originPageInfo.setPageSize(entityPageInfo.getPageSize());
+            originPageInfo.setPages(entityPageInfo.getPages());
         }
+        List<HashMap<String, Object>> result = enrichAdjustRows(rows);
         return CommonPage.restPage(CommonPage.copyPageInfo(originPageInfo, result));
     }
 
-    /** 采购人uid：优先取流水上的 link_uid；历史流水（link_uid 上线前）回退到备注订单号对应的下单人 */
-    private Integer resolveLinkUid(StockAdjustLog log, Map<Integer, String> transferOrderNoMap,
-                                   Map<String, Integer> orderBuyerMap) {
-        if (log.getLinkUid() != null && log.getLinkUid() > 0) {
-            return log.getLinkUid();
+    /**
+     * 台账行补齐展示字段：商品名/图、采购人（下级）昵称/手机号/层级、关联单号。
+     * 入参的行是可直接改写的 Map（DAO 查询结果或兜底转换结果）。
+     */
+    private List<HashMap<String, Object>> enrichAdjustRows(List<HashMap<String, Object>> rows) {
+        List<HashMap<String, Object>> result = new ArrayList<>();
+        if (rows == null || rows.isEmpty()) {
+            return result;
         }
-        String orderNo = transferOrderNoMap.get(log.getId());
-        return orderNo == null ? null : orderBuyerMap.get(orderNo);
+        // ---- Pass 1：规整每行的关联单号；虚拟转卖出库的历史流水缺 link_uid，按单号回查下单人 ----
+        List<String> missingBuyerOrderNos = new ArrayList<>();
+        Set<Integer> selfUids = new HashSet<>();
+        Set<Integer> productIds = new HashSet<>();
+        for (HashMap<String, Object> r : rows) {
+            Integer st = asInt(r.get("stockType"));
+            Integer num = asInt(r.get("num"));
+            boolean virtualTransferOut = Integer.valueOf(2).equals(st) && num != null && num < 0;
+            String orderNo = asStr(r.get("orderNo"));
+            if ((orderNo == null || orderNo.isEmpty()) && virtualTransferOut) {
+                // link_uid 上线前的历史流水：备注形如「虚拟库存转卖给下级（订单 SKxxx），本次扣减 2」
+                orderNo = extractOrderNo(asStr(r.get("mark")));
+            }
+            r.put("orderNo", orderNo == null ? "" : orderNo);
+            Integer linkUid = asInt(r.get("linkUid"));
+            if (linkUid == null || linkUid <= 0) {
+                r.put("linkUid", 0);
+                // 只对虚拟转卖出库回查下单人：自己采购入库的单子不能把自己的 uid 当成"采购人"
+                if (virtualTransferOut && orderNo != null && !orderNo.isEmpty()) {
+                    missingBuyerOrderNos.add(orderNo);
+                }
+            }
+            Integer uid = asInt(r.get("uid"));
+            if (uid != null && uid > 0) {
+                selfUids.add(uid);
+            }
+            Integer pid = asInt(r.get("productId"));
+            if (pid != null && pid > 0) {
+                productIds.add(pid);
+            }
+        }
+        Map<String, Integer> orderBuyerMap = new HashMap<>();
+        if (!missingBuyerOrderNos.isEmpty()) {
+            for (StockOrder so : stockOrderDao.selectList(new LambdaQueryWrapper<StockOrder>()
+                    .in(StockOrder::getOrderNo, missingBuyerOrderNos))) {
+                orderBuyerMap.put(so.getOrderNo(), so.getUid());
+            }
+        }
+        Set<Integer> linkUids = new HashSet<>();
+        for (HashMap<String, Object> r : rows) {
+            Integer linkUid = asInt(r.get("linkUid"));
+            if (linkUid == null || linkUid <= 0) {
+                Integer buyer = orderBuyerMap.get(asStr(r.get("orderNo")));
+                if (buyer != null && buyer > 0) {
+                    r.put("linkUid", buyer);
+                    linkUid = buyer;
+                }
+            }
+            if (linkUid != null && linkUid > 0) {
+                linkUids.add(linkUid);
+            }
+        }
+        // ---- Pass 2：批量查用户 / 代理商层级 / 商品，避免循环内单条查询 ----
+        Map<Integer, User> userMap = new HashMap<>();
+        if (!selfUids.isEmpty()) {
+            for (User u : userService.lambdaQuery().in(User::getUid, selfUids).list()) {
+                userMap.put(u.getUid(), u);
+            }
+        }
+        Map<Integer, User> linkUserMap = new HashMap<>();
+        if (!linkUids.isEmpty()) {
+            for (User u : userService.lambdaQuery().in(User::getUid, linkUids).list()) {
+                linkUserMap.put(u.getUid(), u);
+            }
+        }
+        Map<Integer, String> linkLevelNameMap = new HashMap<>();
+        if (!linkUids.isEmpty()) {
+            List<StockAgent> linkAgents = stockAgentDao.selectList(new LambdaQueryWrapper<StockAgent>()
+                    .in(StockAgent::getUid, linkUids));
+            Set<Integer> levelIds = new HashSet<>();
+            for (StockAgent a : linkAgents) {
+                if (a.getLevelId() != null && a.getLevelId() > 0) {
+                    levelIds.add(a.getLevelId());
+                }
+            }
+            Map<Integer, String> levelNameMap = new HashMap<>();
+            if (!levelIds.isEmpty()) {
+                for (StockLevel l : stockLevelDao.selectList(new LambdaQueryWrapper<StockLevel>()
+                        .in(StockLevel::getId, levelIds))) {
+                    levelNameMap.put(l.getId(), l.getName());
+                }
+            }
+            for (StockAgent a : linkAgents) {
+                String name = a.getLevelId() == null ? null : levelNameMap.get(a.getLevelId());
+                if (name != null && !name.isEmpty()) {
+                    linkLevelNameMap.put(a.getUid(), name);
+                }
+            }
+        }
+        Map<Integer, String> productNameMap = new HashMap<>();
+        Map<Integer, String> productImageMap = new HashMap<>();
+        if (!productIds.isEmpty()) {
+            for (com.zbkj.common.model.product.StoreProduct p : storeProductService.listByIds(productIds)) {
+                productNameMap.put(p.getId(), p.getStoreName());
+                productImageMap.put(p.getId(), p.getImage());
+            }
+        }
+        // ---- Pass 3：拼装返回行 ----
+        for (HashMap<String, Object> r : rows) {
+            HashMap<String, Object> row = new HashMap<>();
+            Integer uid = asInt(r.get("uid"));
+            Integer pid = asInt(r.get("productId"));
+            Integer linkUid = asInt(r.get("linkUid"));
+            User u = uid == null ? null : userMap.get(uid);
+            User lu = linkUid == null ? null : linkUserMap.get(linkUid);
+            row.put("id", asInt(r.get("id")));
+            row.put("agentId", asInt(r.get("agentId")));
+            row.put("uid", uid);
+            row.put("nickname", u == null ? "" : u.getNickname());
+            row.put("phone", u == null ? "" : u.getPhone());
+            row.put("productId", pid);
+            row.put("productName", productNameMap.getOrDefault(pid, ""));
+            row.put("image", productImageMap.getOrDefault(pid, ""));
+            row.put("skuKey", asStr(r.get("skuKey")));
+            Integer st = asInt(r.get("stockType"));
+            row.put("stockType", st);
+            row.put("stockTypeText", Integer.valueOf(2).equals(st) ? "虚拟库存" : "实体库存");
+            row.put("num", asInt(r.get("num")));
+            row.put("mark", asStr(r.get("mark")));
+            row.put("createTime", normalizeDate(r.get("createTime")));
+            // 订单推导行没有自增 id，给前端一个稳定唯一 key（列表渲染用）
+            Integer rid = asInt(r.get("id"));
+            row.put("rowKey", rid != null
+                    ? ("a" + rid)
+                    : ("o" + asStr(r.get("orderNo")) + "_" + pid + "_" + st + "_"
+                        + asInt(r.get("num")) + "_" + asStr(r.get("skuKey"))));
+            // 采购人（下级）溯源：谁买走了本行的库存
+            row.put("linkUid", linkUid == null ? 0 : linkUid);
+            row.put("linkNickname", lu == null ? "" : lu.getNickname());
+            row.put("linkPhone", lu == null ? "" : lu.getPhone());
+            row.put("linkAgentName", linkUid == null ? "" : linkLevelNameMap.getOrDefault(linkUid, ""));
+            row.put("orderNo", asStr(r.get("orderNo")));
+            result.add(row);
+        }
+        return result;
+    }
+
+    /** Map 取值转 Integer（DAO 返回的计数/ID 可能是 Integer/Long/BigDecimal） */
+    private Integer asInt(Object v) {
+        if (v == null) {
+            return null;
+        }
+        if (v instanceof Number) {
+            return ((Number) v).intValue();
+        }
+        try {
+            return Integer.valueOf(v.toString().trim());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Map 取值转字符串（null 安全，已去除首尾空白） */
+    private String asStr(Object v) {
+        return v == null ? "" : v.toString().trim();
+    }
+
+    /**
+     * 时间统一成「yyyy-MM-dd HH:mm:ss」字符串。
+     * DAO 返回的 Map 里时间可能是 java.sql.Timestamp / java.sql.Date / LocalDateTime，
+     * 直接交给 Jackson 会序列化成 ISO 的「2026-09-20T13:59:37」（页面 与 H5 的 fmtTime 都按空格格式切片解析）。
+     * DateTimeFormatter 是不可变线程安全的，可安全作为静态常量复用。
+     */
+    private Object normalizeDate(Object v) {
+        if (v == null) {
+            return null;
+        }
+        java.time.LocalDateTime ldt = null;
+        if (v instanceof java.time.LocalDateTime) {
+            ldt = (java.time.LocalDateTime) v;
+        } else if (v instanceof java.sql.Timestamp) {
+            ldt = ((java.sql.Timestamp) v).toLocalDateTime();
+        } else if (v instanceof java.util.Date) {
+            ldt = java.time.Instant.ofEpochMilli(((java.util.Date) v).getTime())
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
+        }
+        return ldt == null ? v : ldt.format(LEDGER_TIME_FMT);
     }
 
     /** 从库存流水备注中提取下级订单号：如「...（订单 SK17898828422122548），本次扣减 2」 */

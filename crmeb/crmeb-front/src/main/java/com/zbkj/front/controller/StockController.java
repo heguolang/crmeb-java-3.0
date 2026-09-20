@@ -75,7 +75,11 @@ public class StockController {
     @ApiOperation(value = "我的代理身份")
     @RequestMapping(value = "/agent/info", method = RequestMethod.GET)
     public CommonResult<HashMap<String, Object>> myAgentInfo() {
-        return CommonResult.success(stockService.getMyAgentInfo(currentUid()));
+        HashMap<String, Object> map = stockService.getMyAgentInfo(currentUid());
+        // 订货中心角标：待审核/待发货/待审核换货 + 未读消息数
+        map.putAll(stockOrderService.myPendingCounts(currentUid()));
+        map.put("notice", stockRewardService.unreadNoticeCount(currentUid()).intValue());
+        return CommonResult.success(map);
     }
 
     @ApiOperation(value = "新增下级代理")
@@ -324,6 +328,16 @@ public class StockController {
         return CommonResult.success(stockOrderService.getExchangeOptions(currentUid(), productId, skuKey));
     }
 
+    @ApiOperation(value = "换货可申请余量（原单购买数/已换数/还可申请数）")
+    @RequestMapping(value = "/exchange/quota", method = RequestMethod.GET)
+    public CommonResult<HashMap<String, Object>> exchangeQuota(
+            @RequestParam Integer productId,
+            @RequestParam(value = "skuKey", required = false) String skuKey,
+            @RequestParam(value = "orderId", required = false) Integer orderId,
+            @RequestParam(value = "sourceStockType", required = false) Integer sourceStockType) {
+        return CommonResult.success(stockOrderService.getExchangeQuota(currentUid(), productId, skuKey, orderId, sourceStockType));
+    }
+
     @ApiOperation(value = "支付换货差价（余额/微信；微信返回 jsConfig）")
     @RequestMapping(value = "/exchange/payDiff", method = RequestMethod.POST)
     public CommonResult<HashMap<String, Object>> payExchangeDiff(@RequestBody @Validated StockRequests.StockExchangeDiffPayRequest request,
@@ -367,8 +381,8 @@ public class StockController {
     public CommonResult<CommonPage<HashMap<String, Object>>> myStockLog(
             @RequestParam(value = "stockType", required = false) Integer stockType,
             @Validated PageParamRequest pageParamRequest) {
-        // 与后台「库存记录」抽屉同源：都取 eb_stock_adjust_log，故订单产生的变动
-        // 与后台手动调整的记录天然合并展示在同一处
+        // 与后台「库存记录」抽屉同源：统一台账 = 后台手动调整流水 UNION 订单推导出的实体库存变动
+        // （采购入库/供货出库/线下销售/换货换入换出），故订单产生的变动与手动调整天然合并展示在同一处
         return CommonResult.success(stockService.getAdjustLogList(null, currentUid(), stockType, pageParamRequest));
     }
 
@@ -440,5 +454,11 @@ public class StockController {
             return CommonResult.success();
         }
         return CommonResult.failed();
+    }
+
+    @ApiOperation(value = "一键全部已读")
+    @RequestMapping(value = "/notice/readAll", method = RequestMethod.POST)
+    public CommonResult<Integer> readAllNotice() {
+        return CommonResult.success(stockRewardService.readAllNotices(currentUid()));
     }
 }

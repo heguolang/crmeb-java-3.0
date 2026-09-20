@@ -22,8 +22,18 @@
             <text class="st-pill" :class="sourceType === 2 ? 'st-virtual' : (sourceType === 1 ? 'st-physical' : 'st-none')">
               {{ sourceType === 2 ? '虚拟库存' : (sourceType === 1 ? '实体库存' : '不区分') }}
             </text>
-            <text class="f-hint">{{ sourceType === 2 ? '虚拟换货：总部直接发货，虚拟库存同步扣减' : (sourceType === 1 ? '实体换货：上级审核通过后发货' : '按原订单的库存类型自动判定') }}</text>
+            <text class="f-hint">{{ sourceType === 2 ? '虚拟换货：可选择换入实体或虚拟库存' : '实体换货：只能换入实体商品，审核通过后发货' }}</text>
           </view>
+        </view>
+
+        <!-- 虚拟库存换货：选择换实体还是换虚拟 -->
+        <view v-if="sourceType === 2" class="form-item">
+          <view class="f-label">换成什么</view>
+          <view class="type-row">
+            <view class="type-pill" :class="{ active: targetType === 1 }" @click="switchTargetType(1)">换实体库存</view>
+            <view class="type-pill" :class="{ active: targetType === 2 }" @click="switchTargetType(2)">换虚拟库存</view>
+          </view>
+          <text class="f-hint">{{ targetType === 2 ? '换虚拟：上级审核通过后新品虚拟库存直接入账，无需地址和发货' : '换实体：审核通过后按收货地址发实物商品' }}</text>
         </view>
 
         <view class="form-item">
@@ -36,8 +46,19 @@
 
         <view class="form-item">
           <view class="f-label">换货数量</view>
-          <input v-model="form.num" type="number" class="f-input" placeholder="1" />
-          <text class="f-hint">不能超过原订单该商品的购买数量；提交时如超出会有明确提示</text>
+          <view class="num-row">
+            <view class="num-ctrl" @click="stepNum(-1)">−</view>
+            <input v-model="form.num" type="number" class="f-input num-input" placeholder="1" />
+            <view class="num-ctrl" @click="stepNum(1)">＋</view>
+            <view v-if="quota.loaded && !quota.blocked && quota.remain > 0" class="num-max" @click="fillMax">还可申请 {{ quota.remain }} 件</view>
+          </view>
+          <text v-if="quota.blocked" class="f-warn">⚠ {{ quota.blockedReason || '该订单已申请过换货，不能重复申请' }}</text>
+          <text v-else-if="quota.loaded && quota.remain > 0" class="f-hint">
+            本单该商品共购 <text class="q-strong">{{ quota.purchased }}</text> 件，已申请换货
+            <text class="q-strong">{{ quota.exchanged }}</text> 件，还可申请
+            <text class="q-remain">{{ quota.remain }}</text> 件
+          </text>
+          <text v-else class="f-hint">换货数量按原订单累计校验：多次申请的总量不能超过购买数量</text>
         </view>
 
         <view class="form-item">
@@ -71,6 +92,22 @@
           换 {{ form.num || 1 }} 件需补差价 <text class="diff-amt">¥{{ (selectedTarget.diffPrice * (form.num || 1)).toFixed(2) }}</text>
         </view>
 
+        <!-- 收货地址：换入实体商品时必选 -->
+        <view v-if="needsAddress" class="form-item">
+          <view class="f-label">收货地址<text class="req-star">*</text></view>
+          <view class="addr-list">
+            <view v-for="a in addresses" :key="a.id" class="addr-item" :class="{ active: selectedAddressId === a.id }" @click="selectedAddressId = a.id">
+              <view class="addr-check" :class="{ on: selectedAddressId === a.id }"></view>
+              <view class="addr-main">
+                <view class="addr-line1">{{ a.realName }} <text class="addr-phone">{{ a.phone }}</text><text v-if="a.isDefault" class="addr-def">默认</text></view>
+                <view class="addr-detail">{{ addressText(a) }}</view>
+              </view>
+            </view>
+            <view v-if="!addresses.length" class="addr-empty" @click="goAddAddress">暂无收货地址，去添加 ›</view>
+          </view>
+          <text class="f-hint">换入实体商品需按此地址发货，请确认信息准确</text>
+        </view>
+
         <view class="form-item">
           <view class="f-label">换货原因</view>
           <textarea v-model="form.reason" class="f-textarea" placeholder="请描述换货原因" />
@@ -99,7 +136,7 @@
         <view v-for="e in list" :key="e.id" class="ex-card">
         <view class="row-1">
           <text class="ex-no">{{ e.exchangeNo }}</text>
-          <text class="ex-status" :class="'st' + e.status">{{ statusText(e.status) }}</text>
+          <text class="ex-status" :class="diffUnpaid(e) ? 'st-pay' : ('st' + e.status)">{{ diffUnpaid(e) ? '待支付' : statusText(e.status) }}</text>
         </view>
         <view class="ex-row">{{ e.productName }} × {{ e.num }}<text class="ex-sub">（原单 {{ e.orderNo }}）</text></view>
         <view v-if="e.targetProductName" class="ex-row">换入：{{ e.targetProductName }}
@@ -124,11 +161,43 @@
         <view class="empty-sub">在订货订单中选择商品即可发起换货</view>
       </view>
     </view>
+
+    <!-- 旧品退回快递填写弹窗 -->
+    <view v-if="backModal.show" class="mask" @click="closeBack">
+      <view class="modal" @click.stop>
+        <view class="modal-title">填写旧品退回快递</view>
+        <view class="modal-sub">{{ backModal.exchangeNo }}</view>
+        <view class="m-field">
+          <view class="m-label">快递公司</view>
+          <input v-model="backModal.expressName" class="m-input" placeholder="如：顺丰速运" />
+        </view>
+        <view class="m-field">
+          <view class="m-label">快递单号</view>
+          <input v-model="backModal.expressNum" class="m-input" placeholder="请输入快递单号" />
+        </view>
+        <view class="m-tip">请寄回旧品后填写，上级/总部将核验入库后发出新品</view>
+        <view class="m-btns">
+          <button class="m-btn ghost" @click="closeBack">取消</button>
+          <button class="m-btn main" :class="{ disabled: !backModal.expressName || !backModal.expressNum }" @click="saveBack">确定</button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 统一样式提示弹窗（替代 uni.showModal，可定制图标/配色/圆角） -->
+    <view v-if="tipModal.show" class="mask" @click="tipModal.show = false">
+      <view class="modal tip-modal" @click.stop>
+        <view class="tip-ico">!</view>
+        <view class="tip-title">{{ tipModal.title }}</view>
+        <view class="tip-msg">{{ tipModal.message }}</view>
+        <button class="m-btn main tip-btn" @click="tipModal.show = false">知道了</button>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
-	import { getMyExchanges, applyStockExchange, fillExchangeBackExpress, getExchangeOptions, payExchangeDiff, getExchangeAuditList } from '@/api/stock.js';
+	import { getMyExchanges, applyStockExchange, fillExchangeBackExpress, getExchangeOptions, getExchangeQuota, payExchangeDiff, getExchangeAuditList } from '@/api/stock.js';
+	import { getAddressList } from '@/api/user.js';
 	export default {
 		data() {
 			return {
@@ -141,6 +210,15 @@
 				skuKeyParam: '',
 				sourceType: 0,
 				showAllOptions: false,
+				// 换入库存类型：1=实体 2=虚拟（虚拟库存换货时由会员选择）
+				targetType: 1,
+				addresses: [],
+				selectedAddressId: 0,
+				backModal: { show: false, id: 0, exchangeNo: '', expressName: '', expressNum: '' },
+				// 换货可申请余量：purchased 原单购买 / exchanged 已换 / remain 还可申请 / blocked 一单一换已占用
+				quota: { purchased: 0, exchanged: 0, remain: 0, blocked: false, blockedReason: '', loaded: false },
+				// 统一样式提示弹窗（替代 uni.showModal，原生弹窗样式无法定制）
+				tipModal: { show: false, title: '提示', message: '' },
 				form: { orderId: '', productId: '', num: '1', reason: '' }
 			};
 		},
@@ -148,10 +226,16 @@
 			visibleOptions() {
 				const list = this.options || [];
 				return this.showAllOptions ? list : list.slice(0, 3);
+			},
+			// 是否需要收货地址：换入实体商品（实体换货、或虚拟换实体）
+			needsAddress() {
+				return this.canApply && this.targetType === 1;
 			}
 		},
 		onLoad(opt) {
 			this.sourceType = opt.type ? Number(opt.type) : 0;
+			// 虚拟库存换货默认换虚拟；实体换货固定换实体
+			this.targetType = this.sourceType === 2 ? 2 : 1;
 			if (opt.orderId) {
 				this.form.orderId = opt.orderId;
 				this.canApply = true;
@@ -162,12 +246,37 @@
 				if (opt.num) this.form.num = opt.num;
 				this.canApply = true;
 				this.loadOptions();
+				this.loadQuota();
 			}
+			if (this.needsAddress) this.loadAddresses();
 			this.load();
 		},
 		methods: {
 			statusText(s) {
 				return { 0: '待上级审核', 1: '待总部审核', 2: '待旧品退回', 3: '待发新品', 4: '已完成', '-1': '已驳回' }[s] || s;
+			},
+			// 有补差价且未支付：状态显示「待支付」
+			diffUnpaid(e) {
+				return Number(e.diffPrice) > 0 && e.diffPayStatus !== 1 && e.status !== -1;
+			},
+			switchTargetType(t) {
+				if (this.targetType === t) return;
+				this.targetType = t;
+				if (t === 1 && !this.addresses.length) this.loadAddresses();
+			},
+			addressText(a) {
+				return [a.province, a.city, a.district, a.detail].filter(Boolean).join(' ');
+			},
+			loadAddresses() {
+				getAddressList({ page: 1, limit: 20 }).then(res => {
+					const d = res.data || {};
+					this.addresses = d.list || d || [];
+					const def = this.addresses.find(a => a.isDefault) || this.addresses[0];
+					this.selectedAddressId = def ? def.id : 0;
+				}).catch(() => { this.addresses = []; });
+			},
+			goAddAddress() {
+				uni.navigateTo({ url: '/pages/users/user_address/index' });
 			},
 			load() {
 				getMyExchanges({ page: 1, limit: 30 }).then(res => {
@@ -189,6 +298,44 @@
 					this.selectedTarget = this.options.length ? this.options[0] : null;
 					if (!this.options.length) this.$util.Tips({ title: '该商品未开放换货或暂无可换入商品' });
 				}).catch(() => {});
+			},
+			// 可申请余量：按原订单商品数量累计校验（多次申请总量 ≤ 购买数量）
+			loadQuota() {
+				if (!this.form.productId) return;
+				// null 值参数不传，避免被序列化成 "null" 字符串导致后端 400
+				const q = {
+					productId: Number(this.form.productId),
+					skuKey: this.skuKeyParam || '',
+					sourceStockType: this.sourceType || undefined
+				};
+				if (this.form.orderId) q.orderId = Number(this.form.orderId);
+				getExchangeQuota(q).then(res => {
+					const d = res.data || {};
+					this.quota = {
+						purchased: Number(d.purchased) || 0,
+						exchanged: Number(d.exchanged) || 0,
+						remain: Number(d.remain) || 0,
+						blocked: !!d.blocked,
+						blockedReason: d.blockedReason || '',
+						loaded: true
+					};
+					if (this.quota.remain > 0 && Number(this.form.num || 1) > this.quota.remain) {
+						this.form.num = String(this.quota.remain);
+					}
+				}).catch(() => { this.quota.loaded = false; });
+			},
+			stepNum(delta) {
+				let n = Number(this.form.num || 1) + delta;
+				if (n < 1) n = 1;
+				if (this.quota.loaded && this.quota.remain > 0 && n > this.quota.remain) n = this.quota.remain;
+				this.form.num = String(n);
+			},
+			fillMax() {
+				if (this.quota.loaded && this.quota.remain > 0) this.form.num = String(this.quota.remain);
+			},
+			// 统一样式提示弹窗（uni.showModal 样式无法定制，长文案还会被截断）
+			showTip(message, title) {
+				this.tipModal = { show: true, title: title || '换货申请未提交', message: message };
 			},
 			payDiff(e) {
 				uni.showActionSheet({
@@ -223,41 +370,49 @@
 				if (!this.form.productId) return this.$util.Tips({ title: '请选择要换货的商品' });
 				if (!this.selectedTarget) return this.$util.Tips({ title: '请选择要换入的商品' });
 				if (!this.form.reason) return this.$util.Tips({ title: '请填写换货原因' });
+				if (this.needsAddress && !this.selectedAddressId) return this.$util.Tips({ title: '请选择收货地址' });
+				const num = Number(this.form.num || 1);
+				if (!(num > 0)) return this.$util.Tips({ title: '请填写正确的换货数量' });
+				if (this.quota.loaded && this.quota.blocked) {
+					return this.showTip(this.quota.blockedReason || '该订单已申请过换货，不能重复申请换货');
+				}
+				if (this.quota.loaded && this.quota.remain > 0 && num > this.quota.remain) {
+					return this.showTip('换货数量按原订单累计计算：本单共购 ' + this.quota.purchased
+						+ ' 件，已申请换货 ' + this.quota.exchanged + ' 件，本次最多可申请 ' + this.quota.remain + ' 件');
+				}
 				applyStockExchange({
 					orderId: this.form.orderId ? Number(this.form.orderId) : null,
 					productId: Number(this.form.productId),
 					skuKey: this.skuKeyParam || '',
-					num: Number(this.form.num || 1),
+					num: num,
 					reason: this.form.reason,
 					targetProductId: this.selectedTarget.targetProductId,
 					targetSkuKey: this.selectedTarget.targetSkuKey || '',
-					sourceStockType: this.sourceType || null
+					sourceStockType: this.sourceType || null,
+					targetStockType: this.sourceType === 2 ? this.targetType : 1,
+					addressId: this.needsAddress ? this.selectedAddressId : null
 				}).then(() => {
 					this.$util.Tips({ title: '申请已提交' });
 					this.load();
+					this.loadQuota();
 				}).catch(err => {
 					// 后端校验失败的原因必须弹给用户，否则请求被 reject 后页面毫无反应
-					uni.showModal({
-						title: '换货申请未提交',
-						content: typeof err === 'string' ? err : '提交失败，请稍后重试',
-						showCancel: false,
-						confirmText: '知道了'
-					});
+					this.showTip(typeof err === 'string' ? err : '提交失败，请稍后重试');
 				});
 			},
 			fillBack(e) {
-				uni.showModal({
-					title: '旧品退回快递',
-					editable: true,
-					placeholderText: '快递公司 快递单号（空格分隔）',
-					success: (m) => {
-						if (!m.confirm || !m.content) return;
-						const parts = m.content.trim().split(/\s+/);
-						fillExchangeBackExpress(e.id, { backExpressName: parts[0] || '', backExpressNum: parts[1] || '' }).then(() => {
-							uni.showToast({ title: '已保存', icon: 'success' });
-							this.load();
-						});
-					}
+				this.backModal = { show: true, id: e.id, exchangeNo: e.exchangeNo, expressName: e.backExpressName || '', expressNum: '' };
+			},
+			closeBack() {
+				this.backModal.show = false;
+			},
+			saveBack() {
+				const m = this.backModal;
+				if (!m.expressName || !m.expressNum) return this.$util.Tips({ title: '请填写快递公司和单号' });
+				fillExchangeBackExpress(m.id, { backExpressName: m.expressName.trim(), backExpressNum: m.expressNum.trim() }).then(() => {
+					this.backModal.show = false;
+					uni.showToast({ title: '已保存', icon: 'success' });
+					this.load();
 				});
 			}
 		}
@@ -346,6 +501,50 @@
   padding: 0 24rpx;
   font-size: 27rpx;
   color: #303133;
+}
+/* 换货数量步进器 + 余量 */
+.num-row { display: flex; align-items: center; }
+.num-ctrl {
+  width: 64rpx;
+  height: 64rpx;
+  background: #eef2f8;
+  border-radius: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34rpx;
+  color: #4a5468;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.num-input {
+  width: 140rpx;
+  height: 64rpx;
+  margin: 0 14rpx;
+  text-align: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+.num-max {
+  margin-left: auto;
+  background: #ecf3ff;
+  color: #2b6fe3;
+  font-size: 22rpx;
+  font-weight: 600;
+  border-radius: 999rpx;
+  padding: 8rpx 20rpx;
+}
+.q-strong { color: #303133; font-weight: 700; }
+.q-remain { color: #e93323; font-weight: 700; font-size: 26rpx; }
+.f-warn {
+  display: block;
+  margin-top: 10rpx;
+  background: #fff1f0;
+  color: #d5321f;
+  font-size: 23rpx;
+  line-height: 34rpx;
+  border-radius: 10rpx;
+  padding: 12rpx 16rpx;
 }
 .f-textarea {
   width: 100%;
@@ -570,4 +769,177 @@
 }
 .empty-txt { margin-top: 26rpx; font-size: 28rpx; color: #3d4a5f; font-weight: 600; }
 .empty-sub { margin-top: 10rpx; font-size: 23rpx; color: #a4adc0; }
+
+/* ---------- 换货类型选择 ---------- */
+.type-row { display: flex; gap: 18rpx; }
+.type-pill {
+  flex: 1;
+  height: 76rpx;
+  line-height: 76rpx;
+  text-align: center;
+  border-radius: 16rpx;
+  border: 2rpx solid #e3e9f4;
+  background: #f8fafc;
+  font-size: 26rpx;
+  color: #606266;
+  font-weight: 600;
+  &.active {
+    border-color: #2b6fe3;
+    background: #f0f6ff;
+    color: #2b6fe3;
+    box-shadow: 0 6rpx 16rpx rgba(43, 111, 227, 0.12);
+  }
+}
+
+/* ---------- 收货地址 ---------- */
+.req-star { color: #e93323; margin-left: 4rpx; }
+.addr-list { display: flex; flex-direction: column; gap: 14rpx; }
+.addr-item {
+  display: flex;
+  align-items: center;
+  border: 2rpx solid #eef1f6;
+  border-radius: 16rpx;
+  padding: 18rpx 20rpx;
+  background: #fff;
+  &.active {
+    border-color: #2b6fe3;
+    background: #f4f9ff;
+  }
+}
+.addr-check {
+  flex-shrink: 0;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  border: 2rpx solid #d5dce8;
+  margin-right: 16rpx;
+  position: relative;
+  &.on {
+    border-color: #2b6fe3;
+    background: #2b6fe3;
+    &::after {
+      content: '';
+      position: absolute;
+      left: 10rpx;
+      top: 7rpx;
+      width: 10rpx;
+      height: 17rpx;
+      border-right: 4rpx solid #fff;
+      border-bottom: 4rpx solid #fff;
+      transform: rotate(45deg);
+    }
+  }
+}
+.addr-main { flex: 1; min-width: 0; overflow: hidden; }
+.addr-line1 { font-size: 26rpx; color: #26324b; font-weight: 600; }
+.addr-phone { font-size: 23rpx; color: #909399; font-weight: 400; margin-left: 12rpx; }
+.addr-def {
+  margin-left: 12rpx;
+  font-size: 20rpx;
+  color: #d48806;
+  background: #fff4e0;
+  border-radius: 8rpx;
+  padding: 2rpx 12rpx;
+}
+.addr-detail {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: #606266;
+  line-height: 34rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.addr-empty {
+  font-size: 25rpx;
+  color: #2b6fe3;
+  background: #f0f6ff;
+  border-radius: 14rpx;
+  padding: 24rpx;
+  text-align: center;
+}
+
+/* ---------- 旧品退回快递弹窗 ---------- */
+.mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 25, 45, 0.55);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 70rpx;
+}
+.modal {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx 36rpx 32rpx;
+}
+.modal-title { font-size: 32rpx; font-weight: 700; color: #26324b; text-align: center; }
+.modal-sub { margin-top: 8rpx; font-size: 22rpx; color: #a4adc0; text-align: center; }
+/* 样式化提示弹窗 */
+.tip-modal { padding: 44rpx 36rpx 36rpx; display: flex; flex-direction: column; align-items: center; }
+.tip-ico {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffb056, #f08a1d);
+  color: #fff;
+  font-size: 56rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding-bottom: 8rpx;
+  box-shadow: 0 10rpx 24rpx rgba(240, 138, 29, 0.30);
+}
+.tip-title { margin-top: 24rpx; font-size: 32rpx; font-weight: 700; color: #26324b; }
+.tip-msg {
+  margin-top: 16rpx;
+  font-size: 25rpx;
+  color: #5b6678;
+  line-height: 40rpx;
+  text-align: center;
+  word-break: break-all;
+}
+.tip-btn { margin-top: 34rpx; width: 100%; }
+.m-field { margin-top: 26rpx; }
+.m-label { font-size: 24rpx; color: #3d4a5f; font-weight: 600; margin-bottom: 10rpx; }
+.m-input {
+  background: #f4f6f9;
+  border-radius: 14rpx;
+  height: 78rpx;
+  padding: 0 24rpx;
+  font-size: 27rpx;
+  color: #303133;
+}
+.m-tip { margin-top: 20rpx; font-size: 21rpx; color: #a0a6b0; line-height: 32rpx; }
+.m-btns { display: flex; gap: 20rpx; margin-top: 34rpx; }
+.m-btn {
+  flex: 1;
+  height: 78rpx;
+  line-height: 78rpx;
+  border-radius: 999rpx;
+  font-size: 27rpx;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+  &::after { border: none; }
+  &.ghost { background: #f2f4f8; color: #606266; }
+  &.main {
+    background: linear-gradient(135deg, #4a9df8, #2b6fe3);
+    color: #fff;
+    box-shadow: 0 8rpx 18rpx rgba(43, 111, 227, 0.28);
+    &.disabled { opacity: 0.5; box-shadow: none; }
+  }
+}
+
+/* ---------- 待支付状态签 ---------- */
+.st-pay { background: #ffecec; color: #e93323; }
 </style>

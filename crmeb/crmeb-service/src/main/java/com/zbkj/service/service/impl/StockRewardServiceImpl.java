@@ -1,6 +1,7 @@
 package com.zbkj.service.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -582,6 +583,21 @@ public class StockRewardServiceImpl implements StockRewardService {
         Integer count = stockNoticeDao.selectCount(new LambdaQueryWrapper<StockNotice>()
                 .eq(StockNotice::getUid, uid).eq(StockNotice::getIsRead, 0));
         return count == null ? 0L : count.longValue();
+    }
+
+    @Override
+    public Integer readAllNotices(Integer uid) {
+        // 一条 UPDATE 全部置已读（Mapper 没有 updateBatchById，那是 IService 的方法）
+        int before = stockNoticeDao.selectCount(new LambdaQueryWrapper<StockNotice>()
+                .eq(StockNotice::getUid, uid).eq(StockNotice::getIsRead, 0));
+        if (before <= 0) {
+            return 0;
+        }
+        stockNoticeDao.update(null, new LambdaUpdateWrapper<StockNotice>()
+                .eq(StockNotice::getUid, uid)
+                .eq(StockNotice::getIsRead, 0)
+                .set(StockNotice::getIsRead, 1));
+        return before;
     }
 
     // ==================== 后台 ====================

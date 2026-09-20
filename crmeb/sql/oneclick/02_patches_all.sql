@@ -1726,5 +1726,25 @@ SET @s = IF(
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ========== END: stock_adjust_log_link_uid.sql ==========
+
+-- ========== BEGIN: stock_exchange_target_type.sql ==========
+-- 订货系统-换货流程增强：换入库存类型
+--
+-- 背景：虚拟库存换货时会员可选择「换实体 / 换虚拟」：
+--       换虚拟 → 上级审核通过后直接扣上级虚拟库存并入账给申请人（无需地址、无需发货）；
+--       换实体 → 需要收货地址，走发新品流程，完成后扣减上级实体可供应量。
+--       NULL/1 视为实体（兼容历史数据：历史换货单均按实体发货处理）。
+-- 幂等：先查 information_schema 判断列是否存在，不存在才 ALTER。
+-- ============================================================
+SET @db = DATABASE();
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_exchange' AND COLUMN_NAME='target_stock_type') = 0,
+    'ALTER TABLE `eb_stock_exchange` ADD COLUMN `target_stock_type` tinyint NULL DEFAULT 1 COMMENT ''换入库存类型：1=实体 2=虚拟（虚拟换货时会员可选）；NULL/1=实体'' AFTER `target_sku_key`',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ========== END: stock_exchange_target_type.sql ==========
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'CRMEB oneclick patches done' AS result;

@@ -14,7 +14,7 @@
         <text class="info-val">{{ agentInfo.levelName || '—' }}</text>
       </view>
       <view class="info-item">
-        <text class="info-label">上级UID</text>
+        <text class="info-label">上级ID</text>
         <text class="info-val">{{ parentText }}</text>
       </view>
       <view class="info-item info-addr" @click="showAddr = true">
@@ -31,6 +31,7 @@
         <view class="v-info">
           <view class="v-name">{{ v.productName }}</view>
           <view class="v-meta">累计入账 {{ v.num }} · 剩余可提 <text class="v-remain">{{ v.remainNum }}</text></view>
+          <view v-if="v.exchangeInNum > 0" class="v-exin">其中换货入库 <text class="exin-num">{{ v.exchangeInNum }}</text> 件</view>
           <view class="v-op">
             <view class="num-ctrl">
               <text class="ctrl-btn" @click="minus(v)">−</text>
@@ -86,7 +87,7 @@
 		},
 		computed: {
 			parentText() {
-				return this.agentInfo.parentUid ? ('UID ' + this.agentInfo.parentUid) : '总部';
+				return this.agentInfo.parentUid ? ('ID ' + this.agentInfo.parentUid) : '总部';
 			},
 			selectedAddrText() {
 				return this.selectedAddr ? this.addrText(this.selectedAddr) : '';
@@ -247,6 +248,16 @@
 .v-name { font-size: 28rpx; color: #303133; font-weight: 600; line-height: 38rpx; }
 .v-meta { font-size: 23rpx; color: #909399; margin-top: 8rpx; }
 .v-remain { color: #e93323; font-weight: 700; font-size: 27rpx; }
+.v-exin {
+  display: inline-block;
+  margin-top: 8rpx;
+  background: #eefaf2;
+  color: #18a852;
+  font-size: 21rpx;
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
+}
+.exin-num { font-weight: 700; }
 .v-op { display: flex; align-items: center; justify-content: space-between; margin-top: 16rpx; }
 .num-ctrl { display: flex; align-items: center; }
 .ctrl-btn { width: 48rpx; height: 48rpx; background: #f2f3f5; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; font-size: 30rpx; color: #333; }
