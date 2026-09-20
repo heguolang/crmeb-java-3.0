@@ -69,6 +69,11 @@ export function getMyStockOrders(params) {
   return request.get('stock/order/list', params);
 }
 
+/** 下级成员的订货订单列表（团队成员页查看下级订单） */
+export function getSubAgentOrders(params) {
+  return request.get('stock/order/subList', params);
+}
+
 /** 订单详情 */
 export function getStockOrderDetail(id) {
   return request.get('stock/order/detail', { id });
@@ -122,6 +127,11 @@ export function auditStockExchange(id, data) {
 /** 我的业绩 */
 export function getMyStockPerformance(params) {
   return request.get('stock/performance', params);
+}
+
+/** 我的业绩订单明细（source：1=个人业绩 2=团队业绩，不传=全部） */
+export function getMyStockPerformanceOrders(params) {
+  return request.get('stock/performance/orders', params);
 }
 
 /** 我的奖金中心 */

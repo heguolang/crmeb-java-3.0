@@ -458,6 +458,74 @@ public class StockRewardServiceImpl implements StockRewardService {
     }
 
     @Override
+    public CommonPage<StockOrder> getMyPerformanceOrderList(Integer uid, String dateLimit, Integer source, PageParamRequest page) {
+        StockAgent agent = stockService.getAgentByUid(uid);
+        if (agent == null) {
+            throw new CrmebException("您还不是订货代理");
+        }
+        String[] range = parseDateLimit(dateLimit);
+        // 团队业绩范围 = 名下全部下级 uid（含间接）
+        List<Integer> subAgentIds = stockService.collectSubAgentIds(agent.getId());
+        Map<Integer, Integer> uidMap = stockService.getAgentUidMap(subAgentIds);
+        List<Integer> subUids = new ArrayList<>(uidMap.values());
+
+        LambdaQueryWrapper<StockOrder> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(StockOrder::getStatus, StockOrder.STATUS_COMPLETE).eq(StockOrder::getIsDel, 0);
+        if (Integer.valueOf(1).equals(source)) {
+            // 只看个人业绩：自己下的完成单
+            lqw.eq(StockOrder::getUid, uid);
+        } else if (Integer.valueOf(2).equals(source)) {
+            // 只看团队业绩：下级下的完成单
+            if (subUids.isEmpty()) {
+                return CommonPage.restPage(new PageInfo<>(new ArrayList<>()));
+            }
+            lqw.in(StockOrder::getUid, subUids);
+        } else {
+            // 不区分来源：自己 + 名下全部下级
+            List<Integer> allUids = new ArrayList<>();
+            allUids.add(uid);
+            allUids.addAll(subUids);
+            lqw.in(StockOrder::getUid, allUids);
+        }
+        applyRange(lqw, range);
+        lqw.orderByDesc(StockOrder::getId);
+        PageHelper.startPage(page.getPage(), page.getLimit());
+        List<StockOrder> list = stockOrderDao.selectList(lqw);
+        fillPerfOrders(list, uid);
+        return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    /** 业绩订单补充展示字段：业绩来源、下单人昵称、商品明细 */
+    private void fillPerfOrders(List<StockOrder> orders, Integer selfUid) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+        List<Integer> orderIds = new ArrayList<>();
+        List<Integer> uids = new ArrayList<>();
+        for (StockOrder o : orders) {
+            orderIds.add(o.getId());
+            uids.add(o.getUid());
+            boolean self = o.getUid() != null && o.getUid().equals(selfUid);
+            o.setPerfSource(self ? 1 : 2);
+            o.setPerfSourceText(self ? "个人业绩" : "团队业绩");
+        }
+        HashMap<Integer, User> userMap = new HashMap<>();
+        for (User u : userService.lambdaQuery().in(User::getUid, uids).list()) {
+            userMap.put(u.getUid(), u);
+        }
+        HashMap<Integer, List<StockOrderProduct>> itemMap = new HashMap<>();
+        for (StockOrderProduct op : stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
+                .in(StockOrderProduct::getOrderId, orderIds))) {
+            itemMap.computeIfAbsent(op.getOrderId(), k -> new ArrayList<>()).add(op);
+        }
+        for (StockOrder o : orders) {
+            User u = userMap.get(o.getUid());
+            o.setNickname(u == null ? ("用户" + o.getUid()) : u.getNickname());
+            o.setProductList(itemMap.get(o.getId()));
+        }
+    }
+
+    @Override
     public Boolean applyWithdraw(Integer uid, BigDecimal price, String mark) {
         if (price == null || price.signum() <= 0) {
             throw new CrmebException("提现金额必须大于0");

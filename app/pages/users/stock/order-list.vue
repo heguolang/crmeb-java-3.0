@@ -21,8 +21,17 @@
       <view v-for="o in list" :key="o.id" class="order-card" @click="toggleDetail(o)">
         <view class="row-1">
           <text class="order-no">{{ o.orderNo }}</text>
-          <text v-if="o.exchanged === 1" class="st-pill ex-pill">已换货</text>
-          <text class="st-pill" :class="'st' + o.status">{{ statusText(o.status) }}</text>
+          <view class="pill-group">
+            <text class="tp-pill" :class="o.stockType === 2 ? 'is-virtual' : 'is-physical'">{{ stockTypeText(o.stockType) }}</text>
+            <text v-if="o.orderType === 2" class="tp-pill is-pickup">提货</text>
+            <text v-if="o.orderType === 3" class="tp-pill is-exchange">换货</text>
+            <text v-if="o.exchanged === 1" class="st-pill ex-pill">已换货</text>
+            <text class="st-pill" :class="'st' + o.status">{{ statusText(o.status) }}</text>
+          </view>
+        </view>
+        <view class="row-time">
+          <text class="rt-item">下单 {{ shortTime(o.createTime) }}</text>
+          <text v-if="o.status === 10 && o.waitDurationText" class="rt-item rt-wait">{{ o.waitDurationText }}</text>
         </view>
         <view v-for="p in o.productList" :key="p.id" class="row-p">
           <image :src="p.image" class="p-img" mode="aspectFill" />
@@ -36,8 +45,8 @@
           共 {{ o.totalNum }} 件 · 合计 <text class="total-price">¥{{ o.totalPrice }}</text>
         </view>
         <view v-if="o.status === -1" class="reject-box">驳回原因：{{ o.rejectReason }}</view>
-        <view v-if="o.status === 10 && o.waitDurationText" class="reject-box">
-          {{ o.waitDurationText }} · 当前上级暂无库存，正在向上匹配有货的上级
+        <view v-if="o.status === 10" class="reject-box wait-box">
+          当前上级暂无库存，正在沿上级链匹配有货的上级，匹配到后自动进入正常订货流程
         </view>
         <view v-if="o.exchanged === 1" class="reject-box">
           该订单已换货（换货单号 {{ o.exchangeNo }}），不可重复申请换货
@@ -137,6 +146,14 @@
 		methods: {
 			statusText(s) {
 				return { 0: '待上级审核', 1: '待付款', 2: '待发货', 3: '待收货', 4: '已完成', '-1': '已驳回', 10: '匹配上级中', '-2': '已取消' }[s] || s;
+			},
+			// 库存类型：1=实体库存 2=虚拟库存
+			stockTypeText(t) {
+				return t === 2 ? '虚拟库存' : '实体库存';
+			},
+			shortTime(t) {
+				if (!t) return '—';
+				return String(t).substring(0, 16).replace('T', ' ');
 			},
 			payOrder(o) {
 				uni.showActionSheet({
@@ -394,6 +411,31 @@
   color: #1677ff;
 }
 
+/* 单号右侧标签组 */
+.pill-group {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.pill-group .tp-pill {
+  margin-right: 10rpx;
+}
+/* 库存/订单类型标签 */
+.tp-pill {
+  flex-shrink: 0;
+  font-size: 21rpx;
+  line-height: 1;
+  padding: 8rpx 14rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
+  border: 1rpx solid transparent;
+
+  &.is-physical { background: #eef4ff; color: #2b6fe3; border-color: #d6e4ff; }
+  &.is-virtual { background: #f0fff4; color: #21a84f; border-color: #cdeddb; }
+  &.is-pickup { background: #f3ecff; color: #7c4dd4; border-color: #e2d6ff; }
+  &.is-exchange { background: #fff4e5; color: #f08c2e; border-color: #ffe0b8; }
+}
+
 /* 下级信息（审核 tab） */
 .audit-user {
   display: flex;
@@ -489,6 +531,31 @@
   font-size: 23rpx;
   color: #f56c6c;
   line-height: 34rpx;
+}
+/* 匹配上级中提示条 */
+.wait-box {
+  background: #f6f0ff;
+  color: #7c4dd4;
+}
+
+/* 下单时间 / 等待时长 */
+.row-time {
+  margin-top: 16rpx;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.rt-item {
+  font-size: 22rpx;
+  color: #909399;
+  margin-right: 20rpx;
+}
+.rt-wait {
+  color: #7c4dd4;
+  background: #f3ecff;
+  border-radius: 999rpx;
+  padding: 4rpx 14rpx;
+  margin-right: 0;
 }
 .express-box {
   margin-top: 16rpx;

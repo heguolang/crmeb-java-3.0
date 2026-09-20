@@ -144,7 +144,7 @@
 									icon: 'success'
 								}, {
 									tab: 5,
-									url: '/pages/users/user_info/index'
+									url: '/pages/infos/user_info/index'
 								});
 							}).catch(err => {
 								return that.$util.Tips({
@@ -156,7 +156,7 @@
 								title: '您已取消更换绑定！'
 							}, {
 								tab: 5,
-								url: '/pages/users/user_info/index'
+								url: '/pages/infos/user_info/index'
 							});
 						}
 					}

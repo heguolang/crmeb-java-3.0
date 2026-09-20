@@ -34,7 +34,7 @@
                 class="item"
                 v-for="(item, index) in menuList"
                 :key="index"
-                @click.stop="goLink(getInfo(item, 1))"
+                @click.stop="onMenuTap(item)"
               >
                 <template v-if="menuStyle == 0">
                   <image
@@ -119,7 +119,7 @@
                 class="item"
                 v-for="(item, index) in menuList"
                 :key="index"
-                @click.stop="goLink(getInfo(item, 1))"
+                @click.stop="onMenuTap(item)"
               >
                 <template v-if="menuStyle == 0">
                   <image
@@ -217,7 +217,7 @@
                     class="item"
                     v-for="(item, index) in assetList"
                     :key="index"
-                    @click.stop="goLink(getInfo(item, 1))"
+                    @click.stop="onMenuTap(item)"
                   >
                     <view class="icon-box">
                       <image
@@ -310,7 +310,7 @@
                   class="item"
                   v-for="(item, index) in menuList"
                   :key="index"
-                  @click.stop="goLink(getInfo(item, 1))"
+                  @click.stop="onMenuTap(item)"
                 >
                   <template v-if="menuStyle == 0">
                     <image
@@ -377,7 +377,7 @@
                   class="item style-icon"
                   v-for="(item, index) in assetList"
                   :key="index"
-                  @click.stop="goLink(getInfo(item, 1))"
+                  @click.stop="onMenuTap(item)"
                 >
                   <view class="icon-box">
                     <image
@@ -450,7 +450,7 @@
                 class="item style-icon"
                 v-for="(item, index) in assetList"
                 :key="index"
-                @click.stop="goLink(getInfo(item, 1))"
+                @click.stop="onMenuTap(item)"
               >
                 <view class="icon-box">
                   <image
@@ -1248,6 +1248,24 @@ export default {
         return;
       }
       uni.navigateTo({ url });
+    },
+    // 会员卡右上角操作图标点击：主题中只配了图标、未配链接时按图标给出默认落点，
+    // 避免因 @click.stop 拦截导致「点了没反应」
+    onMenuTap(item) {
+      let url = this.getInfo(item, 1);
+      if (!url) url = this.defaultMenuUrl(item);
+      if (url) {
+        this.goLink(url);
+        return;
+      }
+      this.goUserInfo();
+    },
+    defaultMenuUrl(item) {
+      const icon = (item && item.icon) || "";
+      const title = this.getInfo(item, 0) || "";
+      const key = icon + " " + title;
+      if (/shezhi|setting|设置/i.test(key)) return "/pages/infos/user_info/index";
+      return "";
     },
   },
 };

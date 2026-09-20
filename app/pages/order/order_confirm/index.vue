@@ -54,7 +54,7 @@
 				<orderGoods :cartInfo="cartInfo" :orderProNum="orderProNum"></orderGoods>
 				<view class='wrapper borRadius14'>
 					<view class='item acea-row row-between-wrapper' @tap='couponTap'
-						v-if="!orderInfoVo.bargainId && !orderInfoVo.combinationId && !orderInfoVo.seckillId && productType==='normal'">
+						v-if="couponAvailable && !orderInfoVo.bargainId && !orderInfoVo.combinationId && !orderInfoVo.seckillId && productType==='normal'">
 						<view>优惠券</view>
 						<view class='discount'>{{couponTitle}}
 							<text class='iconfont icon-jiantou'></text>
@@ -251,6 +251,8 @@
 				addressInfo: {}, //地址信息
 				addressId: 0, //地址id
 				couponId: 0, //优惠券id
+				couponAvailable: false, //当前订单是否有可用优惠券（无则不展示优惠券栏）
+				couponLoaded: false, //优惠券是否已查询过
 				cartId: '', //购物车id
 				userInfo: {}, //用户信息
 				mark: '', //备注信息
@@ -383,6 +385,8 @@
 					this.store_self_mention = res.data.storeSelfMention == '1' && this
 						.productType ===
 						'normal' ? true : false;
+					// 进入页面即查询可用优惠券，无可用券则不展示「优惠券」栏
+					this.getCouponList();
 				}).catch(err => {
 					uni.navigateTo({
 						url: '/pages/users/order_list/index'
@@ -518,8 +522,14 @@
 			 */
 			getCouponList: function() {
 				getCouponsOrderPrice(this.preOrderNo).then(res => {
-					this.$set(this.coupon, 'list', res.data);
+					const list = res.data || [];
+					this.$set(this.coupon, 'list', list);
+					// 没有可用优惠券时隐藏「优惠券」栏
+					this.couponAvailable = Array.isArray(list) && list.length > 0;
+					this.couponLoaded = true;
 					this.openType = 1;
+				}).catch(() => {
+					this.couponLoaded = true;
 				});
 			},
 			/*

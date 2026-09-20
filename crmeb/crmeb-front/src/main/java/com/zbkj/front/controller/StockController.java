@@ -215,6 +215,15 @@ public class StockController {
         return CommonResult.success(stockOrderService.getOrderDetail(currentUid(), id));
     }
 
+    @ApiOperation(value = "下级成员的订货订单列表（团队成员页查看下级订单）")
+    @RequestMapping(value = "/order/subList", method = RequestMethod.GET)
+    public CommonResult<CommonPage<StockOrder>> subAgentOrderList(
+            @RequestParam(value = "uid") Integer uid,
+            @RequestParam(value = "status", required = false) Integer status,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(stockOrderService.getSubAgentOrderList(currentUid(), uid, status, pageParamRequest));
+    }
+
     @ApiOperation(value = "待我审核的订单列表")
     @RequestMapping(value = "/order/auditList", method = RequestMethod.GET)
     public CommonResult<CommonPage<StockOrder>> auditOrderList(
@@ -342,6 +351,15 @@ public class StockController {
     public CommonResult<HashMap<String, Object>> myPerformance(
             @RequestParam(value = "dateLimit", required = false) String dateLimit) {
         return CommonResult.success(stockRewardService.getMyPerformance(currentUid(), dateLimit));
+    }
+
+    @ApiOperation(value = "我的业绩订单明细（来源：1=个人业绩 2=团队业绩，不传=全部）")
+    @RequestMapping(value = "/performance/orders", method = RequestMethod.GET)
+    public CommonResult<CommonPage<StockOrder>> myPerformanceOrders(
+            @RequestParam(value = "dateLimit", required = false) String dateLimit,
+            @RequestParam(value = "source", required = false) Integer source,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(stockRewardService.getMyPerformanceOrderList(currentUid(), dateLimit, source, pageParamRequest));
     }
 
     @ApiOperation(value = "我的奖金中心")

@@ -48,9 +48,12 @@
             <text class="as-item">{{ a.createTime }} 加入</text>
           </view>
         </view>
-        <text class="agent-status" :class="a.status === 1 ? 'on' : 'off'">
-          <text class="st-dot-mini" :class="a.status === 1 ? 'd-on' : 'd-off'"></text>{{ a.status === 1 ? '正常' : '禁用' }}
-        </text>
+        <view class="agent-right">
+          <text class="agent-status" :class="a.status === 1 ? 'on' : 'off'">
+            <text class="st-dot-mini" :class="a.status === 1 ? 'd-on' : 'd-off'"></text>{{ a.status === 1 ? '正常' : '禁用' }}
+          </text>
+          <view class="ord-btn" @click.stop="viewOrders(a)">查看订单</view>
+        </view>
       </view>
 
       <view v-if="!list.length && loaded" class="empty-card">
@@ -81,11 +84,52 @@
         <button class="submit-btn" @click="submitAdd">确定新增</button>
       </view>
     </view>
+
+    <!-- 下级订单抽屉 -->
+    <view v-if="ordVisible" class="mask" @click="ordVisible = false">
+      <view class="sheet" @click.stop>
+        <view class="sheet-head">
+          <view class="sheet-title">{{ ordAgent.nickname }} 的订货订单</view>
+          <text class="modal-close sheet-close" @click="ordVisible = false">✕</text>
+        </view>
+        <view class="sheet-sub">{{ ordAgent.levelName }} · UID {{ ordAgent.uid }} · 共 {{ ordTotal }} 单</view>
+
+        <view class="ord-tabs">
+          <view
+            v-for="t in ordStatusTabs"
+            :key="String(t.value)"
+            class="ord-tab"
+            :class="{ active: ordStatus === t.value }"
+            @click="pickOrdStatus(t.value)"
+          >{{ t.label }}</view>
+        </view>
+
+        <scroll-view scroll-y class="sheet-body">
+          <view v-for="o in ordList" :key="o.id" class="o-card">
+            <view class="o-row1">
+              <text class="o-no">{{ o.orderNo }}</text>
+              <text class="o-st" :class="'os' + o.status">{{ ordStatusText(o.status) }}</text>
+            </view>
+            <view v-for="p in (o.productList || [])" :key="p.id" class="o-p">
+              <text class="o-pname">{{ p.productName }}</text>
+              <text class="o-pnum">× {{ p.num }}</text>
+            </view>
+            <view class="o-foot">
+              <text class="o-tag">{{ o.stockType === 2 ? '虚拟库存' : '实体库存' }}</text>
+              <text class="o-time">{{ shortTime(o.createTime) }}</text>
+              <text class="o-amt">¥{{ o.totalPrice }}</text>
+            </view>
+          </view>
+          <view v-if="!ordList.length && ordLoaded" class="o-empty">该成员暂无订单</view>
+          <view v-if="ordList.length < ordTotal" class="o-more" @click="loadMoreOrders">加载更多</view>
+        </scroll-view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
-	import { getSubAgentList, getStockLevels, createSubAgent } from '@/api/stock.js';
+	import { getSubAgentList, getStockLevels, createSubAgent, getSubAgentOrders } from '@/api/stock.js';
 	export default {
 		data() {
 			return {
@@ -93,7 +137,24 @@
 				loaded: false,
 				showAdd: false,
 				levels: [],
-				addForm: { phone: '', levelIndex: -1 }
+				addForm: { phone: '', levelIndex: -1 },
+				// 下级订单抽屉
+				ordVisible: false,
+				ordAgent: {},
+				ordList: [],
+				ordTotal: 0,
+				ordPage: 1,
+				ordLoaded: false,
+				ordLoading: false,
+				ordStatus: null,
+				ordStatusTabs: [
+					{ value: null, label: '全部' },
+					{ value: 1, label: '待付款' },
+					{ value: 0, label: '待审核' },
+					{ value: 2, label: '待发货' },
+					{ value: 3, label: '待收货' },
+					{ value: 4, label: '已完成' }
+				]
 			};
 		},
 		computed: {
@@ -131,6 +192,49 @@
 					this.addForm = { phone: '', levelIndex: -1 };
 					this.load();
 				});
+			},
+			// ---------- 查看下级订单 ----------
+			viewOrders(a) {
+				this.ordAgent = a || {};
+				this.ordStatus = null;
+				this.ordVisible = true;
+				this.loadSubOrders(true);
+			},
+			pickOrdStatus(v) {
+				this.ordStatus = v;
+				this.loadSubOrders(true);
+			},
+			loadSubOrders(reset) {
+				if (this.ordLoading) return;
+				this.ordLoading = true;
+				if (reset) {
+					this.ordPage = 1;
+					this.ordLoaded = false;
+				}
+				const params = { uid: this.ordAgent.uid, page: this.ordPage, limit: 20 };
+				if (this.ordStatus !== null) params.status = this.ordStatus;
+				getSubAgentOrders(params).then(res => {
+					const d = (res && res.data) || {};
+					const list = d.list || [];
+					this.ordList = reset ? list : this.ordList.concat(list);
+					this.ordTotal = d.total || this.ordList.length;
+					this.ordLoaded = true;
+					this.ordLoading = false;
+				}).catch(() => {
+					this.ordLoaded = true;
+					this.ordLoading = false;
+				});
+			},
+			loadMoreOrders() {
+				this.ordPage += 1;
+				this.loadSubOrders(false);
+			},
+			ordStatusText(s) {
+				return { 0: '待上级审核', 1: '待付款', 2: '待发货', 3: '待收货', 4: '已完成', '-1': '已驳回', 10: '匹配上级中', '-2': '已取消' }[s] || s;
+			},
+			shortTime(t) {
+				if (!t) return '—';
+				return String(t).substring(0, 16).replace('T', ' ');
 			}
 		}
 	};
@@ -366,5 +470,150 @@
   line-height: 84rpx;
   box-shadow: 0 10rpx 24rpx rgba(43, 111, 227, 0.30);
   &::after { border: none; }
+}
+
+/* ---------- 卡片右侧：状态 + 查看订单 ---------- */
+.agent-right {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.ord-btn {
+  margin-top: 14rpx;
+  font-size: 22rpx;
+  color: #2b6fe3;
+  background: #ecf3ff;
+  border: 1rpx solid #d6e4ff;
+  border-radius: 999rpx;
+  padding: 8rpx 20rpx;
+  line-height: 1;
+}
+
+/* ---------- 下级订单抽屉 ---------- */
+.mask { align-items: flex-end; }
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  background: #fff;
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 32rpx 24rpx 30rpx;
+  box-sizing: border-box;
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sheet-title { font-size: 32rpx; font-weight: 700; color: #26324b; }
+.sheet-close { position: static; }
+.sheet-sub {
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  color: #909399;
+}
+.ord-tabs {
+  display: flex;
+  background: #f4f6f9;
+  border-radius: 999rpx;
+  padding: 6rpx;
+  margin-top: 22rpx;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.ord-tab {
+  flex: 1;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 24rpx;
+  color: #606266;
+  padding: 12rpx 16rpx;
+  border-radius: 999rpx;
+  transition: all 0.2s;
+}
+.ord-tab.active {
+  background: linear-gradient(135deg, #2b6fe3, #4a9df8);
+  color: #fff;
+  font-weight: 600;
+}
+.sheet-body {
+  margin-top: 20rpx;
+  height: 760rpx;
+}
+.o-card {
+  background: #f8f9fc;
+  border-radius: 16rpx;
+  padding: 20rpx 22rpx;
+  margin-bottom: 16rpx;
+}
+.o-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.o-no { font-size: 25rpx; font-weight: 600; color: #303133; }
+.o-st {
+  font-size: 21rpx;
+  line-height: 1;
+  padding: 7rpx 14rpx;
+  border-radius: 999rpx;
+  font-weight: 500;
+  background: #eceff4;
+  color: #7b8698;
+}
+.o-st.os0, .o-st.os1 { background: #fff4e5; color: #f08c2e; }
+.o-st.os2, .o-st.os3 { background: #ecf3ff; color: #2b6fe3; }
+.o-st.os4 { background: #e9f9ec; color: #21a84f; }
+.o-st.os-1 { background: #ffecec; color: #f56c6c; }
+.o-st.os10 { background: #f3ecff; color: #7c4dd4; }
+.o-st.os-2 { background: #f2f3f5; color: #909399; }
+.o-p {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14rpx;
+  font-size: 23rpx;
+}
+.o-pname {
+  flex: 1;
+  color: #606266;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 16rpx;
+}
+.o-pnum { color: #909399; flex-shrink: 0; }
+.o-foot {
+  margin-top: 14rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #e8ecf3;
+  display: flex;
+  align-items: center;
+}
+.o-tag {
+  font-size: 20rpx;
+  color: #7c4dd4;
+  background: #f3ecff;
+  border-radius: 6rpx;
+  padding: 4rpx 12rpx;
+  flex-shrink: 0;
+}
+.o-time { flex: 1; margin-left: 16rpx; font-size: 21rpx; color: #a4adc0; }
+.o-amt { font-size: 27rpx; font-weight: 700; color: #e93323; }
+.o-empty {
+  text-align: center;
+  font-size: 24rpx;
+  color: #b0b8c4;
+  padding: 80rpx 0;
+}
+.o-more {
+  margin: 6rpx 0 20rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #2b6fe3;
+  padding: 20rpx 0;
 }
 </style>

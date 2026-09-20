@@ -75,6 +75,15 @@ public interface StockOrderService {
     /** 我的订单列表（status: null=全部） */
     CommonPage<StockOrder> getMyOrderList(Integer uid, Integer status, com.zbkj.common.request.PageParamRequest page);
 
+    /**
+     * 下级成员的订货订单列表（团队成员页查看下级订单）
+     *
+     * @param uid    当前用户（必须是 subUid 的上级链上任意一级）
+     * @param subUid 被查看的下级用户 uid
+     * @param status 订单状态 null=全部
+     */
+    CommonPage<StockOrder> getSubAgentOrderList(Integer uid, Integer subUid, Integer status, com.zbkj.common.request.PageParamRequest page);
+
     /** 订单详情（校验归属或上级可见） */
     StockOrder getOrderDetail(Integer uid, Integer orderId);
 

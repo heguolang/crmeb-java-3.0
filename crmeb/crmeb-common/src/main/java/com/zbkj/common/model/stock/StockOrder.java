@@ -165,4 +165,12 @@ public class StockOrder implements Serializable {
     @ApiModelProperty(value = "等待匹配上级已耗时文案（状态10时）")
     @TableField(exist = false)
     private String waitDurationText;
+
+    @ApiModelProperty(value = "业绩来源：1=个人业绩（自己下单） 2=团队业绩（下级下单）")
+    @TableField(exist = false)
+    private Integer perfSource;
+
+    @ApiModelProperty(value = "业绩来源文案")
+    @TableField(exist = false)
+    private String perfSourceText;
 }

@@ -647,6 +647,34 @@ public class StockOrderServiceImpl implements StockOrderService {
     }
 
     @Override
+    public CommonPage<StockOrder> getSubAgentOrderList(Integer uid, Integer subUid, Integer status, PageParamRequest page) {
+        if (subUid == null) {
+            throw new CrmebException("请选择要查看的成员");
+        }
+        if (uid.equals(subUid)) {
+            throw new CrmebException("请在本页查看自己的订单");
+        }
+        StockAgent sub = stockService.getAgentByUid(subUid);
+        if (sub == null) {
+            throw new CrmebException("该成员还不是订货代理");
+        }
+        // 权限校验：只能查看自己下级链路上的成员订单
+        if (!isAncestorAgent(uid, sub.getId())) {
+            throw new CrmebException("只能查看自己下级成员的订单");
+        }
+        PageHelper.startPage(page.getPage(), page.getLimit());
+        LambdaQueryWrapper<StockOrder> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(StockOrder::getUid, subUid).eq(StockOrder::getIsDel, 0);
+        if (status != null) {
+            lqw.eq(StockOrder::getStatus, status);
+        }
+        lqw.orderByDesc(StockOrder::getId);
+        List<StockOrder> list = stockOrderDao.selectList(lqw);
+        fillOrders(list);
+        return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    @Override
     public StockOrder getOrderDetail(Integer uid, Integer orderId) {
         StockOrder order = stockOrderDao.selectById(orderId);
         if (order == null || order.getIsDel() == 1) {

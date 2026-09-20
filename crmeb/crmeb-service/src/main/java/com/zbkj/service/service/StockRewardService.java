@@ -46,6 +46,16 @@ public interface StockRewardService {
     /** 我的业绩（个人/团队，时间范围） */
     HashMap<String, Object> getMyPerformance(Integer uid, String dateLimit);
 
+    /**
+     * 我的业绩订单明细（来源可在列表上区分个人业绩/团队业绩）
+     *
+     * @param uid       当前用户
+     * @param dateLimit 统计范围 yyyy-MM
+     * @param source    业绩来源：1=个人业绩 2=团队业绩 null/其它=两者都返回
+     * @param page      分页
+     */
+    CommonPage<StockOrder> getMyPerformanceOrderList(Integer uid, String dateLimit, Integer source, PageParamRequest page);
+
     /** 申请提现 */
     Boolean applyWithdraw(Integer uid, BigDecimal price, String mark);
 
