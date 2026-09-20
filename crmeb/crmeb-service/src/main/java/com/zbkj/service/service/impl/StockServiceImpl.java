@@ -495,6 +495,9 @@ public class StockServiceImpl implements StockService {
         lqw.eq(StockAdjustLog::getIsDel, 0).orderByDesc(StockAdjustLog::getId);
         PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
         List<StockAdjustLog> list = stockAdjustLogDao.selectList(lqw);
+        // 必须在转换前先取出分页信息：list 是 PageHelper 的 Page，转换后的 result 只是普通 List，
+        // 直接拿 result 构造 PageInfo 会丢掉真实 total/pageSize（退化成 size/size）。
+        PageInfo<StockAdjustLog> originPageInfo = new PageInfo<>(list);
         List<HashMap<String, Object>> result = new ArrayList<>();
         if (!list.isEmpty()) {
             List<Integer> uids = new ArrayList<>();
@@ -538,7 +541,7 @@ public class StockServiceImpl implements StockService {
                 result.add(row);
             }
         }
-        return CommonPage.restPage(new PageInfo<>(result));
+        return CommonPage.restPage(CommonPage.copyPageInfo(originPageInfo, result));
     }
 
     @Override

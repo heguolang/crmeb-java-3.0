@@ -385,7 +385,7 @@ export default {
         this.$message.success('调整成功');
         this.stockSaving = false;
         this.stockVisible = false;
-        if (this.logVisible && this.logAgent && this.logAgent.id === this.stockAgent.id) {
+        if (this.logVisible && this.logAgent && this.stockAgent && this.logAgent.id === this.stockAgent.id) {
           this.loadStockLog();
         }
       }).catch(() => { this.stockSaving = false; });
@@ -398,19 +398,18 @@ export default {
     },
     loadStockLog() {
       this.logLoading = true;
+      // 注意：request 拦截器已经 return res.data，这里拿到的就是内层载荷，不能再 .data
       stockAdjustLogListApi({ agentId: this.logAgent.id, page: this.logFrom.page, limit: this.logFrom.limit })
         .then((res) => {
-          const data = res.data || {};
-          this.logList = data.list || [];
-          this.logTotal = data.total || 0;
+          this.logList = (res && res.list) || [];
+          this.logTotal = (res && res.total) || 0;
           this.logLoading = false;
         })
         .catch(() => { this.logLoading = false; });
       stockAgentStockApi(this.logAgent.uid)
         .then((res) => {
-          const d = res.data || {};
-          this.curPhysical = d.physical || [];
-          this.curVirtual = d.virtual || [];
+          this.curPhysical = (res && res.physical) || [];
+          this.curVirtual = (res && res.virtual) || [];
         })
         .catch(() => {});
     },
