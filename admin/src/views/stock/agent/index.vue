@@ -212,6 +212,18 @@
               <span :style="{ color: scope.row.num >= 0 ? '#f56c6c' : '#67c23a' }">{{ scope.row.num > 0 ? '+' : '' }}{{ scope.row.num }}</span>
             </template>
           </el-table-column>
+          <el-table-column label="采购人（下级）" min-width="150" show-overflow-tooltip>
+            <template slot-scope="scope">
+              <span v-if="scope.row.linkNickname">{{ scope.row.linkNickname }}<span v-if="scope.row.linkAgentName" style="color: #b8860b">（{{ scope.row.linkAgentName }}）</span></span>
+              <span v-else style="color: #c0c4cc">—</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="下级订单号" width="180" show-overflow-tooltip>
+            <template slot-scope="scope">
+              <span v-if="scope.row.orderNo">{{ scope.row.orderNo }}</span>
+              <span v-else style="color: #c0c4cc">—</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="mark" label="原因" min-width="200" show-overflow-tooltip />
         </el-table>
         <div v-if="!logList.length && !logLoading" class="switch-tip" style="padding: 12px 0">暂无修改记录</div>

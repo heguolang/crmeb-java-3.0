@@ -1564,6 +1564,7 @@ CREATE TABLE IF NOT EXISTS `eb_stock_adjust_log` (
   `stock_type` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1=physical 2=virtual',
   `num` int(11) NOT NULL DEFAULT 0 COMMENT 'positive=add negative=deduct',
   `mark` varchar(255) NOT NULL DEFAULT '',
+  `link_uid` int(11) NOT NULL DEFAULT 0 COMMENT 'related sub user uid, virtual transfer buyer; 0=none',
   `is_del` tinyint(1) NOT NULL DEFAULT 0,
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -1698,5 +1699,32 @@ UPDATE `eb_system_config` SET `value` = 'http://api.qianxutec.com', `update_time
 WHERE `name` IN ('api_url', 'localUploadUrl', 'front_api_url', 'site_url');
 
 -- ========== END: update_http_domain.sql ==========
+
+-- ========== BEGIN: stock_adjust_log_link_uid.sql ==========
+-- 订货系统-虚拟库存转卖溯源：库存调整流水补记「采购人」（下单的下级会员UID）
+--
+-- 背景：下级采购上级的虚拟库存时，上级虚拟库存会等量扣减，但调整流水此前只记了上级自己的
+--       uid，上级在会员端「库存记录」里看不到是谁买的。此补丁补列 + 按备注中的订单号回填历史流水。
+-- 幂等：先查 information_schema 判断列是否存在，不存在才 ALTER；回填只更新 link_uid=0 的行。
+-- ============================================================
+SET @db = DATABASE();
+
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_adjust_log' AND COLUMN_NAME='link_uid') = 0,
+    'ALTER TABLE `eb_stock_adjust_log` ADD COLUMN `link_uid` int NOT NULL DEFAULT 0 COMMENT ''关联下级UID：虚拟库存转卖的采购人（下单会员UID），0=无'' AFTER `mark`',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 历史流水回填：备注形如「虚拟库存转卖给下级（订单 SK17898828422122548），本次扣减 2」
+-- 仅当 eb_stock_order 存在时执行（正常部署顺序下均存在）
+SET @s = IF(
+    (SELECT COUNT(*) FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_stock_order') > 0,
+    'UPDATE `eb_stock_adjust_log` l JOIN `eb_stock_order` o ON l.`mark` LIKE CONCAT(''%'', o.`order_no`, ''%'') SET l.`link_uid` = o.`uid` WHERE l.`stock_type` = 2 AND l.`num` < 0 AND (l.`link_uid` IS NULL OR l.`link_uid` = 0)',
+    'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ========== END: stock_adjust_log_link_uid.sql ==========
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'CRMEB oneclick patches done' AS result;

@@ -13,6 +13,8 @@ import com.zbkj.common.model.stock.StockChangeLog;
 import com.zbkj.common.model.stock.StockLevel;
 import com.zbkj.common.model.stock.StockLadder;
 import com.zbkj.common.model.stock.StockLog;
+import com.zbkj.common.model.stock.StockOrder;
+import com.zbkj.common.model.stock.StockOrderProduct;
 import com.zbkj.common.model.stock.StockPrice;
 import com.zbkj.common.model.stock.StockPriceSku;
 import com.zbkj.common.model.product.StoreProductAttrValue;
@@ -107,6 +109,14 @@ public class StockServiceImpl implements StockService {
 
     @Resource
     private TransactionTemplate transactionTemplate;
+
+    /**
+     * 从库存调整流水的备注中提取下级订单号，例如：
+     * 「虚拟库存转卖给下级（订单 SK17898828422122548），本次扣减 2」→ SK17898828422122548
+     * 用于兼容 link_uid 上线前写入的历史转卖流水（当时未记录采购人）。
+     */
+    private static final java.util.regex.Pattern ADJUST_MARK_ORDER_NO =
+            java.util.regex.Pattern.compile("订单\\s*([A-Za-z0-9]{6,})");
 
     // ==================== 层级 ====================
 
@@ -503,20 +513,79 @@ public class StockServiceImpl implements StockService {
         PageInfo<StockAdjustLog> originPageInfo = new PageInfo<>(list);
         List<HashMap<String, Object>> result = new ArrayList<>();
         if (!list.isEmpty()) {
-            List<Integer> uids = new ArrayList<>();
-            List<Integer> productIds = new ArrayList<>();
+            // 1) 虚拟库存转卖出库行：从备注解析下级订单号（无论 link_uid 是否已写入，均可展示订单号）
+            Map<Integer, String> transferOrderNoMap = new HashMap<>(); // logId -> 下级订单号
+            List<String> transferOrderNos = new ArrayList<>();
             for (StockAdjustLog log : list) {
-                if (log.getUid() != null) {
-                    uids.add(log.getUid());
+                boolean transferOut = Integer.valueOf(2).equals(log.getStockType())
+                        && log.getNum() != null && log.getNum() < 0;
+                if (transferOut) {
+                    String orderNo = extractOrderNo(log.getMark());
+                    if (orderNo != null) {
+                        transferOrderNoMap.put(log.getId(), orderNo);
+                        transferOrderNos.add(orderNo);
+                    }
+                }
+            }
+            // 下级订单号 -> 下单人uid（用于兼容 link_uid 上线前的历史流水）
+            Map<String, Integer> orderBuyerMap = new HashMap<>();
+            if (!transferOrderNos.isEmpty()) {
+                for (StockOrder so : stockOrderDao.selectList(new LambdaQueryWrapper<StockOrder>()
+                        .in(StockOrder::getOrderNo, transferOrderNos))) {
+                    orderBuyerMap.put(so.getOrderNo(), so.getUid());
+                }
+            }
+            List<Integer> productIds = new ArrayList<>();
+            Set<Integer> selfUids = new HashSet<>();
+            Set<Integer> linkUids = new HashSet<>();
+            for (StockAdjustLog log : list) {
+                if (log.getUid() != null && log.getUid() > 0) {
+                    selfUids.add(log.getUid());
                 }
                 if (log.getProductId() != null) {
                     productIds.add(log.getProductId());
                 }
+                Integer linkUid = resolveLinkUid(log, transferOrderNoMap, orderBuyerMap);
+                if (linkUid != null && linkUid > 0) {
+                    linkUids.add(linkUid);
+                }
             }
             Map<Integer, User> userMap = new HashMap<>();
-            if (!uids.isEmpty()) {
-                for (User u : userService.lambdaQuery().in(User::getUid, uids).list()) {
+            if (!selfUids.isEmpty()) {
+                for (User u : userService.lambdaQuery().in(User::getUid, selfUids).list()) {
                     userMap.put(u.getUid(), u);
+                }
+            }
+            // 采购人（下级）昵称 / 手机号
+            Map<Integer, User> linkUserMap = new HashMap<>();
+            if (!linkUids.isEmpty()) {
+                for (User u : userService.lambdaQuery().in(User::getUid, linkUids).list()) {
+                    linkUserMap.put(u.getUid(), u);
+                }
+            }
+            // 采购人代理等级名
+            Map<Integer, String> linkLevelNameMap = new HashMap<>();
+            if (!linkUids.isEmpty()) {
+                List<StockAgent> linkAgents = stockAgentDao.selectList(new LambdaQueryWrapper<StockAgent>()
+                        .in(StockAgent::getUid, linkUids));
+                Set<Integer> levelIds = new HashSet<>();
+                for (StockAgent a : linkAgents) {
+                    if (a.getLevelId() != null && a.getLevelId() > 0) {
+                        levelIds.add(a.getLevelId());
+                    }
+                }
+                Map<Integer, String> levelNameMap = new HashMap<>();
+                if (!levelIds.isEmpty()) {
+                    for (StockLevel l : stockLevelDao.selectList(new LambdaQueryWrapper<StockLevel>()
+                            .in(StockLevel::getId, levelIds))) {
+                        levelNameMap.put(l.getId(), l.getName());
+                    }
+                }
+                for (StockAgent a : linkAgents) {
+                    String name = a.getLevelId() == null ? null : levelNameMap.get(a.getLevelId());
+                    if (name != null && !name.isEmpty()) {
+                        linkLevelNameMap.put(a.getUid(), name);
+                    }
                 }
             }
             Map<Integer, String> productNameMap = new HashMap<>();
@@ -544,10 +613,37 @@ public class StockServiceImpl implements StockService {
                 row.put("num", log.getNum());
                 row.put("mark", log.getMark());
                 row.put("createTime", log.getCreateTime());
+                // 采购人（下级）溯源：谁采购了本行的库存
+                Integer linkUid = resolveLinkUid(log, transferOrderNoMap, orderBuyerMap);
+                row.put("linkUid", linkUid == null ? 0 : linkUid);
+                User lu = linkUid == null ? null : linkUserMap.get(linkUid);
+                row.put("linkNickname", lu == null ? "" : lu.getNickname());
+                row.put("linkPhone", lu == null ? "" : lu.getPhone());
+                row.put("linkAgentName", linkUid == null ? "" : linkLevelNameMap.getOrDefault(linkUid, ""));
+                row.put("orderNo", transferOrderNoMap.getOrDefault(log.getId(), ""));
                 result.add(row);
             }
         }
         return CommonPage.restPage(CommonPage.copyPageInfo(originPageInfo, result));
+    }
+
+    /** 采购人uid：优先取流水上的 link_uid；历史流水（link_uid 上线前）回退到备注订单号对应的下单人 */
+    private Integer resolveLinkUid(StockAdjustLog log, Map<Integer, String> transferOrderNoMap,
+                                   Map<String, Integer> orderBuyerMap) {
+        if (log.getLinkUid() != null && log.getLinkUid() > 0) {
+            return log.getLinkUid();
+        }
+        String orderNo = transferOrderNoMap.get(log.getId());
+        return orderNo == null ? null : orderBuyerMap.get(orderNo);
+    }
+
+    /** 从库存流水备注中提取下级订单号：如「...（订单 SK17898828422122548），本次扣减 2」 */
+    private String extractOrderNo(String mark) {
+        if (mark == null || mark.isEmpty()) {
+            return null;
+        }
+        java.util.regex.Matcher matcher = ADJUST_MARK_ORDER_NO.matcher(mark);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     @Override

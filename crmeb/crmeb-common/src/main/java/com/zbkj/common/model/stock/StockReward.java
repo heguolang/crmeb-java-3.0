@@ -78,7 +78,15 @@ public class StockReward implements Serializable {
     @TableField(exist = false)
     private String nickname;
 
-    @ApiModelProperty(value = "业绩产生用户昵称")
+    @ApiModelProperty(value = "业绩产生用户昵称（下单人）")
     @TableField(exist = false)
     private String linkNickname;
+
+    @ApiModelProperty(value = "业绩产生用户手机号（下单人）")
+    @TableField(exist = false)
+    private String linkPhone;
+
+    @ApiModelProperty(value = "关联订单商品明细摘要，如「某某商品×2」")
+    @TableField(exist = false)
+    private String productNames;
 }

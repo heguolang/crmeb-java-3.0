@@ -41,6 +41,14 @@
             <text class="rec-type" :class="r.stockType === 2 ? 'ty-vir' : 'ty-phy'">{{ r.stockTypeText }}</text>
           </view>
           <view class="rec-mark">{{ r.mark || '后台手动调整' }}</view>
+          <!-- 虚拟库存转卖溯源：谁采购了本次扣减 -->
+          <view v-if="r.linkNickname" class="rec-buyer">
+            <text class="rb-tag">采购人</text>
+            <text class="rb-name">{{ r.linkNickname }}</text>
+            <text v-if="r.linkAgentName" class="rb-lv">{{ r.linkAgentName }}</text>
+            <text v-if="r.linkPhone" class="rb-phone">{{ r.linkPhone }}</text>
+          </view>
+          <view v-if="r.orderNo" class="rec-orderno">下级订单号：{{ r.orderNo }}</view>
         </view>
         <view class="rec-num" :class="Number(r.num) >= 0 ? 'up' : 'down'">{{ Number(r.num) > 0 ? '+' : '' }}{{ r.num }}</view>
       </view>
@@ -250,6 +258,40 @@
   font-size: 22rpx;
   color: #7c8798;
   line-height: 32rpx;
+}
+/* 采购人：虚拟库存被下级买走时的溯源行 */
+.rec-buyer {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  background: #f3f7ff;
+  border-radius: 10rpx;
+  padding: 8rpx 14rpx;
+}
+.rb-tag {
+  flex-shrink: 0;
+  font-size: 19rpx;
+  color: #1f5fd6;
+  background: #e2edff;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  margin-right: 12rpx;
+}
+.rb-name { font-size: 23rpx; color: #2b3445; font-weight: 600; }
+.rb-lv {
+  font-size: 19rpx;
+  color: #b8860b;
+  background: #fdf6e3;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  margin-left: 12rpx;
+}
+.rb-phone { font-size: 22rpx; color: #909399; margin-left: 12rpx; }
+.rec-orderno {
+  margin-top: 8rpx;
+  font-size: 21rpx;
+  color: #a3adbd;
+  letter-spacing: 0.5rpx;
 }
 .rec-num {
   flex-shrink: 0;

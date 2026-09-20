@@ -411,6 +411,8 @@ public class StockRewardServiceImpl implements StockRewardService {
         }
         lqw.orderByDesc(StockReward::getId);
         List<StockReward> list = stockRewardDao.selectList(lqw);
+        // 会员端奖励明细同样需要展示「下单人 / 订单号 / 商品」，与后台口径一致
+        fillRewards(list);
         return CommonPage.restPage(new PageInfo<>(list));
     }
 
@@ -884,29 +886,67 @@ public class StockRewardServiceImpl implements StockRewardService {
         }
     }
 
+    /**
+     * 奖金明细补充展示字段：得奖用户昵称、下单人（业绩产生用户）昵称/手机号、
+     * 以及关联订货单的商品明细摘要。会员端「奖金中心」与后台明细共用，保证口径一致。
+     */
     private void fillRewards(List<StockReward> list) {
         if (list == null || list.isEmpty()) {
             return;
         }
-        List<Integer> uids = new ArrayList<>();
-        List<Integer> linkUids = new ArrayList<>();
+        Set<Integer> all = new HashSet<>();
+        List<String> orderNos = new ArrayList<>();
         for (StockReward r : list) {
-            uids.add(r.getUid());
+            if (r.getUid() != null && r.getUid() > 0) {
+                all.add(r.getUid());
+            }
             if (r.getLinkUid() != null && r.getLinkUid() > 0) {
-                linkUids.add(r.getLinkUid());
+                all.add(r.getLinkUid());
+            }
+            // 阶梯奖励的 orderNo 形如 period:M2026-09（非真实订货单），不参与商品关联
+            if (r.getOrderNo() != null && !r.getOrderNo().isEmpty() && !r.getOrderNo().startsWith("period:")) {
+                orderNos.add(r.getOrderNo());
             }
         }
-        Set<Integer> all = new HashSet<>(uids);
-        all.addAll(linkUids);
         Map<Integer, User> userMap = new HashMap<>();
-        for (User u : userService.lambdaQuery().in(User::getUid, all).list()) {
-            userMap.put(u.getUid(), u);
+        if (!all.isEmpty()) {
+            for (User u : userService.lambdaQuery().in(User::getUid, all).list()) {
+                userMap.put(u.getUid(), u);
+            }
+        }
+        // 下单信息：按订单号回查订货单商品明细，拼成「商品名×数量，商品名×数量」
+        Map<String, String> productNameMap = new HashMap<>();
+        if (!orderNos.isEmpty()) {
+            List<StockOrder> orders = stockOrderDao.selectList(new LambdaQueryWrapper<StockOrder>()
+                    .in(StockOrder::getOrderNo, orderNos).eq(StockOrder::getIsDel, 0));
+            if (!orders.isEmpty()) {
+                List<Integer> orderIds = new ArrayList<>();
+                for (StockOrder o : orders) {
+                    orderIds.add(o.getId());
+                }
+                Map<Integer, List<String>> itemMap = new HashMap<>();
+                for (StockOrderProduct op : stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
+                        .in(StockOrderProduct::getOrderId, orderIds))) {
+                    String name = (op.getProductName() == null || op.getProductName().isEmpty())
+                            ? ("商品" + op.getProductId()) : op.getProductName();
+                    itemMap.computeIfAbsent(op.getOrderId(), k -> new ArrayList<>())
+                            .add(name + "×" + (op.getNum() == null ? 0 : op.getNum()));
+                }
+                for (StockOrder o : orders) {
+                    List<String> names = itemMap.get(o.getId());
+                    if (names != null && !names.isEmpty()) {
+                        productNameMap.put(o.getOrderNo(), String.join("，", names));
+                    }
+                }
+            }
         }
         for (StockReward r : list) {
-            User u = userMap.get(r.getUid());
+            User u = r.getUid() == null ? null : userMap.get(r.getUid());
             r.setNickname(u == null ? "" : u.getNickname());
-            User lu = userMap.get(r.getLinkUid());
+            User lu = r.getLinkUid() == null ? null : userMap.get(r.getLinkUid());
             r.setLinkNickname(lu == null ? "" : lu.getNickname());
+            r.setLinkPhone(lu == null ? "" : lu.getPhone());
+            r.setProductNames(productNameMap.getOrDefault(r.getOrderNo(), ""));
         }
     }
 

@@ -1,6 +1,7 @@
 package com.zbkj.common.model.stock;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
@@ -52,9 +53,30 @@ public class StockAdjustLog implements Serializable {
     @ApiModelProperty(value = "调整原因")
     private String mark;
 
+    @ApiModelProperty(value = "关联下级UID：虚拟库存转卖给下级时的采购人（下单的下级会员UID），0=无")
+    private Integer linkUid;
+
     @ApiModelProperty(value = "是否删除")
     private Integer isDel;
 
     @ApiModelProperty(value = "创建时间")
     private Date createTime;
+
+    // ==================== 展示字段（不入库） ====================
+
+    @ApiModelProperty(value = "采购人昵称（关联下级）")
+    @TableField(exist = false)
+    private String linkNickname;
+
+    @ApiModelProperty(value = "采购人手机号（关联下级）")
+    @TableField(exist = false)
+    private String linkPhone;
+
+    @ApiModelProperty(value = "采购人代理等级名（关联下级）")
+    @TableField(exist = false)
+    private String linkAgentName;
+
+    @ApiModelProperty(value = "关联单号（虚拟库存转卖对应的下级订货单号）")
+    @TableField(exist = false)
+    private String orderNo;
 }

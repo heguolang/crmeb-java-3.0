@@ -1734,6 +1734,8 @@ public class StockOrderServiceImpl implements StockOrderService {
         StockAdjustLog log = new StockAdjustLog();
         log.setAgentId(parent.getId());
         log.setUid(parent.getUid());
+        // 溯源：记录采购人（下单的下级会员UID），库存记录据此显示"谁采购的"
+        log.setLinkUid(order.getUid() == null ? 0 : order.getUid());
         log.setProductId(op.getProductId());
         log.setSkuKey(sku);
         log.setNum(-transferred);

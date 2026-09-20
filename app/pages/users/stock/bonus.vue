@@ -58,6 +58,13 @@
               <text class="item-money">+¥{{ r.rewardPrice }}</text>
             </view>
             <view class="item-sub">{{ r.mark }}</view>
+            <view v-if="r.linkNickname" class="item-sub buyer">
+              <text class="b-tag">下单人</text>
+              <text class="b-name">{{ r.linkNickname }}</text>
+              <text v-if="r.linkPhone" class="b-phone">{{ r.linkPhone }}</text>
+            </view>
+            <view v-if="r.productNames" class="item-sub grey">商品：{{ r.productNames }}</view>
+            <view v-if="r.orderNo && !isPeriod(r.orderNo)" class="item-sub grey">订单号：{{ r.orderNo }}</view>
             <view class="item-sub grey">{{ r.createTime }}</view>
           </view>
         </view>
@@ -87,6 +94,10 @@
 		methods: {
 			typeName(t) {
 				return { 1: '差价奖励', 2: '阶梯奖励', 3: '平级奖励', 4: '货款成本' }[t] || '奖励';
+			},
+			// 阶梯奖励的 orderNo 形如 period:M2026-09，不是真实订单号，不展示
+			isPeriod(no) {
+				return typeof no === 'string' && no.indexOf('period:') === 0;
 			},
 			load() {
 				getMyStockBonus().then(res => { this.bonus = res.data || {}; });
@@ -264,6 +275,19 @@
 .item-money { font-size: 30rpx; color: #e93323; font-weight: 700; }
 .item-sub { font-size: 23rpx; color: #606266; margin-top: 8rpx; }
 .grey { color: #a4adc0; }
+/* 下单人：给一条可扫读的溯源行，颜色略深于说明文字 */
+.buyer { display: flex; align-items: center; }
+.b-tag {
+  flex-shrink: 0;
+  font-size: 19rpx;
+  color: #1f5fd6;
+  background: #eaf2ff;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  margin-right: 10rpx;
+}
+.b-name { font-size: 23rpx; color: #3d4a5f; font-weight: 600; }
+.b-phone { font-size: 22rpx; color: #a4adc0; margin-left: 12rpx; }
 
 /* ---------- 空态白卡 ---------- */
 .empty-card {
