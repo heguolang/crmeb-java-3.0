@@ -94,6 +94,16 @@ export function auditStockOrder(id, data) {
   return request.post('stock/order/audit?id=' + id, data);
 }
 
+/** 上级代理发货（stock_parent_deliver=1 时启用；仅实体库存订货单） */
+export function parentSendStockOrder(id, data) {
+  return request.post('stock/order/parentSend?id=' + id, data);
+}
+
+/** 上级修改已发货订单的物流信息（仅本上级发出的实体订货单，待收货状态） */
+export function parentUpdateStockExpress(id, data) {
+  return request.post('stock/order/parentUpdateExpress?id=' + id, data);
+}
+
 /** 确认收货 */
 export function receiveStockOrder(id) {
   return request.post('stock/order/receive?id=' + id);

@@ -102,6 +102,9 @@ public interface StockOrderService {
     /** 上级代理发货（stock_parent_deliver=1 时启用） */
     Boolean parentSendOrder(Integer uid, Integer orderId, StockRequests.StockSendRequest request);
 
+    /** 上级代理修改已发货订单的物流信息（仅本上级发出的实体订货单，待收货状态） */
+    Boolean parentUpdateExpress(Integer uid, Integer orderId, StockRequests.StockSendRequest request);
+
     /** 我需要审核的订单（直接下级提交） */
     CommonPage<StockOrder> getAuditOrderList(Integer uid, Integer status, com.zbkj.common.request.PageParamRequest page);
 

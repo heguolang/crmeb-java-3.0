@@ -79,6 +79,9 @@ public class StockServiceImpl implements StockService {
     private UserService userService;
 
     @Resource
+    private com.zbkj.service.service.SystemConfigService systemConfigService;
+
+    @Resource
     private StoreProductService storeProductService;
 
     @Resource
@@ -923,6 +926,8 @@ public class StockServiceImpl implements StockService {
             }
         }
         map.put("parentUid", parentUid);
+        // 上级发货模式开关（stock_parent_deliver=1 时，会员端展示「订单发货」入口）
+        map.put("parentDeliver", "1".equals(systemConfigService.getValueByKey("stock_parent_deliver")));
         return map;
     }
 

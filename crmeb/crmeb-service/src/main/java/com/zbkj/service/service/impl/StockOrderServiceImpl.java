@@ -287,6 +287,8 @@ public class StockOrderServiceImpl implements StockOrderService {
             if (!isVirtual && !needAudit) {
                 stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "订货单支付成功",
                         "您的订货单 " + orderNo + " 支付成功，等待发货");
+                // 上级发货模式：提醒上级及时发货
+                notifyParentDeliver(getByOrderNo(orderNo));
             }
             if (isVirtual && !virtualNeedAudit) {
                 stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "虚拟库存入账成功",
@@ -778,6 +780,8 @@ public class StockOrderServiceImpl implements StockOrderService {
                 stockOrderDao.updateById(order);
                 stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "订货单审核通过",
                         "您的订货单 " + order.getOrderNo() + " 已由上级审核通过，等待发货");
+                // 上级发货模式：提醒上级及时发货
+                notifyParentDeliver(order);
             }
             // 审核通过后按升级规则自动升级
             try {
@@ -1289,9 +1293,9 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (!order.getStatus().equals(StockOrder.STATUS_WAIT_SEND)) {
             throw new CrmebException("订单当前状态不可发货");
         }
-        // 上级发货模式：有上级的订单由上级代理在会员端发货（虚拟提货单除外，提货单由总部发货）
-        if (!isPickupOrder(order) && "1".equals(systemConfigService.getValueByKey(CFG_PARENT_DELIVER))
-                && order.getParentAgentId() != null && order.getParentAgentId() > 0) {
+        // 上级发货模式：仅「实体库存采购单」由上级代理在会员端发货
+        // （虚拟采购单付款/审核即完成入账不会到待发货；虚拟提货单由总部发货，均不在此列）
+        if (isParentDeliverOrder(order)) {
             throw new CrmebException("已开启上级发货模式，该订单需由上级代理在会员端发货");
         }
         boolean pickup = isPickupOrder(order);
@@ -1320,11 +1324,47 @@ public class StockOrderServiceImpl implements StockOrderService {
         return true;
     }
 
+    /**
+     * 该订单是否走「上级代理发货」：需同时满足
+     * 1. 后台开关 stock_parent_deliver=1；
+     * 2. 实体库存采购单（stock_type=1 且非提货单）——虚拟单付款/审核即完成入账、提货单由总部发货，均不在此列；
+     * 3. 有直接上级代理（parent_agent_id>0）。
+     */
+    private boolean isParentDeliverOrder(StockOrder order) {
+        if (!"1".equals(systemConfigService.getValueByKey(CFG_PARENT_DELIVER))) {
+            return false;
+        }
+        if (order.getParentAgentId() == null || order.getParentAgentId() <= 0) {
+            return false;
+        }
+        return StockOrder.STOCK_TYPE_PHYSICAL.equals(order.getStockType()) && !isPickupOrder(order);
+    }
+
+    /** 上级发货模式下，实体订单进入待发货时提醒上级及时发货 */
+    private void notifyParentDeliver(StockOrder order) {
+        try {
+            if (!isParentDeliverOrder(order)) {
+                return;
+            }
+            StockAgent parent = stockService.getAgentById(order.getParentAgentId());
+            if (parent == null || parent.getUid() == null) {
+                return;
+            }
+            stockRewardService.sendNotice(parent.getUid(), StockNotice.TYPE_ORDER_SEND, "下级订单待发货",
+                    "下级【" + nickOf(order.getUid()) + "】的订货单 " + order.getOrderNo()
+                            + " 已进入待发货，请在会员端【订货中心-订单发货】中安排发货");
+        } catch (Exception ignored) {
+        }
+    }
+
     @Override
     public Boolean parentSendOrder(Integer uid, Integer orderId, StockRequests.StockSendRequest request) {
         StockAgent agent = stockService.getAgentByUid(uid);
         if (agent == null || agent.getStatus() == 0) {
             throw new CrmebException("您不是订货代理或已被禁用，无法发货");
+        }
+        if (!"1".equals(systemConfigService.getValueByKey(CFG_PARENT_DELIVER))) {
+            throw new CrmebException("当前未开启上级发货模式，订单由总部发货");
         }
         StockOrder order = stockOrderDao.selectById(orderId);
         if (order == null || order.getIsDel() == 1) {
@@ -1333,9 +1373,9 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (!order.getStatus().equals(StockOrder.STATUS_WAIT_SEND)) {
             throw new CrmebException("订单当前状态不可发货");
         }
-        // 虚拟提货单由总部发货，上级无权处理
-        if (isPickupOrder(order)) {
-            throw new CrmebException("虚拟提货单由总部直接发货，无需上级操作");
+        // 仅实体库存采购单由上级发货；虚拟采购单付款/审核即完成入账，虚拟提货单由总部直接发货
+        if (!StockOrder.STOCK_TYPE_PHYSICAL.equals(order.getStockType()) || isPickupOrder(order)) {
+            throw new CrmebException("仅实体库存订货单由上级发货，虚拟库存相关订单由总部直接发货");
         }
         if (order.getParentAgentId() == null || !agent.getId().equals(order.getParentAgentId())) {
             throw new CrmebException("只有该订单的直接上级才能发货");
@@ -1349,6 +1389,49 @@ public class StockOrderServiceImpl implements StockOrderService {
             stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_SEND, "订货单已发货",
                     "您的订货单 " + order.getOrderNo() + " 已由上级【" + nickOf(uid) + "】发出，快递："
                             + request.getExpressName() + " " + request.getExpressNum() + "，请留意查收");
+        }
+        return ok;
+    }
+
+    /**
+     * 上级修改自己发出的实体订货单物流信息（待收货状态）。
+     * 解决发货后快递单号填错无处修改、且发货记录在上级端看不到的问题。
+     */
+    @Override
+    public Boolean parentUpdateExpress(Integer uid, Integer orderId, StockRequests.StockSendRequest request) {
+        StockAgent agent = stockService.getAgentByUid(uid);
+        if (agent == null || agent.getStatus() == 0) {
+            throw new CrmebException("您不是订货代理或已被禁用");
+        }
+        if (!"1".equals(systemConfigService.getValueByKey(CFG_PARENT_DELIVER))) {
+            throw new CrmebException("当前未开启上级发货模式");
+        }
+        StockOrder order = stockOrderDao.selectById(orderId);
+        if (order == null || order.getIsDel() == 1) {
+            throw new CrmebException("订单不存在");
+        }
+        if (!order.getStatus().equals(StockOrder.STATUS_WAIT_RECEIVE)) {
+            throw new CrmebException("仅待收货状态的订单可修改物流信息");
+        }
+        if (!StockOrder.STOCK_TYPE_PHYSICAL.equals(order.getStockType()) || isPickupOrder(order)) {
+            throw new CrmebException("仅实体库存订货单支持修改上级发货物流");
+        }
+        if (order.getParentAgentId() == null || !agent.getId().equals(order.getParentAgentId())) {
+            throw new CrmebException("只有该订单的直接上级才能修改物流信息");
+        }
+        if (request.getExpressNum() == null || request.getExpressNum().trim().isEmpty()) {
+            throw new CrmebException("快递单号不能为空");
+        }
+        boolean ok = stockOrderDao.update(null, new LambdaUpdateWrapper<StockOrder>()
+                .eq(StockOrder::getId, order.getId())
+                .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_RECEIVE)
+                .set(StockOrder::getExpressName, request.getExpressName() == null ? "" : request.getExpressName().trim())
+                .set(StockOrder::getExpressNum, request.getExpressNum().trim())) > 0;
+        if (ok) {
+            stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_SEND, "订货单物流已更新",
+                    "您的订货单 " + order.getOrderNo() + " 物流信息已由上级更新，快递："
+                            + (request.getExpressName() == null ? "" : request.getExpressName().trim())
+                            + " " + request.getExpressNum().trim() + "，请留意查收");
         }
         return ok;
     }
@@ -2220,6 +2303,8 @@ public class StockOrderServiceImpl implements StockOrderService {
                 } catch (Exception ignored) {
                 }
             }
+            // 上级发货模式：提醒上级及时发货
+            notifyParentDeliver(order);
         }
         return true;
     }

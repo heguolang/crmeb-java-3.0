@@ -54,6 +54,10 @@
             <view class="g-icon ic-red">审</view>
             <view class="g-label">订单审核</view>
           </view>
+          <view v-if="parentDeliver" class="g-item" hover-class="g-press" :hover-stay-time="80" @click="nav('/pages/users/stock/order-list?tab=send')">
+            <view class="g-icon ic-green">发</view>
+            <view class="g-label">订单发货</view>
+          </view>
           <view class="g-item" hover-class="g-press" :hover-stay-time="80" @click="nav('/pages/users/stock/exchange')">
             <view class="g-icon ic-purple">换</view>
             <view class="g-label">换货管理</view>
@@ -108,6 +112,7 @@
 				loaded: false,
 				isAgent: false,
 				parentUid: 0,
+				parentDeliver: false,
 				agent: {}
 			};
 		},
@@ -122,6 +127,8 @@
 					this.agent = res.data.agent || {};
 					// 上级UID：0 表示上级是总部（此时不展示ID，只显示"总部"）
 					this.parentUid = res.data.parentUid || 0;
+					// 上级发货模式：开启时展示「订单发货」入口（仅实体订货单由上级发货）
+					this.parentDeliver = !!(res.data.parentDeliver);
 					this.loaded = true;
 				}).catch(() => { this.loaded = true; });
 			},

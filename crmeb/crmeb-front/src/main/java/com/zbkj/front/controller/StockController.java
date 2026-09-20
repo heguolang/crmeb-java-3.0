@@ -261,6 +261,16 @@ public class StockController {
         return CommonResult.failed();
     }
 
+    @ApiOperation(value = "上级修改已发货订单的物流信息（仅本上级发出的实体订货单）")
+    @RequestMapping(value = "/order/parentUpdateExpress", method = RequestMethod.POST)
+    public CommonResult<String> parentUpdateExpress(@RequestParam Integer id,
+                                                    @RequestBody @Validated StockRequests.StockSendRequest request) {
+        if (stockOrderService.parentUpdateExpress(currentUid(), id, request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
     // ==================== 换货 ====================
 
     @ApiOperation(value = "提交换货申请")
