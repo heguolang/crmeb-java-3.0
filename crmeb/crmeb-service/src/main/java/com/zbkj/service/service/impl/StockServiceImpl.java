@@ -517,9 +517,11 @@ public class StockServiceImpl implements StockService {
                 }
             }
             Map<Integer, String> productNameMap = new HashMap<>();
+            Map<Integer, String> productImageMap = new HashMap<>();
             if (!productIds.isEmpty()) {
                 for (com.zbkj.common.model.product.StoreProduct p : storeProductService.listByIds(productIds)) {
                     productNameMap.put(p.getId(), p.getStoreName());
+                    productImageMap.put(p.getId(), p.getImage());
                 }
             }
             for (StockAdjustLog log : list) {
@@ -532,6 +534,7 @@ public class StockServiceImpl implements StockService {
                 row.put("phone", u == null ? "" : u.getPhone());
                 row.put("productId", log.getProductId());
                 row.put("productName", productNameMap.getOrDefault(log.getProductId(), ""));
+                row.put("image", productImageMap.getOrDefault(log.getProductId(), ""));
                 row.put("skuKey", log.getSkuKey());
                 row.put("stockType", log.getStockType());
                 row.put("stockTypeText", Integer.valueOf(2).equals(log.getStockType()) ? "虚拟库存" : "实体库存");

@@ -64,6 +64,11 @@ export function sellOffline(data) {
   return request.post('stock/physical/sell', data);
 }
 
+/** 我的库存变动记录（含后台手动调整；stockType 1=实体 2=虚拟，不传=全部） */
+export function getMyStockLogs(params) {
+  return request.get('stock/stockLog/list', params);
+}
+
 /** 我的订货单列表 */
 export function getMyStockOrders(params) {
   return request.get('stock/order/list', params);

@@ -57,6 +57,10 @@
             <view class="g-icon ic-purple">换</view>
             <view class="g-label">换货管理</view>
           </view>
+          <view class="g-item" hover-class="g-press" :hover-stay-time="80" @click="nav('/pages/users/stock/stock-log')">
+            <view class="g-icon ic-indigo">记</view>
+            <view class="g-label">库存记录</view>
+          </view>
         </view>
 
         <!-- 团队与收益 -->
@@ -311,6 +315,7 @@
 .ic-cyan   { background: linear-gradient(135deg, #45cfcf, #1e9e9e); box-shadow: 0 8rpx 18rpx rgba(30, 158, 158, 0.30); }
 .ic-teal   { background: linear-gradient(135deg, #3fbf9a, #1f9e7e); box-shadow: 0 8rpx 18rpx rgba(31, 158, 126, 0.30); }
 .ic-grey   { background: linear-gradient(135deg, #aab5c6, #7b8698); box-shadow: 0 8rpx 18rpx rgba(123, 134, 152, 0.30); }
+.ic-indigo { background: linear-gradient(135deg, #7f8ff4, #4b5bd6); box-shadow: 0 8rpx 18rpx rgba(75, 91, 214, 0.30); }
 .g-label { margin-top: 14rpx; font-size: 24rpx; color: #3d4a5f; }
 
 .bottom-tip {

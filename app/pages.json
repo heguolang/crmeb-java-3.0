@@ -229,6 +229,13 @@
 				}
 			},
 			{
+				"path": "stock/stock-log",
+				"style": {
+					"navigationBarTitleText": "库存记录",
+					"enablePullDownRefresh": true
+				}
+			},
+			{
 				"path": "store/index",
 				"style": {
 					"navigationBarTitleText": "门店中心"

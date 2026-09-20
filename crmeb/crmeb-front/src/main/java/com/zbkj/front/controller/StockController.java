@@ -344,6 +344,16 @@ public class StockController {
         return CommonResult.success();
     }
 
+    @ApiOperation(value = "我的库存变动记录（含后台手动调整；stockType 1=实体 2=虚拟，不传=全部）")
+    @RequestMapping(value = "/stockLog/list", method = RequestMethod.GET)
+    public CommonResult<CommonPage<HashMap<String, Object>>> myStockLog(
+            @RequestParam(value = "stockType", required = false) Integer stockType,
+            @Validated PageParamRequest pageParamRequest) {
+        // 与后台「库存记录」抽屉同源：都取 eb_stock_adjust_log，故订单产生的变动
+        // 与后台手动调整的记录天然合并展示在同一处
+        return CommonResult.success(stockService.getAdjustLogList(null, currentUid(), stockType, pageParamRequest));
+    }
+
     // ==================== 业绩/奖金/提现/消息 ====================
 
     @ApiOperation(value = "我的业绩")
