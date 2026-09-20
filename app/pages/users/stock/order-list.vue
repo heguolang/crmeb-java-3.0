@@ -69,6 +69,42 @@
 
     <!-- 待我审核 -->
     <view v-if="tabType === 'audit'" class="card-list">
+      <!-- 下级提交的换货申请：换货单在独立表里，必须单独带出来，否则上级永远看不到 -->
+      <view v-for="e in exList" :key="'ex' + e.id" class="order-card ex-card">
+        <view class="row-1">
+          <text class="order-no">{{ e.exchangeNo }}</text>
+          <view class="pill-group">
+            <text class="tp-pill is-exchange">换货</text>
+            <text class="st-pill st0">待我审核</text>
+          </view>
+        </view>
+        <view class="audit-user">
+          <view class="au-avatar">{{ (e.nickname || '下').slice(0, 1) }}</view>
+          <view class="au-info">
+            <text class="au-name">{{ e.nickname }}</text>
+            <text class="au-level">下级实体换货申请</text>
+          </view>
+          <view class="au-tip">等待您审核</view>
+        </view>
+        <view class="row-p">
+          <image :src="e.productImage" class="p-img" mode="aspectFill" />
+          <view class="p-info">
+            <view class="p-name">{{ e.productName }}</view>
+            <view class="p-num">换货数量 × {{ e.num }} <text class="p-x">原单 {{ e.orderNo }}</text></view>
+          </view>
+        </view>
+        <view class="ex-target">
+          换入：{{ e.targetProductName }}
+          <text v-if="Number(e.diffPrice) > 0" class="diff-amt">需补差价 ¥{{ e.diffPrice }}</text>
+          <text v-else class="same-amt">无需补差价</text>
+        </view>
+        <view class="ex-reason">换货原因：{{ e.reason }}</view>
+        <view class="row-op">
+          <button class="op-btn danger" size="mini" @click="auditEx(e, -1)">驳回</button>
+          <button class="op-btn primary" size="mini" @click="auditEx(e, 1)">通过</button>
+        </view>
+      </view>
+
       <view v-for="o in list" :key="o.id" class="order-card">
         <view class="row-1">
           <text class="order-no">{{ o.orderNo }}</text>
@@ -99,7 +135,7 @@
     </view>
 
     <!-- 空态 -->
-    <view v-if="!list.length && loaded" class="empty-box">
+    <view v-if="showEmpty" class="empty-box">
       <view class="empty-icon">
         <view class="e-box">
           <view class="e-lid"></view>
@@ -115,13 +151,14 @@
 </template>
 
 <script>
-	import { getMyStockOrders, getAuditOrders, auditStockOrder, receiveStockOrder, payStockOrder, cancelStockOrder } from '@/api/stock.js';
+	import { getMyStockOrders, getAuditOrders, auditStockOrder, receiveStockOrder, payStockOrder, cancelStockOrder, getExchangeAuditList, auditStockExchange } from '@/api/stock.js';
 	export default {
 		data() {
 			return {
 				tabType: 'mine',
 				status: null,
 				list: [],
+				exList: [],
 				loaded: false,
 				tabs: [
 					{ value: null, label: '全部' },
@@ -133,6 +170,14 @@
 					{ value: 'audit', label: '待我审核' }
 				]
 			};
+		},
+		computed: {
+			// 待我审核：订单和换货单是两个来源，都空才算空
+			showEmpty() {
+				if (!this.loaded) return false;
+				if (this.tabType === 'audit') return !this.list.length && !this.exList.length;
+				return !this.list.length;
+			}
 		},
 		onLoad(opt) {
 			if (opt.tab === 'audit') {
@@ -211,6 +256,46 @@
 					this.list = res.data.list || [];
 					this.loaded = true;
 				}).catch(() => { this.loaded = true; });
+				if (this.tabType === 'audit') this.loadExList();
+			},
+			// 待我审核的换货单（下级提交的实体换货）
+			loadExList() {
+				getExchangeAuditList({ page: 1, limit: 30 }).then(res => {
+					this.exList = res.data.list || [];
+				}).catch(() => { this.exList = []; });
+			},
+			// 上级审核换货单：1=通过（流转总部审核） -1=驳回（需填原因）
+			auditEx(e, result) {
+				if (result === -1) {
+					uni.showModal({
+						title: '驳回换货',
+						editable: true,
+						placeholderText: '请填写驳回原因',
+						success: (m) => {
+							if (!m.confirm) return;
+							auditStockExchange(e.id, { status: -1, reason: m.content || '' }).then(() => {
+								uni.showToast({ title: '已驳回', icon: 'success' });
+								this.load();
+							}).catch(err => {
+								uni.showToast({ title: err || '操作失败', icon: 'none' });
+							});
+						}
+					});
+				} else {
+					uni.showModal({
+						title: '通过换货',
+						content: '通过后该换货单流转总部审核，再由总部安排旧品退回与新品发出。',
+						success: (m) => {
+							if (!m.confirm) return;
+							auditStockExchange(e.id, { status: 1 }).then(() => {
+								uni.showToast({ title: '已通过', icon: 'success' });
+								this.load();
+							}).catch(err => {
+								uni.showToast({ title: err || '操作失败', icon: 'none' });
+							});
+						}
+					});
+				}
 			},
 			toggleDetail() {},
 			receive(o) {
@@ -473,6 +558,26 @@
   border-radius: 999rpx;
   padding: 6rpx 14rpx;
   flex-shrink: 0;
+}
+
+/* ---------- 换货审核卡（待我审核 tab） ---------- */
+.ex-card { border-left: 6rpx solid #ffb54d; }
+.ex-target {
+  margin-top: 16rpx;
+  background: #fff8ee;
+  border-radius: 12rpx;
+  padding: 14rpx 18rpx;
+  font-size: 23rpx;
+  color: #b8781f;
+  line-height: 34rpx;
+}
+.diff-amt { color: #e93323; font-weight: 700; margin-left: 6rpx; }
+.same-amt { color: #21a84f; margin-left: 6rpx; }
+.ex-reason {
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  color: #909399;
+  line-height: 34rpx;
 }
 
 /* 商品行 */

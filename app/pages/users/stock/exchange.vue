@@ -37,6 +37,7 @@
         <view class="form-item">
           <view class="f-label">换货数量</view>
           <input v-model="form.num" type="number" class="f-input" placeholder="1" />
+          <text class="f-hint">不能超过原订单该商品的购买数量；提交时如超出会有明确提示</text>
         </view>
 
         <view class="form-item">
@@ -78,6 +79,15 @@
         <button class="submit-btn" @click="submit">提交申请</button>
       </view>
 
+      <!-- 下级待我审核提示：换货审核入口在「订单审核」 -->
+      <view v-if="auditCount > 0" class="audit-tip" @click="goAudit">
+        <view class="at-left">
+          <view class="at-num">{{ auditCount }}</view>
+          <view class="at-txt">条下级换货申请待您审核</view>
+        </view>
+        <view class="at-go">去处理 ›</view>
+      </view>
+
       <!-- 换货记录 -->
       <view class="section-title">
         <view class="st-bar"></view>
@@ -105,10 +115,6 @@
         <view class="row-op" v-if="e.status === 2">
           <button class="op-btn primary" @click="fillBack(e)">填写旧品退回快递</button>
         </view>
-        <view class="row-op" v-if="e.status === 0">
-          <button class="op-btn soft" @click="audit(e, 1)">上级通过</button>
-          <button class="op-btn danger" @click="audit(e, -1)">驳回</button>
-        </view>
         </view>
       </view>
 
@@ -122,13 +128,14 @@
 </template>
 
 <script>
-	import { getMyExchanges, applyStockExchange, fillExchangeBackExpress, auditStockExchange, getExchangeOptions, payExchangeDiff } from '@/api/stock.js';
+	import { getMyExchanges, applyStockExchange, fillExchangeBackExpress, getExchangeOptions, payExchangeDiff, getExchangeAuditList } from '@/api/stock.js';
 	export default {
 		data() {
 			return {
 				list: [],
 				loaded: false,
 				canApply: false,
+				auditCount: 0,
 				options: [],
 				selectedTarget: null,
 				skuKeyParam: '',
@@ -167,6 +174,13 @@
 					this.list = res.data.list || [];
 					this.loaded = true;
 				}).catch(() => { this.loaded = true; });
+				// 下级提交、待我审核的换货单数
+				getExchangeAuditList({ page: 1, limit: 1 }).then(res => {
+					this.auditCount = (res.data && res.data.total) || 0;
+				}).catch(() => { this.auditCount = 0; });
+			},
+			goAudit() {
+				uni.navigateTo({ url: '/pages/users/stock/order-list?tab=audit' });
 			},
 			loadOptions() {
 				if (!this.form.productId) return this.$util.Tips({ title: '请先填写商品ID' });
@@ -221,6 +235,14 @@
 				}).then(() => {
 					this.$util.Tips({ title: '申请已提交' });
 					this.load();
+				}).catch(err => {
+					// 后端校验失败的原因必须弹给用户，否则请求被 reject 后页面毫无反应
+					uni.showModal({
+						title: '换货申请未提交',
+						content: typeof err === 'string' ? err : '提交失败，请稍后重试',
+						showCancel: false,
+						confirmText: '知道了'
+					});
 				});
 			},
 			fillBack(e) {
@@ -237,28 +259,6 @@
 						});
 					}
 				});
-			},
-			audit(e, result) {
-				const doAudit = (data) => {
-					auditStockExchange(e.id, data).then(() => {
-						uni.showToast({ title: '已操作', icon: 'success' });
-						this.load();
-					});
-				};
-				if (result === -1) {
-					uni.showModal({
-						title: '驳回换货',
-						editable: true,
-						placeholderText: '请填写驳回原因',
-						success: (m) => { if (m.confirm) doAudit({ status: -1, reason: m.content || '' }); }
-					});
-				} else {
-					uni.showModal({
-						title: '通过审核',
-						content: '通过后流转总部审核。',
-						success: (m) => { if (m.confirm) doAudit({ status: 1 }); }
-					});
-				}
 			}
 		}
 	};
@@ -445,6 +445,33 @@
   box-shadow: 0 10rpx 24rpx rgba(43, 111, 227, 0.30);
   &::after { border: none; }
 }
+
+/* ---------- 下级待我审核提示条 ---------- */
+.audit-tip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #fff7ec, #fffdf8);
+  border: 2rpx solid #ffe0b8;
+  border-radius: 18rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 22rpx;
+}
+.at-left { display: flex; align-items: center; }
+.at-num {
+  min-width: 44rpx;
+  height: 44rpx;
+  line-height: 44rpx;
+  text-align: center;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #ffb54d, #f08c2e);
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 700;
+  padding: 0 8rpx;
+}
+.at-txt { margin-left: 14rpx; font-size: 25rpx; color: #b8781f; font-weight: 600; }
+.at-go { font-size: 24rpx; color: #f08c2e; }
 
 /* ---------- 换货记录 ---------- */
 .section-title { display: flex; align-items: center; margin: 14rpx 6rpx 20rpx; }

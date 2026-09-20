@@ -1022,8 +1022,16 @@ public class StockOrderServiceImpl implements StockOrderService {
         exchange.setPhone(order.getPhone());
         exchange.setUserAddress(order.getUserAddress());
         exchange.setAddressId(order.getAddressId());
-        // 虚拟库存换货：总部直发（待发新品）且立即扣减本人虚拟库存；实体换货：走上/总部审核
-        exchange.setStatus(virtualExchange ? StockExchange.STATUS_WAIT_SEND : StockExchange.STATUS_WAIT_PARENT_AUDIT);
+        // 原订单的直接上级：为 0/null 表示下单时的上级就是总部（自有订货商）
+        boolean hasParentAgent = order.getParentAgentId() != null && order.getParentAgentId() > 0;
+        // 虚拟库存换货：总部直发（待发新品）且立即扣减本人虚拟库存；
+        // 实体换货：有直接上级 → 待上级审核；无直接上级（总部直属）→ 直接待总部审核，
+        // 否则会卡在"待上级审核"没有任何人能审（会员端没有上级、后台也看不到处理入口）。
+        if (virtualExchange) {
+            exchange.setStatus(StockExchange.STATUS_WAIT_SEND);
+        } else {
+            exchange.setStatus(hasParentAgent ? StockExchange.STATUS_WAIT_PARENT_AUDIT : StockExchange.STATUS_WAIT_HQ_AUDIT);
+        }
         exchange.setIsDel(0);
 
         boolean ok;
@@ -1041,12 +1049,18 @@ public class StockOrderServiceImpl implements StockOrderService {
                         "虚拟库存换货单 " + exchange.getExchangeNo() + " 已提交"
                                 + (diffPrice.signum() > 0 ? "，请先支付差价 ¥" + diffPrice : "")
                                 + "，总部将尽快发货");
-            } else if (exchange.getParentAgentId() != null && exchange.getParentAgentId() > 0) {
+            } else if (hasParentAgent) {
                 StockAgent parent = stockService.getAgentById(exchange.getParentAgentId());
                 if (parent != null) {
                     stockRewardService.sendNotice(parent.getUid(), StockNotice.TYPE_ORDER_AUDIT, "换货单待审核",
                             "您的下级【" + nickOf(uid) + "】提交了换货申请 " + exchange.getExchangeNo() + "，请及时审核");
                 }
+                stockRewardService.sendNotice(uid, StockNotice.TYPE_ORDER_AUDIT, "换货申请已提交",
+                        "换货单 " + exchange.getExchangeNo() + " 已提交，等待您的上级【" + nickOf(parent == null ? 0 : parent.getUid())
+                                + "】审核，可在「订单审核」中查看进度");
+            } else {
+                stockRewardService.sendNotice(uid, StockNotice.TYPE_ORDER_AUDIT, "换货申请已提交",
+                        "换货单 " + exchange.getExchangeNo() + " 已提交，您的上级是总部，将由总部直接审核");
             }
         }
         return ok;
@@ -1095,6 +1109,33 @@ public class StockOrderServiceImpl implements StockOrderService {
         List<StockExchange> list = stockExchangeDao.selectList(new LambdaQueryWrapper<StockExchange>()
                 .eq(StockExchange::getUid, uid).eq(StockExchange::getIsDel, 0)
                 .orderByDesc(StockExchange::getId));
+        fillExchanges(list);
+        return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    /**
+     * 待我审核的换货单（我作为直接上级）。
+     * 换货单存在 eb_stock_exchange 独立表里，和订货单不是一张表，
+     * 所以「订单审核」列表必须单独带出这批单子，否则上级永远看不到、下级提交后就一直卡在待审核。
+     */
+    @Override
+    public CommonPage<StockExchange> getExchangeAuditList(Integer uid, Integer status, PageParamRequest page) {
+        StockAgent agent = stockService.getAgentByUid(uid);
+        if (agent == null) {
+            throw new CrmebException("您还不是订货代理");
+        }
+        PageHelper.startPage(page.getPage(), page.getLimit());
+        LambdaQueryWrapper<StockExchange> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(StockExchange::getParentAgentId, agent.getId()).eq(StockExchange::getIsDel, 0);
+        if (status == null) {
+            // 默认：待我处理的
+            lqw.eq(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT);
+        } else if (status != -2) {
+            // -2 = 我经手过的全部（含已通过/已驳回）
+            lqw.eq(StockExchange::getStatus, status);
+        }
+        lqw.orderByDesc(StockExchange::getId);
+        List<StockExchange> list = stockExchangeDao.selectList(lqw);
         fillExchanges(list);
         return CommonPage.restPage(new PageInfo<>(list));
     }

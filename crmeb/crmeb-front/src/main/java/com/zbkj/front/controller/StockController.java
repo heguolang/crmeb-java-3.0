@@ -278,6 +278,14 @@ public class StockController {
         return CommonResult.success(stockOrderService.getMyExchangeList(currentUid(), pageParamRequest));
     }
 
+    @ApiOperation(value = "待我审核的换货单（下级提交的实体换货；status 不传=待我处理，-2=我经手过的全部）")
+    @RequestMapping(value = "/exchange/auditList", method = RequestMethod.GET)
+    public CommonResult<CommonPage<StockExchange>> exchangeAuditList(
+            @RequestParam(value = "status", required = false) Integer status,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(stockOrderService.getExchangeAuditList(currentUid(), status, pageParamRequest));
+    }
+
     @ApiOperation(value = "填写旧品退回快递")
     @RequestMapping(value = "/exchange/backExpress", method = RequestMethod.POST)
     public CommonResult<String> fillBackExpress(@RequestParam Integer id,

@@ -109,6 +109,11 @@ export function getMyExchanges(params) {
   return request.get('stock/exchange/list', params);
 }
 
+/** 待我审核的换货单（下级提交的实体换货；status 不传=待我处理，-2=全部） */
+export function getExchangeAuditList(params) {
+  return request.get('stock/exchange/auditList', params);
+}
+
 /** 可换入商品清单（含目标拿货价与差价） */
 export function getExchangeOptions(productId, skuKey) {
   return request.get('stock/exchange/options', { productId, skuKey: skuKey || '' });

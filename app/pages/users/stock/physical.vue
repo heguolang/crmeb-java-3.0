@@ -77,7 +77,8 @@
 				uni.navigateTo({ url: '/pages/users/stock/goods' });
 			},
 			goExchange(p) {
-				uni.navigateTo({ url: '/pages/users/stock/exchange?productId=' + p.productId + '&num=' + (p.num || 1) + '&type=1' });
+				// 换货数量由后端按原订单购买数量校验，这里固定带 1 件（带库存总量会被判超范围）
+				uni.navigateTo({ url: '/pages/users/stock/exchange?productId=' + p.productId + '&num=1&type=1' });
 			},
 			openSell(p) {
 				this.sellRow = p;

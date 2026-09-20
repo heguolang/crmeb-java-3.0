@@ -102,8 +102,14 @@ public interface StockOrderService {
     /** 提交换货申请 */
     Boolean applyExchange(Integer uid, StockRequests.StockExchangeApplyRequest request);
 
-    /** 我的换货单列表 */
+    /** 我的换货单列表（我作为申请人提交的） */
     CommonPage<StockExchange> getMyExchangeList(Integer uid, com.zbkj.common.request.PageParamRequest page);
+
+    /**
+     * 待我审核的换货单列表（我作为直接上级，下级的实体换货申请）
+     * status 为 null 时只看「待上级审核」；传 -2 表示我经手过的全部换货单
+     */
+    CommonPage<StockExchange> getExchangeAuditList(Integer uid, Integer status, com.zbkj.common.request.PageParamRequest page);
 
     /** 代理填写旧品退回快递 */
     Boolean fillBackExpress(Integer uid, Integer exchangeId, StockRequests.StockExchangeBackRequest request);
