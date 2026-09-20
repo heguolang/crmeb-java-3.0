@@ -13,7 +13,8 @@
             <view class="nickname">{{ agent.nickname }}</view>
             <view class="meta-line">
               <view class="badge">★ {{ agent.levelName || '订货代理' }}</view>
-              <view class="upstream">上级 {{ agent.parentId > 0 ? agent.parentName : '总部' }}</view>
+              <view class="upstream">上级 {{ parentUid > 0 ? (agent.parentName || '上级代理') : '总部' }}</view>
+              <view v-if="parentUid > 0" class="up-id">UID {{ parentUid }}</view>
             </view>
           </view>
         </view>
@@ -106,6 +107,7 @@
 			return {
 				loaded: false,
 				isAgent: false,
+				parentUid: 0,
 				agent: {}
 			};
 		},
@@ -118,6 +120,8 @@
 				getStockAgentInfo().then(res => {
 					this.isAgent = res.data.isAgent;
 					this.agent = res.data.agent || {};
+					// 上级UID：0 表示上级是总部（此时不展示ID，只显示"总部"）
+					this.parentUid = res.data.parentUid || 0;
 					this.loaded = true;
 				}).catch(() => { this.loaded = true; });
 			},
@@ -200,7 +204,7 @@
   flex-shrink: 0;
   box-shadow: 0 8rpx 22rpx rgba(10, 31, 78, 0.28);
 }
-.user-info { margin-left: 24rpx; overflow: hidden; }
+.user-info { margin-left: 24rpx; flex: 1; min-width: 0; overflow: hidden; }
 .nickname {
   font-size: 42rpx;
   font-weight: 700;
@@ -211,11 +215,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 第二行：等级徽章 + 上级（等级与身份同框，最显眼） */
+/* 第二行：等级徽章 + 上级（等级与身份同框，最显眼）；超宽自动折行 */
 .meta-line {
   margin-top: 12rpx;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  row-gap: 10rpx;
 }
 .upstream {
   margin-left: 16rpx;
@@ -224,6 +230,20 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+/* 上级UID：细胶囊，总部时不渲染 */
+.up-id {
+  margin-left: 12rpx;
+  flex-shrink: 0;
+  font-size: 21rpx;
+  line-height: 32rpx;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1rpx solid rgba(255, 255, 255, 0.30);
+  border-radius: 999rpx;
+  padding: 0 14rpx;
+  letter-spacing: 1rpx;
 }
 
 .page-body {

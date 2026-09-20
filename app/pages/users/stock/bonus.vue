@@ -9,11 +9,12 @@
     </view>
 
     <view class="page-body">
-      <!-- 余额卡：金色渐变 -->
+      <!-- 余额卡：与「订货中心」头部同族的深蓝渐变 -->
       <view class="balance-card">
         <view class="bc-deco d1"></view>
         <view class="bc-deco d2"></view>
-        <view class="bc-label">累计奖励（已并入佣金余额）</view>
+        <view class="bc-beam"></view>
+        <view class="bc-label"><text class="bc-dot"></text>累计奖励（已并入佣金余额）</view>
         <view class="bc-num">
           <text class="bc-cny">¥</text>{{ bonus.totalReward || 0 }}
         </view>
@@ -137,20 +138,46 @@
   margin-top: -56rpx;
 }
 
-/* ---------- 余额卡：金色渐变 + 光斑 ---------- */
+/* ---------- 余额卡：与「订货中心」头部同族的深蓝渐变 ---------- */
 .balance-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(132deg, #d99f2b 0%, #e6b33c 50%, #f0cd6e 100%);
+  background: linear-gradient(150deg, #16337c 0%, #1f5fd6 52%, #3a8df2 100%);
   border-radius: 24rpx;
   padding: 34rpx 34rpx 32rpx;
   color: #fff;
-  box-shadow: 0 12rpx 32rpx rgba(217, 159, 43, 0.32);
-  .bc-deco { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.14); }
-  .d1 { width: 200rpx; height: 200rpx; right: -60rpx; top: -80rpx; }
+  box-shadow: 0 12rpx 32rpx rgba(22, 51, 124, 0.28);
+  .bc-deco { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .d1 { width: 200rpx; height: 200rpx; right: -60rpx; top: -80rpx; background: rgba(255,255,255,0.12); }
   .d2 { width: 110rpx; height: 110rpx; right: 90rpx; bottom: -50rpx; }
 }
-.bc-label { font-size: 24rpx; opacity: 0.92; position: relative; z-index: 1; }
+/* 斜光带：与订货中心首页头部同一手法，保证两块蓝是一套 */
+.bc-beam {
+  position: absolute;
+  top: -70rpx;
+  right: -30rpx;
+  width: 200rpx;
+  height: 420rpx;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0) 100%);
+  transform: rotate(22deg);
+}
+.bc-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.88);
+}
+/* 金色小点：保留"奖金"识别色，只做点缀不再当主色 */
+.bc-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f6cd60, #e0a213);
+  margin-right: 10rpx;
+  flex-shrink: 0;
+}
 .bc-num {
   font-size: 68rpx;
   font-weight: 700;
@@ -166,7 +193,7 @@
   z-index: 1;
   margin-top: 26rpx;
   background: #fff;
-  color: #c98f1f;
+  color: #1f5fd6;
   border-radius: 999rpx;
   font-size: 27rpx;
   font-weight: 600;
@@ -174,7 +201,7 @@
   line-height: 72rpx;
   padding: 0 44rpx;
   display: inline-block;
-  box-shadow: 0 8rpx 18rpx rgba(120, 84, 10, 0.18);
+  box-shadow: 0 8rpx 18rpx rgba(10, 31, 78, 0.20);
   &::after { border: none; }
 }
 
@@ -252,8 +279,9 @@
   width: 110rpx;
   height: 110rpx;
   border-radius: 50%;
-  background: #fdf5e2;
-  color: #d9a53c;
+  background: #eaf2ff;
+  color: #4a9df8;
+  border: 2rpx solid #dbe7fb;
   font-size: 44rpx;
   font-weight: 700;
   display: flex;
