@@ -173,4 +173,28 @@ public class StockOrder implements Serializable {
     @ApiModelProperty(value = "业绩来源文案")
     @TableField(exist = false)
     private String perfSourceText;
+
+    @ApiModelProperty(value = "下单人手机号")
+    @TableField(exist = false)
+    private String agentPhone;
+
+    @ApiModelProperty(value = "上级代理UID（上级为总部时为空）")
+    @TableField(exist = false)
+    private Integer parentUid;
+
+    @ApiModelProperty(value = "上级昵称（上级为总部时为「总部」）")
+    @TableField(exist = false)
+    private String parentNickname;
+
+    @ApiModelProperty(value = "上级手机号")
+    @TableField(exist = false)
+    private String parentPhone;
+
+    @ApiModelProperty(value = "上级层级名称")
+    @TableField(exist = false)
+    private String parentLevelName;
+
+    @ApiModelProperty(value = "上级是否为总部：1=是（无上级代理，走总部审核） 0=否")
+    @TableField(exist = false)
+    private Integer parentIsHeadquarters;
 }

@@ -40,7 +40,7 @@
             <span v-if="row.status === 10 && row.waitDurationText" class="head-reason" :title="'等待期间订单可被人工跳过匹配，直接向上寻找有库存的上级'">{{ row.waitDurationText }}</span>
             <span v-if="row.exchanged === 1" class="head-reason" :title="'换货单号：' + (row.exchangeNo || '')">（已换货）</span>
           </div>
-          <!-- 卡片体：商品 | 收货 | 金额 | 代理 | 付款/状态 | 操作 -->
+          <!-- 卡片体：商品 | 收货 | 金额 | 下单人 | 上级 | 付款/状态 | 操作 -->
           <div class="card-body">
             <div class="col col-goods">
               <div v-for="(g, gi) in (row.productList || [])" :key="gi" class="goods-item">
@@ -73,8 +73,31 @@
                 <div class="agent-text">
                   <div class="agent-name" :title="row.nickname">{{ row.nickname }}</div>
                   <div class="sub-text">{{ row.levelName }} · UID {{ row.uid }}</div>
+                  <div class="sub-text" :title="row.agentPhone">{{ row.agentPhone || '—' }}</div>
                 </div>
               </div>
+            </div>
+            <!-- 上级信息：有上级代理则展示其昵称/UID/手机号；无上级代理则为总部审核 -->
+            <div class="col col-parent">
+              <template v-if="row.parentIsHeadquarters === 1">
+                <div class="agent-line">
+                  <span class="avatar avatar-hq">总</span>
+                  <div class="agent-text">
+                    <div class="agent-name">总部审核</div>
+                    <div class="sub-text">无上级代理，由总部直接审核</div>
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <div class="agent-line">
+                  <span class="avatar avatar-up">{{ (row.parentNickname || '?').slice(0, 1).toUpperCase() }}</span>
+                  <div class="agent-text">
+                    <div class="agent-name" :title="row.parentNickname">{{ row.parentNickname }}</div>
+                    <div class="sub-text">{{ row.parentLevelName || '上级代理' }} · UID {{ row.parentUid }}</div>
+                    <div class="sub-text" :title="row.parentPhone">{{ row.parentPhone || '—' }}</div>
+                  </div>
+                </div>
+              </template>
             </div>
             <div class="col col-state">
               <span class="state-text" :class="statusClass(row.status)">{{ statusMap[row.status] || row.status }}</span>
@@ -467,10 +490,10 @@ export default {
   white-space: nowrap;
 }
 
-/* 卡片体：网格分列，列间细分隔线 */
+/* 卡片体：网格分列，列间细分隔线（固定含「上级」列） */
 .card-body {
   display: grid;
-  grid-template-columns: minmax(250px, 1.5fr) 220px 130px 190px 160px 112px;
+  grid-template-columns: minmax(210px, 1.3fr) 180px 112px 172px 184px 142px 110px;
   align-items: center;
   padding: 16px 0;
 }
@@ -588,6 +611,15 @@ export default {
 }
 .agent-text {
   min-width: 0;
+}
+/* 上级代理：橙色头像；总部审核：灰蓝头像 */
+.avatar-up {
+  background: #fff7e6;
+  color: #ff9900;
+}
+.avatar-hq {
+  background: #eef1f6;
+  color: #606266;
 }
 .agent-name {
   font-size: 14px;

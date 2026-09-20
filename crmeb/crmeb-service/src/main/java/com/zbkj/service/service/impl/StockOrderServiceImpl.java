@@ -2179,6 +2179,44 @@ public class StockOrderServiceImpl implements StockOrderService {
         for (User u : userService.lambdaQuery().in(User::getUid, uids).list()) {
             userMap.put(u.getUid(), u);
         }
+        // 上级信息：后台「待上级审核」需展示直接上级的 UID/昵称/手机号；无上级代理则视为总部审核
+        List<Integer> parentAgentIds = new ArrayList<>();
+        for (StockOrder o : orders) {
+            if (o.getParentAgentId() != null && o.getParentAgentId() > 0) {
+                parentAgentIds.add(o.getParentAgentId());
+            }
+        }
+        HashMap<Integer, StockAgent> parentAgentMap = new HashMap<>();
+        if (!parentAgentIds.isEmpty()) {
+            for (StockAgent a : stockAgentDao.selectList(new LambdaQueryWrapper<StockAgent>()
+                    .in(StockAgent::getId, parentAgentIds))) {
+                parentAgentMap.put(a.getId(), a);
+            }
+        }
+        HashMap<Integer, User> parentUserMap = new HashMap<>();
+        List<Integer> parentUids = new ArrayList<>();
+        List<Integer> parentLevelIds = new ArrayList<>();
+        for (StockAgent a : parentAgentMap.values()) {
+            if (a.getUid() != null) {
+                parentUids.add(a.getUid());
+            }
+            if (a.getLevelId() != null) {
+                parentLevelIds.add(a.getLevelId());
+            }
+        }
+        if (!parentUids.isEmpty()) {
+            for (User u : userService.lambdaQuery().in(User::getUid, parentUids).list()) {
+                parentUserMap.put(u.getUid(), u);
+            }
+        }
+        // 层级名称不是 eb_stock_agent 的字段，需按 level_id 回查 eb_stock_level
+        HashMap<Integer, String> parentLevelNameMap = new HashMap<>();
+        if (!parentLevelIds.isEmpty()) {
+            for (StockLevel lv : stockLevelDao.selectList(new LambdaQueryWrapper<StockLevel>()
+                    .in(StockLevel::getId, parentLevelIds))) {
+                parentLevelNameMap.put(lv.getId(), lv.getName());
+            }
+        }
         // 换货标记：存在非驳回的换货单即视为已换货（取最近一张用于展示单号与状态）
         HashMap<Integer, StockExchange> exchangeMap = new HashMap<>();
         for (StockExchange e : stockExchangeDao.selectList(new LambdaQueryWrapper<StockExchange>()
@@ -2192,9 +2230,26 @@ public class StockOrderServiceImpl implements StockOrderService {
             o.setProductList(itemMap.get(o.getId()));
             User u = userMap.get(o.getUid());
             o.setNickname(u == null ? "" : u.getNickname());
+            o.setAgentPhone(u == null ? "" : u.getPhone());
             // phone 为收货电话快照（新单）；历史订单快照为空时回退显示用户手机号
             if (o.getPhone() == null || o.getPhone().isEmpty()) {
                 o.setPhone(u == null ? "" : u.getPhone());
+            }
+            // 上级信息：有直接上级代理则展示其 UID/昵称/手机号，否则为总部审核
+            StockAgent pa = o.getParentAgentId() == null ? null : parentAgentMap.get(o.getParentAgentId());
+            if (pa == null) {
+                o.setParentIsHeadquarters(1);
+                o.setParentUid(null);
+                o.setParentNickname("总部");
+                o.setParentPhone("");
+                o.setParentLevelName("");
+            } else {
+                o.setParentIsHeadquarters(0);
+                o.setParentUid(pa.getUid());
+                o.setParentLevelName(parentLevelNameMap.get(pa.getLevelId()));
+                User pu = parentUserMap.get(pa.getUid());
+                o.setParentNickname(pu == null ? ("用户" + pa.getUid()) : pu.getNickname());
+                o.setParentPhone(pu == null ? "" : pu.getPhone());
             }
             StockExchange e = exchangeMap.get(o.getId());
             o.setExchanged(e == null ? 0 : 1);
