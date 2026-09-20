@@ -31,7 +31,7 @@
     >
       <el-table-column label="" width="55">
         <template slot-scope="{ row, index }">
-          <el-radio v-model="templateRadio" :label="row.uid" @change.native="getTemplateRow(row)">&nbsp;</el-radio>
+          <el-radio v-model="templateRadio" :label="row.uid" @change.native="getTemplateRow(row)"><span></span></el-radio>
         </template>
       </el-table-column>
       <el-table-column prop="id" label="ID" sortable width="80"> </el-table-column>

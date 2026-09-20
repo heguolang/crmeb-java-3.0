@@ -49,7 +49,7 @@
       </el-table-column>
       <el-table-column width="55" key="1" v-if="handleNum !== 'many'">
         <template slot-scope="scope">
-          <el-radio v-model="templateRadio" @change.native="getTemplateRow(scope.row)">&nbsp;</el-radio>
+          <el-radio v-model="templateRadio" @change.native="getTemplateRow(scope.row)"><span></span></el-radio>
         </template>
       </el-table-column>
       <el-table-column prop="id" label="ID" min-width="50" />

@@ -218,7 +218,7 @@
           >
             <el-table-column label="" width="80">
               <template slot-scope="scope">
-                <el-radio class="radio" v-model="radioData" :label="scope.$index">&nbsp;</el-radio>
+                <el-radio class="radio" v-model="radioData" :label="scope.$index"><span></span></el-radio>
               </template>
             </el-table-column>
             <el-table-column prop="id" label="ID" width="80"></el-table-column>

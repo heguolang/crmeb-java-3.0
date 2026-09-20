@@ -24,7 +24,7 @@
     <el-table :data="listData.list" style="width: 100%" max-height="400" tooltip-effect="dark" highlight-current-row>
       <el-table-column label="" width="55">
         <template slot-scope="{ row, index }">
-          <el-radio v-model="templateRadio" :label="row.id" @change.native="getTemplateRow(row)">&nbsp;</el-radio>
+          <el-radio v-model="templateRadio" :label="row.id" @change.native="getTemplateRow(row)"><span></span></el-radio>
         </template>
       </el-table-column>
       <el-table-column label="图片" min-width="80">
