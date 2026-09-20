@@ -24,6 +24,7 @@ import com.zbkj.service.dao.SystemConfigDao;
 import com.zbkj.service.service.SystemAttachmentService;
 import com.zbkj.service.service.SystemConfigService;
 import com.zbkj.service.service.SystemFormTempService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -46,6 +47,7 @@ import java.util.List;
  * | Author: CRMEB Team <admin@crmeb.com>
  * +----------------------------------------------------------------------
  */
+@Slf4j
 @Service
 public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigDao, SystemConfig> implements SystemConfigService {
 
@@ -216,8 +218,14 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigDao, System
             systemConfig.setUpdateTime(DateUtil.date());
             result = updateById(systemConfig);
         }
-        if (result && crmebConfig.isAsyncConfig()) {
-            async(systemConfig);
+        // admin 常关 asyncConfig、front 常开：后台改配置若只写库不刷 Redis，会员端会一直读到旧值
+        // 因此保存成功后始终刷新 Redis 中对应项（Redis 不可用时不影响落库结果）
+        if (result) {
+            try {
+                async(systemConfig);
+            } catch (Exception e) {
+                log.warn("同步配置到 Redis 失败 name={}", name, e);
+            }
         }
         return result;
     }
