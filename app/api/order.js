@@ -12,10 +12,13 @@
 import request from "@/utils/request.js";
 
 /**
- * 获取购物车列表
- * @param numType boolean true 购物车数量,false=购物车产品数量
+ * 获取购物车数量
+ * @param numType boolean true=有效商品，false=无效商品
+ * @param type total=商品数量，sum=购物数量
  */
-export function getCartCounts(numType,type) {
+export function getCartCounts(numType, type) {
+	if (numType === undefined || numType === null) numType = true;
+	if (!type) type = "total";
 	return request.get("cart/count?numType=" + numType + "&type=" + type);
 }
 /**

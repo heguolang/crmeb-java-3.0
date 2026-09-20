@@ -380,7 +380,7 @@ export default {
       });
     },
     getCartNum: function () {
-      getCartCounts()
+      getCartCounts(true, "total")
         .then((res) => {
           this.$store.commit("indexData/setCartNum", res.data.count + "");
           let cartNum = res.data.count;
