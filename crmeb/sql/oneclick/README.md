@@ -48,13 +48,19 @@ node build_test_sql.js
 | `ALL_IN_ONE_TEST.sql` | **测试库全新部署 / 可清空重建（推荐）** |
 | `ALL_IN_ONE.sql` | 原始合集（含本地域名残留与 Quartz 二进制，网页导入易失败） |
 | `02_patches_all.sql` | **已有库只补功能**（幂等，不清业务数据） |
+| `03_schema_increment_20260920.sql` | **线上只补「表结构 / 字段」**（幂等、无任何数据语句，最快最安全） |
 | `00_create_database.sql` | 仅建库 |
 | `build_test_sql.js` | 从 `ALL_IN_ONE.sql` 生成 `ALL_IN_ONE_TEST.sql` |
 
 | 场景 | 执行什么 |
 |------|----------|
 | 测试环境重建 | `ALL_IN_ONE_TEST.sql` |
-| 生产已有数据只升级补丁 | `02_patches_all.sql` |
+| 生产已有数据只升级补丁（结构+菜单+设置） | `02_patches_all.sql` |
+| 生产只想补表结构/字段（不要菜单设置） | `03_schema_increment_20260920.sql` |
+
+> `03_schema_increment_20260920.sql` 由 `02_patches_all.sql` 自动抽取结构类 DDL 生成：
+> 29 张自建表（`CREATE TABLE IF NOT EXISTS`）+ 71 处字段变更（先查 `information_schema` 再 `ALTER`），
+> 不含任何 `INSERT`/`UPDATE`。已在本机库执行两遍，`mysqldump --no-data` 前后 diff 无差异（幂等已验证）。
 
 ---
 

@@ -160,7 +160,7 @@
       <el-table class="admin-table" v-loading="userLoading" :data="userList" size="small" stripe highlight-current-row max-height="380">
         <el-table-column label="" width="50">
           <template slot-scope="scope">
-            <el-radio v-model="pickUid" :label="scope.row.uid" @change="onPickUser(scope.row)">&nbsp;</el-radio>
+            <el-radio v-model="pickUid" :label="scope.row.uid" @change="onPickUser(scope.row)"><span></span></el-radio>
           </template>
         </el-table-column>
         <el-table-column prop="uid" label="UID" width="90" />

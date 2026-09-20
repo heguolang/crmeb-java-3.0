@@ -28,7 +28,7 @@
         <div class="filter-actions">
           <el-button type="primary" icon="el-icon-search" @click="getList">查询</el-button>
           <el-button icon="el-icon-refresh" @click="reset">重置</el-button>
-          <el-button v-if="checkPermi(['admin:stock:agent:save'])" type="primary" plain icon="el-icon-plus" @click="openEdit()">新增代理</el-button>
+          <el-button v-if="checkPermi(['admin:stock:agent:save'])" type="primary" plain icon="el-icon-plus" @click="openEdit()">新增订货商</el-button>
         </div>
       </div>
 
@@ -40,8 +40,8 @@
             <span v-else class="avatar-text">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
           </template>
         </el-table-column>
-        <!-- 代理信息：昵称/手机/ID/上级 多行 -->
-        <el-table-column label="代理信息" width="220">
+        <!-- 订货商信息：昵称/手机/ID/上级 多行 -->
+        <el-table-column label="订货商信息" width="220">
           <template slot-scope="scope">
             <div class="info-name">{{ scope.row.nickname }}</div>
             <div class="info-line">{{ scope.row.phone || '—' }}</div>
@@ -86,21 +86,34 @@
       </div>
     </el-card>
 
-    <!-- 代理编辑弹窗 -->
-    <el-dialog :title="editForm.id ? '修改代理' : '新增代理'" :visible.sync="editVisible" width="480px">
+    <!-- 订货商编辑弹窗 -->
+    <el-dialog :title="editForm.id ? '修改订货商' : '新增订货商'" :visible.sync="editVisible" width="480px">
       <el-form :model="editForm" label-width="90px" size="small">
-        <el-form-item label="用户UID">
-          <el-input v-model.number="editForm.uid" :disabled="!!editForm.id" placeholder="会员UID" />
+        <el-form-item label="订货商用户">
+          <!-- 与「代理-代理管理」同款：弹窗搜索选择会员，避免手填 UID 填错人 -->
+          <div class="user-picker">
+            <el-input :value="userLabel" placeholder="请选择订货用户" readonly style="width: 300px">
+              <template slot="append">
+                <el-button :disabled="!!editForm.id" @click="openUserPicker">选择用户</el-button>
+              </template>
+            </el-input>
+          </div>
         </el-form-item>
         <el-form-item label="层级">
           <el-select v-model="editForm.levelId" style="width: 100%">
             <el-option v-for="lv in levels" :key="lv.id" :label="lv.name" :value="lv.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="上级代理">
-          <el-select v-model="editForm.parentId" style="width: 100%" clearable filterable placeholder="不选=上级为总部">
-            <el-option v-for="a in agentOptions" :key="a.id" :label="a.nickname + '（' + a.levelName + '）'" :value="a.id" />
-          </el-select>
+        <el-form-item label="上级订货商">
+          <!-- 与「选择用户」同款：弹窗内搜索选择，避免订货商多了以后在下拉里翻不到 -->
+          <div class="user-picker">
+            <el-input :value="parentLabel" placeholder="请选择上级订货商" readonly style="width: 300px">
+              <template slot="append">
+                <el-button @click="openParentPicker">选择上级</el-button>
+              </template>
+            </el-input>
+            <el-button v-if="editForm.parentId > 0" type="text" style="margin-left: 8px" @click="clearParent">设为总部</el-button>
+          </div>
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="editForm.mark" type="textarea" :rows="2" />
@@ -110,6 +123,78 @@
         <el-button size="small" @click="editVisible = false">取消</el-button>
         <el-button size="small" type="primary" :loading="saving" @click="onSave">确定</el-button>
       </div>
+    </el-dialog>
+
+    <!-- 选择订货用户（与「代理-代理管理」同款交互） -->
+    <el-dialog title="选择订货用户" :visible.sync="userPickerVisible" width="720px" append-to-body>
+      <el-form inline size="small" @submit.native.prevent>
+        <el-form-item>
+          <el-input v-model="userKeyword" placeholder="UID / 手机号 / 昵称" clearable style="width: 240px" @keyup.enter.native="searchUsers" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" size="small" @click="searchUsers">搜索</el-button>
+        </el-form-item>
+      </el-form>
+      <el-table class="admin-table" v-loading="userLoading" :data="userList" size="small" stripe highlight-current-row max-height="380">
+        <el-table-column label="" width="50">
+          <template slot-scope="scope">
+            <el-radio v-model="pickUid" :label="scope.row.uid" @change="onPickUser(scope.row)"><span></span></el-radio>
+          </template>
+        </el-table-column>
+        <el-table-column prop="uid" label="UID" width="90" />
+        <el-table-column prop="nickname" label="昵称" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="phone" label="手机号" width="130" />
+      </el-table>
+      <div class="pager">
+        <el-pagination background layout="total, prev, pager, next" :page-size="userFrom.limit" :current-page="userFrom.page" :total="userTotal" @current-change="userPageChange" />
+      </div>
+      <span slot="footer">
+        <el-button size="small" @click="userPickerVisible = false">取消</el-button>
+        <el-button size="small" type="primary" :disabled="!pickUid" @click="confirmUser">确定</el-button>
+      </span>
+    </el-dialog>
+
+    <!-- 选择上级订货商（与「选择订货用户」同款交互） -->
+    <el-dialog title="选择上级订货商" :visible.sync="parentPickerVisible" width="780px" append-to-body>
+      <el-form inline size="small" @submit.native.prevent>
+        <el-form-item>
+          <el-input v-model="parentKeyword" placeholder="UID / 手机号 / 昵称" clearable style="width: 240px" @keyup.enter.native="searchParents" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" size="small" @click="searchParents">搜索</el-button>
+        </el-form-item>
+      </el-form>
+      <!-- 总部固定项：不需要挂具体订货商时直接选它 -->
+      <div class="hq-row">
+        <el-radio v-model="pickParentId" :label="0" @change="onPickParent(null)">总部（无上级）</el-radio>
+      </div>
+      <el-table v-loading="parentLoading" :data="parentRows" size="small" stripe highlight-current-row max-height="380">
+        <el-table-column label="" width="50">
+          <template slot-scope="scope">
+            <el-radio v-model="pickParentId" :label="scope.row.id" @change="onPickParent(scope.row)"><span></span></el-radio>
+          </template>
+        </el-table-column>
+        <el-table-column prop="uid" label="UID" width="90" />
+        <el-table-column prop="nickname" label="昵称" min-width="130" show-overflow-tooltip />
+        <el-table-column label="级别" width="120">
+          <template slot-scope="scope">
+            <span class="lv-chip">{{ scope.row.levelName || '未分级' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="其上级" min-width="110" show-overflow-tooltip>
+          <template slot-scope="scope">
+            <span :class="{ hq: !(scope.row.parentId > 0) }">{{ scope.row.parentId > 0 ? scope.row.parentName : '总部' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="phone" label="手机号" width="130" />
+      </el-table>
+      <div class="pager">
+        <el-pagination background layout="total, prev, pager, next" :page-size="parentFrom.limit" :current-page="parentFrom.page" :total="parentTotal" @current-change="parentPageChange" />
+      </div>
+      <span slot="footer">
+        <el-button size="small" @click="parentPickerVisible = false">取消</el-button>
+        <el-button size="small" type="primary" :disabled="pickParentId === null" @click="confirmParent">确定</el-button>
+      </span>
     </el-dialog>
 
     <!-- 下级团队弹窗 -->
@@ -245,6 +330,7 @@
 
 <script>
 import { stockAgentListApi, stockAgentSaveApi, stockAgentUpdateApi, stockAgentStatusApi, stockAgentDeleteApi, stockAgentTeamApi, stockAgentVirtualAdjustApi, stockAgentPhysicalAdjustApi, stockLevelListApi, stockProductListApi, stockProductSkuListApi, stockAdjustLogListApi, stockAgentStockApi } from '@/api/stock';
+import { userListApi } from '@/api/user';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -261,6 +347,26 @@ export default {
       tableFrom: { page: 1, limit: 20, keywords: '', uid: null, levelId: null, status: null },
       editVisible: false,
       editForm: { id: null, uid: '', levelId: null, parentId: 0, mark: '' },
+      // 选择订货用户（与「代理-代理管理」同款）
+      userPickerVisible: false,
+      userKeyword: '',
+      userList: [],
+      userTotal: 0,
+      userFrom: { page: 1, limit: 10 },
+      userLoading: false,
+      pickUid: null,
+      pickedUser: null,
+      selectedUser: null,
+      // 选择上级订货商（与「选择订货用户」同款）
+      parentPickerVisible: false,
+      parentKeyword: '',
+      parentList: [],
+      parentTotal: 0,
+      parentFrom: { page: 1, limit: 10 },
+      parentLoading: false,
+      pickParentId: null,
+      pickedParent: null,
+      selectedParent: null,
       teamVisible: false,
       teamAgent: null,
       teamRows: [],
@@ -278,6 +384,25 @@ export default {
       skuOptions: [],
       stockForm: { stockType: 2, productId: null, skuKey: '', num: 0, mark: '' }
     };
+  },
+  computed: {
+    // 选择用户后展示「昵称（UID:xxx）」，与「代理-代理管理」保持一致
+    userLabel() {
+      if (this.selectedUser) return (this.selectedUser.nickname || '-') + '（UID:' + this.selectedUser.uid + '）';
+      return this.editForm.uid ? 'UID:' + this.editForm.uid : '';
+    },
+    // 上级订货商回显：昵称（级别）；挂总部时直接显示总部
+    parentLabel() {
+      if (this.selectedParent && this.selectedParent.id > 0) {
+        return this.selectedParent.nickname + (this.selectedParent.levelName ? '（' + this.selectedParent.levelName + '）' : '');
+      }
+      if (this.editForm.parentId > 0) return '订货商ID：' + this.editForm.parentId;
+      return '总部（无上级）';
+    },
+    // 上级候选：排除自己，避免把自己设为上级形成自环
+    parentRows() {
+      return this.parentList.filter((a) => a.id !== this.editForm.id);
+    }
   },
   methods: {
     checkPermi,
@@ -305,15 +430,125 @@ export default {
     },
     openEdit(row) {
       if (row) {
-        this.editForm = { id: row.id, uid: row.uid, levelId: row.levelId, parentId: row.parentId, mark: row.mark };
+        this.editForm = { id: row.id, uid: row.uid, levelId: row.levelId, parentId: row.parentId || 0, mark: row.mark };
+        // 编辑时回显已绑定的会员
+        this.selectedUser = { uid: row.uid, nickname: row.nickname };
+        // 回显当前上级（级别名下面用预载列表补全）
+        this.selectedParent = row.parentId > 0 ? { id: row.parentId, nickname: row.parentName || '', levelName: '' } : null;
       } else {
         this.editForm = { id: null, uid: '', levelId: this.levels.length ? this.levels[this.levels.length - 1].id : null, parentId: 0, mark: '' };
+        this.selectedUser = null;
+        this.selectedParent = null;
       }
-      stockAgentListApi({ page: 1, limit: 1000 }).then(res => { this.agentOptions = (res && res.list) || []; });
+      // 预载候选：仅用于把「上级」的级别名补全到回显上，实际选择走弹窗搜索
+      stockAgentListApi({ page: 1, limit: 1000 }).then(res => {
+        this.agentOptions = (res && res.list) || [];
+        if (this.editForm.parentId > 0) {
+          const p = this.agentOptions.find((a) => a.id === this.editForm.parentId);
+          if (p) this.selectedParent = { id: p.id, nickname: p.nickname, levelName: p.levelName };
+        }
+      });
       this.editVisible = true;
     },
+    // ===== 选择订货用户（与「代理-代理管理」同款交互） =====
+    openUserPicker() {
+      this.userPickerVisible = true;
+      this.userKeyword = '';
+      this.pickUid = this.editForm.uid ? Number(this.editForm.uid) : null;
+      this.pickedUser = this.selectedUser;
+      this.userFrom.page = 1;
+      this.searchUsers();
+    },
+    searchUsers() {
+      this.userLoading = true;
+      this.userFrom.page = 1;
+      this.loadUsers();
+    },
+    loadUsers() {
+      this.userLoading = true;
+      const params = { page: this.userFrom.page, limit: this.userFrom.limit, searchType: 'all' };
+      if (this.userKeyword) params.content = this.userKeyword;
+      userListApi(params)
+        .then((res) => {
+          this.userList = (res && res.list) || [];
+          this.userTotal = (res && res.total) || 0;
+          this.userLoading = false;
+        })
+        .catch(() => {
+          this.userLoading = false;
+        });
+    },
+    userPageChange(page) {
+      this.userFrom.page = page;
+      this.loadUsers();
+    },
+    onPickUser(row) {
+      this.pickedUser = { uid: row.uid, nickname: row.nickname, phone: row.phone };
+    },
+    confirmUser() {
+      if (!this.pickedUser && this.pickUid) {
+        this.pickedUser = this.userList.find((u) => u.uid === this.pickUid) || null;
+      }
+      if (!this.pickedUser) return;
+      this.selectedUser = { uid: this.pickedUser.uid, nickname: this.pickedUser.nickname };
+      this.editForm.uid = String(this.pickedUser.uid);
+      this.userPickerVisible = false;
+    },
+    // ===== 选择上级订货商（与「选择订货用户」同款交互） =====
+    openParentPicker() {
+      this.parentPickerVisible = true;
+      this.parentKeyword = '';
+      this.pickParentId = this.editForm.parentId > 0 ? this.editForm.parentId : 0;
+      this.pickedParent = this.selectedParent;
+      this.parentFrom.page = 1;
+      this.searchParents();
+    },
+    searchParents() {
+      this.parentFrom.page = 1;
+      this.loadParents();
+    },
+    loadParents() {
+      this.parentLoading = true;
+      const params = { page: this.parentFrom.page, limit: this.parentFrom.limit };
+      if (this.parentKeyword) params.keywords = this.parentKeyword;
+      stockAgentListApi(params)
+        .then((res) => {
+          this.parentList = (res && res.list) || [];
+          this.parentTotal = (res && res.total) || 0;
+          this.parentLoading = false;
+        })
+        .catch(() => { this.parentLoading = false; });
+    },
+    parentPageChange(page) {
+      this.parentFrom.page = page;
+      this.loadParents();
+    },
+    onPickParent(row) {
+      this.pickedParent = row ? { id: row.id, nickname: row.nickname, levelName: row.levelName } : null;
+    },
+    confirmParent() {
+      // 0=总部；null=还没选
+      if (this.pickParentId === 0) {
+        this.selectedParent = null;
+        this.editForm.parentId = 0;
+        this.parentPickerVisible = false;
+        return;
+      }
+      if (!this.pickedParent || this.pickedParent.id !== this.pickParentId) {
+        const hit = this.parentRows.find((a) => a.id === this.pickParentId);
+        this.pickedParent = hit ? { id: hit.id, nickname: hit.nickname, levelName: hit.levelName } : null;
+      }
+      if (!this.pickedParent) return;
+      this.selectedParent = { id: this.pickedParent.id, nickname: this.pickedParent.nickname, levelName: this.pickedParent.levelName };
+      this.editForm.parentId = this.pickedParent.id;
+      this.parentPickerVisible = false;
+    },
+    clearParent() {
+      this.selectedParent = null;
+      this.editForm.parentId = 0;
+    },
     onSave() {
-      if (!this.editForm.uid) return this.$message.error('请填写用户UID');
+      if (!this.editForm.uid) return this.$message.error('请选择订货用户');
       if (!this.editForm.levelId) return this.$message.error('请选择层级');
       this.saving = true;
       const api = this.editForm.id ? stockAgentUpdateApi : stockAgentSaveApi;
@@ -331,7 +566,7 @@ export default {
       });
     },
     onDelete(row) {
-      this.$confirm('确认删除该代理？', '提示').then(() => {
+      this.$confirm('确认删除该订货商？', '提示').then(() => {
         stockAgentDeleteApi(row.id).then(() => {
           this.$message.success('删除成功');
           this.getList();
@@ -444,4 +679,8 @@ export default {
 .switch-tip { margin-left: 12px; font-size: 12px; color: #909399; line-height: 1.5; }
 .team-tip { font-size: 13px; color: #909399; margin-bottom: 10px; }
 .depth-tag { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #ecf5ff; color: #409eff; font-size: 12px; }
+/* 选择订货用户（与「代理-代理管理」同款） */
+.user-picker { display: inline-block; }
+/* 选择上级订货商弹窗里的「总部」固定项 */
+.hq-row { padding: 4px 10px; margin-bottom: 8px; background: #f7f8fa; border-radius: 4px; }
 </style>
