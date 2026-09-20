@@ -46,7 +46,7 @@
         </view>
         <view v-if="o.status === -1" class="reject-box">驳回原因：{{ o.rejectReason }}</view>
         <view v-if="o.status === 10" class="reject-box wait-box">
-          当前上级暂无库存，正在沿上级链匹配有货的上级，匹配到后自动进入正常订货流程
+          下单时上级暂无库存，正在等待上级补货；上级补货后订单将自动进入正常订货流程，超时未补货将自动匹配给有货的更高级上级
         </view>
         <view v-if="o.exchanged === 1" class="reject-box">
           该订单已换货（换货单号 {{ o.exchangeNo }}），不可重复申请换货
@@ -108,7 +108,7 @@
       <view v-for="o in list" :key="o.id" class="order-card">
         <view class="row-1">
           <text class="order-no">{{ o.orderNo }}</text>
-          <text class="st-pill st0">{{ statusText(o.status) }}</text>
+          <text class="st-pill" :class="o.status === 10 ? 'stwait' : 'st0'">{{ auditStatusText(o.status) }}</text>
         </view>
         <view class="audit-user">
           <view class="au-avatar">{{ (o.nickname || '下') }}</view>
@@ -116,7 +116,7 @@
             <text class="au-name">{{ o.nickname }}</text>
             <text class="au-level">{{ o.levelName }}</text>
           </view>
-          <view class="au-tip">下级订货单，等待您审核</view>
+          <view class="au-tip">{{ o.status === 10 ? '待补货后审核' : '等待您审核' }}</view>
         </view>
         <view v-for="p in o.productList" :key="p.id" class="row-p">
           <image :src="p.image" class="p-img" mode="aspectFill" />
@@ -127,7 +127,11 @@
           <view class="p-sum">¥{{ (p.parentPrice * p.num).toFixed(2) }}</view>
         </view>
         <view class="row-total">合计 <text class="total-price">¥{{ o.totalPrice }}</text></view>
-        <view class="row-op" v-if="o.status === 0">
+        <view v-if="o.status === 10" class="reject-box wait-box">
+          该订单下单时您的库存不足，请尽快补货；补货后即可审核通过。超时未补货，系统将自动向上匹配有货的上级。
+          <text v-if="o.waitDurationText">（{{ o.waitDurationText }}）</text>
+        </view>
+        <view class="row-op" v-if="o.status === 0 || o.status === 10">
           <button class="op-btn danger" size="mini" @click="audit(o, -1)">驳回</button>
           <button class="op-btn primary" size="mini" @click="audit(o, 1)">通过</button>
         </view>
@@ -191,6 +195,11 @@
 		methods: {
 			statusText(s) {
 				return { 0: '待上级审核', 1: '待付款', 2: '待发货', 3: '待收货', 4: '已完成', '-1': '已驳回', 10: '匹配上级中', '-2': '已取消' }[s] || s;
+			},
+			// 待我审核 tab：状态10 表示下单时我方无库存，需补货后才能审核通过
+			auditStatusText(s) {
+				if (s === 10) return '待我补货后审核';
+				return this.statusText(s);
 			},
 			// 库存类型：1=实体库存 2=虚拟库存
 			stockTypeText(t) {
@@ -487,6 +496,8 @@
   &.st-1 { background: #ffecec; color: #f56c6c; }
   &.st10 { background: #f3ecff; color: #7c4dd4; }
   &.st-2 { background: #f2f3f5; color: #909399; }
+  /* 待我审核 tab：下单时我方无库存，需补货后才能审核通过（醒目提示待处理） */
+  &.stwait { background: #fff0e8; color: #e8652f; }
 }
 
 /* 已换货标记 */

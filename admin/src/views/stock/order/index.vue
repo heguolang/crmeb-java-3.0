@@ -111,6 +111,7 @@
               <el-button v-if="row.status === 2 && checkPermi(['admin:stock:order:send'])" size="mini" type="primary" plain class="op-btn" @click="openSend(row)">订单发货</el-button>
               <el-button v-if="row.status === 3 && checkPermi(['admin:stock:order:send'])" size="mini" type="success" plain class="op-btn" @click="onFinish(row)">标记完成</el-button>
               <el-button v-if="row.status === 10 && checkPermi(['admin:stock:order:audit'])" size="mini" type="warning" plain class="op-btn" @click="onSkipMatch(row)">跳过匹配上级</el-button>
+              <el-button v-if="row.status === 10 && checkPermi(['admin:stock:order:audit'])" size="mini" type="primary" plain class="op-btn" @click="openAudit(row)">介入审核</el-button>
             </div>
           </div>
         </div>

@@ -31,6 +31,12 @@ public interface StockOrderService {
     /** 定时任务：等待匹配(10)超时订单自动向上匹配有货上级 */
     void processExpiredUpSearchOrders();
 
+    /**
+     * 定时任务：直接上级已补货的「等待匹配」订单立即释放回正常订货流程（无需等满等待时长）。
+     * 解决"上级已补货但订单仍卡在匹配上级中"的问题。
+     */
+    void releaseRestockedWaitMatchOrders();
+
     /** 定时任务：待付款超时订单自动取消(-2) */
     void cancelExpiredUnpaidOrders();
 

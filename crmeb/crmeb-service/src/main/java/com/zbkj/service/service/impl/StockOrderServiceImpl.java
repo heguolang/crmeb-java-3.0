@@ -47,7 +47,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 
 /**
@@ -633,6 +635,13 @@ public class StockOrderServiceImpl implements StockOrderService {
                 processUpSearchOrders(agent);
             } catch (Exception ignored) {
             }
+            // 懒处理：直接上级已补货的等待订单立即释放回正常订货流程（不必等满等待时长）
+            try {
+                if (agent.getParentId() != null && agent.getParentId() > 0) {
+                    releaseRestockedOrdersForParent(stockService.getAgentById(agent.getParentId()));
+                }
+            } catch (Exception ignored) {
+            }
         }
         PageHelper.startPage(page.getPage(), page.getLimit());
         LambdaQueryWrapper<StockOrder> lqw = new LambdaQueryWrapper<>();
@@ -702,17 +711,27 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (order == null || order.getIsDel() == 1) {
             throw new CrmebException("订单不存在");
         }
-        if (!order.getStatus().equals(StockOrder.STATUS_WAIT_PARENT_AUDIT)) {
-            throw new CrmebException("订单当前状态不可审核");
-        }
-        // 上级库存不足等待中的订单暂不可审核
-        if (order.getUpSearchTime() != null) {
-            throw new CrmebException("该订单正在等待系统向上匹配有货的上级（上级库存不足），暂不可审核");
-        }
         // 校验审核人是订单的直接上级
         if (order.getParentAgentId() == null || order.getParentAgentId() == 0
                 || !parentAgent.getId().equals(order.getParentAgentId())) {
             throw new CrmebException("只有该订单的直接上级才能审核");
+        }
+        if (StockOrder.STATUS_WAIT_MATCH.equals(order.getStatus())) {
+            // 下单时上级无库存而挂起的订单（10）：上级仍应看到并处理。
+            // 通过审核前必须先补足库存；已补货则即时归位为待上级审核，继续走正常审核流程。
+            if (request.getStatus() != -1) {
+                List<StockOrderProduct> waitItems = stockOrderProductDao.selectList(
+                        new LambdaQueryWrapper<StockOrderProduct>().eq(StockOrderProduct::getOrderId, order.getId()));
+                if (!parentHasStock(parentAgent, waitItems, order.getId())) {
+                    throw new CrmebException("您的库存不足，暂不可审核通过该订单；请尽快补货后再审核，"
+                            + getUpSearchHours() + "小时内未补货，系统将自动把该订单向上匹配给有货的上级");
+                }
+                if (!restoreWaitMatchToAudit(order)) {
+                    throw new CrmebException("订单状态已变更，请刷新后重试");
+                }
+            }
+        } else if (!order.getStatus().equals(StockOrder.STATUS_WAIT_PARENT_AUDIT)) {
+            throw new CrmebException("订单当前状态不可审核");
         }
         if (request.getStatus() == -1) {
             if (request.getReason() == null || request.getReason().trim().isEmpty()) {
@@ -728,11 +747,12 @@ public class StockOrderServiceImpl implements StockOrderService {
                             + "。已支付货款 ¥" + order.getTotalPrice() + " 已退回您的余额");
             return true;
         }
-        // 审核通过前校验上级库存
+        // 审核通过前校验上级库存（排除本单自身占用量，避免"补足货仍判库存不足"）
         List<StockOrderProduct> auditItems = stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
                 .eq(StockOrderProduct::getOrderId, order.getId()));
-        if (!parentHasStock(parentAgent, auditItems)) {
-            throw new CrmebException("您的库存不足，无法审核通过该订单；可先补货，或等待系统将该下级自动匹配至更高级上级");
+        if (!parentHasStock(parentAgent, auditItems, order.getId())) {
+            throw new CrmebException("您的库存不足，无法审核通过该订单；请尽快补货后再审核，"
+                    + "或等待系统将该订单自动匹配至更高级上级");
         }
         // 审核通过：实体单扣云仓库存 -> 待发货；虚拟单 -> 完成并入账虚拟库存
         return transactionTemplate.execute(status -> {
@@ -774,12 +794,18 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (order == null || order.getIsDel() == 1) {
             throw new CrmebException("订单不存在");
         }
+        if (StockOrder.STATUS_WAIT_MATCH.equals(order.getStatus())) {
+            // 总部介入：先把「等待匹配」订单归位为待上级审核（清空匹配标记），再走总部审核流程
+            stockOrderDao.update(null, new LambdaUpdateWrapper<StockOrder>()
+                    .eq(StockOrder::getId, order.getId())
+                    .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_MATCH)
+                    .set(StockOrder::getStatus, StockOrder.STATUS_WAIT_PARENT_AUDIT)
+                    .set(StockOrder::getUpSearchTime, null));
+            order.setStatus(StockOrder.STATUS_WAIT_PARENT_AUDIT);
+            order.setUpSearchTime(null);
+        }
         if (!order.getStatus().equals(StockOrder.STATUS_WAIT_PARENT_AUDIT)) {
             throw new CrmebException("订单当前状态不可介入审核（仅待上级审核状态可介入）");
-        }
-        // 上级库存不足等待中的订单暂不可审核
-        if (order.getUpSearchTime() != null) {
-            throw new CrmebException("该订单正在等待系统向上匹配有货的上级（上级库存不足），暂不可审核");
         }
         if (request.getStatus() == -1) {
             if (request.getReason() == null || request.getReason().trim().isEmpty()) {
@@ -889,11 +915,21 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (agent == null) {
             throw new CrmebException("您还不是订货代理");
         }
+        // 懒处理：自己名下「等待匹配」的订单，若已补足库存立即释放回正常订货流程（进入待我审核）
+        try {
+            releaseRestockedOrdersForParent(agent);
+        } catch (Exception ignored) {
+        }
         PageHelper.startPage(page.getPage(), page.getLimit());
         LambdaQueryWrapper<StockOrder> lqw = new LambdaQueryWrapper<>();
         lqw.eq(StockOrder::getParentAgentId, agent.getId()).eq(StockOrder::getIsDel, 0);
         if (status != null) {
-            lqw.eq(StockOrder::getStatus, status);
+            if (StockOrder.STATUS_WAIT_PARENT_AUDIT.equals(status)) {
+                // 「待我处理」同时包含：待上级审核(0) 与 等待匹配上级(10，下单时上级无库存待补货)
+                lqw.in(StockOrder::getStatus, StockOrder.STATUS_WAIT_PARENT_AUDIT, StockOrder.STATUS_WAIT_MATCH);
+            } else {
+                lqw.eq(StockOrder::getStatus, status);
+            }
         }
         lqw.orderByDesc(StockOrder::getId);
         List<StockOrder> list = stockOrderDao.selectList(lqw);
@@ -1625,11 +1661,20 @@ public class StockOrderServiceImpl implements StockOrderService {
         stockAdjustLogDao.insert(log);
     }
 
+    /** 某代理对某商品的可用库存（不排除任何订单） */
+    private int getAgentStockNum(StockAgent agent, Integer productId) {
+        return getAgentStockNum(agent, productId, null);
+    }
+
     /**
      * 某代理对某商品的可用库存 = 其历史已付款实体采购数量 - 已供应给直接下级的实体数量
      * 仅统计实体采购单：虚拟采购单只入虚拟库存、提货单不参与推导
+     *
+     * @param excludeChildOrderId 计算"已供应给下级"时排除的订单ID。用于判定"某笔订单能否被该上级满足"：
+     *                            该订单本身（已付款）也计入 supplied，若不排除会重复占用自己所需的量，
+     *                            导致上级明明补足了货仍被判库存不足，订单卡在"匹配上级中"。
      */
-    private int getAgentStockNum(StockAgent agent, Integer productId) {
+    private int getAgentStockNum(StockAgent agent, Integer productId, Integer excludeChildOrderId) {
         // 上级自己采购的数量（已付款实体订单，虚拟单不计入实体可供应量）
         List<StockOrder> myOrders = stockOrderDao.selectList(physicalPurchaseWrapper()
                 .eq(StockOrder::getAgentId, agent.getId()));
@@ -1645,8 +1690,10 @@ public class StockOrderServiceImpl implements StockOrderService {
             }
         }
         // 已供应给直接下级的数量（下级已付款实体订单）
+        boolean exclude = excludeChildOrderId != null && excludeChildOrderId > 0;
         List<StockOrder> childOrders = stockOrderDao.selectList(physicalPurchaseWrapper()
-                .eq(StockOrder::getParentAgentId, agent.getId()));
+                .eq(StockOrder::getParentAgentId, agent.getId())
+                .ne(exclude, StockOrder::getId, excludeChildOrderId));
         int supplied = 0;
         List<Integer> childOrderIds = new ArrayList<>();
         for (StockOrder o : childOrders) {
@@ -2074,8 +2121,17 @@ public class StockOrderServiceImpl implements StockOrderService {
 
     /** 校验上级对订单明细各项均有足够库存 */
     private boolean parentHasStock(StockAgent parent, List<StockOrderProduct> items) {
+        return parentHasStock(parent, items, null);
+    }
+
+    /**
+     * 校验上级能否满足订单明细。
+     *
+     * @param excludeOrderId 判定时从上级"已供应"中排除的订单ID（该订单自身，见 getAgentStockNum 说明）
+     */
+    private boolean parentHasStock(StockAgent parent, List<StockOrderProduct> items, Integer excludeOrderId) {
         for (StockOrderProduct op : items) {
-            if (getAgentStockNum(parent, op.getProductId()) < op.getNum()) {
+            if (getAgentStockNum(parent, op.getProductId(), excludeOrderId) < op.getNum()) {
                 return false;
             }
         }
@@ -2105,6 +2161,146 @@ public class StockOrderServiceImpl implements StockOrderService {
     }
 
     /**
+     * 把「等待匹配(10)」订单释放回正常订货流程，并把订单改挂到 targetParentAgentId
+     * （targetParentAgentId = 当前直接上级时为原地释放，不改上级）。
+     * 释放结果：审核开关开启 -> 0 待上级审核；虚拟单(开关关闭) -> 4 完成并入账；实体单(开关关闭) -> 2 待发货并补扣云仓库存。
+     *
+     * @return 是否实际完成释放（状态非10或并发冲突时为 false）
+     */
+    private boolean releaseWaitMatchOrder(StockOrder order, Integer targetParentAgentId,
+                                          List<StockOrderProduct> items) {
+        boolean needAudit = !"0".equals(systemConfigService.getValueByKey(CFG_ORDER_AUDIT));
+        boolean virtual = isVirtualOrder(order);
+        int oldParent = order.getParentAgentId() == null ? 0 : order.getParentAgentId();
+        boolean parentChanged = oldParent != (targetParentAgentId == null ? 0 : targetParentAgentId);
+        LambdaUpdateWrapper<StockOrder> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(StockOrder::getId, order.getId())
+                .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_MATCH)
+                .set(StockOrder::getParentAgentId, targetParentAgentId)
+                .set(StockOrder::getUpSearchTime, null);
+        if (parentChanged) {
+            wrapper.set(StockOrder::getUpSearchNum,
+                    (order.getUpSearchNum() == null ? 0 : order.getUpSearchNum()) + 1);
+        }
+        if (needAudit) {
+            wrapper.set(StockOrder::getStatus, StockOrder.STATUS_WAIT_PARENT_AUDIT);
+        } else if (virtual) {
+            wrapper.set(StockOrder::getStatus, StockOrder.STATUS_COMPLETE)
+                    .set(StockOrder::getFinishTime, new Date());
+        } else {
+            wrapper.set(StockOrder::getStatus, StockOrder.STATUS_WAIT_SEND);
+        }
+        if (stockOrderDao.update(null, wrapper) <= 0) {
+            return false;
+        }
+        // 同步内存对象，后续入账/结算/扣减均以新状态与新上级为准
+        order.setParentAgentId(targetParentAgentId);
+        order.setUpSearchTime(null);
+        if (needAudit) {
+            order.setStatus(StockOrder.STATUS_WAIT_PARENT_AUDIT);
+        } else if (virtual) {
+            order.setStatus(StockOrder.STATUS_COMPLETE);
+        } else {
+            order.setStatus(StockOrder.STATUS_WAIT_SEND);
+        }
+        if (!needAudit && virtual) {
+            // 审核开关关闭：虚拟单直接完成并入账虚拟库存
+            for (StockOrderProduct op : items) {
+                creditVirtualStock(order, op);
+            }
+            // 虚拟单完成：差价结算给上级（幂等，与付款即完成路径一致）
+            settleOrderReward(getByOrderNo(order.getOrderNo()));
+        }
+        if (!needAudit && !virtual) {
+            // 审核开关关闭：释放为待发货需补扣云仓库存（挂起时未扣）
+            for (StockOrderProduct op : items) {
+                try {
+                    stockService.deductStockBySku(op.getProductId(), op.getSkuKey(), op.getNum(), 1,
+                            order.getOrderNo(), "向上匹配后释放订单扣库存（审核开关关闭）");
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 等待匹配(10)订单归位为「待上级审核(0)」：清空匹配标记、保留原上级。
+     * 仅做状态归位（供"直接上级已补货后直接审核"复用正常审核流程），库存扣减/入账由调用方流程负责。
+     */
+    private boolean restoreWaitMatchToAudit(StockOrder order) {
+        boolean ok = stockOrderDao.update(null, new LambdaUpdateWrapper<StockOrder>()
+                .eq(StockOrder::getId, order.getId())
+                .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_MATCH)
+                .set(StockOrder::getStatus, StockOrder.STATUS_WAIT_PARENT_AUDIT)
+                .set(StockOrder::getUpSearchTime, null)) > 0;
+        if (ok) {
+            order.setStatus(StockOrder.STATUS_WAIT_PARENT_AUDIT);
+            order.setUpSearchTime(null);
+        }
+        return ok;
+    }
+
+    /**
+     * 直接上级已补货 -> 立即把该上级名下「等待匹配(10)」且库存已能满足的订单释放回正常订货流程。
+     * 这是"上级补货后可正常订货"的核心修复：原实现只在等待时长耗尽后才释放，导致补货后仍长期显示"匹配上级中"。
+     *
+     * @return 本次释放的订单数
+     */
+    private int releaseRestockedOrdersForParent(StockAgent parent) {
+        if (parent == null) {
+            return 0;
+        }
+        List<StockOrder> waiting = stockOrderDao.selectList(new LambdaQueryWrapper<StockOrder>()
+                .eq(StockOrder::getParentAgentId, parent.getId())
+                .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_MATCH)
+                .eq(StockOrder::getIsDel, 0)
+                .orderByAsc(StockOrder::getUpSearchTime)
+                .orderByAsc(StockOrder::getId));
+        int released = 0;
+        for (StockOrder order : waiting) {
+            try {
+                List<StockOrderProduct> items = stockOrderProductDao.selectList(
+                        new LambdaQueryWrapper<StockOrderProduct>().eq(StockOrderProduct::getOrderId, order.getId()));
+                // 排除订单自身占用量后再判定，避免"补了货仍显示库存不足"
+                if (!parentHasStock(parent, items, order.getId())) {
+                    continue;
+                }
+                if (releaseWaitMatchOrder(order, parent.getId(), items)) {
+                    released++;
+                    stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "订单已进入上级审核",
+                            "您的订货单 " + order.getOrderNo() + " 的上级已补货，订单已恢复正常订货流程"
+                                    + (StockOrder.STATUS_WAIT_PARENT_AUDIT.equals(order.getStatus()) ? "，等待上级审核发货" : ""));
+                    stockRewardService.sendNotice(parent.getUid(), StockNotice.TYPE_ORDER_AUDIT, "下级订单待审核",
+                            "下级【" + nickOf(order.getUid()) + "】的订货单 " + order.getOrderNo()
+                                    + " 已恢复正常订货流程，请及时审核发货");
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return released;
+    }
+
+    @Override
+    public void releaseRestockedWaitMatchOrders() {
+        List<StockOrder> all = stockOrderDao.selectList(new LambdaQueryWrapper<StockOrder>()
+                .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_MATCH)
+                .eq(StockOrder::getIsDel, 0));
+        Set<Integer> parentIds = new LinkedHashSet<>();
+        for (StockOrder o : all) {
+            if (o.getParentAgentId() != null && o.getParentAgentId() > 0) {
+                parentIds.add(o.getParentAgentId());
+            }
+        }
+        for (Integer pid : parentIds) {
+            try {
+                releaseRestockedOrdersForParent(stockService.getAgentById(pid));
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    /**
      * 单笔等待匹配订单处理：沿上级链向上找第一个有货的代理，改挂上级并释放订单。
      * 有货目标找到 或 全链无货挂总部 后：
      *   审核开关开启 -> 释放为 0 待上级审核；
@@ -2118,7 +2314,8 @@ public class StockOrderServiceImpl implements StockOrderService {
                 ? stockService.getAgentById(agent.getParentId()) : null;
         int depth = 0;
         while (current != null && depth < 50) {
-            if (current.getStatus() != 0 && parentHasStock(current, items)) {
+            // 排除订单自身占用量后再判定，上级补足库存时可原地释放
+            if (current.getStatus() != 0 && parentHasStock(current, items, order.getId())) {
                 target = current;
                 break;
             }
@@ -2132,50 +2329,12 @@ public class StockOrderServiceImpl implements StockOrderService {
         agentUpdate.setId(agent.getId());
         agentUpdate.setParentId(targetParentAgentId);
         stockAgentDao.updateById(agentUpdate);
-        boolean needAudit = !"0".equals(systemConfigService.getValueByKey(CFG_ORDER_AUDIT));
-        boolean virtual = isVirtualOrder(order);
-        // 释放订单：等待状态(10) -> 待审核(0) / 待发货(2) / 虚拟单直接完成(4)，并清空匹配标记
-        LambdaUpdateWrapper<StockOrder> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(StockOrder::getId, order.getId())
-                .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_MATCH)
-                .set(StockOrder::getParentAgentId, targetParentAgentId)
-                .set(StockOrder::getUpSearchNum, order.getUpSearchNum() == null ? 1 : order.getUpSearchNum() + 1)
-                .set(StockOrder::getUpSearchTime, null);
-        if (needAudit) {
-            wrapper.set(StockOrder::getStatus, StockOrder.STATUS_WAIT_PARENT_AUDIT);
-        } else if (virtual) {
-            wrapper.set(StockOrder::getStatus, StockOrder.STATUS_COMPLETE)
-                    .set(StockOrder::getFinishTime, new Date());
-        } else {
-            wrapper.set(StockOrder::getStatus, StockOrder.STATUS_WAIT_SEND);
+        if (releaseWaitMatchOrder(order, targetParentAgentId, items)) {
+            // 通知下单人
+            stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "订单已自动匹配上级",
+                    "您的订货单 " + order.getOrderNo() + " 因上级库存不足，已自动匹配至"
+                            + (target == null ? "总部" : "更高级上级【" + nickOf(target.getUid()) + "】"));
         }
-        boolean updated = stockOrderDao.update(null, wrapper) > 0;
-        if (updated) {
-            // 同步内存对象，后续入账/结算/转卖扣减均以新上级为准
-            order.setParentAgentId(targetParentAgentId);
-            if (!needAudit && virtual) {
-                // 审核开关关闭：虚拟单直接完成并入账虚拟库存
-                for (StockOrderProduct op : items) {
-                    creditVirtualStock(order, op);
-                }
-                // 虚拟单完成：差价结算给上级（幂等，与付款即完成路径一致）
-                settleOrderReward(getByOrderNo(order.getOrderNo()));
-            }
-            if (!needAudit && !virtual) {
-                // 审核开关关闭：释放为待发货需补扣云仓库存（挂起时未扣）
-                for (StockOrderProduct op : items) {
-                    try {
-                        stockService.deductStockBySku(op.getProductId(), op.getSkuKey(), op.getNum(), 1,
-                                order.getOrderNo(), "向上匹配后释放订单扣库存（审核开关关闭）");
-                    } catch (Exception ignored) {
-                    }
-                }
-            }
-        }
-        // 通知下单人
-        stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "订单已自动匹配上级",
-                "您的订货单 " + order.getOrderNo() + " 因上级库存不足，已自动匹配至"
-                        + (target == null ? "总部" : "更高级上级【" + nickOf(target.getUid()) + "】"));
     }
 
     /** uid 是否为 agentId 的祖先（上级链） */
