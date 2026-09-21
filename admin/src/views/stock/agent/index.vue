@@ -266,6 +266,12 @@
             </template>
           </el-table-column>
           <el-table-column prop="num" label="可供应量" width="100" />
+          <el-table-column label="换货中" width="80">
+            <template slot-scope="scope">
+              <span v-if="scope.row.exchangeNum > 0" style="color: #c47400; font-weight: 600">{{ scope.row.exchangeNum }}</span>
+              <span v-else>0</span>
+            </template>
+          </el-table-column>
         </el-table>
         <el-table :data="curVirtual" size="mini" v-loading="logLoading" style="margin-bottom: 10px">
           <el-table-column label="虚拟库存" min-width="200">

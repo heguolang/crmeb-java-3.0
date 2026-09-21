@@ -488,11 +488,14 @@ public class StockOrderServiceImpl implements StockOrderService {
             adjustMap.merge(a.getProductId(), a.getNum() == null ? 0 : a.getNum(), Integer::sum);
         }
         // 净持有量 > 0 的商品（含已完成换货的换入/+、换出/-，以及下级换货发出新品对上级的扣减）
+        // 换货中（未完成未驳回）的换出数量单独锁定：可供应量 = 净持有 - 换货占用，换货中数量单独返回供前端展示
         Map<Integer, Integer> exDelta = exchangeStockDeltaMap(agent.getId());
         Map<Integer, Integer> exOutDelta = exchangeOutDeltaMap(agent.getId());
+        Map<Integer, Integer> exPending = exchangePendingDeltaMap(agent.getId());
         java.util.Set<Integer> pids = new java.util.HashSet<>(purchased.keySet());
         pids.addAll(exDelta.keySet());
         pids.addAll(exOutDelta.keySet());
+        pids.addAll(exPending.keySet());
         pids.addAll(adjustMap.keySet());
         for (Integer pid : pids) {
             int net = purchased.getOrDefault(pid, 0)
@@ -501,7 +504,10 @@ public class StockOrderServiceImpl implements StockOrderService {
                     + adjustMap.getOrDefault(pid, 0)
                     + exDelta.getOrDefault(pid, 0)
                     + exOutDelta.getOrDefault(pid, 0);
-            if (net <= 0) {
+            // pendingRaw 为负数（占用记 -num），取其绝对值作为「换货中锁定量」，且不超过净持有量
+            int pendingRaw = exPending.getOrDefault(pid, 0);
+            int pending = pendingRaw < 0 ? Math.min(-pendingRaw, Math.max(net, 0)) : 0;
+            if (net <= 0 && pending <= 0) {
                 continue;
             }
             HashMap<String, Object> row = new HashMap<>();
@@ -515,7 +521,8 @@ public class StockOrderServiceImpl implements StockOrderService {
                 row.put("productName", sp == null ? ("商品" + pid) : sp.getStoreName());
                 row.put("image", sp == null ? "" : sp.getImage());
             }
-            row.put("num", net);
+            row.put("num", net - pending);
+            row.put("exchangeNum", pending);
             result.add(row);
         }
         result.sort((a, b) -> Integer.compare(
@@ -1060,6 +1067,14 @@ public class StockOrderServiceImpl implements StockOrderService {
         BigDecimal diffPrice = targetPrice.subtract(originPrice)
                 .multiply(new BigDecimal(request.getNum()));
         boolean virtualExchange = isVirtualOrder(order);
+        // 换货中锁定校验：换出数量不得超过当前可供应量（换货中占用的量已被锁定，不能再重复换出/卖掉）
+        if (!virtualExchange) {
+            int available = getAgentStockNum(agent, request.getProductId());
+            if (available < request.getNum()) {
+                throw new CrmebException("可换实体库存不足，当前可供应 " + available + " 件"
+                        + "（换货中的库存已锁定，不可再次换出或销售）");
+            }
+        }
         // 换入库存类型：虚拟库存换货由会员选择（换实体/换虚拟）；实体库存换货只能换实体
         int targetStockType;
         if (virtualExchange) {
@@ -1970,6 +1985,7 @@ public class StockOrderServiceImpl implements StockOrderService {
 
     /**
      * 某代理对某商品的可用库存 = 其历史已付款实体采购数量 - 已供应给直接下级的实体数量
+     *                              - 线下销售出库 - 换货中占用 + 后台调整 + 已完成换货净额
      * 仅统计实体采购单：虚拟采购单只入虚拟库存、提货单不参与推导
      *
      * @param excludeChildOrderId 计算"已供应给下级"时排除的订单ID。用于判定"某笔订单能否被该上级满足"：
@@ -2026,7 +2042,8 @@ public class StockOrderServiceImpl implements StockOrderService {
         }
         return purchased - supplied - sold + adjusted
                 + exchangeStockDeltaMap(agent.getId()).getOrDefault(productId, 0)
-                + exchangeOutDeltaMap(agent.getId()).getOrDefault(productId, 0);
+                + exchangeOutDeltaMap(agent.getId()).getOrDefault(productId, 0)
+                + exchangePendingDeltaMap(agent.getId()).getOrDefault(productId, 0);
     }
 
     /**
@@ -2068,6 +2085,32 @@ public class StockOrderServiceImpl implements StockOrderService {
             }
             int num = e.getNum() == null ? 0 : e.getNum();
             map.merge(e.getTargetProductId(), -num, Integer::sum);
+        }
+        return map;
+    }
+
+    /**
+     * 换货中（未完成未驳回）对该代理【自身】实体库存的占用：
+     * 换货单提交即锁定换出商品数量，锁定期间该数量不可线下销售、不可供货给下级；
+     * 完成后由 exchangeStockDeltaMap 的「换出-换入」净额接管（两图状态集不相交，不会重复扣减），驳回即自动释放。
+     * 仅统计实体来源换货（exchange_type=1 的虚拟换货在申请时已即时扣减虚拟库存，与实体无关）。
+     */
+    private Map<Integer, Integer> exchangePendingDeltaMap(Integer agentId) {
+        Map<Integer, Integer> map = new HashMap<>();
+        List<StockExchange> pending = stockExchangeDao.selectList(new LambdaQueryWrapper<StockExchange>()
+                .eq(StockExchange::getAgentId, agentId)
+                .in(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT,
+                        StockExchange.STATUS_WAIT_HQ_AUDIT, StockExchange.STATUS_WAIT_BACK,
+                        StockExchange.STATUS_WAIT_SEND)
+                .eq(StockExchange::getIsDel, 0));
+        for (StockExchange e : pending) {
+            if (isVirtualExchange(e) || e.getProductId() == null) {
+                continue;
+            }
+            int num = e.getNum() == null ? 0 : e.getNum();
+            if (num > 0) {
+                map.merge(e.getProductId(), -num, Integer::sum);
+            }
         }
         return map;
     }

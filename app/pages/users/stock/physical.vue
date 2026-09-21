@@ -12,11 +12,14 @@
       <view v-for="(p, idx) in list" :key="idx" class="p-card">
         <image :src="p.image" class="p-img" mode="aspectFill" />
         <view class="p-info">
-          <view class="p-name">{{ p.productName }}</view>
+          <view class="p-name">
+            {{ p.productName }}
+            <text v-if="p.exchangeNum > 0" class="p-lock">换货中 {{ p.exchangeNum }}</text>
+          </view>
           <view class="p-meta">可供应数量 <text class="p-num">{{ p.num }}</text></view>
         </view>
         <button class="ex-btn" size="mini" @click="goExchange(p)">换货</button>
-        <button class="sell-btn" size="mini" @click="openSell(p)">线下销售</button>
+        <button class="sell-btn" size="mini" :class="{ 'sell-disabled': p.num <= 0 }" @click="openSell(p)">线下销售</button>
       </view>
     </view>
 
@@ -81,6 +84,12 @@
 				uni.navigateTo({ url: '/pages/users/stock/exchange?productId=' + p.productId + '&num=1&type=1' });
 			},
 			openSell(p) {
+				if (Number(p.num || 0) <= 0) {
+					const tip = Number(p.exchangeNum || 0) > 0
+						? '该商品可供应库存已被换货锁定（换货中 ' + p.exchangeNum + ' 件），暂不可销售'
+						: '该商品可供应数量为 0，暂不可销售';
+					return this.$util.Tips({ title: tip });
+				}
 				this.sellRow = p;
 				this.sellNum = 1;
 				this.sellMark = '';
@@ -166,9 +175,22 @@
 .p-img { width: 120rpx; height: 120rpx; border-radius: 14rpx; flex-shrink: 0; background: #f5f6fa; }
 .p-info { flex: 1; margin-left: 20rpx; overflow: hidden; }
 .p-name { font-size: 28rpx; color: #303133; font-weight: 600; line-height: 38rpx; }
+.p-lock {
+  display: inline-block;
+  margin-left: 10rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 999rpx;
+  background: #fff4e6;
+  border: 1rpx solid #ffb45c;
+  color: #c47400;
+  font-size: 20rpx;
+  font-weight: 400;
+  vertical-align: middle;
+}
 .p-meta { font-size: 23rpx; color: #909399; margin-top: 10rpx; }
 .p-num { color: #2b6fe3; font-weight: 700; font-size: 30rpx; margin-left: 6rpx; }
 .sell-btn { background: linear-gradient(135deg, #1f5fc4, #2b7de9); color: #fff; border-radius: 999rpx; font-size: 24rpx; padding: 0 28rpx; flex-shrink: 0; }
+.sell-disabled { background: #c8cdd6; }
 .ex-btn { background: #fff; color: #2b6fe3; border: 1rpx solid #2b6fe3; border-radius: 999rpx; font-size: 24rpx; padding: 0 24rpx; flex-shrink: 0; margin-right: 12rpx; }
 
 .empty-box { display: flex; flex-direction: column; align-items: center; padding: 110rpx 0 40rpx; }

@@ -20,7 +20,8 @@ public interface StockAdjustLogDao extends BaseMapper<StockAdjustLog> {
      * 背景：实体库存是【推导式】的 —— 自购已付款实体单 − 供应给下级 − 线下销售 + 后台调整 + 换货净额，
      * 这些订单类变动从来不落 eb_stock_adjust_log，导致会员端「库存记录」看不到采购入库、供货出库等留痕。
      * 本查询把它们拼成同一张台账，过滤口径与 StockOrderServiceImpl 的实体库存推导保持一致
-     * （physicalPurchaseWrapper / exchangeStockDeltaMap），从而「台账合计」永远等于「实体可供应量」。
+     * （physicalPurchaseWrapper / exchangeStockDeltaMap / exchangePendingDeltaMap），
+     * 从而「台账合计」永远等于「实体可供应量」。
      *
      * 只列出实体库存(stockType=1)相关来源；虚拟库存的转卖已在 eb_stock_adjust_log 里留痕。
      *
@@ -54,6 +55,13 @@ public interface StockAdjustLogDao extends BaseMapper<StockAdjustLog> {
             + "         s.create_time, NULL"
             + "    FROM eb_stock_offline_sale s"
             + "   WHERE s.is_del = 0 AND s.agent_id = #{agentId}"
+            + "  UNION ALL"
+            + "  SELECT NULL, e.agent_id, e.uid, 0, e.product_id, IFNULL(e.sku_key, ''), 1, -e.num,"
+            + "         CONCAT('换货占用（换货单 ', e.exchange_no, '，待审核/退回/发货）'),"
+            + "         e.create_time, e.exchange_no"
+            + "    FROM eb_stock_exchange e"
+            + "   WHERE e.is_del = 0 AND e.status IN (0, 1, 2, 3) AND e.num > 0 AND e.agent_id = #{agentId}"
+            + "     AND (e.exchange_type IS NULL OR e.exchange_type != 1)"
             + "  UNION ALL"
             + "  SELECT NULL, e.agent_id, e.uid, 0, e.product_id, IFNULL(e.sku_key, ''), 1, -e.num,"
             + "         CONCAT('换货换出（换货单 ', e.exchange_no, '）'),"
