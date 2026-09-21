@@ -75,14 +75,14 @@
               <div class="sub-text">商品编号：ID {{ row.id }}</div>
             </div>
             <div class="list-cell">
-              <div class="kv"><span class="k">售价：</span><span class="v">￥{{ fmtMoney(row.price) }}</span></div>
-              <div class="kv"><span class="k">市场价：</span><span class="v">￥{{ fmtMoney(row.otPrice) }}</span></div>
-              <div class="kv"><span class="k">成本价：</span><span class="v">￥{{ fmtMoney(row.cost) }}</span></div>
+              <div class="irow"><span class="il">售价：</span><span class="iv">￥{{ fmtMoney(row.price) }}</span></div>
+              <div class="irow"><span class="il">市场价：</span><span class="iv">￥{{ fmtMoney(row.otPrice) }}</span></div>
+              <div class="irow"><span class="il">成本价：</span><span class="iv">￥{{ fmtMoney(row.cost) }}</span></div>
             </div>
             <div class="list-cell">
-              <div class="kv"><span class="k">销量：</span><span class="v">{{ row.sales || 0 }}</span></div>
-              <div class="kv"><span class="k">库存：</span><span class="v">{{ row.stock || 0 }}</span></div>
-              <div class="kv"><span class="k">收藏：</span><span class="v">{{ row.collectCount || 0 }}</span></div>
+              <div class="irow"><span class="il">销量：</span><span class="iv">{{ row.sales || 0 }}</span></div>
+              <div class="irow"><span class="il">库存：</span><span class="iv">{{ row.stock || 0 }}</span></div>
+              <div class="irow"><span class="il">收藏：</span><span class="iv">{{ row.collectCount || 0 }}</span></div>
             </div>
             <div class="list-cell cell-state">
               <el-switch
@@ -388,7 +388,7 @@ export default {
 /* 表头 */
 .list-head {
   display: grid;
-  grid-template-columns: 70px 100px minmax(260px, 2fr) 160px 170px 90px 130px;
+  grid-template-columns: 64px 90px minmax(220px, 1.55fr) 180px 180px 84px 150px;
   align-items: center;
   height: 46px;
   background: #ecf3fd;
@@ -403,7 +403,7 @@ export default {
 /* 数据行 */
 .list-row {
   display: grid;
-  grid-template-columns: 70px 100px minmax(260px, 2fr) 160px 170px 90px 130px;
+  grid-template-columns: 64px 90px minmax(220px, 1.55fr) 180px 180px 84px 150px;
   align-items: center;
   border-top: 1px solid #f0f2f5;
   transition: background 0.15s;
@@ -471,22 +471,27 @@ export default {
   margin-top: 6px;
 }
 
-/* 键值行（售价 / 商品数据列） */
-.kv {
+/* 键值行（售价 / 商品数据列）：label 固定宽，value 紧贴左对齐
+   注意不要用 .kv —— 那是全局基座 list-page.scss 的两端对齐布局，会撞名 */
+.irow {
   display: flex;
+  align-items: baseline;
   font-size: 13px;
-  line-height: 22px;
-  min-width: 0;
-  margin: 2px 0;
+  line-height: 24px;
+  margin: 3px 0;
 }
-.kv .k {
+.irow .il {
   color: #909399;
   flex-shrink: 0;
+  width: 58px;
+  text-align: justify;
+  text-align-last: justify;
 }
-.kv .v {
+.irow .iv {
   color: #303133;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  margin-left: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
