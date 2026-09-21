@@ -96,8 +96,9 @@ export default {
         return true;
       }
     },
+    // 折叠按钮：classic 布局同样需要（左侧二级菜单可收起）
     collapseShow() {
-      return ['defaults', 'columns'].includes(this.$store.state.themeConfig.themeConfig.layout);
+      return ['defaults', 'columns', 'classic'].includes(this.$store.state.themeConfig.themeConfig.layout);
     },
   },
   mounted() {
@@ -124,10 +125,9 @@ export default {
       this.setLocalThemeConfig();
     },
     // 存储布局配置
-    setLocalThemeConfig() {
-      Local.remove('JavaPlatThemeConfigPrev');
-      Local.set('JavaPlatThemeConfigPrev', this.$store.state.themeConfig.themeConfig);
-    },
+    // 说明：后台主题样式已固定，不再把布局配置持久化到本地，
+    // 避免用户操作（如折叠菜单）把个性化配置写回 localStorage 后又被读取导致界面不一致。
+    setLocalThemeConfig() {},
     // 递归设置 breadcrumb
     getBreadcrumbList(arr) {
       arr.map((item) => {

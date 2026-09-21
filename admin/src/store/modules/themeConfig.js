@@ -52,7 +52,8 @@ const themeConfigModule = {
       // 是否开启侧边栏 Logo
       isShowLogo: true,
       // 是否开启 Breadcrumb
-      isBreadcrumb: true,
+      // 说明：按需求关闭面包屑（2026-09-22），后台顶部不再显示层级路径
+      isBreadcrumb: false,
       // 是否开启 Breadcrumb 图标
       isBreadcrumbIcon: false,
       // 是否开启 Tagsview
@@ -87,7 +88,9 @@ const themeConfigModule = {
        * 中的 `initSetLayoutChange(设置布局切换，重置主题样式)` 方法
        */
       // 布局切换：可选值"<defaults|classic|transverse|columns>"，默认 defaults
-      layout: 'columns',
+      // 固定为 classic：顶部横向一级菜单（transverseAside）+ 左侧二级/三级菜单（Asides），
+      // 与设计参考的结构一致（不要用 transverse，那种布局左侧是空的）
+      layout: 'classic',
 
       /**
        * 全局网站标题 / 副标题

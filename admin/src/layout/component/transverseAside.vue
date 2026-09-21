@@ -12,13 +12,9 @@
           :title="v.title"
         >
           <div :class="setColumnsAsidelayout">
-            <div class="font12">
-              {{
-                v.title && v.title.length >= 4
-                  ? v.title.substr(0, setColumnsAsidelayout === 'columns-vertical' ? 4 : 3)
-                  : v.title
-              }}
-            </div>
+            <!-- 图标 + 完整标题（原来是纯文字、且被截断到 3 个字） -->
+            <i v-if="v.icon" :class="'el-icon-' + v.icon"></i>
+            <div class="columns-title">{{ v.title }}</div>
           </div>
         </li>
         <div ref="columnsAsideActiveRef" :class="setColumnsAsideStyle"></div>
@@ -67,6 +63,16 @@ export default {
       this.setFilterRoutes();
     });
     this.setFilterRoutes();
+    // 自身拉起菜单：本组件不依赖 Asides/ColumnsAside，
+    // 若首次挂载时 store.menuList 还是空的（新环境、非登录页进入），
+    // 后续又没有任何事件能触发重建，顶部一级菜单就会一直是空的。
+    this.$store
+      .dispatch('user/getMenus')
+      .then(() => {
+        this.setFilterRoutes();
+        this.$nextTick(() => this.initElMenuOffsetLeft());
+      })
+      .catch(() => {});
     this.$nextTick((e) => {
       this.initElMenuOffsetLeft();
     });
@@ -91,7 +97,9 @@ export default {
       if (k === undefined) return false;
       const els = this.$refs.columnsAsideOffsetLeftRefs;
       this.liIndex = k;
+      // 项宽现已由内容决定（原先是固定 70px），高亮条需同步宽度否则会错位
       this.$refs.columnsAsideActiveRef.style.left = `${els[k].offsetLeft + this.difference}px`;
+      this.$refs.columnsAsideActiveRef.style.width = `${els[k].offsetWidth}px`;
     },
     // 菜单高亮点击事件
     onColumnsAsideMenuClick(v) {
@@ -118,14 +126,15 @@ export default {
       this.columnsAsideList = this.filterRoutesFun(this.$store.state.user.menuList);
       //   const resData = getHeaderName(this.$route.path, this.columnsAsideList);
       const resData = this.setSendChildren(getHeaderName(this.$route, this.columnsAsideList));
-      if (!resData && !resData.item[0].children.length) {
+      // 防御：setSendChildren 找不到对应一级菜单时返回 {}，
+      // 原写法 `!resData && !resData.item[0]...` 的 && 写反了，会抛错并中断菜单写入
+      if (!resData || !resData.item || !resData.item[0]) {
         this.bus.$emit('setSendColumnsChildren', []);
         this.$store.commit('user/childMenuList', []);
 
         this.$store.state.themeConfig.themeConfig.isCollapse = true;
         return false;
       }
-      if (!resData) return;
       this.bus.$emit('oneCatName', resData.item[0].title);
       this.onColumnsAsideDown(resData.item[0].k);
       // 刷新时，初始化一个路由设置自动收起菜单
@@ -233,86 +242,80 @@ export default {
 
 .layout-columns-tra-aside {
   height: 100%;
-  background: var(--prev-bg-columnsMenuBar);
-  // box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  /* 透明：让顶栏容器的渐变整条连续透下来。
+     若在这里再写一遍渐变，因为渐变原点是各自元素，Logo 区与菜单区会出现断层 */
+  background: transparent;
   overflow-y: hidden;
-  // flex: 1;
+
   ul {
     position: relative;
     display: flex;
+    /* 高度必须明确写死：中间隔着 el-scrollbar__wrap / __view 两层无高度的 div，
+       用 height:100% 会塌缩成内容高度（实测只剩 17px，菜单变成一条细线） */
+    height: 56px;
+    align-items: stretch;
+
     li {
-      color: var(--prev-bg-columnsMenuBarColor);
-      width: 70px;
-      height: 50px;
+      color: var(--prev-bg-topBarColor);
+      height: 100%;
       text-align: center;
       display: flex;
       cursor: pointer;
       position: relative;
       z-index: 1;
-      .columns-vertical {
-        margin: auto;
-        // .columns-vertical-title {
-        //   padding-top: 1px;
-        // }
+      transition: background-color 0.16s ease;
+
+      /* 顶栏是深色渐变，悬停用半透明白
+         （--prev-bg-menu-hover-ba-color 已改为白底左侧菜单用的淡蓝，此处不适用） */
+      &:hover {
+        background: rgba(255, 255, 255, 0.16);
       }
-      .columns-horizontal {
+
+      .columns-horizontal,
+      .columns-vertical {
         display: flex;
-        height: 50px;
-        width: 70px;
         align-items: center;
         justify-content: center;
-        padding: 0 5px;
+        height: 100%;
+        padding: 0 20px;
+        font-size: 15px;
+
         i {
-          margin-right: 5px;
-        }
-        a {
-          display: flex;
-          .columns-horizontal-title {
-            padding-top: 1px;
-          }
+          margin-right: 6px;
+          font-size: 16px;
         }
       }
+
       a {
         text-decoration: none;
-        color: var(--prev-bg-columnsMenuBarColor);
+        color: inherit;
       }
     }
-    // li:hover {
-    //   background: var(--prev-bg-menu-hover-ba-color);
-    //   color: var(--prev-bg-columnsMenuBarColor);
-    // }
-    .layout-columns {
-      transition: 0.3s ease-in-out;
+
+    .layout-columns-active {
+      color: var(--prev-MenuActiveColor);
+      background: rgba(255, 255, 255, 0.08);
     }
-    .layout-columns-active,
-    .layout-columns-active a {
-      color: var(--prev-bg-columnsMenuActiveColor);
-      transition: 0.3s ease-in-out;
-    }
+
+    /* 选中高亮条：横向排列，贴在底部（宽度由 JS 按项宽同步） */
     .columns-round {
       background: var(--prev-color-primary);
       position: absolute;
       left: 0;
-      height: 40px;
-      width: 70px;
-      margin-top: 5px;
-      transform: translatey(0%);
+      bottom: 0;
+      height: 3px;
+      border-radius: 0;
       z-index: 0;
-      transition: 0.2s ease-in-out;
-      border-radius: 3px;
+      transition: 0.3s ease-in-out;
     }
+
     .columns-card {
       @extend .columns-round;
-      top: 0;
-      height: 50px;
-      width: 70px;
-      border-radius: 0;
-      margin-top: 0px;
     }
   }
 }
 ::v-deep .el-scrollbar {
-  height: 50px;
+  height: 100%;
 }
 ::v-deep .el-scrollbar__bar.is-horizontal {
   display: none;

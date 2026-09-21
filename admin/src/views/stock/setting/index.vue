@@ -1,8 +1,10 @@
 <template>
   <div class="divBg addContent-wrapper">
     <el-card :bordered="false" shadow="never" class="mt16">
-      <div slot="header"><b>订货商设置</b></div>
-      <el-form label-width="170px" size="small" style="max-width: 720px">
+      <!-- 用 Tab 把原「订货商级别设置」页合并进来（该菜单入口已隐藏） -->
+      <el-tabs v-model="activeTab" class="stock-setting-tabs">
+        <el-tab-pane label="规则设置" name="base">
+          <el-form label-width="170px" size="small" style="max-width: 720px">
         <el-form-item label="订单上级审核">
           <el-switch v-model="form.stock_order_audit" :active-value="'1'" :inactive-value="'0'" />
           <span class="switch-tip">开启：下级订货单须经【直接上级】审核通过后才流转总部云仓；关闭：下单直接进入待付款</span>
@@ -92,18 +94,29 @@
         <el-form-item>
           <el-button type="primary" :loading="saving" @click="onSave">保存全部规则</el-button>
         </el-form-item>
-      </el-form>
+          </el-form>
+        </el-tab-pane>
+
+        <el-tab-pane label="订货商级别设置" name="level">
+          <level-panel />
+        </el-tab-pane>
+      </el-tabs>
     </el-card>
   </div>
 </template>
 
 <script>
 import { stockSettingApi, stockSettingSaveApi, stockMonthlySettleApi } from '@/api/stock';
+// 原「订货商级别设置」页面，功能已合并到本页第二个 Tab（该菜单入口已隐藏）
+import LevelPanel from '@/views/stock/level/index.vue';
 
 export default {
   name: 'StockSetting',
+  components: { LevelPanel },
   data() {
     return {
+      // 当前 Tab：base=规则设置，level=订货商级别设置
+      activeTab: 'base',
       saving: false,
       loaded: false,
       form: {
@@ -190,4 +203,21 @@ export default {
 <style scoped>
 .red { color: #f56c6c; }
 .switch-tip { margin-left: 12px; font-size: 12px; color: #909399; line-height: 1.5; }
+
+/* Tab 内容区留白 */
+.stock-setting-tabs ::v-deep .el-tabs__content {
+  padding-top: 6px;
+}
+
+/* 被合并进来的「订货商级别设置」原是整页组件（自带 divBg 外壳 + 卡片外边距），
+   嵌入 Tab 后要去掉外壳背景与多余间距，否则会出现双层底色和错位 */
+.stock-setting-tabs ::v-deep .addContent-wrapper {
+  background: transparent;
+  padding: 0;
+}
+.stock-setting-tabs ::v-deep .addContent-wrapper > .el-card {
+  margin-top: 0 !important;
+  border: none;
+  box-shadow: none;
+}
 </style>

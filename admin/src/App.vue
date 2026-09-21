@@ -1,7 +1,12 @@
 <template>
   <div id="app">
     <router-view v-if="isRouterAlive" />
-    <Setings ref="setingsRef" />
+    <!--
+      说明：原这里常驻挂载 <Setings />（主题设置抽屉）。
+      它会通过 documentElement.style.setProperty 把 themeStyle 的变量写成内联样式，
+      内联样式优先级高于 theme/app.scss 里的 :root 定义，导致"固定主题"失效。
+      主题已固定，故整个组件移除，主题变量统一由 src/theme/app.scss 的 :root 决定。
+    -->
   </div>
 </template>
 
@@ -16,11 +21,9 @@
 // | Author: CRMEB Team <admin@crmeb.com>
 // +----------------------------------------------------------------------
 import { Local } from '@/utils/storage.js';
-import Setings from '@/layout/navBars/breadcrumb/setings.vue';
 
 export default {
   name: 'App',
-  components: { Setings },
 
   provide() {
     return {
@@ -60,7 +63,6 @@ export default {
     },
   },
   mounted() {
-    this.openSetingsDrawer();
     this.getLayoutThemeConfig();
   },
   methods: {
@@ -70,20 +72,13 @@ export default {
         this.isRouterAlive = true;
       });
     },
-    // 布局配置弹窗打开
-    openSetingsDrawer() {
-      this.bus.$on('openSetingsDrawer', () => {
-        this.$refs.setingsRef.openDrawer();
-      });
-    },
     // 获取缓存中的布局配置
+    // 说明：后台主题样式已按需求固定（不允许用户自定义），因此这里不再读取本地的个性化配置，
+    // 一律使用 src/theme/app.scss 的 :root 默认值；
+    // 同时清理历史遗留的自定义缓存，避免旧配置继续生效导致界面不一致。
     getLayoutThemeConfig() {
-      if (Local.get('JavaPlatThemeConfigPrev')) {
-        this.$store.dispatch('themeConfig/setThemeConfig', Local.get('JavaPlatThemeConfigPrev'));
-        document.documentElement.style.cssText = Local.get('JavaPlatThemeConfigStyle');
-      } else {
-        Local.set('JavaPlatThemeConfigPrev', this.$store.state.themeConfig.themeConfig);
-      }
+      Local.remove('JavaPlatThemeConfigPrev');
+      Local.remove('JavaPlatThemeConfigStyle');
     },
   },
   destroyed() {

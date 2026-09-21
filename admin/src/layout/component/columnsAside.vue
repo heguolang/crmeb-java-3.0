@@ -161,22 +161,26 @@ export default {
     },
   },
   watch: {
-    // 监听 vuex 数据变化
-    '$store.state': {
+    // 高亮偏移量：只监听真正用到的字段。
+    // 原实现是 deep 监听整个 '$store.state'，任何状态变化（菜单、用户、标签页…）
+    // 都会触发该回调并重新计算，切换栏目时能明显感到卡顿。
+    setColumnsAsideStyle: {
       handler(val) {
-        val.themeConfig.themeConfig.columnsAsideStyle === 'columnsRound'
-          ? (this.difference = 3)
-          : (this.difference = 0);
-        if (val.user.menuList.length === this.columnsAsideList.length) return false;
+        this.difference = val === 'columnsRound' ? 3 : 0;
       },
-      deep: true,
+      immediate: true,
     },
     // 监听路由的变化
     $route: {
       handler(to) {
         this.setColumnsMenuHighlight(to.path);
-        let HeadName = getHeaderName(to, this.columnsAsideList);
-        let asideList = getMenuSider(this.columnsAsideList, HeadName)[0].children;
+        const HeadName = getHeaderName(to, this.columnsAsideList);
+        // 防御：菜单尚未加载完、或当前路由不属于任何一级菜单时，getMenuSider 会返回空数组，
+        // 直接取 [0].children 会抛错，导致 childMenuList 不更新、
+        // 二级菜单停留在上一个栏目的内容上（表现就是切换时卡顿/串味）
+        const matched = getMenuSider(this.columnsAsideList, HeadName);
+        if (!matched || matched.length === 0) return;
+        const asideList = matched[0].children;
         const resData = this.setSendChildren(HeadName);
         if (resData.item) {
           this.onColumnsAsideDown(resData.item[0].k);

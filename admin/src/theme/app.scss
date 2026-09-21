@@ -7,19 +7,23 @@
   outline: none;
 }
 :root {
-  --prev-bg-menuBar: #282c34;
-  --prev-bg-menuBarColor: #ffffff;
-  --prev-bg-topBar: #ffffff;
-  --prev-bg-topBarColor: #282c34;
+  /* 左侧菜单：白色底 + 深色文字（2026-09-22 按视觉参考改为白底） */
+  --prev-bg-menuBar: #ffffff;
+  --prev-bg-menuBarColor: #515a6e;
+  /* 顶栏：品牌蓝渐变（原为纯色，按参考改为渐变）+ 白色文字 */
+  --prev-bg-topBar: linear-gradient(90deg, #1a3f8f 0%, #2f7de1 100%);
+  --prev-bg-topBarColor: #ffffff;
   --prev-bg-columnsMenuBar: #282c34;
   --prev-bg-columnsMenuBarColor: #e6e6e6;
   --prev-bg-columnsMenuActiveColor: #ffffff;
-  --prev-bg-menu-hover-ba-color: rgba(0, 0, 0, 0.2);
-  --prev-bg-menu-active-color: #1890ff;
+  /* 左侧（白底）菜单的悬停底色：淡蓝。深色顶栏的悬停单独写死，见 element.scss */
+  --prev-bg-menu-hover-ba-color: rgba(2, 86, 255, 0.08);
+  --prev-bg-menu-active-color: #0256ff;
   --prev-bg-main-color: #f0f2f5;
   --prev-bg-color: #f5f7fa;
   --prev-bg-white: #ffffff;
-  --prev-color-primary: #1890ff;
+  /* 与 element 主题色（$--color-primary: #0256ff）保持一致，避免两套蓝色并存 */
+  --prev-color-primary: #0256ff;
   --prev-color-text-white: #ffffff;
   --prev-color-text-black: #000000;
   --prev-color-text-primary: #606266;
@@ -126,7 +130,8 @@ body,
   }
 
   .layout-mian-height-50 {
-    height: calc(100vh - 50px);
+    /* 顶栏高度已从 50px 调整为 56px，这里同步，否则下方内容会溢出 6px */
+    height: calc(100vh - 56px);
   }
 
   .layout-columns-warp {

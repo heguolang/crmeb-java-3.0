@@ -11,7 +11,8 @@
         <template v-for="val in menuList">
           <el-submenu :index="val.path" v-if="val.children && val.children.length > 0" :key="val.path">
             <template slot="title">
-              <!-- <i class="ivu-icon" :class="val.icon ? 'el-icon-' + val.icon : ''"></i> -->
+              <!-- 启用菜单图标：与视觉参考一致（图标 + 文字），原来被注释掉了 -->
+              <i v-if="val.icon" class="ivu-icon" :class="'el-icon-' + val.icon"></i>
               <span>{{ val.title }}</span>
             </template>
             <SubItem :chil="val.children" />
@@ -19,7 +20,7 @@
           <template v-else>
             <el-menu-item :index="val.path" :key="val.path">
               <template slot="title" v-if="!val.isLink || (val.isLink && val.isIframe)">
-                <!-- <i class="ivu-icon" :class="val.icon ? 'el-icon-' + val.icon : ''"></i> -->
+                <i v-if="val.icon" class="ivu-icon" :class="'el-icon-' + val.icon"></i>
                 {{ val.title }}
               </template>
               <template slot="title" v-else>

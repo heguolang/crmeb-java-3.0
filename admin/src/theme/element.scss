@@ -47,6 +47,39 @@
 .el-form-item--medium .el-button + .el-button {
   margin-left: 0 !important;
 }
+
+/* ==================== 列表操作栏按钮（全站统一） ====================
+ * 用法 —— 各栏目直接套这两个 class，不要在页面 scoped 里重复写按钮样式：
+ *   <div class="op-bar">
+ *     <el-button class="op-btn" size="mini" type="primary" plain>详情</el-button>
+ *     <el-button class="op-btn" size="mini" type="primary" plain>编辑</el-button>
+ *     <el-button size="mini">更多</el-button>
+ *   </div>
+ *
+ * 说明：
+ *  - 间距用 flex gap 统一。上面 .el-button + .el-button 的 14px !important 会与 gap 叠加，
+ *    所以这里同样用 !important 清零（同级 !important 时后定义的胜出）。
+ *  - 「更多」常包在 el-dropdown 里，用相邻兄弟选择器会漏掉它，gap 则不受影响。
+ *  - 配色交给 type="primary" plain（浅底 + 主色文字），.op-btn 只统一尺寸，
+ *    这样换主题不必逐页调整。需要跟随运行时主题时，再在此处用
+ *    var(--prev-color-primary) / --prev-color-primary-light-9 覆盖颜色即可。
+ * ================================================================== */
+.op-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+
+  .el-button + .el-button {
+    margin-left: 0 !important;
+  }
+}
+
+.op-btn {
+  border-radius: 3px;
+  font-weight: 400;
+  padding: 7px 11px !important;
+}
 // 第三方字体图标大小
 .el-button i.iconfont,
 .el-button i.fa {
@@ -125,29 +158,49 @@
   transition: none !important;
 }
 
-// horizontal 水平方向时
-.el-menu--horizontal > .el-menu-item.is-active,
-.el-menu--horizontal > .el-submenu.is-active .el-submenu__title {
-  border-bottom: 3px solid !important;
-}
-
-.el-menu--horizontal .el-menu-item:not(.is-disabled):focus,
-.el-menu--horizontal .el-menu-item:not(.is-disabled):hover,
-.el-menu--horizontal > .el-submenu:focus .el-submenu__title,
-.el-menu--horizontal > .el-submenu:hover .el-submenu__title,
-.el-menu--horizontal .el-menu .el-menu-item.is-active,
-.el-menu--horizontal .el-menu .el-submenu.is-active > .el-submenu__title {
-  color: var(--prev-MenuActiveColor) !important;
-}
-
+/* ---------- 顶部横向菜单（transverse / classic 布局）----------
+   按视觉参考重做：深色底 + 图标 + 更大字号。
+   字号 15px、行高 56px、项间距 20px；悬停半透明白，选中亮色文字 + 底部高亮条。 */
 .el-menu.el-menu--horizontal {
   border-bottom: none !important;
 }
 
 .el-menu--horizontal > .el-menu-item,
 .el-menu--horizontal > .el-submenu .el-submenu__title {
-  padding: 0 14px;
+  height: 56px !important;
+  line-height: 56px !important;
+  padding: 0 20px !important;
+  font-size: 15px !important;
   color: var(--prev-bg-topBarColor) !important;
+  background-color: transparent !important;
+  transition: background-color 0.16s ease, color 0.16s ease !important;
+}
+
+// 图标与文字间距（深色底上用 inherit，避免被下方通用规则改成深灰色看不见）
+.el-menu--horizontal > .el-menu-item i,
+.el-menu--horizontal > .el-submenu .el-submenu__title i {
+  margin-right: 6px !important;
+  margin-left: 0 !important;
+  font-size: 16px !important;
+  color: inherit !important;
+}
+
+// 悬停 / 聚焦：顶栏是深色渐变，用半透明白。
+// 注意不能用 --prev-bg-menu-hover-ba-color，那个变量已改为白底左侧菜单用的淡蓝
+.el-menu--horizontal > .el-menu-item:not(.is-disabled):hover,
+.el-menu--horizontal > .el-menu-item:not(.is-disabled):focus,
+.el-menu--horizontal > .el-submenu:hover .el-submenu__title,
+.el-menu--horizontal > .el-submenu:focus .el-submenu__title {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+  color: var(--prev-bg-topBarColor) !important;
+}
+
+// 选中：亮色文字 + 底部高亮条 + 轻微提亮底色
+.el-menu--horizontal > .el-menu-item.is-active,
+.el-menu--horizontal > .el-submenu.is-active .el-submenu__title {
+  color: var(--prev-MenuActiveColor) !important;
+  border-bottom: 3px solid var(--prev-color-primary) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 // 外部链接时
@@ -200,6 +253,21 @@
 
 .el-menu-item:hover {
   @extend .el-menu-hover-bg-color;
+}
+
+/* ---------- 左侧垂直菜单（白底）的选中态 ----------
+   顶栏横向菜单的选中色是 --prev-MenuActiveColor(#fff)，但左侧是白底，
+   白字看不见；这里单独给主色蓝，作用域限定在左侧栏，不影响顶栏 */
+.layout-aside {
+  .el-menu-item.is-active,
+  .el-submenu.is-active > .el-submenu__title {
+    color: var(--prev-color-primary) !important;
+    background-color: var(--prev-bg-menu-hover-ba-color) !important;
+
+    i {
+      color: var(--prev-color-primary) !important;
+    }
+  }
 }
 
 .el-active-extend {
@@ -558,4 +626,57 @@ input::-webkit-outer-spin-button {
 // 数字输入框
 .el-input-number.is-controls-right .el-input__inner {
   text-align: left;
+}
+
+/* ---------- 顶栏右侧「账户信息」下拉面板 ----------
+   面板由 el-dropdown 挂载到 body 下，组件 scoped 样式作用不到，故写在这里。
+   本项目的 element-ui 版本不支持 el-dropdown 的 popper-class，
+   改为在 el-dropdown-menu 上直接挂 class（会合并到 .el-dropdown-menu） */
+.user-dropdown-menu {
+  .user-menu-head {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f2f5;
+    cursor: default;
+  }
+
+  .user-menu-meta {
+    margin-left: 10px;
+    min-width: 0;
+  }
+
+  .user-menu-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #303133;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-menu-role {
+    margin-top: 2px;
+    font-size: 12px;
+    color: #909399;
+  }
+
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f0f2f5;
+  }
+
+  .user-avatar--text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--prev-color-primary);
+  }
 }

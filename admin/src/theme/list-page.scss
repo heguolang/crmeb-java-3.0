@@ -1,0 +1,380 @@
+/**
+ * ============================================================================
+ * 列表页样式基座（全站统一视觉规范）
+ * ============================================================================
+ * 目的：把「浅蓝表头 + 网格对齐 + 键值行 + 状态标签」这套能承载高密度信息的
+ *      列表布局固化下来，各栏目直接套 class，不再逐页重复写样式。
+ *
+ * 设计要点
+ *  1. 颜色一律走 CSS 变量（--prev-color-primary*），跟随运行时主题切换，
+ *     不硬编码色值；换主题时本文件无需改动。
+ *  2. 列宽通过 --list-cols 这个 CSS 变量注入，表头与数据行共用同一套
+ *     grid 模板 —— 这是列能严格对齐的关键，不要用 flex 各算各的。
+ *  3. 表内字号：正文 13px / 行高 24px，表头 14px/600。数字加 .kv__v--num
+ *     启用等宽字形，保证金额、ID、时间在纵向对齐。
+ *
+ * 用法示例
+ *   <div class="list-table">
+ *     <div class="list-head">
+ *       <div class="list-head__cell">会员</div>
+ *       <div class="list-head__cell">会员信息</div>
+ *     </div>
+ *     <div class="list-row">
+ *       <div class="list-cell">…</div>
+ *       <div class="list-cell">…</div>
+ *     </div>
+ *   </div>
+ *
+ *   // 各栏目在自己的 scoped 样式里只覆盖列宽即可：
+ *   .list-table { --list-cols: 180px minmax(240px, 1.6fr) 190px; }
+ * ============================================================================
+ */
+
+/* ==================== 1. 筛选区（卡片 + 分组网格） ==================== */
+.filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 20px;
+  border-bottom: 1px solid #f0f2f5;
+
+  &__title {
+    position: relative;
+    padding-left: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #303133;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 14px;
+      border-radius: 2px;
+      background: var(--prev-color-primary, #409eff);
+    }
+  }
+
+  &__toggle {
+    font-size: 12px;
+    color: var(--prev-color-primary, #409eff);
+    cursor: pointer;
+  }
+}
+
+.filter-form {
+  padding: 16px 20px 0;
+}
+
+.filter-group {
+  & + & {
+    margin-top: 6px;
+    padding-top: 14px;
+    border-top: 1px dashed #ebeef5;
+  }
+
+  &__title {
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #303133;
+  }
+}
+
+/* 组内网格：4 列自适应，窄屏依次降为 3 / 2 列 */
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 18px;
+
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .el-form-item {
+    margin-bottom: 14px;
+    margin-right: 0;
+  }
+
+  /* 标签置于输入框上方的小灰字 */
+  .el-form-item__label {
+    padding: 0 0 6px;
+    line-height: 20px;
+    font-size: 13px;
+    color: #909399;
+  }
+
+  .el-form-item__content {
+    line-height: 32px;
+  }
+
+  .el-select,
+  .el-cascader,
+  .el-input {
+    width: 100%;
+  }
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 0;
+  border-top: 1px solid #f0f2f5;
+
+  .el-button + .el-button {
+    margin-left: 10px;
+  }
+}
+
+/* ==================== 2. 列表工具条（分类 tab + 批量操作） ==================== */
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+
+    .el-button + .el-button {
+      margin-left: 8px;
+    }
+  }
+
+  &__tip {
+    margin-right: 6px;
+    font-size: 13px;
+    color: #909399;
+  }
+
+  /* 分类 tab 用轻盈的下划线样式，避免深色块压住列表 */
+  .el-tabs__header {
+    margin: 0;
+    border-bottom: none;
+  }
+
+  .el-tabs__nav-wrap::after {
+    height: 1px;
+    background-color: #f0f2f5;
+  }
+
+  .el-tabs__item {
+    height: 54px;
+    line-height: 54px;
+    font-size: 14px;
+    color: #606266;
+
+    &.is-active {
+      font-weight: 600;
+    }
+  }
+}
+
+/* ==================== 3. 列表表格（浅蓝表头 + 数据行） ==================== */
+.list-table {
+  /* 各栏目覆盖此变量即可调整列；表头与数据行共用，保证严格对齐 */
+  --list-cols: 1fr;
+
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #fff;
+}
+
+.list-head {
+  display: grid;
+  grid-template-columns: var(--list-cols);
+  align-items: center;
+  height: 46px;
+  padding: 0 16px;
+  background: #ecf3fd;
+  border-bottom: 1px solid #dbe7f8;
+
+  &__cell {
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    letter-spacing: 0.01em;
+  }
+}
+
+.list-body {
+  min-height: 180px;
+}
+
+.list-row {
+  display: grid;
+  grid-template-columns: var(--list-cols);
+  /* 内容垂直居中：各列行数不同也能上下对齐 */
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f0f2f5;
+  transition: background-color 0.18s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: #fafcff;
+  }
+
+  &.is-checked {
+    background: #f5faff;
+  }
+}
+
+.list-cell {
+  min-width: 0;
+  padding-right: 16px;
+}
+
+.list-cell--last {
+  padding-right: 0;
+}
+
+/* 空态 */
+.list-empty {
+  padding: 60px 0;
+  text-align: center;
+  color: #c0c4cc;
+
+  i {
+    font-size: 36px;
+  }
+
+  p {
+    margin-top: 8px;
+    font-size: 14px;
+  }
+}
+
+/* ==================== 4. 键值行（列表内的信息展示基本单元） ==================== */
+.kv {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  line-height: 24px;
+
+  /* label 紧贴值：固定宽度会在短 label 上留出大片空白 */
+  &__k {
+    flex-shrink: 0;
+    margin-right: 2px;
+    color: #909399;
+  }
+
+  &__v {
+    min-width: 0;
+    color: #303133;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 数字：等宽字形，保证纵向对齐 */
+  &__v--num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 金额：加粗强调 */
+  &__v--money {
+    font-weight: 600;
+    color: #e04c4c;
+  }
+
+  /* 内嵌 ID 角标，如「ID:69」 */
+  &__uid {
+    flex-shrink: 0;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 2px;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--prev-color-primary, #2f7de1);
+    background: var(--prev-color-primary-light-9, #ecf5ff);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 一键复制图标 */
+  &__copy {
+    flex-shrink: 0;
+    margin-left: 6px;
+    font-size: 13px;
+    color: #b4bcc8;
+    cursor: pointer;
+    transition: color 0.16s ease;
+
+    &:hover {
+      color: var(--prev-color-primary, #409eff);
+    }
+  }
+}
+
+/* ==================== 5. 状态标签 ==================== */
+.status-tag {
+  display: inline-block;
+  height: 20px;
+  line-height: 20px;
+  padding: 0 7px;
+  margin: 0 4px 4px 0;
+  border-radius: 3px;
+  font-size: 12px;
+  background: #f0f2f5;
+  color: #909399;
+
+  /* 等级 / 主色标签 */
+  &--primary {
+    background: var(--prev-color-primary-light-9, #ecf5ff);
+    color: var(--prev-color-primary, #2f7de1);
+  }
+
+  /* 推广员 */
+  &--warning {
+    background: #fdf6ec;
+    color: #d98b1f;
+  }
+
+  /* 普通会员 / 中性 */
+  &--info {
+    background: #f4f4f5;
+    color: #7d838c;
+  }
+
+  /* 已注销 / 异常 */
+  &--danger {
+    background: #fef0f0;
+    color: #e04c4c;
+  }
+
+  /* 正常 / 成功 */
+  &--success {
+    background: #f0f9eb;
+    color: #52a832;
+  }
+}
+
+/* ==================== 6. 列表内的行内状态文字（如 正常 / 禁用） ==================== */
+.inline-status {
+  margin-left: 8px;
+  font-size: 13px;
+
+  &--on {
+    color: #52a832;
+  }
+
+  &--off {
+    color: #909399;
+  }
+}

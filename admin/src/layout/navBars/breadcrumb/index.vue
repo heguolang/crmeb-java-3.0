@@ -43,6 +43,15 @@ export default {
     this.bus.$on('routesListChange', () => {
       this.setFilterRoutes();
     });
+    // 兜底：Menu 拉取原本挂在 Asides / ColumnsAside 两个组件上，
+    // 而横向布局（transverse / classic）不渲染它们，导致新环境
+    // （无本地菜单缓存、或非从登录页进入）时顶部菜单为空。这里补一次拉取。
+    if (this.isLayoutTransverse && this.menuList.length === 0) {
+      this.$store
+        .dispatch('user/getMenus')
+        .then(() => this.setFilterRoutes())
+        .catch(() => {});
+    }
   },
   beforeDestroy() {
     this.bus.$off('routesListChange');
@@ -78,11 +87,12 @@ export default {
 
 <style scoped lang="scss">
 .layout-navbars-breadcrumb-index {
-  height: 50px;
+  height: 56px;
   display: flex;
   align-items: center;
   background: var(--prev-bg-topBar);
-  border-bottom: 1px solid var(--prev-border-color-lighter);
+  /* 深色顶栏下浅色分隔线会突兀，改用轻微暗色描边 */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   padding-left: 15px;
 }
 </style>

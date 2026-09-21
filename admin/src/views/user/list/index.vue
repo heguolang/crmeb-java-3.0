@@ -1,324 +1,333 @@
 <template>
   <div class="divBox relative">
-    <el-card :bordered="false" shadow="never" class="ivu-mt" :body-style="{ padding: 0 }">
-      <div class="padding-add">
-        <el-form
-          inline
-          size="small"
-          :model="userFrom"
-          ref="userFrom"
-          :label-position="labelPosition"
-          label-width="75px"
-        >
-          <div class="search-box flex flex-between">
-            <div class="acea-row search-form">
-              <div class="search-form-box">
-                <el-form-item label="用户搜索：">
-                  <UserSearchInput ref="userSearchInput" v-model="userFrom" @searchList="userSearchs" />
-                </el-form-item>
-                <el-form-item label="用户标签：">
-                  <el-select
-                    v-model="labelData"
-                    @visible-change="userSearchs"
-                    @remove-tag="userSearchs"
-                    @clear="userSearchs"
-                    placeholder="请选择"
-                    class="selWidth"
-                    clearable
-                    filterable
-                    multiple
-                  >
-                    <el-option
-                      :value="item.id"
-                      v-for="(item, index) in labelLists"
-                      :key="index"
-                      :label="item.name"
-                    ></el-option>
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="消费情况：">
-                  <el-select
-                    v-model="userFrom.payCount"
-                    @visible-change="userSearchs"
-                    @clear="userSearchs"
-                    placeholder="请选择"
-                    class="selWidth"
-                    clearable
-                  >
-                    <!-- <el-option value="" label="全部"></el-option> -->
-                    <el-option value="0" label="0"></el-option>
-                    <el-option value="1" label="1+"></el-option>
-                    <el-option value="2" label="2+"></el-option>
-                    <el-option value="3" label="3+"></el-option>
-                    <el-option value="4" label="4+"></el-option>
-                    <el-option value="5" label="5+"></el-option>
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="用户分组：" v-if="collapse">
-                  <el-select
-                    v-model="groupData"
-                    @visible-change="userSearchs"
-                    @remove-tag="userSearchs"
-                    @clear="userSearchs"
-                    placeholder="请选择"
-                    class="selWidth"
-                    clearable
-                    filterable
-                    multiple
-                  >
-                    <el-option
-                      :value="item.id"
-                      v-for="(item, index) in groupList"
-                      :key="index"
-                      :label="item.groupName"
-                    ></el-option>
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="国家：" v-if="collapse">
-                  <el-select
-                    v-model="userFrom.country"
-                    @visible-change="userSearchs"
-                    @clear="userSearchs"
-                    placeholder="请选择"
-                    class="selWidth"
-                    clearable
-                    @on-change="changeCountry"
-                  >
-                    <!-- <el-option value="" ></el-option> -->
-                    <el-option value="CN" label="中国"></el-option>
-                    <el-option value="OTHER" label="国外"></el-option>
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="省份：" v-if="collapse">
-                  <el-cascader
-                    :options="addresData"
-                    :props="propsCity"
-                    filterable
-                    v-model="address"
-                    @clear="userSearchs"
-                    @change="handleChange"
-                    clearable
-                    class="selWidth"
-                  ></el-cascader>
-                </el-form-item>
-                <el-form-item label="访问情况：" v-if="collapse">
-                  <el-select
-                    v-model="userFrom.accessType"
-                    @visible-change="userSearchs"
-                    @clear="userSearchs"
-                    placeholder="请选择"
-                    class="selWidth"
-                    clearable
-                  >
-                    <!-- <el-option :value="0" label="全部"></el-option> -->
-                    <el-option :value="1" label="首次访问"></el-option>
-                    <el-option :value="2" label="时间段访问过"></el-option>
-                    <el-option :value="3" label="时间段未访问"></el-option>
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="时间选择：" v-if="collapse && userFrom.accessType">
-                  <optionDatePicker v-model="timeVal" @changeOptTime="onchangeTime"></optionDatePicker>
-                  <!-- <el-date-picker
-                  v-model="timeVal"
-                  align="right"
-                  unlink-panels
-                  value-format="yyyy-MM-dd"
-                  format="yyyy-MM-dd"
-                  size="small"
-                  type="daterange"
-                  placement="bottom-end"
-                  placeholder="自定义时间"
-                  class="selWidth"
-                  @change="onchangeTime"
-                  start-placeholder="开始时间"
-                  end-placeholder="结束时间"
-                /> -->
-                </el-form-item>
-                <el-form-item label="性别：" v-if="collapse">
-                  <el-select
-                    v-model="userFrom.sex"
-                    @visible-change="userSearchs"
-                    @clear="userSearchs"
-                    placeholder="请选择"
-                    class="selWidth"
-                  >
-                    <el-option :value="0" label="未知"></el-option>
-                    <el-option :value="1" label="男"></el-option>
-                    <el-option :value="2" label="女"></el-option>
-                    <el-option :value="3" label="保密"></el-option>
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="身份：" v-if="collapse">
-                  <el-select
-                    v-model="userFrom.isPromoter"
-                    @visible-change="userSearchs"
-                    @clear="userSearchs"
-                    placeholder="请选择"
-                    class="selWidth"
-                  >
-                    <el-option :value="1" label="推广员"></el-option>
-                    <el-option :value="0" label="普通用户"></el-option>
-                  </el-select>
-                </el-form-item>
-              </div>
-            </div>
-            <div class="search-btn-group-box">
-              <el-form-item class="search-form-sub">
-                <el-button type="primary" icon="ios-search" label="default" @click="userSearchs">搜索</el-button>
-                <el-button class="ResetSearch mr14" @click="reset('userFrom')" size="small">重置</el-button>
-                <a class="ivu-ml-8" @click="collapse = !collapse">
-                  <template v-if="!collapse"> 展开 <i class="el-icon-arrow-down"></i> </template>
-                  <template v-else> 收起 <i class="el-icon-arrow-up"></i> </template>
-                </a>
-              </el-form-item>
-            </div>
-          </div>
-        </el-form>
+    <el-card :bordered="false" shadow="never" class="ivu-mt filter-card" :body-style="{ padding: 0 }">
+      <div class="filter-head">
+        <span class="filter-head__title">条件筛选</span>
+        <a class="filter-head__toggle" @click="collapse = !collapse">
+          <template v-if="!collapse"> 展开 <i class="el-icon-arrow-down" /> </template>
+          <template v-else> 收起 <i class="el-icon-arrow-up" /> </template>
+        </a>
       </div>
+      <el-form size="small" :model="userFrom" ref="userFrom" label-position="top" class="filter-form">
+        <div class="filter-group">
+          <div class="filter-group__title">用户信息</div>
+          <div class="filter-grid">
+            <el-form-item label="用户搜索">
+              <UserSearchInput ref="userSearchInput" v-model="userFrom" @searchList="userSearchs" />
+            </el-form-item>
+            <el-form-item label="用户标签">
+              <el-select
+                v-model="labelData"
+                @visible-change="userSearchs"
+                @remove-tag="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择用户标签"
+                clearable
+                filterable
+                multiple
+              >
+                <el-option
+                  :value="item.id"
+                  v-for="(item, index) in labelLists"
+                  :key="index"
+                  :label="item.name"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="消费情况">
+              <el-select
+                v-model="userFrom.payCount"
+                @visible-change="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择消费情况"
+                clearable
+              >
+                <el-option value="0" label="0"></el-option>
+                <el-option value="1" label="1+"></el-option>
+                <el-option value="2" label="2+"></el-option>
+                <el-option value="3" label="3+"></el-option>
+                <el-option value="4" label="4+"></el-option>
+                <el-option value="5" label="5+"></el-option>
+              </el-select>
+            </el-form-item>
+          </div>
+        </div>
+        <div class="filter-group" v-show="collapse">
+          <div class="filter-group__title">更多筛选</div>
+          <div class="filter-grid">
+            <el-form-item label="用户分组">
+              <el-select
+                v-model="groupData"
+                @visible-change="userSearchs"
+                @remove-tag="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择用户分组"
+                clearable
+                filterable
+                multiple
+              >
+                <el-option
+                  :value="item.id"
+                  v-for="(item, index) in groupList"
+                  :key="index"
+                  :label="item.groupName"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="国家">
+              <el-select
+                v-model="userFrom.country"
+                @visible-change="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择国家"
+                clearable
+                @on-change="changeCountry"
+              >
+                <el-option value="CN" label="中国"></el-option>
+                <el-option value="OTHER" label="国外"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="省份">
+              <el-cascader
+                :options="addresData"
+                :props="propsCity"
+                filterable
+                v-model="address"
+                @clear="userSearchs"
+                @change="handleChange"
+                clearable
+              ></el-cascader>
+            </el-form-item>
+            <el-form-item label="访问情况">
+              <el-select
+                v-model="userFrom.accessType"
+                @visible-change="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择访问情况"
+                clearable
+              >
+                <el-option :value="1" label="首次访问"></el-option>
+                <el-option :value="2" label="时间段访问过"></el-option>
+                <el-option :value="3" label="时间段未访问"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="时间选择" v-if="userFrom.accessType">
+              <optionDatePicker v-model="timeVal" @changeOptTime="onchangeTime"></optionDatePicker>
+            </el-form-item>
+            <el-form-item label="性别">
+              <el-select v-model="userFrom.sex" @visible-change="userSearchs" @clear="userSearchs" placeholder="请选择性别">
+                <el-option :value="0" label="未知"></el-option>
+                <el-option :value="1" label="男"></el-option>
+                <el-option :value="2" label="女"></el-option>
+                <el-option :value="3" label="保密"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="身份">
+              <el-select
+                v-model="userFrom.isPromoter"
+                @visible-change="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择身份"
+              >
+                <el-option :value="1" label="推广员"></el-option>
+                <el-option :value="0" label="普通用户"></el-option>
+              </el-select>
+            </el-form-item>
+          </div>
+        </div>
+        <div class="filter-actions">
+          <el-button type="primary" icon="ios-search" @click="userSearchs">搜索</el-button>
+          <el-button class="ResetSearch" @click="reset('userFrom')">一键重置</el-button>
+        </div>
+      </el-form>
     </el-card>
     <el-card class="box-card mt14">
-      <div slot="header" class="clearfix">
+      <div slot="header" class="list-toolbar">
         <el-tabs v-model="loginType" @tab-click="getList(1)">
           <el-tab-pane :label="item.name" :name="item.type.toString()" v-for="(item, index) in headeNum" :key="index" />
         </el-tabs>
-        <div>
-          <el-button @click="onSend" type="primary" v-hasPermi="['admin:coupon:user:receive']">发送优惠券</el-button>
-          <el-button :disabled="!selectionList.length" @click="setBatch('group')" v-hasPermi="['admin:user:group']"
+        <div class="list-toolbar__actions">
+          <span class="list-toolbar__tip" v-if="selectionList.length">已选 {{ selectionList.length }} 人</span>
+          <el-button size="small" @click="onSend" type="primary" v-hasPermi="['admin:coupon:user:receive']"
+            >发送优惠券</el-button
+          >
+          <el-button
+            size="small"
+            :disabled="!selectionList.length"
+            @click="setBatch('group')"
+            v-hasPermi="['admin:user:group']"
             >批量设置分组</el-button
           >
-          <el-button :disabled="!selectionList.length" @click="setBatch('label')" v-hasPermi="['admin:user:tag']"
+          <el-button
+            size="small"
+            :disabled="!selectionList.length"
+            @click="setBatch('label')"
+            v-hasPermi="['admin:user:tag']"
             >批量设置标签</el-button
           >
         </div>
       </div>
-      <el-table
-        ref="table"
-        v-loading="listLoading"
-        :data="tableData.data"
-        style="width: 100%"
-        size="mini"
-        @selection-change="onSelectTab"
-        highlight-current-row
-      >
-        <el-table-column type="expand">
-          <template slot-scope="props">
-            <el-form label-position="left" inline class="demo-table-expand">
-              <el-form-item label="身份：">
-                <span>{{ props.row.isPromoter | filterIsPromoter }}</span>
-              </el-form-item>
-              <el-form-item label="首次访问：">
-                <span>{{ props.row.createTime | filterEmpty }}</span>
-              </el-form-item>
-              <el-form-item label="近次访问：">
-                <span>{{ props.row.lastLoginTime | filterEmpty }}</span>
-              </el-form-item>
-              <el-form-item label="手机号：">
-                <span>{{ props.row.phone | filterEmpty }}</span>
-              </el-form-item>
-              <el-form-item label="标签：">
-                <span>{{ props.row.tagName | filterEmpty }}</span>
-              </el-form-item>
-              <el-form-item label="地址：">
-                <span>{{ props.row.addres | filterEmpty }}</span>
-              </el-form-item>
-              <el-form-item label="备注：" style="width: 100%; display: flex; margin-right: 10px">
-                <span>{{ props.row.mark | filterEmpty }}</span>
-              </el-form-item>
-            </el-form>
-          </template>
-        </el-table-column>
-        <el-table-column type="selection" width="55"> </el-table-column>
-        <el-table-column prop="uid" label="ID" min-width="80" v-if="checkedCities.includes('ID')" />
-        <el-table-column label="头像" min-width="80" v-if="checkedCities.includes('头像')">
-          <template slot-scope="scope">
-            <div class="demo-image__preview">
-              <el-image
-                style="width: 36px; height: 36px"
-                :src="scope.row.avatar"
-                :preview-src-list="[scope.row.avatar]"
-              />
+      <div class="list-table">
+        <!-- 表头：浅蓝底，与下方数据行共用同一套列宽，保证严格对齐 -->
+        <div class="list-head">
+          <div class="list-head__cell mh-check"></div>
+          <div class="list-head__cell">会员</div>
+          <div class="list-head__cell">会员信息</div>
+          <div class="list-head__cell">资金</div>
+          <div class="list-head__cell">下级与消费</div>
+          <div class="list-head__cell">状态</div>
+          <div class="list-head__cell">操作</div>
+        </div>
+
+        <div class="list-body" v-loading="listLoading">
+          <div
+            class="list-row"
+            :class="{ 'is-checked': item._checked }"
+            v-for="item in tableData.data"
+            :key="item.uid"
+          >
+            <div class="list-cell mi-check">
+              <el-checkbox v-model="item._checked" @change="onCheckItem(item)"></el-checkbox>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="姓名" min-width="160" v-if="checkedCities.includes('姓名')">
-          <template slot-scope="scope">
-            <span :class="isRedFont(scope.row)"
-              >{{ scope.row.nickname | filterEmpty }} | {{ scope.row.sex | sexFilter }}
-              {{ scope.row.isLogoff ? '| (已注销)' : '' }}</span
-            >
-          </template>
-        </el-table-column>
-        <el-table-column prop="groupName" label="分组" min-width="100" v-if="checkedCities.includes('分组')">
-          <template slot-scope="scope">
-            <span>{{ scope.row.groupName || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="spreadNickname" label="推荐人" min-width="130" v-if="checkedCities.includes('推荐人')" />
-        <el-table-column label="手机号" min-width="100" v-if="checkedCities.includes('手机号')">
-          <template slot-scope="scope">
-            <span>{{ scope.row.phone | filterEmpty }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="nowMoney" label="余额" min-width="100" v-if="checkedCities.includes('余额')" />
-        <el-table-column prop="integral" label="积分" min-width="100" v-if="checkedCities.includes('积分')" />
-        <el-table-column label="团队等级" min-width="120" v-if="checkedCities.includes('团队等级')">
-          <template slot-scope="scope">
-            <span>{{ matchTeamLevelName(scope.row.teamLevel) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right" :render-header="renderHeader">
-          <template slot-scope="scope">
-            <a @click="onDetails(scope.row.uid)" v-hasPermi="['admin:user:topdetail']">详情</a>
-            <el-divider direction="vertical"></el-divider>
-            <a @click="editUser(scope.row.uid)" v-hasPermi="['admin:user:infobycondition']">编辑</a>
-            <el-divider direction="vertical"></el-divider>
-            <el-dropdown trigger="click">
-              <span class="el-dropdown-link"> 更多<i class="el-icon-arrow-down el-icon--right" /> </span>
-              <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item
-                  @click.native="editPoint(scope.row.uid)"
-                  v-if="checkPermi(['admin:user:operate:founds'])"
-                  >账户充减</el-dropdown-item
-                >
-                <el-dropdown-item @click.native="setBatch('group', scope.row)" v-if="checkPermi(['admin:user:group'])"
-                  >设置分组</el-dropdown-item
-                >
-                <el-dropdown-item @click.native="setBatch('label', scope.row)" v-if="checkPermi(['admin:user:tag'])"
-                  >设置标签</el-dropdown-item
-                >
-                <el-dropdown-item @click.native="setPhone(scope.row)" v-if="checkPermi(['admin:user:update:phone'])"
-                  >修改手机号</el-dropdown-item
-                >
-                <el-dropdown-item
-                  @click.native="onLevel(scope.row.uid, scope.row.level)"
-                  v-if="checkPermi(['admin:user:update:level'])"
-                  >修改用户等级</el-dropdown-item
-                >
-                <el-dropdown-item
-                  @click.native="onTeamLevel(scope.row.uid, scope.row.teamLevel)"
-                  v-if="checkPermi(['admin:user:update:level'])"
-                  >修改团队等级</el-dropdown-item
-                >
-                <el-dropdown-item
-                  @click.native="setPassword(scope.row)"
-                  v-if="checkPermi(['admin:user:update:password'])"
-                  >修改登录密码</el-dropdown-item
-                >
-                <el-dropdown-item
-                  @click.native="setExtension(scope.row)"
-                  v-if="checkPermi(['admin:user:update:spread'])"
-                  >修改推荐人</el-dropdown-item
-                >
-                <el-dropdown-item
-                  @click.native="clearSpread(scope.row)"
-                  v-if="checkPermi(['admin:retail:spread:clean'])"
-                  >清除上级推广人</el-dropdown-item
-                >
-              </el-dropdown-menu>
-            </el-dropdown>
-          </template>
-        </el-table-column>
-      </el-table>
+
+            <!-- 会员：头像 + 昵称 + 身份标签 + 来源时间 -->
+            <div class="list-cell mi-member">
+              <el-image class="member-avatar" :src="item.avatar" :preview-src-list="[item.avatar]" fit="cover" />
+              <div class="member-base">
+                <div class="member-tags">
+                  <span class="status-tag status-tag--primary">{{ matchLevelName(item.level) }}</span>
+                  <span class="status-tag" :class="item.isPromoter ? 'status-tag--warning' : 'status-tag--info'">{{
+                    item.isPromoter ? '推广员' : '普通会员'
+                  }}</span>
+                  <span class="status-tag status-tag--danger" v-if="item.isLogoff">已注销</span>
+                </div>
+                <div class="member-sub">来源：{{ userTypeText(item.userType) }}</div>
+              </div>
+            </div>
+
+            <!-- 会员信息 -->
+            <div class="list-cell mi-info">
+              <div class="kv">
+                <span class="kv__k">用户名：</span>
+                <span class="kv__v" :class="isRedFont(item)">{{ item.nickname | filterEmpty }}</span>
+              </div>
+              <div class="kv">
+                <span class="kv__k">会员ID：</span><span class="kv__v kv__v--num">{{ item.uid }}</span>
+                <i class="kv__copy el-icon-document-copy" title="复制会员ID" @click="copyText(item.uid)"></i>
+              </div>
+              <div class="kv">
+                <span class="kv__k">推荐人：</span>
+                <span class="kv__v">{{ item.spreadNickname | filterEmpty }}</span>
+                <span class="kv__uid" v-if="item.spreadUid">ID:{{ item.spreadUid }}</span>
+                <i
+                  class="kv__copy el-icon-document-copy"
+                  v-if="item.spreadUid"
+                  title="复制推荐人ID"
+                  @click="copyText(item.spreadUid)"
+                ></i>
+              </div>
+              <div class="kv"><span class="kv__k">手机号：</span><span class="kv__v kv__v--num">{{ item.phone | filterEmpty }}</span></div>
+              <div class="kv"><span class="kv__k">注册时间：</span><span class="kv__v kv__v--num">{{ item.createTime | filterEmpty }}</span></div>
+              <div class="kv"><span class="kv__k">备注：</span><span class="kv__v">{{ item.mark | filterEmpty }}</span></div>
+            </div>
+
+            <!-- 资金 -->
+            <div class="list-cell mi-money">
+              <div class="kv"><span class="kv__k">佣金：</span><span class="kv__v kv__v--num kv__v--money">{{ item.brokeragePrice }}</span></div>
+              <div class="kv"><span class="kv__k">积分：</span><span class="kv__v kv__v--num">{{ item.integral }}</span></div>
+              <div class="kv"><span class="kv__k">余额：</span><span class="kv__v kv__v--num kv__v--money">{{ item.nowMoney }}</span></div>
+            </div>
+
+            <!-- 下级与消费 -->
+            <div class="list-cell mi-team">
+              <div class="kv"><span class="kv__k">直推人数：</span><span class="kv__v kv__v--num">{{ item.spreadCount || 0 }}</span></div>
+              <div class="kv"><span class="kv__k">消费次数：</span><span class="kv__v kv__v--num">{{ item.payCount || 0 }}</span></div>
+              <div class="kv"><span class="kv__k">团队等级：</span><span class="kv__v">{{ matchTeamLevelName(item.teamLevel) }}</span></div>
+              <div class="kv"><span class="kv__k">分组：</span><span class="kv__v">{{ item.groupName || '-' }}</span></div>
+              <div class="kv"><span class="kv__k">标签：</span><span class="kv__v">{{ item.tagName || '-' }}</span></div>
+            </div>
+
+            <!-- 状态 -->
+            <div class="list-cell mi-status">
+              <el-switch v-model="item.status" @change="onStatusChange(item)" />
+              <span class="status-label" :class="item.status ? 'is-on' : 'is-off'">{{ item.status ? '正常' : '禁用' }}</span>
+            </div>
+
+            <!-- 操作 -->
+            <div class="list-cell mi-ops op-bar">
+              <el-button
+                class="op-btn"
+                size="mini"
+                type="primary"
+                plain
+                @click="onDetails(item.uid)"
+                v-hasPermi="['admin:user:topdetail']"
+                >详情</el-button
+              >
+              <el-button
+                class="op-btn"
+                size="mini"
+                type="primary"
+                plain
+                @click="editUser(item.uid)"
+                v-hasPermi="['admin:user:infobycondition']"
+                >编辑</el-button
+              >
+              <el-dropdown trigger="click" class="more-drop">
+                <el-button size="mini">
+                  更多<i class="el-icon-arrow-down el-icon--right" />
+                </el-button>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item
+                    @click.native="editPoint(item.uid)"
+                    v-if="checkPermi(['admin:user:operate:founds'])"
+                    >账户充减</el-dropdown-item
+                  >
+                  <el-dropdown-item @click.native="setBatch('group', item)" v-if="checkPermi(['admin:user:group'])"
+                    >设置分组</el-dropdown-item
+                  >
+                  <el-dropdown-item @click.native="setBatch('label', item)" v-if="checkPermi(['admin:user:tag'])"
+                    >设置标签</el-dropdown-item
+                  >
+                  <el-dropdown-item @click.native="setPhone(item)" v-if="checkPermi(['admin:user:update:phone'])"
+                    >修改手机号</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    @click.native="onLevel(item.uid, item.level)"
+                    v-if="checkPermi(['admin:user:update:level'])"
+                    >修改用户等级</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    @click.native="onTeamLevel(item.uid, item.teamLevel)"
+                    v-if="checkPermi(['admin:user:update:level'])"
+                    >修改团队等级</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    @click.native="setPassword(item)"
+                    v-if="checkPermi(['admin:user:update:password'])"
+                    >修改登录密码</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    @click.native="setExtension(item)"
+                    v-if="checkPermi(['admin:user:update:spread'])"
+                    >修改推荐人</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    @click.native="clearSpread(item)"
+                    v-if="checkPermi(['admin:retail:spread:clean'])"
+                    >清除上级推广人</el-dropdown-item
+                  >
+                </el-dropdown-menu>
+              </el-dropdown>
+            </div>
+          </div>
+
+          <div class="list-empty" v-if="!listLoading && !tableData.data.length">
+            <i class="el-icon-document"></i>
+            <p>暂无用户数据</p>
+          </div>
+        </div>
+      </div>
       <div class="block">
         <el-pagination
           :page-sizes="[20, 40, 60, 80]"
@@ -332,19 +341,6 @@
         />
       </div>
     </el-card>
-    <div class="card_abs" v-show="card_select_show" :style="{ top: collapse ? 570 + 'px' : 270 + 'px' }">
-      <template>
-        <div class="cell_ht">
-          <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange"
-            >全选</el-checkbox
-          >
-          <el-button type="text" @click="checkSave()">保存</el-button>
-        </div>
-        <el-checkbox-group v-model="checkedCities" @change="handleCheckedCitiesChange">
-          <el-checkbox v-for="item in columnData" :label="item" :key="item" class="check_cell">{{ item }}</el-checkbox>
-        </el-checkbox-group>
-      </template>
-    </div>
     <!--修改推荐人-->
     <el-dialog title="修改推荐人" :visible.sync="extensionVisible" width="540px" :before-close="handleCloseExtension">
       <el-form
@@ -532,6 +528,7 @@ import {
   updateSpreadApi,
   updatePhoneApi,
   updatePasswordApi,
+  userUpdateApi,
 } from '@/api/user';
 import { teamLevelAllApi } from '@/api/teamLevel';
 import { spreadClearApi } from '@/api/distribution';
@@ -703,6 +700,69 @@ export default {
   },
   methods: {
     checkPermi,
+    // 一键复制：优先 Clipboard API，非 https 或旧浏览器降级到 execCommand
+    copyText(text) {
+      const value = String(text);
+      const done = () => this.$message.success('已复制：' + value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(() => this.fallbackCopy(value, done));
+      } else {
+        this.fallbackCopy(value, done);
+      }
+    },
+    fallbackCopy(value, done) {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.top = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
+    },
+    // 卡片多选
+    onCheckItem(row) {
+      if (row._checked) {
+        if (!this.selectionList.some((i) => i.uid === row.uid)) this.selectionList.push(row);
+      } else {
+        this.selectionList = this.selectionList.filter((i) => i.uid !== row.uid);
+      }
+      this.changePageCoreRecordData();
+      const data = [];
+      if (this.multipleSelectionAll.length) {
+        this.multipleSelectionAll.map((item) => {
+          data.push(item.uid);
+        });
+      }
+      this.userIds = data.join(',');
+    },
+    // 用户等级名称
+    matchLevelName(levelId) {
+      const hit = (this.levelList || []).find((i) => Number(i.id) === Number(levelId));
+      return (hit && hit.name) || '普通会员';
+    },
+    // 用户来源文案
+    userTypeText(type) {
+      const map = { wechat: '微信公众号', routine: '微信小程序', h5: 'H5' };
+      return map[type] || '未知来源';
+    },
+    // 启用 / 禁用用户
+    onStatusChange(row) {
+      const next = row.status;
+      userUpdateApi({ id: row.uid }, { status: next, isPromoter: !!row.isPromoter })
+        .then(() => {
+          this.$message.success(next ? '已启用该用户' : '已禁用该用户');
+        })
+        .catch(() => {
+          row.status = !next;
+        });
+    },
     setPhone(row) {
       this.$prompt('', '修改手机号', {
         confirmButtonText: '确定',
@@ -1140,24 +1200,13 @@ export default {
       this.$cache.local.setJSON('user_stroge', this.checkedCities);
       this.$set(this, 'card_select_show', false);
     },
-    // 设置选中的方法
+    // 设置选中的方法（卡片多选回填）
     setSelectRow() {
-      if (!this.multipleSelectionAll || this.multipleSelectionAll.length <= 0) {
-        return;
-      }
-      // 标识当前行的唯一键的名称
       const idKey = this.idKey;
-      const selectAllIds = [];
-      this.multipleSelectionAll.forEach((row) => {
-        selectAllIds.push(row[idKey]);
+      const selectAllIds = (this.multipleSelectionAll || []).map((row) => row[idKey]);
+      (this.tableData.data || []).forEach((row) => {
+        this.$set(row, '_checked', selectAllIds.indexOf(row[idKey]) >= 0);
       });
-      this.$refs.table.clearSelection();
-      for (var i = 0; i < this.tableData.data.length; i++) {
-        if (selectAllIds.indexOf(this.tableData.data[i][idKey]) >= 0) {
-          // 设置选中，记住table组件需要使用ref="table"
-          this.$refs.table.toggleRowSelection(this.tableData.data[i], true);
-        }
-      }
     },
     // 记忆选择核心方法
     changePageCoreRecordData() {
@@ -1239,21 +1288,6 @@ export default {
             .catch(() => {
               row.isShow = !row.isShow;
             });
-    },
-    renderHeader(h) {
-      return (
-        <p>
-          <span style="padding-right:5px;">操作</span>
-          <i class="el-icon-setting" onClick={() => this.handleAddItem()}></i>
-        </p>
-      );
-    },
-    handleAddItem() {
-      if (this.card_select_show) {
-        this.$set(this, 'card_select_show', false);
-      } else if (!this.card_select_show) {
-        this.$set(this, 'card_select_show', true);
-      }
     },
     handleCheckAllChange(val) {
       this.checkedCities = val ? this.columnData : [];
@@ -1396,6 +1430,75 @@ export default {
 }
 .flex-between {
   justify-content: space-between;
+}
+
+/* 说明：筛选区、列表表格、键值行、状态标签等通用样式已提取到
+   src/theme/list-page.scss（全站列表页基座），本文件只保留业务特有样式。 */
+
+/* 分类 tab 所在的卡片头内边距 */
+::v-deep .box-card > .el-card__header {
+  padding: 0 20px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+/* 本页列宽：复选 / 会员 / 会员信息 / 资金 / 下级与消费 / 状态 / 操作
+   通过 --list-cols 注入，表头与数据行共用（基座里的 .list-head / .list-row 读取它） */
+.list-table {
+  --list-cols: 40px minmax(170px, 1.1fr) minmax(280px, 1.8fr) minmax(140px, 0.85fr) minmax(200px, 1.25fr)
+    minmax(112px, 0.7fr) minmax(205px, 1.2fr);
+}
+
+.mi-check {
+  display: flex;
+  justify-content: flex-start;
+  padding-right: 0;
+}
+
+/* 会员列：头像 + 昵称 + 标签 + 来源时间 */
+.mi-member {
+  display: flex;
+  align-items: flex-start;
+}
+
+.member-avatar {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #f5f7fa;
+}
+
+.member-base {
+  margin-left: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* 标签本体样式见全局 .status-tag */
+.member-tags {
+  margin: 0 0 8px;
+}
+
+.member-sub {
+  font-size: 13px;
+  line-height: 21px;
+  color: #909399;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* .kv（键值行）、.list-empty（空态）、.inline-status（状态文字）均见全局 list-page.scss */
+
+.mi-status {
+  display: flex;
+  align-items: center;
+}
+
+/* 作为 grid 单元格只保留右侧间距；
+   按钮间距与配色统一交给全局 .op-bar / .op-btn（src/theme/element.scss），此处不再重复定义 */
+.mi-ops {
+  padding-right: 0;
 }
 
 /* 选择推荐人账户 —— 已选中的账户卡片 */

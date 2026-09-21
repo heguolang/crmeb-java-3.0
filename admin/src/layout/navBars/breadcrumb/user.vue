@@ -12,20 +12,43 @@
         :class="!isScreenfull ? 'el-icon-full-screen' : 'el-icon-crop'"
       ></i>
     </div>
-    <el-dropdown :show-timeout="70" :hide-timeout="50" @command="onDropdownCommand">
-      <span class="layout-navbars-breadcrumb-user-link">
-        {{ getUserInfos.name }}
-        <i class="el-icon-arrow-down el-icon--right"></i>
-      </span>
-      <el-dropdown-menu slot="dropdown">
-        <el-dropdown-item command="password">个人中心</el-dropdown-item>
-        <el-dropdown-item command="users">修改密码</el-dropdown-item>
-        <el-dropdown-item divided command="logOut">退出登录</el-dropdown-item>
+    <el-dropdown trigger="click" :show-timeout="70" :hide-timeout="50" @command="onDropdownCommand">
+      <div class="user-trigger">
+        <!-- 头像：加载失败时降级为首字母占位块，避免外链失效出现破图 -->
+        <img
+          v-if="avatarOk && getUserInfos.avatar"
+          class="user-avatar"
+          :src="getUserInfos.avatar"
+          alt=""
+          @error="avatarOk = false"
+        />
+        <div v-else class="user-avatar user-avatar--text">{{ avatarText }}</div>
+        <span class="user-name">{{ getUserInfos.name }}</span>
+        <i class="el-icon-arrow-down user-arrow"></i>
+      </div>
+      <!-- class 会合并到 .el-dropdown-menu 上；本项目的 element-ui 版本不支持 popper-class，
+           面板又挂到 body 下，所以用这个 class 在全局样式里定位 -->
+      <el-dropdown-menu slot="dropdown" class="user-dropdown-menu">
+        <!-- 面板头部：头像 + 账号 + 角色（el-dropdown-menu 渲染为 ul，故用 li） -->
+        <li class="user-menu-head">
+          <img
+            v-if="avatarOk && getUserInfos.avatar"
+            class="user-avatar user-avatar--lg"
+            :src="getUserInfos.avatar"
+            alt=""
+          />
+          <div v-else class="user-avatar user-avatar--lg user-avatar--text">{{ avatarText }}</div>
+          <div class="user-menu-meta">
+            <div class="user-menu-name">{{ getUserInfos.name }}</div>
+            <div class="user-menu-role">{{ getUserInfos.introduction || '管理员' }}</div>
+          </div>
+        </li>
+        <el-dropdown-item command="password" icon="el-icon-user">个人中心</el-dropdown-item>
+        <el-dropdown-item command="users" icon="el-icon-lock">修改密码</el-dropdown-item>
+        <el-dropdown-item divided command="logOut" icon="el-icon-switch-button">退出登录</el-dropdown-item>
       </el-dropdown-menu>
     </el-dropdown>
-    <div class="layout-navbars-breadcrumb-user-icon" @click="onLayoutSetingClick">
-      <i class="el-icon-setting" title="布局配置"></i>
-    </div>
+    <!-- 布局配置入口已按需求隐藏：后台主题样式需固定，不允许用户自定义 -->
     <Search ref="searchRef" />
   </div>
 </template>
@@ -45,6 +68,8 @@ export default {
     return {
       isScreenfull: false,
       isShowUserNewsPopover: true,
+      // 头像外链失效时降级为首字母占位，避免顶栏出现破图
+      avatarOk: true,
       disabledI18n: 'zh-cn',
       disabledSize: '',
       isDot: false,
@@ -59,6 +84,11 @@ export default {
     // 获取用户信息
     getUserInfos() {
       return this.$store.state.user;
+    },
+    // 头像不可用时的首字母占位（账号首字母大写）
+    avatarText() {
+      const n = (this.getUserInfos.name || 'A').toString().trim();
+      return n.charAt(0).toUpperCase();
     },
     // 设置弹性盒子布局 flex
     layoutUserFlexNum() {
@@ -85,10 +115,6 @@ export default {
     // 搜索点击
     onSearchClick() {
       this.$refs.searchRef.openSearch();
-    },
-    // 布局配置点击
-    onLayoutSetingClick() {
-      this.bus.$emit('openSetingsDrawer');
     },
     refresh() {
       this.bus.$emit('onTagsViewRefreshRouterView', this.$route.path);
@@ -178,28 +204,72 @@ export default {
   align-items: center;
   justify-content: flex-end;
 
-  &-link {
-    height: 100%;
+  /* ---------- 右侧账户区（头像 + 账号 + 箭头） ---------- */
+  .user-trigger {
     display: flex;
     align-items: center;
-    white-space: nowrap;
+    height: 56px;
+    padding: 0 14px;
+    cursor: pointer;
+    color: var(--prev-bg-topBarColor);
+    transition: background-color 0.16s ease;
 
-    &-photo {
-      width: 30px;
-      height: 30px;
-      border-radius: 100%;
+    /* 顶栏是深色渐变，悬停用半透明白 */
+    &:hover {
+      background: rgba(255, 255, 255, 0.16);
     }
   }
 
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.2);
+
+    &--lg {
+      width: 40px;
+      height: 40px;
+    }
+
+    /* 无头像时的首字母占位 */
+    &--text {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--prev-color-primary);
+    }
+  }
+
+  .user-name {
+    margin-left: 8px;
+    max-width: 120px;
+    font-size: 14px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-arrow {
+    margin-left: 6px;
+    font-size: 12px;
+    opacity: 0.85;
+  }
+
   i {
-    line-height: 50px;
+    line-height: 56px;
   }
 
   &-icon {
     padding: 0 10px;
     cursor: pointer;
     color: var(--prev-bg-topBarColor);
-    line-height: 50px;
+    line-height: 56px;
     display: flex;
     align-items: center;
 

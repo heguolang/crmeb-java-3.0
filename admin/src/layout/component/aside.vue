@@ -112,7 +112,11 @@ export default {
     },
     // 设置/过滤路由（非静态路由/是否显示在菜单中）
     setFilterRoutes() {
-      if (this.$store.state.themeConfig.themeConfig.layout === 'columns') return false;
+      const layout = this.$store.state.themeConfig.themeConfig.layout;
+      // columns / classic 布局下，左侧显示的是「当前一级菜单对应的子菜单」，
+      // 由 ColumnsAside / transverseAside 写入 childMenuList，
+      // 这里若覆盖成完整菜单树，左侧就会变成整棵树（分栏菜单失去意义）
+      if (layout === 'columns' || layout === 'classic') return false;
       this.$store.commit('user/childMenuList', this.filterRoutesFun(this.$store.state.user.menuList));
       // this.menuList = this.filterRoutesFun(this.$store.state.user.menuList);
     },
