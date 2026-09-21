@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.constants.BrokerageRecordConstants;
 import com.zbkj.common.model.stock.StockAgent;
+import com.zbkj.common.model.stock.StockExchange;
 import com.zbkj.common.model.stock.StockLadder;
 import com.zbkj.common.model.stock.StockNotice;
 import com.zbkj.common.model.stock.StockOrder;
@@ -79,6 +80,9 @@ public class StockRewardServiceImpl implements StockRewardService {
 
     @Resource
     private com.zbkj.service.dao.StockLevelDao stockLevelDao;
+
+    @Resource
+    private com.zbkj.service.dao.StockExchangeDao stockExchangeDao;
 
     @Resource
     private SystemConfigService systemConfigService;
@@ -954,6 +958,26 @@ public class StockRewardServiceImpl implements StockRewardService {
                         productNameMap.put(o.getOrderNo(), String.join("，", names));
                     }
                 }
+            }
+        }
+        // 换货差价奖励：orderNo 是换货单号（HE...），不在订货单表，需回查换货单展示商品
+        List<String> missExchangeNos = new ArrayList<>();
+        for (String no : orderNos) {
+            if (no.startsWith("HE") && !productNameMap.containsKey(no)) {
+                missExchangeNos.add(no);
+            }
+        }
+        if (!missExchangeNos.isEmpty()) {
+            for (StockExchange ex : stockExchangeDao.selectList(new LambdaQueryWrapper<StockExchange>()
+                    .in(StockExchange::getExchangeNo, missExchangeNos).eq(StockExchange::getIsDel, 0))) {
+                String name = ex.getTargetProductName();
+                if (name == null || name.isEmpty()) {
+                    name = ex.getProductName();
+                }
+                if (name == null || name.isEmpty()) {
+                    name = "商品" + ex.getTargetProductId();
+                }
+                productNameMap.put(ex.getExchangeNo(), name + "×" + (ex.getNum() == null ? 0 : ex.getNum()));
             }
         }
         for (StockReward r : list) {

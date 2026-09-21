@@ -54,7 +54,7 @@
           <view class="ai-dot" :class="'t' + r.type"></view>
           <view class="item-main">
             <view class="item-line">
-              <text class="item-title">{{ typeName(r.type) }}</text>
+              <text class="item-title">{{ typeName(r) }}</text>
               <text class="item-money">+¥{{ r.rewardPrice }}</text>
             </view>
             <view class="item-sub">{{ r.mark }}</view>
@@ -92,7 +92,13 @@
 			this.load();
 		},
 		methods: {
-			typeName(t) {
+			typeName(r) {
+				var t = r && typeof r === 'object' ? r.type : r;
+				var mark = r && typeof r === 'object' ? (r.mark || '') : '';
+				// 换货差价奖励与普通差价奖励同为 type=1，按备注文案区分展示
+				if (t === 1 && mark.indexOf('换货差价') === 0) {
+					return '换货差价奖励';
+				}
 				return { 1: '差价奖励', 2: '阶梯奖励', 3: '平级奖励', 4: '货款成本' }[t] || '奖励';
 			},
 			// 阶梯奖励的 orderNo 形如 period:M2026-09，不是真实订单号，不展示
