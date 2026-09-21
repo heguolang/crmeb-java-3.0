@@ -50,110 +50,79 @@
         <!-- <el-button type="success" @click="onCopy" v-hasPermi="['admin:product:save']">商品采集</el-button> -->
         <el-button @click="exports" v-hasPermi="['admin:export:excel:product']">导出</el-button>
       </div>
-      <el-table
-        class="table"
-        v-loading="listLoading"
-        :data="tableData.data"
-        style="width: 100%"
-        size="mini"
-        :highlight-current-row="true"
-      >
-        <el-table-column type="expand">
-          <template slot-scope="props">
-            <el-form label-position="left" inline class="demo-table-expand">
-              <el-form-item label="商品分类：" label-width="66px">
-                <span v-for="(item, index) in props.row.cateValues.split(',')" :key="index" class="mr10">{{
-                  item
-                }}</span>
-              </el-form-item>
-              <el-form-item label="市场价:" label-width="46px">
-                <span>{{ props.row.otPrice }}</span>
-              </el-form-item>
-              <el-form-item label="成本价:" label-width="46px">
-                <span>{{ props.row.cost }}</span>
-              </el-form-item>
-              <el-form-item label="收藏:" label-width="34px">
-                <span>{{ props.row.collectCount }}</span>
-              </el-form-item>
-              <el-form-item label="虚拟销量:" label-width="66px">
-                <span>{{ props.row.ficti }}</span>
-              </el-form-item>
-            </el-form>
-          </template>
-        </el-table-column>
-        <el-table-column prop="id" label="ID" min-width="50" v-if="checkedCities.includes('ID')" />
-        <el-table-column label="商品图" min-width="80" v-if="checkedCities.includes('商品图')">
-          <template slot-scope="scope">
-            <div class="demo-image__preview">
-              <el-image
-                style="width: 36px; height: 36px"
-                :src="scope.row.image"
-                :preview-src-list="[scope.row.image]"
-              />
+      <!-- 商品列表（参考图样式：浅蓝表头 + 数据行） -->
+      <div class="list-table" v-loading="listLoading">
+        <div class="list-head">
+          <div class="list-cell cell-sort">排序</div>
+          <div class="list-cell">图片</div>
+          <div class="list-cell">商品信息</div>
+          <div class="list-cell">售价</div>
+          <div class="list-cell">商品数据</div>
+          <div class="list-cell cell-state">状态</div>
+          <div class="list-cell cell-ops">操作</div>
+        </div>
+        <div class="list-body">
+          <div v-for="row in tableData.data" :key="row.id" class="list-row">
+            <div class="list-cell cell-sort"><span class="sort-num">{{ row.sort }}</span></div>
+            <div class="list-cell">
+              <el-image class="goods-img" :src="row.image" :preview-src-list="[row.image]" fit="cover" />
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="商品名称"
-          prop="storeName"
-          min-width="300"
-          v-if="checkedCities.includes('商品名称')"
-          :show-overflow-tooltip="true"
-        >
-        </el-table-column>
-        <el-table-column prop="price" label="商品售价" min-width="90" v-if="checkedCities.includes('商品售价')" />
-        <el-table-column prop="sales" label="销量" min-width="90" v-if="checkedCities.includes('销量')" />
-        <el-table-column prop="stock" label="库存" min-width="90" v-if="checkedCities.includes('库存')" />
-        <el-table-column prop="sort" label="排序" min-width="70" v-if="checkedCities.includes('排序')" />
-
-        <el-table-column label="添加时间" min-width="120" v-if="checkedCities.includes('操作时间')">
-          <template slot-scope="scope">
-            <span>{{ scope.row.addTime | formatDate }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" min-width="80" fixed="right" v-if="checkedCities.includes('状态')">
-          <template slot-scope="scope">
-            <el-switch
-              v-if="checkPermi(['admin:product:up', 'admin:product:down'])"
-              :disabled="Number(tableFrom.type) > 2"
-              v-model="scope.row.isShow"
-              :active-value="true"
-              :inactive-value="false"
-              active-text="上架"
-              inactive-text="下架"
-              @change="onchangeIsShow(scope.row)"
-            />
-            <span v-else>{{ scope.row.isShow ? '上架' : '下架' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right" :render-header="renderHeader">
-          <template slot-scope="scope">
-            <router-link :to="{ path: '/store/list/creatProduct/' + scope.row.id + '/1' }">
-              <a v-hasPermi="['admin:product:info']">详情</a>
-            </router-link>
-            <el-divider direction="vertical"></el-divider>
-            <template v-if="tableFrom.type !== '5' && tableFrom.type !== '1'">
-              <router-link :to="{ path: '/store/list/creatProduct/' + scope.row.id }">
-                <a v-hasPermi="['admin:product:update']">编辑</a>
-                <el-divider direction="vertical"></el-divider>
-              </router-link>
-            </template>
-            <a
-              @click="handleStock(scope.row)"
-              v-if="checkPermi(['admin:product:quick:stock:add']) && tableFrom.type != 2 && tableFrom.type != 5"
-              >编辑库存</a
-            >
-            <el-divider direction="vertical" v-if="tableFrom.type != 2 && tableFrom.type != 5"></el-divider>
-            <template v-if="tableFrom.type === '5'">
-              <a @click="handleRestore(scope.row.id, scope.$index)" v-hasPermi="['admin:product:restore']">恢复商品</a>
-              <el-divider direction="vertical"></el-divider>
-            </template>
-            <a @click="handleDelete(scope.row.id, tableFrom.type)" v-hasPermi="['admin:product:delete']">{{
-              tableFrom.type === '5' ? '删除' : '加入回收站'
-            }}</a>
-          </template>
-        </el-table-column>
-      </el-table>
+            <div class="list-cell">
+              <div class="goods-name" :title="row.storeName">{{ row.storeName }}</div>
+              <div class="goods-tags">
+                <span v-for="(c, ci) in cateList(row.cateValues)" :key="ci" class="mini-chip">{{ c }}</span>
+              </div>
+              <div class="sub-text">商品编号：ID {{ row.id }}</div>
+            </div>
+            <div class="list-cell">
+              <div class="kv"><span class="k">售价：</span><span class="v">￥{{ fmtMoney(row.price) }}</span></div>
+              <div class="kv"><span class="k">市场价：</span><span class="v">￥{{ fmtMoney(row.otPrice) }}</span></div>
+              <div class="kv"><span class="k">成本价：</span><span class="v">￥{{ fmtMoney(row.cost) }}</span></div>
+            </div>
+            <div class="list-cell">
+              <div class="kv"><span class="k">销量：</span><span class="v">{{ row.sales || 0 }}</span></div>
+              <div class="kv"><span class="k">库存：</span><span class="v">{{ row.stock || 0 }}</span></div>
+              <div class="kv"><span class="k">收藏：</span><span class="v">{{ row.collectCount || 0 }}</span></div>
+            </div>
+            <div class="list-cell cell-state">
+              <el-switch
+                v-if="checkPermi(['admin:product:up', 'admin:product:down'])"
+                :disabled="Number(tableFrom.type) > 2"
+                v-model="row.isShow"
+                :active-value="true"
+                :inactive-value="false"
+                @change="onchangeIsShow(row)"
+              />
+              <span v-else>{{ row.isShow ? '上架' : '下架' }}</span>
+            </div>
+            <div class="list-cell cell-ops">
+              <el-button size="mini" type="primary" plain class="op-btn" v-hasPermi="['admin:product:info']">
+                <router-link :to="{ path: '/store/list/creatProduct/' + row.id + '/1' }">详情</router-link>
+              </el-button>
+              <el-button
+                v-if="tableFrom.type !== '5' && tableFrom.type !== '1'"
+                size="mini" type="primary" plain class="op-btn" v-hasPermi="['admin:product:update']"
+              >
+                <router-link :to="{ path: '/store/list/creatProduct/' + row.id }">编辑</router-link>
+              </el-button>
+              <el-button
+                v-if="checkPermi(['admin:product:quick:stock:add']) && tableFrom.type != 2 && tableFrom.type != 5"
+                size="mini" type="primary" plain class="op-btn" @click="handleStock(row)"
+              >编辑库存</el-button>
+              <el-button
+                v-if="tableFrom.type === '5'"
+                size="mini" type="success" plain class="op-btn" v-hasPermi="['admin:product:restore']"
+                @click="handleRestore(row.id)"
+              >恢复商品</el-button>
+              <el-button
+                size="mini" type="danger" plain class="op-btn" v-hasPermi="['admin:product:delete']"
+                @click="handleDelete(row.id, tableFrom.type)"
+              >{{ tableFrom.type === '5' ? '删除' : '回收站' }}</el-button>
+            </div>
+          </div>
+          <div v-if="!tableData.data.length && !listLoading" class="empty-tip">暂无商品</div>
+        </div>
+      </div>
       <div class="block">
         <el-pagination
           :page-sizes="[20, 40, 60, 80]"
@@ -167,19 +136,6 @@
         />
       </div>
     </el-card>
-    <div class="card_abs" v-show="card_select_show">
-      <template>
-        <div class="cell_ht">
-          <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange"
-            >全选</el-checkbox
-          >
-          <el-button type="text" @click="checkSave()">保存</el-button>
-        </div>
-        <el-checkbox-group v-model="checkedCities" @change="handleCheckedCitiesChange">
-          <el-checkbox v-for="item in columnData" :label="item" :key="item" class="check_cell">{{ item }}</el-checkbox>
-        </el-checkbox-group>
-      </template>
-    </div>
     <el-dialog
       title="复制淘宝、天猫、京东、苏宁"
       :visible.sync="dialogVisible"
@@ -250,11 +206,6 @@ export default {
       merCateList: [],
       objectUrl: process.env.VUE_APP_BASE_API,
       dialogVisible: false,
-      card_select_show: false,
-      checkAll: false,
-      checkedCities: ['ID', '商品图', '商品名称', '商品售价', '销量', '库存', '排序', '状态', '操作时间'],
-      columnData: ['ID', '商品图', '商品名称', '商品售价', '销量', '库存', '排序', '状态', '操作时间'],
-      isIndeterminate: true,
       drawer: false,
       productId: 0,
     };
@@ -263,12 +214,18 @@ export default {
     this.goodHeade();
     this.getList();
     this.getCategorySelect();
-    this.checkedCities = this.$cache.local.has('goods_stroge')
-      ? this.$cache.local.getJSON('goods_stroge')
-      : this.checkedCities;
   },
   methods: {
     checkPermi,
+    // ===== 列表辅助（参考图样式） =====
+    fmtMoney(v) {
+      const n = Number(v || 0);
+      return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    },
+    // 分类文本拆 chip（cateValues 形如 "电子,数码"）
+    cateList(v) {
+      return v ? String(v).split(',').filter(Boolean) : [];
+    },
     sucess() {
       this.$message.success('保存成功');
       this.drawer = false;
@@ -289,7 +246,7 @@ export default {
       this.goodHeade();
       this.getList();
     },
-    //恢复商品
+    // 恢复商品
     handleRestore: Debounce(function (id) {
       this.$modalSure('恢复商品').then(() => {
         restoreApi(id).then((res) => {
@@ -409,99 +366,165 @@ export default {
               row.isShow = !row.isShow;
             });
     },
-    renderHeader(h) {
-      return (
-        <p>
-          <span style="padding-right:5px;">操作</span>
-          <i class="el-icon-setting" onClick={() => this.handleAddItem()}></i>
-        </p>
-      );
-    },
-    handleAddItem() {
-      if (this.card_select_show) {
-        this.$set(this, 'card_select_show', false);
-      } else if (!this.card_select_show) {
-        this.$set(this, 'card_select_show', true);
-      }
-    },
-    handleCheckAllChange(val) {
-      this.checkedCities = val ? this.columnData : [];
-      this.isIndeterminate = false;
-    },
-    handleCheckedCitiesChange(value) {
-      let checkedCount = value.length;
-      this.checkAll = checkedCount === this.columnData.length;
-      this.isIndeterminate = checkedCount > 0 && checkedCount < this.columnData.length;
-    },
-    checkSave() {
-      this.card_select_show = false;
-      this.$modal.loading('正在保存到本地，请稍候...');
-      this.$cache.local.setJSON('goods_stroge', this.checkedCities);
-      setTimeout(this.$modal.closeLoading(), 1000);
-    },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.el-table__body {
-  width: 100%;
-  table-layout: fixed !important;
+/* ===== 商品列表（参考图样式：浅蓝表头 + 数据行） ===== */
+.sub-text {
+  color: #909399;
+  font-size: 13px;
+  line-height: 20px;
+}
+.list-table {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+  min-height: 120px;
+}
+
+/* 表头 */
+.list-head {
+  display: grid;
+  grid-template-columns: 70px 100px minmax(260px, 2fr) 160px 170px 90px 130px;
+  align-items: center;
+  height: 46px;
+  background: #ecf3fd;
+}
+.list-head .list-cell {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  padding: 0 16px;
+}
+
+/* 数据行 */
+.list-row {
+  display: grid;
+  grid-template-columns: 70px 100px minmax(260px, 2fr) 160px 170px 90px 130px;
+  align-items: center;
+  border-top: 1px solid #f0f2f5;
+  transition: background 0.15s;
+}
+.list-row:hover {
+  background: #fafcff;
+}
+.list-cell {
+  padding: 12px 16px;
+  min-width: 0;
+  align-self: center;
+}
+.cell-sort {
+  text-align: center;
+}
+.sort-num {
+  display: inline-block;
+  min-width: 40px;
+  padding: 2px 8px;
+  border: 1px solid #ebeef5;
+  border-radius: 3px;
+  background: #fafbfc;
+  font-size: 13px;
+  color: #606266;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 图片 */
+.goods-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 4px;
+  background: #f5f7fa;
+  display: block;
+}
+
+/* 商品信息列 */
+.goods-name {
+  font-size: 14px;
+  color: #303133;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.goods-tags {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.mini-chip {
+  padding: 0 8px;
+  border-radius: 3px;
+  background: #f5f7fa;
+  border: 1px solid #ebeef5;
+  color: #909399;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.goods-name + .goods-tags + .sub-text {
+  margin-top: 6px;
+}
+
+/* 键值行（售价 / 商品数据列） */
+.kv {
+  display: flex;
+  font-size: 13px;
+  line-height: 22px;
+  min-width: 0;
+  margin: 2px 0;
+}
+.kv .k {
+  color: #909399;
+  flex-shrink: 0;
+}
+.kv .v {
+  color: #303133;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 状态列开关居中 */
+.cell-state {
+  text-align: center;
+}
+
+/* 操作列：按钮竖排 */
+.cell-ops {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.op-btn {
+  min-width: 76px;
+  margin: 3px 0 !important;
+  margin-left: 0 !important;
+  display: block;
+}
+.op-btn a {
+  color: inherit;
+  text-decoration: none;
+}
+.empty-tip {
+  text-align: center;
+  color: #909399;
+  font-size: 13px;
+  padding: 32px 0;
 }
 
 .taoBaoModal {
   //  z-index: 3333 !important;
 }
 
-.demo-table-expand {
-  ::v-deep label {
-    width: 82px;
-  }
-}
-
-.demo-table-expand {
-  ::v-deep .el-form-item__content {
-    width: 77%;
-  }
-}
-
-.seachTiele {
-  line-height: 30px;
-}
-
-.relative {
-  position: relative;
-}
-
-.card_abs {
-  position: absolute;
-  padding-bottom: 15px;
-  top: 260px;
-  right: 40px;
-  width: 200px;
-  background: #fff;
-  z-index: 99999;
-  box-shadow: 0px 0px 14px 0px rgba(0, 0, 0, 0.1);
-}
-
-.cell_ht {
-  height: 50px;
-  padding: 15px 20px;
-  box-sizing: border-box;
-  border-bottom: 1px solid #eeeeee;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.check_cell {
-  width: 100%;
-  padding: 15px 20px 0;
-}
-
-::v-deep .el-checkbox__input.is-checked + .el-checkbox__label {
-  color: #606266;
-}
 ::v-deep .el-drawer__header {
   padding-bottom: 20px !important;
   border-bottom: 1px solid #eee !important;
