@@ -74,11 +74,12 @@
       <!-- 订单卡片列表（复用订货商-订货商订单页样式） -->
       <div v-loading="listLoading" class="order-list">
         <div v-for="row in tableData.data" :key="row.orderId" class="order-card">
-          <!-- 卡片头：单号 + 时间 + 状态 -->
+          <!-- 卡片头：时间 + 单号 + 类型 | 状态 | 快捷链接 -->
           <div class="card-head">
-            <span class="head-label">订单编号：</span>
-            <span class="head-no">{{ row.orderId }}</span>
             <span class="head-time">{{ shortTime(row.createTime) }}</span>
+            <span class="head-label">订单号：</span>
+            <span class="head-no">{{ row.orderId }}</span>
+            <span class="mini-chip">{{ row.orderType || '普通商品' }}</span>
             <span v-if="row.isDel" class="head-reason">用户已删除</span>
             <el-popover v-if="row.refundStatus === 1 || row.refundStatus === 2" trigger="hover" placement="top" :open-delay="500">
               <b :class="statusClass(row.statusStr.key) + ' head-status'" slot="reference">{{ row.statusStr.value }}</b>
@@ -103,51 +104,60 @@
               </div>
             </el-popover>
             <span v-else :class="statusClass(row.statusStr.key) + ' head-status'">{{ row.statusStr.value }}</span>
+            <div class="head-links">
+              <a v-if="checkPermi(['admin:order:status:list'])" @click="onOrderLog(row.orderId)">订单记录</a>
+              <a v-if="row.statusStr.key !== 'unPaid'" @click="onOrderPrint(row)">打印小票</a>
+            </div>
           </div>
-          <!-- 卡片体：商品 | 收货人 | 实际支付 | 类型/支付方式 | 操作 -->
+          <!-- 卡片体：商品 | 用户收货 | 金额 | 支付状态 | 操作 -->
           <div class="card-body">
             <div class="col col-goods">
               <div v-for="(val, i) in row.productList" :key="i" class="goods-item">
                 <el-image :src="val.info.image" :preview-src-list="[val.info.image]" class="goods-img" fit="cover" />
                 <div class="goods-info">
-                  <div class="goods-name" :title="val.info.productName">
-                    {{ val.info.productName }}<span v-if="val.info.sku" class="goods-sku"> | {{ val.info.sku }}</span>
+                  <div class="goods-name">{{ val.info.productName }}</div>
+                  <div v-if="val.info.sku" class="goods-sku-row">
+                    <span class="mini-chip">{{ val.info.sku }}</span>
                   </div>
-                  <div class="goods-num">￥{{ val.info.price }} × {{ val.info.payNum }}</div>
+                </div>
+                <div class="goods-side">
+                  <div class="goods-num">× {{ val.info.payNum }}</div>
+                  <div class="goods-price">￥{{ val.info.price }}</div>
                 </div>
               </div>
               <div v-if="!(row.productList || []).length" class="sub-text">—</div>
             </div>
             <div class="col col-recv">
-              <template v-if="row.realName">
-                <div class="recv-name">{{ row.realName }}<span class="sub-text recv-phone">{{ row.userPhone }}</span></div>
+              <div class="kv"><span class="k">用户：</span><span class="v">{{ row.realName || '-' }}</span></div>
+              <div class="kv"><span class="k">昵称：</span><span class="v">{{ row.nickname || '-' }}</span></div>
+              <div class="kv"><span class="k" style="flex-shrink:0">手机：</span><span class="v">{{ row.userPhone || '-' }}</span></div>
+              <div class="kv">
+                <span class="k">地址：</span>
                 <el-tooltip v-if="row.userAddress" effect="dark" :content="row.userAddress" placement="top">
-                  <div class="recv-addr">{{ row.userAddress }}</div>
+                  <span class="v">{{ row.userAddress }}</span>
                 </el-tooltip>
-                <div v-else class="sub-text">地址：-</div>
-              </template>
-              <div v-else class="sub-text">无需收货信息</div>
-            </div>
-            <div class="col col-amount">
-              <div class="amount">¥{{ fmtMoney(row.payPrice) }}</div>
-              <div class="sub-text">实付</div>
-            </div>
-            <div class="col col-state">
-              <div class="sub-text">{{ row.payTypeStr || '—' }}</div>
-              <div class="recv-tags">
-                <span class="mini-chip">{{ orderTypeText(row) }}</span>
+                <span v-else class="v">-</span>
               </div>
             </div>
+            <div class="col col-amount">
+              <div class="kv"><span class="k">总价：</span><span class="v">￥{{ fmtMoney(row.proTotalPrice || row.payPrice) }}</span></div>
+              <div class="kv"><span class="k">实付：</span><span class="v">￥{{ fmtMoney(row.payPrice) }}</span></div>
+            </div>
+            <div class="col col-state">
+              <div class="pay-text">{{ row.paid ? '已支付' : '未支付' }}</div>
+              <div class="sub-text">{{ row.payTypeStr || '—' }}</div>
+              <div v-if="row.payTime" class="sub-text">付款时间：{{ shortTime(row.payTime) }}</div>
+            </div>
             <div class="col col-ops">
-              <el-button v-if="checkPermi(['admin:order:info'])" size="mini" type="primary" plain class="op-btn" @click="onOrderDetails(row.orderId)">详情</el-button>
+              <el-button v-if="checkPermi(['admin:order:info'])" size="mini" type="success" plain class="op-btn" @click="onOrderDetails(row.orderId)">订单详情</el-button>
+              <el-button
+                v-if="row.statusStr.key === 'notShipped' && row.refundStatus === 0 && checkPermi(['admin:order:send'])"
+                size="mini" type="primary" plain class="op-btn" @click="sendOrder(row)"
+              >发货</el-button>
               <el-button
                 v-if="row.paid === false && !row.isAlterPrice && checkPermi(['admin:order:update:price'])"
                 size="mini" type="warning" plain class="op-btn" @click="edit(row)"
               >编辑</el-button>
-              <el-button
-                v-if="row.statusStr.key === 'notShipped' && row.refundStatus === 0 && checkPermi(['admin:order:send'])"
-                size="mini" type="primary" plain class="op-btn" @click="sendOrder(row)"
-              >发送货</el-button>
               <!--视频号订单不可修改-->
               <el-button
                 v-if="row.statusStr.key === 'spike' && row.type === 0 && checkPermi(['admin:order:tracking:number:update']) && !row.shipmentTaskId"
@@ -157,15 +167,13 @@
                 v-if="row.statusStr.key === 'toBeWrittenOff' && row.paid == true && row.refundStatus === 0 && checkPermi(['admin:order:write:update'])"
                 size="mini" type="success" plain class="op-btn" @click="onWriteOff(row)"
               >立即核销</el-button>
-              <el-dropdown trigger="click" class="op-more">
+              <el-dropdown v-if="hasMoreActions(row)" trigger="click" class="op-more">
                 <span class="el-dropdown-link">更多<i class="el-icon-arrow-down el-icon--right" /></span>
                 <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item @click.native="onOrderLog(row.orderId)" v-if="checkPermi(['admin:order:status:list'])">订单记录</el-dropdown-item>
                   <el-dropdown-item @click.native="onOrderMark(row)" v-if="checkPermi(['admin:order:mark'])">订单备注</el-dropdown-item>
                   <el-dropdown-item v-if="row.refundStatus === 1 && checkPermi(['admin:order:refund:refuse'])" @click.native="onOrderRefuse(row)">拒绝退款</el-dropdown-item>
                   <el-dropdown-item v-if="row.refundStatus === 1 && checkPermi(['admin:order:refund'])" @click.native="onOrderRefund(row)">立即退款</el-dropdown-item>
                   <el-dropdown-item v-if="row.statusStr.key === 'deleted' && checkPermi(['admin:order:delete'])" @click.native="handleDelete(row)">删除订单</el-dropdown-item>
-                  <el-dropdown-item v-if="row.statusStr.key !== 'unPaid'" @click.native="onOrderPrint(row)">打印小票</el-dropdown-item>
                 </el-dropdown-menu>
               </el-dropdown>
             </div>
@@ -393,6 +401,14 @@ export default {
     // 订单类型文案：type 0=普通 1=视频号
     orderTypeText(row) {
       return row.type === 1 ? '视频号订单' : '普通订单';
+    },
+    // 「更多」下拉是否还有可见项（无则不渲染下拉）
+    hasMoreActions(row) {
+      return (
+        checkPermi(['admin:order:mark']) ||
+        (row.refundStatus === 1 && (checkPermi(['admin:order:refund:refuse']) || checkPermi(['admin:order:refund']))) ||
+        (row.statusStr.key === 'deleted' && checkPermi(['admin:order:delete']))
+      );
     },
     // 状态配色：未支付/待核销橙、未发货/待收货/待评价蓝、完成绿、退款/删除红灰
     statusClass(key) {
@@ -754,6 +770,7 @@ export default {
 }
 .head-label {
   color: #606266;
+  margin-left: 14px;
 }
 .head-no {
   font-weight: 600;
@@ -761,7 +778,6 @@ export default {
   font-size: 14px;
 }
 .head-time {
-  margin-left: 14px;
   color: #909399;
 }
 .head-status {
@@ -777,16 +793,34 @@ export default {
 .head-status.is-muted { color: #909399; }
 .head-reason {
   color: #f56c6c;
+  margin-left: 14px;
   max-width: 320px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* 卡片头右侧快捷链接 */
+.head-links {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+}
+.head-links a {
+  color: #606266;
+  font-size: 13px;
+  cursor: pointer;
+}
+.head-links a:hover {
+  color: #0256ff;
+}
+.card-head .mini-chip {
+  margin-left: 14px;
+}
 
 /* 卡片体：网格分列，列间细分隔线 */
 .card-body {
   display: grid;
-  grid-template-columns: minmax(260px, 1.6fr) 190px 110px 130px 130px;
+  grid-template-columns: minmax(300px, 2fr) minmax(200px, 1.1fr) 150px 150px 140px;
   align-items: center;
   padding: 16px 0;
 }
@@ -803,21 +837,42 @@ export default {
   justify-content: center;
 }
 
-/* 商品列 */
+/* 键值行（用户/金额列） */
+.kv {
+  display: flex;
+  font-size: 13px;
+  line-height: 22px;
+  min-width: 0;
+}
+.kv .k {
+  color: #909399;
+  flex-shrink: 0;
+}
+.kv .v {
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* 商品列：大图 + 多行名称 + 右侧数量价格 */
 .goods-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin: 4px 0;
 }
 .goods-img {
-  width: 48px;
-  height: 48px;
+  width: 72px;
+  height: 72px;
   border-radius: 4px;
   flex-shrink: 0;
   background: #f5f7fa;
-  margin-right: 10px;
+  margin-right: 12px;
 }
 .goods-info {
+  flex: 1;
   min-width: 0;
 }
 .goods-name {
@@ -826,17 +881,29 @@ export default {
   line-height: 20px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
-.goods-sku {
-  color: #909399;
-  font-size: 12px;
+.goods-sku-row {
+  margin-top: 6px;
+}
+.goods-side {
+  flex-shrink: 0;
+  margin-left: 12px;
+  text-align: right;
 }
 .goods-num {
-  font-size: 13px;
+  font-size: 12px;
   color: #909399;
   line-height: 20px;
-  margin-top: 2px;
+}
+.goods-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 20px;
+  margin-top: 4px;
 }
 
 /* 收货人列 */
@@ -860,9 +927,10 @@ export default {
   -webkit-box-orient: vertical;
 }
 
-/* 金额列 */
-.col-amount {
-  text-align: center;
+/* 金额列（总价/实付小字多行） */
+.col-amount .kv .v {
+  color: #303133;
+  font-weight: 500;
 }
 .amount {
   font-size: 18px;
@@ -872,7 +940,7 @@ export default {
   line-height: 26px;
 }
 
-/* 类型/支付方式列 */
+/* 标签 chip */
 .recv-tags {
   margin-top: 6px;
   display: flex;
@@ -889,12 +957,20 @@ export default {
   white-space: nowrap;
 }
 
-/* 操作列：按钮竖排 */
+/* 支付状态列 */
+.pay-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #606266;
+  line-height: 22px;
+}
+
+/* 操作列：小按钮自动换行 */
 .col-ops {
   align-items: center;
 }
 .op-btn {
-  min-width: 92px;
+  min-width: 76px;
   margin: 4px 0 !important;
   margin-left: 0 !important;
   display: block;
