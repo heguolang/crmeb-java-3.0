@@ -245,7 +245,16 @@
 }
 .v-img { width: 140rpx; height: 140rpx; border-radius: 14rpx; flex-shrink: 0; background: #f5f6fa; }
 .v-info { flex: 1; margin-left: 20rpx; overflow: hidden; }
-.v-name { font-size: 28rpx; color: #303133; font-weight: 600; line-height: 38rpx; }
+.v-name {
+  font-size: 28rpx;
+  color: #303133;
+  font-weight: 600;
+  line-height: 38rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
 .v-meta { font-size: 23rpx; color: #909399; margin-top: 8rpx; }
 .v-remain { color: #e93323; font-weight: 700; font-size: 27rpx; }
 .v-exin {

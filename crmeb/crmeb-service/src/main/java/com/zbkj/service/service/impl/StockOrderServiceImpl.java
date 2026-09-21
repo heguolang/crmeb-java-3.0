@@ -485,6 +485,35 @@ public class StockOrderServiceImpl implements StockOrderService {
                 String key = v.getProductId() + "_" + (v.getSkuKey() == null ? "" : v.getSkuKey());
                 v.setExchangeInNum(exIn.getOrDefault(key, 0));
             }
+            // 兼容历史脏行：换货入库新建行时未写商品名/图片（2026-09-21 前），读取时按商品回填，
+            // 否则会员端该卡片没有图、没有名称；只补内存不回写，避免读接口产生写操作。
+            List<Integer> missingIds = new ArrayList<>();
+            for (StockVirtualStock v : list) {
+                boolean noName = v.getProductName() == null || v.getProductName().trim().isEmpty();
+                boolean noImage = v.getImage() == null || v.getImage().trim().isEmpty();
+                if ((noName || noImage) && v.getProductId() != null
+                        && !missingIds.contains(v.getProductId())) {
+                    missingIds.add(v.getProductId());
+                }
+            }
+            if (!missingIds.isEmpty()) {
+                Map<Integer, StoreProduct> productMap = new HashMap<>();
+                for (StoreProduct p : storeProductService.listByIds(missingIds)) {
+                    productMap.put(p.getId(), p);
+                }
+                for (StockVirtualStock v : list) {
+                    StoreProduct p = productMap.get(v.getProductId());
+                    if (p == null) {
+                        continue;
+                    }
+                    if (v.getProductName() == null || v.getProductName().trim().isEmpty()) {
+                        v.setProductName(p.getStoreName() == null ? "" : p.getStoreName());
+                    }
+                    if (v.getImage() == null || v.getImage().trim().isEmpty()) {
+                        v.setImage(p.getImage() == null ? "" : p.getImage());
+                    }
+                }
+            }
         }
         return list;
     }
@@ -1246,8 +1275,14 @@ public class StockOrderServiceImpl implements StockOrderService {
         return total;
     }
 
-    /** 按规格回补虚拟库存（合并到已有行；无则新增），驳回换货/取消时恢复使用 */
-    private void creditVirtualStockNum(Integer uid, Integer productId, String skuKey, Integer num) {
+    /**
+     * 按规格回补虚拟库存（合并到已有行；无则新增）。
+     *
+     * @param asIncome true=真实入库（换货入库），累计入账 num 与剩余可提 remain_num 都加；
+     *                 false=回补占用（驳回换货/取消恢复，对应 {@link #deductVirtualStock} 只减过 remain_num），
+     *                 只加 remain_num，不能加 num，否则「累计入账」会被驳回操作虚增。
+     */
+    private void creditVirtualStockNum(Integer uid, Integer productId, String skuKey, Integer num, boolean asIncome) {
         if (num == null || num <= 0) {
             return;
         }
@@ -1259,17 +1294,40 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockVirtualStock::getIsDel, 0)
                 .last(" limit 1"));
         if (exist != null) {
-            stockVirtualStockDao.update(null, new LambdaUpdateWrapper<StockVirtualStock>()
+            // num=累计入账、remain_num=剩余可提（提货/转卖只减 remain_num）。
+            // 真实入库两条都加，否则合并后会出现「累计入账 1 · 剩余可提 2」（2026-09-21 修）；
+            // 驳回恢复只加 remain_num（申请时也只减过 remain_num）。
+            LambdaUpdateWrapper<StockVirtualStock> uw = new LambdaUpdateWrapper<StockVirtualStock>()
                     .eq(StockVirtualStock::getId, exist.getId())
-                    .setSql("remain_num = remain_num + " + num));
+                    .setSql("remain_num = remain_num + " + num);
+            if (asIncome) {
+                uw.setSql("num = num + " + num);
+            }
+            // 顺手补历史脏行（换货入库早期未写商品名/图片，合并时不会自愈）
+            boolean noName = exist.getProductName() == null || exist.getProductName().trim().isEmpty();
+            boolean noImage = exist.getImage() == null || exist.getImage().trim().isEmpty();
+            if (noName || noImage) {
+                StoreProduct product = storeProductService.getById(productId);
+                if (product != null) {
+                    if (noName && product.getStoreName() != null) {
+                        uw.set(StockVirtualStock::getProductName, product.getStoreName());
+                    }
+                    if (noImage && product.getImage() != null) {
+                        uw.set(StockVirtualStock::getImage, product.getImage());
+                    }
+                }
+            }
+            stockVirtualStockDao.update(null, uw);
         } else {
+            // 新建行必须补商品名与图片：否则会员端「虚拟库存」换货入库那张卡会没有图、没有名称（2026-09-21 修）
+            StoreProduct product = storeProductService.getById(productId);
             StockVirtualStock v = new StockVirtualStock();
             v.setUid(uid);
             v.setProductId(productId);
-            v.setProductName("");
-            v.setImage("");
+            v.setProductName(product == null || product.getStoreName() == null ? "" : product.getStoreName());
+            v.setImage(product == null || product.getImage() == null ? "" : product.getImage());
             v.setSkuKey(sku);
-            v.setNum(num);
+            v.setNum(asIncome ? num : 0);
             v.setRemainNum(num);
             v.setIsDel(0);
             stockVirtualStockDao.insert(v);
@@ -1790,7 +1848,7 @@ public class StockOrderServiceImpl implements StockOrderService {
                     exchange.getTargetSkuKey(), exchange.getNum());
         }
         creditVirtualStockNum(exchange.getUid(), exchange.getTargetProductId(),
-                exchange.getTargetSkuKey(), exchange.getNum());
+                exchange.getTargetSkuKey(), exchange.getNum(), true);
         exchange.setStatus(StockExchange.STATUS_COMPLETE);
         exchange.setFinishTime(new Date());
         stockExchangeDao.updateById(exchange);
@@ -1804,7 +1862,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (!isVirtualExchange(exchange)) {
             return;
         }
-        creditVirtualStockNum(exchange.getUid(), exchange.getProductId(), exchange.getSkuKey(), exchange.getNum());
+        creditVirtualStockNum(exchange.getUid(), exchange.getProductId(), exchange.getSkuKey(), exchange.getNum(), false);
     }
 
     @Override
