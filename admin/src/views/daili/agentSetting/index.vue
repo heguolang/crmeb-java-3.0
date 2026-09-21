@@ -2,7 +2,7 @@
   <div class="divBox">
     <el-card :bordered="false" shadow="never" class="ivu-mt">
       <div slot="header" class="card-header"><span>代理设置</span></div>
-      <el-form :model="form" label-width="150px" size="small" style="max-width: 640px" v-loading="loading">
+      <el-form :model="form" label-width="150px" style="max-width: 720px; font-size: 14px" v-loading="loading">
         <el-form-item label="代理功能：">
           <el-radio-group v-model="form.agent_func_status">
             <el-radio label="1">开启</el-radio>
@@ -33,18 +33,24 @@
           <div class="tips">会员端申请代理时只能选择此处勾选的区域级别；全部不勾表示会员端不可申请任何区域</div>
         </el-form-item>
         <el-form-item label="默认奖励比例：">
-          <div class="ratio-row">
-            <span class="ratio-label">省级</span>
-            <el-input-number v-model="form.agent_default_ratio_province" :min="0" :max="100" :precision="2" :step="0.5" size="small" style="width: 130px" />
-            <span class="ratio-unit">%</span>
-            <span class="ratio-label">市级</span>
-            <el-input-number v-model="form.agent_default_ratio_city" :min="0" :max="100" :precision="2" :step="0.5" size="small" style="width: 130px" />
-            <span class="ratio-unit">%</span>
-            <span class="ratio-label">区级</span>
-            <el-input-number v-model="form.agent_default_ratio_district" :min="0" :max="100" :precision="2" :step="0.5" size="small" style="width: 130px" />
-            <span class="ratio-unit">%</span>
+          <div class="ratio-list">
+            <div class="ratio-row">
+              <span class="ratio-label">省级代理</span>
+              <el-input-number v-model="form.agent_default_ratio_province" :min="0" :max="100" :precision="2" :step="0.5" style="width: 160px" />
+              <span class="ratio-unit">%</span>
+            </div>
+            <div class="ratio-row">
+              <span class="ratio-label">市级代理</span>
+              <el-input-number v-model="form.agent_default_ratio_city" :min="0" :max="100" :precision="2" :step="0.5" style="width: 160px" />
+              <span class="ratio-unit">%</span>
+            </div>
+            <div class="ratio-row">
+              <span class="ratio-label">区级代理</span>
+              <el-input-number v-model="form.agent_default_ratio_district" :min="0" :max="100" :precision="2" :step="0.5" style="width: 160px" />
+              <span class="ratio-unit">%</span>
+            </div>
           </div>
-          <div class="tips">代理申请「通过」时按级别自动带入默认比例，可在弹窗里修改后保存（当前配置：省 {{ form.agent_default_ratio_province }}% / 市 {{ form.agent_default_ratio_city }}% / 区 {{ form.agent_default_ratio_district }}%）</div>
+          <div class="tips">代理申请「通过」时按级别自动带入默认比例，可在弹窗里修改后保存</div>
         </el-form-item>
         <el-form-item>
           <el-button v-if="checkPermi(['admin:agent:setting:save'])" type="primary" :loading="saveLoading" @click="onSave"
@@ -132,15 +138,23 @@ export default {
   line-height: 1.6;
   margin-top: 4px;
 }
+.ratio-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 .ratio-row {
   display: flex;
   align-items: center;
   .ratio-label {
-    margin-right: 8px;
+    width: 72px;
+    flex-shrink: 0;
     color: #606266;
+    font-size: 14px;
+    white-space: nowrap;
   }
   .ratio-unit {
-    margin: 0 16px 0 4px;
+    margin-left: 8px;
     color: #606266;
   }
 }

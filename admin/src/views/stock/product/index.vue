@@ -54,10 +54,16 @@
       <div slot="header"><b>库存变动日志</b></div>
       <el-table class="admin-table" :data="logs" size="small">
         <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column label="产品信息" min-width="150" show-overflow-tooltip>
+        <el-table-column label="产品信息" min-width="180">
           <template slot-scope="scope">
-            <div class="cell-main">{{ scope.row.productName || ('商品ID ' + scope.row.productId) }}</div>
-            <div class="cell-sub">{{ scope.row.skuKey || '整品' }}</div>
+            <div class="cell-product">
+              <img v-if="scope.row.productImage" class="cell-thumb" :src="scope.row.productImage" @error="scope.row.productImage = ''" />
+              <span v-else class="cell-thumb cell-thumb-empty">{{ (scope.row.productName || '?').slice(0, 1) }}</span>
+              <div class="cell-product-info">
+                <div class="cell-main">{{ scope.row.productName || ('商品ID ' + scope.row.productId) }}</div>
+                <div class="cell-sub">{{ scope.row.skuKey || '整品' }}</div>
+              </div>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="会员信息" width="150">
@@ -537,4 +543,14 @@ export default {
 .sp-hint { font-size: 12px; color: #909399; line-height: 1.5; }
 .cell-main { font-size: 13px; color: #303133; }
 .cell-sub { font-size: 12px; color: #909399; }
+.cell-product { display: flex; align-items: center; }
+.cell-thumb {
+  width: 36px; height: 36px; border-radius: 4px; object-fit: cover;
+  background: #f2f4f8; flex-shrink: 0; margin-right: 8px;
+}
+.cell-thumb-empty {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #c0c4cc;
+}
+.cell-product-info { min-width: 0; }
 </style>

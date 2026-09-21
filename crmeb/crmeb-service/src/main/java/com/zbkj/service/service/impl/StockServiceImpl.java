@@ -902,6 +902,7 @@ public class StockServiceImpl implements StockService {
             return;
         }
         HashMap<Integer, String> productNameMap = new HashMap<>();
+        HashMap<Integer, String> productImageMap = new HashMap<>();
         for (StockLog log : list) {
             if (log.getProductId() == null) {
                 continue;
@@ -909,6 +910,7 @@ public class StockServiceImpl implements StockService {
             if (!productNameMap.containsKey(log.getProductId())) {
                 StoreProduct p = storeProductService.getById(log.getProductId());
                 productNameMap.put(log.getProductId(), p == null ? ("商品" + log.getProductId()) : p.getStoreName());
+                productImageMap.put(log.getProductId(), p == null ? "" : (p.getImage() == null ? "" : p.getImage()));
             }
         }
         // 关联单号 -> 会员（订货单号 / 换货单号）
@@ -942,6 +944,7 @@ public class StockServiceImpl implements StockService {
         }
         for (StockLog log : list) {
             log.setProductName(productNameMap.get(log.getProductId()));
+            log.setProductImage(productImageMap.get(log.getProductId()) == null ? "" : productImageMap.get(log.getProductId()));
             if (log.getLinkNo() == null || log.getLinkNo().trim().isEmpty()) {
                 continue;
             }
