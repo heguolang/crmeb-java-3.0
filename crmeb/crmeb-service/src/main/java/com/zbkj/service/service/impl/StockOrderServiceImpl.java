@@ -202,8 +202,9 @@ public class StockOrderServiceImpl implements StockOrderService {
                 throw new CrmebException("请选择正确的收货地址");
             }
         }
-        // 上级库存预判：仅用于下单提示，最终以付款成功时点的库存为准（虚拟单同样占上级库存）
-        boolean parentStockOk = parent == null || parentHasStock(parent, items);
+        // 上级库存预判：仅用于下单提示，最终以付款成功时点的库存为准
+        // 虚拟单看上级虚拟库存（虚拟卖空不得用实体兜底），实体单看实体可供应量
+        boolean parentStockOk = parentCanSupply(parent, items, null, isVirtual);
         String orderNo = "SK" + System.currentTimeMillis() + String.valueOf((int) ((Math.random() * 9 + 1) * 1000));
         StockOrder order = new StockOrder();
         order.setOrderNo(orderNo);
@@ -240,8 +241,10 @@ public class StockOrderServiceImpl implements StockOrderService {
         map.put("payStatus", 0);
         map.put("upSearchWaiting", !parentStockOk);
         if (!parentStockOk) {
-            map.put("upSearchMessage", "最近上级【" + nickOf(parent.getUid()) + "】暂无库存，仍可下单付款；"
-                    + "付款后订单将进入等待队列，" + getUpSearchHours()
+            map.put("upSearchMessage", "最近上级【" + nickOf(parent.getUid()) + "】"
+                    + (isVirtual ? "虚拟库存不足" : "暂无库存") + "，仍可下单付款；"
+                    + (isVirtual ? "付款时能供上的部分正常入账，不足部分自动拆为等待单，" : "付款后订单将进入等待队列，")
+                    + getUpSearchHours()
                     + "小时内上级补货可直接进入审核发货，超时系统将自动向上匹配有货的上级，差价在最终审核发货的上级处结算");
         }
         return map;
@@ -271,13 +274,39 @@ public class StockOrderServiceImpl implements StockOrderService {
                 ? stockService.getAgentById(order.getParentAgentId()) : null;
         List<StockOrderProduct> items = stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
                 .eq(StockOrderProduct::getOrderId, order.getId()));
-        boolean parentStockOk = parent == null || parentHasStock(parent, items);
         boolean needAudit = !"0".equals(systemConfigService.getValueByKey(CFG_ORDER_AUDIT));
         boolean isVirtual = isVirtualOrder(order);
         // 虚拟单审核开关：1=付款后仍需上级审核，0=付款即完成入账
         boolean virtualNeedAudit = isVirtual && "1".equals(systemConfigService.getValueByKey(CFG_VIRTUAL_AUDIT));
+        // 上级库存判定：虚拟单只看上级虚拟库存（虚拟卖空不能用实体兜底），实体单沿用实体可供应量
+        boolean parentStockOk;
+        StockOrder splitWaitOrder = null;
+        // 事务 lambda 内只能引用有效 final 变量，先落一份原始明细引用（后面 items 会被重读覆盖）
+        final List<StockOrderProduct> rawItems = items;
+        if (isVirtual && parent != null && !parentHasVirtualStock(parent, items)) {
+            // 虚拟库存不足：先尝试部分供货 —— 能供的留在原单正常完成，缺口拆成一张「等待匹配」子单
+            splitWaitOrder = transactionTemplate.execute(status ->
+                    splitVirtualOrderIfShort(order, rawItems, parent, payType));
+            parentStockOk = splitWaitOrder != null;
+            if (parentStockOk) {
+                // 原单数量/金额已被收敛，重读明细供后续入账使用
+                items = stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
+                        .eq(StockOrderProduct::getOrderId, order.getId()));
+            }
+        } else {
+            // 虚拟单上级虚拟库存充足时按虚拟口径判定（不受实体库存影响）；实体单沿用实体可供应量
+            parentStockOk = parentCanSupply(parent, items, null, isVirtual);
+        }
+        final List<StockOrderProduct> payItems = items;
         transactionTemplate.executeWithoutResult(status ->
-                applyPaidTransition(order, items, payType, parentStockOk, needAudit, isVirtual, virtualNeedAudit));
+                applyPaidTransition(order, payItems, payType, parentStockOk, needAudit, isVirtual, virtualNeedAudit));
+        // 部分分货：告知会员缺口部分已进等待队列
+        if (splitWaitOrder != null) {
+            stockRewardService.sendNotice(order.getUid(), StockNotice.TYPE_ORDER_AUDIT, "部分商品进入等待队列",
+                    "您的订单 " + orderNo + " 中 " + splitWaitOrder.getTotalNum() + " 件因上级虚拟库存不足"
+                            + "已拆分为等待单 " + splitWaitOrder.getOrderNo() + "，" + getUpSearchHours()
+                            + "小时内上级补货可直接完成，超时系统将自动向上匹配有货的上级");
+        }
         // 事务外通知与升级
         if (parentStockOk) {
             if (isVirtual && virtualNeedAudit && parent != null) {
@@ -644,6 +673,18 @@ public class StockOrderServiceImpl implements StockOrderService {
             stockOrderDao.insert(order);
             op.setOrderId(order.getId());
             stockOrderProductDao.insert(op);
+            // 虚拟库存出库留痕：不写台账的话，会员端「库存记录-虚拟库存」看不到这次提货扣减
+            StockAdjustLog log = new StockAdjustLog();
+            log.setAgentId(agent.getId());
+            log.setUid(uid);
+            log.setLinkUid(0);
+            log.setProductId(vs.getProductId());
+            log.setSkuKey(vs.getSkuKey() == null ? "" : vs.getSkuKey());
+            log.setNum(-request.getNum());
+            log.setStockType(StockAdjustLog.STOCK_TYPE_VIRTUAL);
+            log.setMark("虚拟库存提货（订单 " + orderNo + "），总部直接发货，本次扣减 " + request.getNum());
+            log.setIsDel(0);
+            stockAdjustLogDao.insert(log);
         });
         // 通知原上级（有单据记录语义）
         if (order.getParentAgentId() != null && order.getParentAgentId() > 0) {
@@ -758,8 +799,9 @@ public class StockOrderServiceImpl implements StockOrderService {
             if (request.getStatus() != -1) {
                 List<StockOrderProduct> waitItems = stockOrderProductDao.selectList(
                         new LambdaQueryWrapper<StockOrderProduct>().eq(StockOrderProduct::getOrderId, order.getId()));
-                if (!parentHasStock(parentAgent, waitItems, order.getId())) {
-                    throw new CrmebException("您的库存不足，暂不可审核通过该订单；请尽快补货后再审核，"
+                if (!parentCanSupply(parentAgent, waitItems, order.getId(), isVirtualOrder(order))) {
+                    throw new CrmebException("您的" + (isVirtualOrder(order) ? "虚拟库存" : "库存")
+                            + "不足，暂不可审核通过该订单；请尽快补货后再审核，"
                             + getUpSearchHours() + "小时内未补货，系统将自动把该订单向上匹配给有货的上级");
                 }
                 if (!restoreWaitMatchToAudit(order)) {
@@ -786,8 +828,9 @@ public class StockOrderServiceImpl implements StockOrderService {
         // 审核通过前校验上级库存（排除本单自身占用量，避免"补足货仍判库存不足"）
         List<StockOrderProduct> auditItems = stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
                 .eq(StockOrderProduct::getOrderId, order.getId()));
-        if (!parentHasStock(parentAgent, auditItems, order.getId())) {
-            throw new CrmebException("您的库存不足，无法审核通过该订单；请尽快补货后再审核，"
+        if (!parentCanSupply(parentAgent, auditItems, order.getId(), isVirtualOrder(order))) {
+            throw new CrmebException("您的" + (isVirtualOrder(order) ? "虚拟库存" : "库存")
+                    + "不足，无法审核通过该订单；请尽快补货后再审核，"
                     + "或等待系统将该订单自动匹配至更高级上级");
         }
         // 审核通过：实体单扣云仓库存 -> 待发货；虚拟单 -> 完成并入账虚拟库存
@@ -993,6 +1036,10 @@ public class StockOrderServiceImpl implements StockOrderService {
         }
         if (!order.getStatus().equals(StockOrder.STATUS_COMPLETE)) {
             throw new CrmebException("只有已完成的订单才能申请换货");
+        }
+        // 虚拟提货单（order_type=2）不支持换货：货已用虚拟余额抵扣提走，由总部直接发货，无换货语义
+        if (StockOrder.ORDER_TYPE_PICKUP.equals(order.getOrderType())) {
+            throw new CrmebException("虚拟库存提货单不支持换货");
         }
         // 带规格key时精确匹配明细（防止同订单同商品多规格取错/多行抛错）
         // 注意：取值表达式必须用局部变量，直接写 request.getSkuKey().trim() 会在 skuKey 为 null 时先求值而 NPE
@@ -1650,7 +1697,8 @@ public class StockOrderServiceImpl implements StockOrderService {
             });
             return true;
         }
-        // 通过
+        // 通过：先确认上级真的有货可发，避免「上级无库存也换货成功」把库存扣成负数
+        requireParentStockEnough(exchange, "通过换货申请");
         if (isVirtualExchange(exchange)) {
             if (isVirtualTarget(exchange)) {
                 // 虚拟换虚拟：上级审核通过即完成 —— 扣上级虚拟库存、入账给申请人，无需地址与发货
@@ -1692,6 +1740,46 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (exchange.getDiffPrice() != null && exchange.getDiffPrice().signum() > 0
                 && (exchange.getDiffPayStatus() == null || exchange.getDiffPayStatus() != 1)) {
             throw new CrmebException("会员尚未支付换货差价 ¥" + exchange.getDiffPrice());
+        }
+    }
+
+    /**
+     * 换货要由上级发出新品时，先校验上级是否真的有可发的库存。
+     * 换入实体 → 看上级该商品的实体可供应量（与「库存记录」台账同口径，
+     *            含已完成换货净额，见 getAgentStockNum）；换入虚拟 → 看上级虚拟剩余量。
+     * 不足即拒绝：否则会出现「上级根本没有该商品库存，换货照样完成」，
+     * 台账里凭空多出一条上级的扣减行、可供应量被扣成负数。
+     * 上级是总部(parentAgentId<=0)时由总部云仓直发，无需校验。
+     */
+    private void requireParentStockEnough(StockExchange exchange, String action) {
+        Integer parentAgentId = exchange.getParentAgentId();
+        if (parentAgentId == null || parentAgentId <= 0) {
+            return;
+        }
+        int num = exchange.getNum() == null ? 0 : exchange.getNum();
+        if (num <= 0) {
+            return;
+        }
+        StockAgent parent = stockService.getAgentById(parentAgentId);
+        if (parent == null) {
+            throw new CrmebException("该换货单的上级不存在，无法" + action);
+        }
+        Integer targetProductId = (exchange.getTargetProductId() != null && exchange.getTargetProductId() > 0)
+                ? exchange.getTargetProductId() : exchange.getProductId();
+        String productName = (exchange.getTargetProductName() == null || exchange.getTargetProductName().isEmpty())
+                ? ("商品ID " + targetProductId) : exchange.getTargetProductName();
+        if (isVirtualTarget(exchange)) {
+            int remain = getParentVirtualStockNum(parent.getUid(), targetProductId, exchange.getTargetSkuKey());
+            if (remain < num) {
+                throw new CrmebException("上级虚拟库存不足，无法" + action + "：换入【" + productName
+                        + "】上级仅剩 " + remain + " 件，需要 " + num + " 件");
+            }
+        } else {
+            int usable = getAgentStockNum(parent, targetProductId);
+            if (usable < num) {
+                throw new CrmebException("上级没有【" + productName + "】的库存，无法" + action
+                        + "：上级可供应 " + usable + " 件，需要 " + num + " 件，请先补货后再处理");
+            }
         }
     }
 
@@ -1748,6 +1836,8 @@ public class StockOrderServiceImpl implements StockOrderService {
         }
         // 通过：实体换货 → 待旧品退回（总部介入时跳过上级复审，同样进入待旧品退回）；
         // 虚拟换虚拟 → 直接完成（扣上级虚拟库存并入账）；虚拟换实体 → 直接待发新品
+        // 审核前先确认上级有货可发（总部发货的单子除外）
+        requireParentStockEnough(exchange, "通过换货申请");
         if (isVirtualExchange(exchange) && isVirtualTarget(exchange)) {
             requireDiffPaid(exchange);
             transactionTemplate.executeWithoutResult(status -> completeVirtualToVirtual(exchange, "总部"));
@@ -1845,6 +1935,8 @@ public class StockOrderServiceImpl implements StockOrderService {
                 && (exchange.getDiffPayStatus() == null || exchange.getDiffPayStatus() != 1)) {
             throw new CrmebException("会员尚未支付换货差价 ¥" + exchange.getDiffPrice() + "，不可发货");
         }
+        // 发货前再校验一次：审核到发货之间上级库存可能已被别处消耗
+        requireParentStockEnough(exchange, "发出新品");
         Integer shipProductId = (exchange.getTargetProductId() != null && exchange.getTargetProductId() > 0)
                 ? exchange.getTargetProductId() : exchange.getProductId();
         return transactionTemplate.execute(status -> {
@@ -1976,13 +2068,36 @@ public class StockOrderServiceImpl implements StockOrderService {
             vs.setIsDel(0);
             stockVirtualStockDao.insert(vs);
         }
+        // 虚拟库存入账留痕：会员端「库存记录-虚拟库存」必须能看到采购入账，
+        // 否则只有出库（提货/转卖）没有入库，台账看起来像凭空扣减。
+        // 幂等：同一订单只记一条（本方法在付款/上级审核/总部审核/确认收款多处被调，防止重复审核重复记账）
+        int credited = stockAdjustLogDao.selectCount(new LambdaQueryWrapper<StockAdjustLog>()
+                .eq(StockAdjustLog::getAgentId, order.getAgentId())
+                .eq(StockAdjustLog::getStockType, StockAdjustLog.STOCK_TYPE_VIRTUAL)
+                .gt(StockAdjustLog::getNum, 0)
+                .like(StockAdjustLog::getMark, order.getOrderNo()));
+        if (credited == 0) {
+            StockAdjustLog inLog = new StockAdjustLog();
+            inLog.setAgentId(order.getAgentId());
+            inLog.setUid(order.getUid());
+            inLog.setLinkUid(0);
+            inLog.setProductId(op.getProductId());
+            inLog.setSkuKey(skuKey);
+            inLog.setNum(op.getNum());
+            inLog.setStockType(StockAdjustLog.STOCK_TYPE_VIRTUAL);
+            inLog.setMark("虚拟库存入账（订单 " + order.getOrderNo() + "），本次增加 " + op.getNum());
+            inLog.setIsDel(0);
+            stockAdjustLogDao.insert(inLog);
+        }
         // 虚拟库存转卖：下级入账的同时，从直接上级虚拟库存中等量扣减
         transferVirtualStockFromParent(order, op);
     }
 
     /**
      * 虚拟库存转卖（须在事务内调用）：下级虚拟单入账时，从直接上级的虚拟库存中等量扣减，保证总量守恒。
-     * 上级虚拟库存不足时不阻断（视为上级以自有实体库存供货），仅扣至 0 并写调整流水留痕。
+     * 入账前各入口（付款分货、上级审核、等待单释放、向上匹配）均已校验上级虚拟库存充足，
+     * 正常流程不会短缺；这里**不再做"虚拟不足就以实体库存供货"的兜底**，
+     * 仅在异常短缺时把差额写进流水提示便于核查（2026-09-21 按需求取消实体兜底）。
      */
     private void transferVirtualStockFromParent(StockOrder order, StockOrderProduct op) {
         Integer parentAgentId = order.getParentAgentId();
@@ -2036,7 +2151,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         log.setNum(-transferred);
         log.setStockType(StockAdjustLog.STOCK_TYPE_VIRTUAL);
         log.setMark("虚拟库存转卖给下级（订单 " + order.getOrderNo() + "），本次扣减 " + transferred
-                + (need > 0 ? ("，上级虚拟库存不足 " + need + " 件，以自有实体库存供货") : ""));
+                + (need > 0 ? ("，上级虚拟库存异常短缺 " + need + " 件（入账前应已分货，出现此提示请核查数据）") : ""));
         log.setIsDel(0);
         stockAdjustLogDao.insert(log);
     }
@@ -2365,6 +2480,10 @@ public class StockOrderServiceImpl implements StockOrderService {
         lqw.orderByDesc(StockOrder::getId).last(" limit 50");
         List<StockOrder> orders = stockOrderDao.selectList(lqw);
         for (StockOrder o : orders) {
+            // 虚拟提货单不参与换货，自动匹配时跳过
+            if (StockOrder.ORDER_TYPE_PICKUP.equals(o.getOrderType())) {
+                continue;
+            }
             Integer cnt = stockOrderProductDao.selectCount(new LambdaQueryWrapper<StockOrderProduct>()
                     .eq(StockOrderProduct::getOrderId, o.getId())
                     .eq(StockOrderProduct::getProductId, productId));
@@ -2399,6 +2518,12 @@ public class StockOrderServiceImpl implements StockOrderService {
                 || !order.getStatus().equals(StockOrder.STATUS_COMPLETE)) {
             map.put("blocked", true);
             map.put("blockedReason", "未找到可换货的已完成订单");
+            return map;
+        }
+        // 虚拟提货单（order_type=2）不支持换货，前端据此隐藏入口并给出提示
+        if (StockOrder.ORDER_TYPE_PICKUP.equals(order.getOrderType())) {
+            map.put("blocked", true);
+            map.put("blockedReason", "虚拟库存提货单不支持换货");
             return map;
         }
         String sku = skuKey == null ? "" : skuKey.trim();
@@ -2639,6 +2764,121 @@ public class StockOrderServiceImpl implements StockOrderService {
     }
 
     /**
+     * 虚拟单校验上级能否满足：**只看上级虚拟库存**（remain_num），
+     * 不能用实体口径 getAgentStockNum——否则会出现「上级虚拟卖空了还在发货」，
+     * 下级全额入账、上级虚拟被扣成 0，两边账目对不上（2026-09-21 修）。
+     */
+    private boolean parentHasVirtualStock(StockAgent parent, List<StockOrderProduct> items) {
+        for (StockOrderProduct op : items) {
+            if (getParentVirtualStockNum(parent.getUid(), op.getProductId(), op.getSkuKey()) < op.getNum()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 上级能否满足订单 —— 按库存类型分流：
+     * 虚拟单只看上级虚拟库存（remain_num），实体单看实体可供应量。
+     * 虚拟单绝不用实体口径判定，否则会出现「上级虚拟卖空仍发货、下级全额入账」的错账。
+     *
+     * @param excludeOrderId 实体口径下从上级"已供应"中排除的订单ID（该订单自身，见 getAgentStockNum 说明）
+     */
+    private boolean parentCanSupply(StockAgent parent, List<StockOrderProduct> items,
+                                    Integer excludeOrderId, boolean virtual) {
+        if (parent == null) {
+            return true;
+        }
+        return virtual ? parentHasVirtualStock(parent, items) : parentHasStock(parent, items, excludeOrderId);
+    }
+
+    /**
+     * 虚拟单按上级虚拟库存分货：可满足部分留在原单正常完成，缺口部分拆出一张
+     * 「等待匹配上级」的子单（已付款、状态 10；等上级补货或超时自动向上匹配有虚拟库存的上级）。
+     * 例：下单 2 件、上级虚拟仅 1 件 → 原单留 1 件入账完成，子单 1 件进等待队列。
+     * 一件都供不了时返回 null（原单整单走等待，由付款流程的 parentStockOk=false 分支处理）。
+     * 须在事务内调用。
+     */
+    private StockOrder splitVirtualOrderIfShort(StockOrder order, List<StockOrderProduct> items,
+                                                StockAgent parent, Integer payType) {
+        List<StockOrderProduct> waitItems = new ArrayList<>();
+        int keepTotal = 0;
+        int waitTotal = 0;
+        BigDecimal keepAmount = BigDecimal.ZERO;
+        BigDecimal waitAmount = BigDecimal.ZERO;
+        for (StockOrderProduct op : items) {
+            int need = op.getNum() == null ? 0 : op.getNum();
+            int avail = getParentVirtualStockNum(parent.getUid(), op.getProductId(), op.getSkuKey());
+            int keep = Math.max(0, Math.min(need, avail));
+            int wait = need - keep;
+            BigDecimal price = op.getPrice() == null ? BigDecimal.ZERO : op.getPrice();
+            keepTotal += keep;
+            keepAmount = keepAmount.add(price.multiply(new BigDecimal(keep)));
+            if (wait > 0) {
+                waitTotal += wait;
+                waitAmount = waitAmount.add(price.multiply(new BigDecimal(wait)));
+                StockOrderProduct w = new StockOrderProduct();
+                w.setProductId(op.getProductId());
+                w.setSkuKey(op.getSkuKey());
+                w.setProductName(op.getProductName());
+                w.setImage(op.getImage());
+                w.setNum(wait);
+                w.setPrice(price);
+                w.setParentPrice(op.getParentPrice());
+                w.setTotalPrice(price.multiply(new BigDecimal(wait)));
+                waitItems.add(w);
+            }
+            if (keep != need) {
+                // 原单明细收敛到可满足数量；keep=0 的明细直接删除，避免留下 0 数量的明细行
+                if (keep <= 0) {
+                    stockOrderProductDao.deleteById(op.getId());
+                } else {
+                    op.setNum(keep);
+                    op.setTotalPrice(price.multiply(new BigDecimal(keep)));
+                    stockOrderProductDao.updateById(op);
+                }
+            }
+        }
+        if (waitItems.isEmpty() || keepTotal <= 0) {
+            return null;
+        }
+        stockOrderDao.update(null, new LambdaUpdateWrapper<StockOrder>()
+                .eq(StockOrder::getId, order.getId())
+                .set(StockOrder::getTotalNum, keepTotal)
+                .set(StockOrder::getTotalPrice, keepAmount));
+        order.setTotalNum(keepTotal);
+        order.setTotalPrice(keepAmount);
+        StockOrder waitOrder = new StockOrder();
+        waitOrder.setOrderNo("SK" + System.currentTimeMillis() + String.valueOf((int) ((Math.random() * 9 + 1) * 1000)));
+        waitOrder.setUid(order.getUid());
+        waitOrder.setAgentId(order.getAgentId());
+        waitOrder.setParentAgentId(order.getParentAgentId());
+        waitOrder.setLevelName(order.getLevelName());
+        waitOrder.setTotalNum(waitTotal);
+        waitOrder.setTotalPrice(waitAmount);
+        waitOrder.setPayStatus(1);
+        waitOrder.setPayType(payType == null ? order.getPayType() : payType);
+        waitOrder.setPayTime(new Date());
+        waitOrder.setStatus(StockOrder.STATUS_WAIT_MATCH);
+        waitOrder.setUpSearchTime(new Date());
+        waitOrder.setUpSearchNum(0);
+        waitOrder.setStockType(order.getStockType());
+        waitOrder.setOrderType(order.getOrderType());
+        waitOrder.setAddressId(order.getAddressId());
+        waitOrder.setRealName(order.getRealName());
+        waitOrder.setPhone(order.getPhone());
+        waitOrder.setUserAddress(order.getUserAddress());
+        waitOrder.setMark("虚拟库存不足拆分等待（原单 " + order.getOrderNo() + "）");
+        waitOrder.setIsDel(0);
+        stockOrderDao.insert(waitOrder);
+        for (StockOrderProduct w : waitItems) {
+            w.setOrderId(waitOrder.getId());
+            stockOrderProductDao.insert(w);
+        }
+        return waitOrder;
+    }
+
+    /**
      * 处理等待中的订单（懒触发）：状态=10（等待匹配）且 upSearchTime 超过等待时长的订单，
      * 自动把下单代理向上改挂到第一个有货的更高级上级（都没有货则挂到总部）
      */
@@ -2765,7 +3005,7 @@ public class StockOrderServiceImpl implements StockOrderService {
                 List<StockOrderProduct> items = stockOrderProductDao.selectList(
                         new LambdaQueryWrapper<StockOrderProduct>().eq(StockOrderProduct::getOrderId, order.getId()));
                 // 排除订单自身占用量后再判定，避免"补了货仍显示库存不足"
-                if (!parentHasStock(parent, items, order.getId())) {
+                if (!parentCanSupply(parent, items, order.getId(), isVirtualOrder(order))) {
                     continue;
                 }
                 if (releaseWaitMatchOrder(order, parent.getId(), items)) {
@@ -2817,7 +3057,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         int depth = 0;
         while (current != null && depth < 50) {
             // 排除订单自身占用量后再判定，上级补足库存时可原地释放
-            if (current.getStatus() != 0 && parentHasStock(current, items, order.getId())) {
+            if (current.getStatus() != 0 && parentCanSupply(current, items, order.getId(), isVirtualOrder(order))) {
                 target = current;
                 break;
             }

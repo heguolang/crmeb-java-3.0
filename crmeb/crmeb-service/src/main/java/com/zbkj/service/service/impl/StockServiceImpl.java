@@ -568,10 +568,12 @@ public class StockServiceImpl implements StockService {
         for (HashMap<String, Object> r : rows) {
             Integer st = asInt(r.get("stockType"));
             Integer num = asInt(r.get("num"));
-            boolean virtualTransferOut = Integer.valueOf(2).equals(st) && num != null && num < 0;
+            boolean virtualRow = Integer.valueOf(2).equals(st);
+            boolean virtualTransferOut = virtualRow && num != null && num < 0;
             String orderNo = asStr(r.get("orderNo"));
-            if ((orderNo == null || orderNo.isEmpty()) && virtualTransferOut) {
-                // link_uid 上线前的历史流水：备注形如「虚拟库存转卖给下级（订单 SKxxx），本次扣减 2」
+            if ((orderNo == null || orderNo.isEmpty()) && virtualRow) {
+                // 虚拟流水（入账/提货/转卖出库）备注里都带单号：
+                // 「虚拟库存转卖给下级（订单 SKxxx），本次扣减 2」/「虚拟库存入账（订单 SKxxx），本次增加 2」
                 orderNo = extractOrderNo(asStr(r.get("mark")));
             }
             r.put("orderNo", orderNo == null ? "" : orderNo);

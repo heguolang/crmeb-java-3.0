@@ -61,7 +61,8 @@
         <view class="row-op" v-if="o.status === 3">
           <button class="op-btn primary" size="mini" @click.stop="receive(o)">确认收货</button>
         </view>
-        <view class="row-op" v-if="o.status === 4 && o.exchanged !== 1">
+        <!-- 虚拟提货单（orderType=2）不参与换货，不显示入口 -->
+        <view class="row-op" v-if="o.status === 4 && o.exchanged !== 1 && o.orderType !== 2">
           <button class="op-btn ghost" size="mini" @click.stop="applyExchange(o)">申请换货</button>
         </view>
       </view>

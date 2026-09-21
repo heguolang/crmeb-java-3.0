@@ -125,13 +125,19 @@
         <view class="at-go">去处理 ›</view>
       </view>
 
-      <!-- 换货记录 -->
+      <!-- 换货记录：我的换货（找上级）/ 下级换货（下级找我） -->
       <view class="section-title">
         <view class="st-bar"></view>
         <text class="st-text">换货记录</text>
         <view class="st-line"></view>
       </view>
 
+      <view class="tab-bar">
+        <view class="tab-item" :class="{ on: tab === 'mine' }" @click="switchTab('mine')">我的换货</view>
+        <view class="tab-item" :class="{ on: tab === 'sub' }" @click="switchTab('sub')">下级换货</view>
+      </view>
+
+      <template v-if="tab === 'mine'">
       <view v-if="list.length" class="ex-list">
         <view v-for="e in list" :key="e.id" class="ex-card">
         <view class="row-1">
@@ -191,6 +197,63 @@
         <view class="empty-txt">暂无换货记录</view>
         <view class="empty-sub">在订货订单中选择商品即可发起换货</view>
       </view>
+      </template>
+
+      <!-- 下级换货：下级发起、经我（上级）处理的全部换货单 -->
+      <template v-else>
+      <view v-if="subList.length" class="ex-list">
+        <view v-for="e in subList" :key="'s' + e.id" class="ex-card sub-ex-card">
+          <view class="row-1">
+            <text class="ex-no">{{ e.exchangeNo }}</text>
+            <text class="ex-status" :class="'st' + e.status">{{ statusText(e.status) }}</text>
+          </view>
+          <view class="sub-user">
+            <view class="su-avatar">{{ (e.nickname || '下').slice(0, 1) }}</view>
+            <text class="su-name">{{ e.nickname }}</text>
+            <text class="su-tag">下级申请</text>
+          </view>
+          <view class="row-p">
+            <image v-if="e.productImage" :src="e.productImage" class="p-img" mode="aspectFill" />
+            <view v-else class="p-img p-img-empty">{{ (e.productName || '?').slice(0, 1) }}</view>
+            <view class="p-info">
+              <view class="p-name">{{ e.productName }}</view>
+              <view class="p-num">换货数量 × {{ e.num }}<text class="p-x">原单 {{ e.orderNo }}</text></view>
+            </view>
+          </view>
+          <view v-if="e.targetProductName" class="ex-target-card">
+            <view class="et-head">
+              <text class="et-tag">换入</text>
+              <text class="et-type">{{ e.targetStockType === 2 ? '虚拟库存' : '实体商品' }}</text>
+              <text v-if="Number(e.diffPrice) > 0" class="diff-amt">需补差价 ¥{{ e.diffPrice }}</text>
+              <text v-else class="same-amt">无需补差价</text>
+            </view>
+            <view class="row-p">
+              <image v-if="e.targetProductImage" :src="e.targetProductImage" class="p-img" mode="aspectFill" />
+              <view v-else class="p-img p-img-empty">{{ (e.targetProductName || '?').slice(0, 1) }}</view>
+              <view class="p-info">
+                <view class="p-name">{{ e.targetProductName }}</view>
+                <view class="p-num">
+                  <text v-if="e.targetSkuName">规格：{{ e.targetSkuName }} · </text>换入价 ¥{{ e.targetPrice }}<text class="p-x">× {{ e.num }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          <view class="ex-row grey">原因：{{ e.reason }}</view>
+          <view v-if="e.status === -1" class="ex-notice n-red">驳回原因：{{ e.rejectReason }}</view>
+          <view v-if="e.backExpressNum" class="ex-notice n-blue">旧品退回：{{ e.backExpressName }} {{ e.backExpressNum }}</view>
+          <view v-if="e.newExpressNum" class="ex-notice n-blue">新品发出：{{ e.newExpressName }} {{ e.newExpressNum }}</view>
+          <view class="row-op" v-if="e.status === 0 || e.status === 2 || e.status === 3">
+            <button class="op-btn soft" @click="goAudit">去处理 ›</button>
+          </view>
+        </view>
+      </view>
+
+      <view v-if="!subList.length && subLoaded" class="empty-card">
+        <view class="empty-ico">下</view>
+        <view class="empty-txt">下级暂无换货记录</view>
+        <view class="empty-sub">下级发起的换货申请会出现在这里</view>
+      </view>
+      </template>
     </view>
 
     <!-- 旧品退回快递填写弹窗 -->
@@ -232,9 +295,13 @@
 	export default {
 		data() {
 			return {
-				list: [],
-				loaded: false,
-				canApply: false,
+			list: [],
+			loaded: false,
+			// 换货记录页签：mine=我的换货（找上级） sub=下级换货（下级找我）
+			tab: 'mine',
+			subList: [],
+			subLoaded: false,
+			canApply: false,
 				auditCount: 0,
 				options: [],
 				selectedTarget: null,
@@ -321,6 +388,18 @@
 			},
 			goAudit() {
 				uni.navigateTo({ url: '/pages/users/stock/order-list?tab=audit' });
+			},
+			// 切换换货记录页签；下级换货懒加载（status=-2 = 下级经我处理的全部单，含已完成/已驳回）
+			switchTab(t) {
+				if (this.tab === t) return;
+				this.tab = t;
+				if (t === 'sub' && !this.subLoaded) this.loadSub();
+			},
+			loadSub() {
+				getExchangeAuditList({ page: 1, limit: 30, status: -2 }).then(res => {
+					this.subList = (res.data && res.data.list) || [];
+					this.subLoaded = true;
+				}).catch(() => { this.subLoaded = true; });
 			},
 			loadOptions() {
 				if (!this.form.productId) return this.$util.Tips({ title: '请先填写商品ID' });
@@ -723,6 +802,61 @@
 }
 .st-text { font-size: 30rpx; font-weight: 700; color: #26324b; }
 .st-line { flex: 1; height: 1rpx; margin-left: 20rpx; background: linear-gradient(90deg, #e3e9f4, rgba(227, 233, 244, 0)); }
+
+/* 记录页签：我的换货 / 下级换货 */
+.tab-bar {
+  display: flex;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 6rpx 22rpx rgba(31, 45, 61, 0.05);
+}
+.tab-item {
+  flex: 1;
+  height: 64rpx;
+  line-height: 64rpx;
+  text-align: center;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #606266;
+  border-radius: 12rpx;
+  &.on {
+    background: linear-gradient(135deg, #4a9df8, #2b6fe3);
+    color: #fff;
+    box-shadow: 0 6rpx 16rpx rgba(43, 111, 227, 0.25);
+  }
+}
+
+/* 下级换货卡：橙色左条与我的换货区分 */
+.sub-ex-card { border-left: 6rpx solid #ffb54d; }
+.sub-user {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4rpx;
+}
+.su-avatar {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffb056, #f08a1d);
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.su-name { margin-left: 12rpx; font-size: 24rpx; color: #3d4a5f; font-weight: 600; }
+.su-tag {
+  margin-left: 12rpx;
+  font-size: 20rpx;
+  color: #b8781f;
+  background: #fff4e0;
+  border-radius: 8rpx;
+  padding: 2rpx 12rpx;
+}
 
 .row-1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14rpx; }
 .ex-no { font-size: 26rpx; font-weight: 700; color: #26324b; }
