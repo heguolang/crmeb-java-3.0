@@ -44,6 +44,14 @@
           <el-switch v-model="form.stock_exchange_single" :active-value="'1'" :inactive-value="'0'" />
           <span class="switch-tip">开启：一次换货申请只能换 1 件；关闭：可按数量整单换（如同一商品 5 件换 5 件，但一次只能换一个目标商品）</span>
         </el-form-item>
+        <el-form-item label="换货需总部审核">
+          <el-switch v-model="form.stock_exchange_hq_audit" :active-value="'1'" :inactive-value="'0'" />
+          <span class="switch-tip">开启：下级实体换货经上级审核后还需总部在后台复核，才进入旧品退回；关闭：上级审核通过后直接进入旧品退回，由上级在会员端完成「确认旧品入库 / 发新品」</span>
+        </el-form-item>
+        <el-form-item label="总部换货退回地址">
+          <el-input v-model="form.stock_exchange_return_address" type="textarea" :rows="3" placeholder="收件人 电话 详细地址（上级为总部时展示给会员寄回旧品用）" style="max-width: 480px" />
+          <span class="switch-tip">上级是总部（无上级）的换货单，寄回地址取这里；上级是普通订货商时，展示该上级会员的默认收货地址</span>
+        </el-form-item>
         <el-divider />
         <el-form-item label="平级奖">
           <el-switch v-model="form.stock_peer_status" :active-value="'1'" :inactive-value="'0'" />
@@ -121,6 +129,8 @@ export default {
         stock_virtual_audit: '0',
         stock_wait_pay_hours: '24',
         stock_exchange_single: '0',
+        stock_exchange_hq_audit: '1',
+        stock_exchange_return_address: '',
         stock_exchange_diff_parent_rate: '100',
         stock_exchange_diff_wechat: '1',
         stock_peer_status: '1',

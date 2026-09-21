@@ -149,6 +149,16 @@ export function auditStockExchange(id, data) {
   return request.post('stock/exchange/audit?id=' + id, data);
 }
 
+/** 上级确认换货旧品入库（查收下级寄回的旧品，状态 2 -> 3） */
+export function confirmExchangeBack(id) {
+  return request.post('stock/exchange/confirmBack?id=' + id);
+}
+
+/** 上级发出换货新品（填新快递单号，状态 3 -> 4） */
+export function sendExchangeNew(id, data) {
+  return request.post('stock/exchange/sendNew?id=' + id, data);
+}
+
 /** 我的业绩 */
 export function getMyStockPerformance(params) {
   return request.get('stock/performance', params);

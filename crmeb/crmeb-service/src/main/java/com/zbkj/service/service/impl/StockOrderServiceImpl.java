@@ -120,6 +120,12 @@ public class StockOrderServiceImpl implements StockOrderService {
     private static final String CFG_VIRTUAL_AUDIT = "stock_virtual_audit";
     private static final String CFG_EXCHANGE_ONCE = "stock_exchange_once";
 
+    /** 实体换货是否需总部复核（1=需要，默认；0=上级审核通过直接进入旧品退回，总部仍可在后台介入） */
+    private static final String CFG_EXCHANGE_HQ_AUDIT = "stock_exchange_hq_audit";
+
+    /** 总部换货退回收件地址（上级为总部时展示给申请人寄回旧品用） */
+    private static final String CFG_EXCHANGE_RETURN_ADDRESS = "stock_exchange_return_address";
+
     // ==================== 会员端 ====================
 
     @Override
@@ -1294,8 +1300,10 @@ public class StockOrderServiceImpl implements StockOrderService {
         LambdaQueryWrapper<StockExchange> lqw = new LambdaQueryWrapper<>();
         lqw.eq(StockExchange::getParentAgentId, agent.getId()).eq(StockExchange::getIsDel, 0);
         if (status == null) {
-            // 默认：待我处理的
-            lqw.eq(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT);
+            // 默认：待我处理的（待我审核 0 + 旧品待入库 2 + 待发新品 3），
+            // 上级在会员端完成「审核 → 收旧品 → 发新品」整条链，不再只能去后台操作
+            lqw.in(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT,
+                    StockExchange.STATUS_WAIT_BACK, StockExchange.STATUS_WAIT_SEND);
         } else if (status != -2) {
             // -2 = 我经手过的全部（含已通过/已驳回）
             lqw.eq(StockExchange::getStatus, status);
@@ -1340,11 +1348,12 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockOrder::getParentAgentId, agent.getId())
                 .eq(StockOrder::getIsDel, 0)
                 .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_SEND));
-        // 待我审核的换货单
+        // 待我处理的换货单（待我审核 0 + 旧品待入库 2 + 待发新品 3，与换货审核列表口径一致）
         Integer exchangeAudit = stockExchangeDao.selectCount(new LambdaQueryWrapper<StockExchange>()
                 .eq(StockExchange::getParentAgentId, agent.getId())
                 .eq(StockExchange::getIsDel, 0)
-                .eq(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT));
+                .in(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT,
+                        StockExchange.STATUS_WAIT_BACK, StockExchange.STATUS_WAIT_SEND));
         map.put("audit", audit == null ? 0 : audit);
         map.put("send", send == null ? 0 : send);
         map.put("exchangeAudit", exchangeAudit == null ? 0 : exchangeAudit);
@@ -1654,7 +1663,15 @@ public class StockOrderServiceImpl implements StockOrderService {
                         "您的换货单 " + exchange.getExchangeNo() + " 已审核通过，新品将尽快发出");
             }
         } else {
-            exchange.setStatus(StockExchange.STATUS_WAIT_HQ_AUDIT);
+            // 实体换货：开关 stock_exchange_hq_audit=1（默认）时流转总部复核；
+            // =0 时上级审核通过直接进入待旧品退回，由上级在会员端完成收旧品/发新品（总部后台仍可介入）
+            if (!"0".equals(systemConfigService.getValueByKey(CFG_EXCHANGE_HQ_AUDIT))) {
+                exchange.setStatus(StockExchange.STATUS_WAIT_HQ_AUDIT);
+            } else {
+                exchange.setStatus(StockExchange.STATUS_WAIT_BACK);
+                stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_AUDIT, "换货单审核通过",
+                        "您的换货单 " + exchange.getExchangeNo() + " 已由上级审核通过，请寄回旧品并填写退回快递");
+            }
         }
         exchange.setAuditTime(new Date());
         return stockExchangeDao.updateById(exchange) > 0;
@@ -1756,6 +1773,35 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (exchange == null || exchange.getIsDel() == 1) {
             throw new CrmebException("换货单不存在");
         }
+        return doConfirmExchangeBack(exchange);
+    }
+
+    /** 上级在会员端确认旧品入库（直接上级 + 待旧品退回状态） */
+    @Override
+    public Boolean confirmExchangeBackByParent(Integer uid, Integer exchangeId) {
+        StockExchange exchange = requireParentExchange(uid, exchangeId, "确认旧品入库");
+        return doConfirmExchangeBack(exchange);
+    }
+
+    /** 上级侧操作（收旧品/发新品）的公共权限校验：必须是该换货单的直接上级 */
+    private StockExchange requireParentExchange(Integer uid, Integer exchangeId, String action) {
+        StockAgent agent = stockService.getAgentByUid(uid);
+        if (agent == null) {
+            throw new CrmebException("您不是订货代理，无权" + action);
+        }
+        StockExchange exchange = stockExchangeDao.selectById(exchangeId);
+        if (exchange == null || exchange.getIsDel() == 1) {
+            throw new CrmebException("换货单不存在");
+        }
+        if (exchange.getParentAgentId() == null || exchange.getParentAgentId() <= 0
+                || !agent.getId().equals(exchange.getParentAgentId())) {
+            throw new CrmebException("只有该换货单的直接上级才能" + action);
+        }
+        return exchange;
+    }
+
+    /** 确认旧品核验入库：回补库存并推进到待发新品（状态 2 → 3） */
+    private boolean doConfirmExchangeBack(StockExchange exchange) {
         if (!exchange.getStatus().equals(StockExchange.STATUS_WAIT_BACK)) {
             throw new CrmebException("当前状态不可确认旧品入库");
         }
@@ -1765,7 +1811,12 @@ public class StockOrderServiceImpl implements StockOrderService {
                     exchange.getExchangeNo(), "换货旧品退回核验入库");
             exchange.setStatus(StockExchange.STATUS_WAIT_SEND);
             exchange.setBackTime(new Date());
-            return stockExchangeDao.updateById(exchange) > 0;
+            boolean ok = stockExchangeDao.updateById(exchange) > 0;
+            if (ok) {
+                stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_AUDIT, "旧品已入库",
+                        "您的换货单 " + exchange.getExchangeNo() + " 旧品已核验入库，新品将尽快发出");
+            }
+            return ok;
         }) != null;
     }
 
@@ -1775,6 +1826,18 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (exchange == null || exchange.getIsDel() == 1) {
             throw new CrmebException("换货单不存在");
         }
+        return doSendExchangeNew(exchange, request);
+    }
+
+    /** 上级在会员端发出新品（直接上级 + 待发新品状态） */
+    @Override
+    public Boolean sendExchangeNewByParent(Integer uid, Integer exchangeId, StockRequests.StockSendRequest request) {
+        StockExchange exchange = requireParentExchange(uid, exchangeId, "发出新品");
+        return doSendExchangeNew(exchange, request);
+    }
+
+    /** 发出新品：扣减库存、记录新快递单号并完成换货（状态 3 → 4） */
+    private boolean doSendExchangeNew(StockExchange exchange, StockRequests.StockSendRequest request) {
         if (!exchange.getStatus().equals(StockExchange.STATUS_WAIT_SEND)) {
             throw new CrmebException("当前状态不可发新品");
         }
@@ -2946,8 +3009,7 @@ public class StockOrderServiceImpl implements StockOrderService {
             }
         }
         // 换入商品规格名（按商品聚合规格后匹配 attrValue）
-        HashMap<String, String> skuNameMap = new HashMap<>();
-        for (StockExchange e : list) {
+        HashMap<String, String> skuNameMap = new HashMap<>();        for (StockExchange e : list) {
             String sku = e.getTargetSkuKey() == null ? "" : e.getTargetSkuKey().trim();
             if (sku.isEmpty() || e.getTargetProductId() == null || skuNameMap.containsKey(e.getTargetProductId() + "::" + sku)) {
                 continue;
@@ -2967,6 +3029,44 @@ public class StockOrderServiceImpl implements StockOrderService {
             }
             skuNameMap.put(e.getTargetProductId() + "::" + sku, skuName);
         }
+        // 旧品寄回地址：上级为总部(0/空)取后台配置地址；否则取上级会员默认收货地址
+        String hqAddress = systemConfigService.getValueByKey(CFG_EXCHANGE_RETURN_ADDRESS);
+        List<Integer> parentIds = new ArrayList<>();
+        for (StockExchange e : list) {
+            if (e.getParentAgentId() != null && e.getParentAgentId() > 0 && !parentIds.contains(e.getParentAgentId())) {
+                parentIds.add(e.getParentAgentId());
+            }
+        }
+        HashMap<Integer, StockAgent> parentAgentMap = new HashMap<>();
+        if (!parentIds.isEmpty()) {
+            for (StockAgent pa : stockAgentDao.selectBatchIds(parentIds)) {
+                parentAgentMap.put(pa.getId(), pa);
+            }
+        }
+        List<Integer> parentUids = new ArrayList<>();
+        for (StockAgent pa : parentAgentMap.values()) {
+            if (pa.getUid() != null && !parentUids.contains(pa.getUid())) {
+                parentUids.add(pa.getUid());
+            }
+        }
+        HashMap<Integer, UserAddress> parentAddrMap = new HashMap<>();
+        if (!parentUids.isEmpty()) {
+            // 默认地址优先；没有默认地址时回落到最近一条收货地址（很多老会员从不设置默认）
+            for (UserAddress ua : userAddressService.lambdaQuery().in(UserAddress::getUid, parentUids)
+                    .eq(UserAddress::getIsDel, false).orderByDesc(UserAddress::getId).list()) {
+                if (Boolean.TRUE.equals(ua.getIsDefault())) {
+                    parentAddrMap.put(ua.getUid(), ua);
+                } else {
+                    parentAddrMap.putIfAbsent(ua.getUid(), ua);
+                }
+            }
+        }
+        HashMap<Integer, User> parentUserMap = new HashMap<>();
+        if (!parentUids.isEmpty()) {
+            for (User pu : userService.lambdaQuery().in(User::getUid, parentUids).list()) {
+                parentUserMap.put(pu.getUid(), pu);
+            }
+        }
         for (StockExchange e : list) {
             User u = userMap.get(e.getUid());
             e.setNickname(u == null ? "" : u.getNickname());
@@ -2978,6 +3078,28 @@ public class StockOrderServiceImpl implements StockOrderService {
                         ? "" : productImageMap.get(e.getTargetProductId()));
                 String sku = e.getTargetSkuKey() == null ? "" : e.getTargetSkuKey().trim();
                 e.setTargetSkuName(skuNameMap.getOrDefault(e.getTargetProductId() + "::" + sku, ""));
+            }
+            if (e.getParentAgentId() == null || e.getParentAgentId() <= 0) {
+                e.setBackTarget("总部");
+                e.setBackAddress(hqAddress == null || hqAddress.trim().isEmpty()
+                        ? "总部未配置寄回地址，请联系客服" : hqAddress.trim());
+            } else {
+                StockAgent pa = parentAgentMap.get(e.getParentAgentId());
+                if (pa == null) {
+                    e.setBackTarget("上级");
+                    e.setBackAddress("请联系上级获取寄回地址");
+                } else {
+                    User pu = parentUserMap.get(pa.getUid());
+                    e.setBackTarget(pu == null ? "上级" : "上级 " + pu.getNickname());
+                    UserAddress ua = parentAddrMap.get(pa.getUid());
+                    if (ua == null) {
+                        e.setBackAddress("上级未设置收货地址，请联系上级");
+                    } else {
+                        String contact = (ua.getRealName() == null ? "" : ua.getRealName() + " ")
+                                + (ua.getPhone() == null ? "" : ua.getPhone() + "　");
+                        e.setBackAddress(contact + buildAddressStr(ua));
+                    }
+                }
             }
         }
     }

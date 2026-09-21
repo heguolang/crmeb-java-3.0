@@ -138,9 +138,32 @@
           <text class="ex-no">{{ e.exchangeNo }}</text>
           <text class="ex-status" :class="diffUnpaid(e) ? 'st-pay' : ('st' + e.status)">{{ diffUnpaid(e) ? '待支付' : statusText(e.status) }}</text>
         </view>
-        <view class="ex-row">{{ e.productName }} × {{ e.num }}<text class="ex-sub">（原单 {{ e.orderNo }}）</text></view>
-        <view v-if="e.targetProductName" class="ex-row">换入：{{ e.targetProductName }}
-          <text v-if="Number(e.diffPrice) > 0" class="diff-amt"> 需补差价 ¥{{ e.diffPrice }}</text>
+        <!-- 原商品 / 换入商品双缩略图，样式与上级审核订单一致 -->
+        <view class="row-p">
+          <image v-if="e.productImage" :src="e.productImage" class="p-img" mode="aspectFill" />
+          <view v-else class="p-img p-img-empty">{{ (e.productName || '?').slice(0, 1) }}</view>
+          <view class="p-info">
+            <view class="p-name">{{ e.productName }}</view>
+            <view class="p-num">换货数量 × {{ e.num }}<text class="p-x">原单 {{ e.orderNo }}</text></view>
+          </view>
+        </view>
+        <view v-if="e.targetProductName" class="ex-target-card">
+          <view class="et-head">
+            <text class="et-tag">换入</text>
+            <text class="et-type">{{ e.targetStockType === 2 ? '虚拟库存' : '实体商品' }}</text>
+            <text v-if="Number(e.diffPrice) > 0" class="diff-amt">需补差价 ¥{{ e.diffPrice }}</text>
+            <text v-else class="same-amt">无需补差价</text>
+          </view>
+          <view class="row-p">
+            <image v-if="e.targetProductImage" :src="e.targetProductImage" class="p-img" mode="aspectFill" />
+            <view v-else class="p-img p-img-empty">{{ (e.targetProductName || '?').slice(0, 1) }}</view>
+            <view class="p-info">
+              <view class="p-name">{{ e.targetProductName }}</view>
+              <view class="p-num">
+                <text v-if="e.targetSkuName">规格：{{ e.targetSkuName }} · </text>换入价 ¥{{ e.targetPrice }}<text class="p-x">× {{ e.num }}</text>
+              </view>
+            </view>
+          </view>
         </view>
         <view class="ex-row grey">原因：{{ e.reason }}</view>
         <view v-if="e.status === -1" class="ex-notice n-red">驳回原因：{{ e.rejectReason }}</view>
@@ -148,6 +171,14 @@
         <view v-if="e.newExpressNum" class="ex-notice n-blue">新品发出：{{ e.newExpressName }} {{ e.newExpressNum }}</view>
         <view class="row-op" v-if="Number(e.diffPrice) > 0 && e.diffPayStatus !== 1 && e.status !== -1">
           <button class="op-btn primary" @click="payDiff(e)">支付差价 ¥{{ e.diffPrice }}</button>
+        </view>
+        <!-- 寄回地址：上级为总部取后台配置，普通上级取其默认收货地址。独立块避免被 flex 挤压 -->
+        <view v-if="e.status === 2" class="ex-back-addr">
+          <view class="ba-top">
+            <text class="ba-head">寄回给：{{ e.backTarget || '上级/总部' }}</text>
+            <view class="ba-copy" @click.stop="copyAddress(e)">一键复制</view>
+          </view>
+          <view class="ba-body">{{ e.backAddress || '请联系上级获取寄回地址' }}</view>
         </view>
         <view class="row-op" v-if="e.status === 2">
           <button class="op-btn primary" @click="fillBack(e)">填写旧品退回快递</button>
@@ -398,6 +429,15 @@
 				}).catch(err => {
 					// 后端校验失败的原因必须弹给用户，否则请求被 reject 后页面毫无反应
 					this.showTip(typeof err === 'string' ? err : '提交失败，请稍后重试');
+				});
+			},
+			// 一键复制寄回地址：直接写剪贴板，避免长地址手抄出错
+			copyAddress(e) {
+				const txt = (e.backAddress || '').trim();
+				if (!txt) return this.$util.Tips({ title: '暂无可复制的寄回地址' });
+				uni.setClipboardData({
+					data: txt,
+					success: () => { uni.showToast({ title: '地址已复制', icon: 'none' }); }
 				});
 			},
 			fillBack(e) {
@@ -711,6 +751,46 @@
   margin-bottom: 10rpx;
   line-height: 34rpx;
 }
+/* 待旧品退回：寄回地址块 */
+.ex-back-addr {
+  width: 100%;
+  background: #f0f6ff;
+  border: 1rpx solid #cfe3ff;
+  border-radius: 14rpx;
+  padding: 18rpx 20rpx;
+  margin-top: 16rpx;
+}
+.ex-back-addr .ba-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6rpx;
+}
+.ex-back-addr .ba-head {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #2b6fe3;
+  flex: 1;
+  min-width: 0;
+}
+/* 一键复制：右上角小胶囊 */
+.ex-back-addr .ba-copy {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  font-size: 21rpx;
+  font-weight: 600;
+  color: #2b6fe3;
+  background: #fff;
+  border: 1rpx solid #bcd8ff;
+  border-radius: 999rpx;
+  padding: 5rpx 18rpx;
+}
+.ex-back-addr .ba-body {
+  font-size: 24rpx;
+  color: #303133;
+  line-height: 36rpx;
+  word-break: break-all;
+}
 .n-red { background: #ffecec; color: #d9534f; }
 .n-blue { background: #f0f6ff; color: #2b6fe3; }
 .diff-amt { color: #e93323; font-weight: 700; }
@@ -718,6 +798,8 @@
 .row-op {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
   margin-top: 16rpx;
   gap: 16rpx;
 }
@@ -728,6 +810,10 @@
   line-height: 62rpx;
   padding: 0 32rpx;
   margin: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   &::after { border: none; }
   &.primary {
     background: linear-gradient(135deg, #4a9df8, #2b6fe3);
@@ -942,4 +1028,69 @@
 
 /* ---------- 待支付状态签 ---------- */
 .st-pay { background: #ffecec; color: #e93323; }
+
+/* ---------- 商品行 / 换入商品卡（与上级审核订单样式一致） ---------- */
+.row-p {
+  display: flex;
+  align-items: center;
+  margin-top: 20rpx;
+}
+.p-img {
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 14rpx;
+  flex-shrink: 0;
+  background: #f5f6fa;
+}
+.p-img-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c3cad6;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+.p-info {
+  flex: 1;
+  margin: 0 18rpx;
+  overflow: hidden;
+}
+.p-name {
+  font-size: 26rpx;
+  color: #303133;
+  line-height: 36rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.p-num { font-size: 22rpx; color: #909399; margin-top: 8rpx; }
+.p-x { color: #b8bfc9; margin-left: 10rpx; }
+
+/* 换入商品卡：橙底与上方原商品区分 */
+.ex-target-card {
+  margin-top: 16rpx;
+  background: #fff8ee;
+  border-radius: 14rpx;
+  padding: 16rpx 18rpx 18rpx;
+  border: 1rpx solid #ffe3bd;
+}
+.et-head {
+  display: flex;
+  align-items: center;
+}
+.et-tag {
+  background: linear-gradient(135deg, #ffb056, #f08a1d);
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 700;
+  border-radius: 8rpx;
+  padding: 3rpx 12rpx;
+  margin-right: 12rpx;
+}
+.et-type { font-size: 22rpx; color: #b8781f; font-weight: 600; }
+.et-head .diff-amt { margin-left: auto; padding-left: 12rpx; font-size: 23rpx; }
+.same-amt { color: #21a84f; margin-left: auto; padding-left: 12rpx; font-weight: 600; font-size: 23rpx; }
+/* 卡片内嵌商品行不再需要额外上间距 */
+.ex-target-card .row-p { margin-top: 14rpx; }
 </style>

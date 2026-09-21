@@ -1746,5 +1746,22 @@ SET @s = IF(
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ========== END: stock_exchange_target_type.sql ==========
+
+-- ========== BEGIN: exchange_hq_audit_20260921.sql ==========
+-- 实体换货是否需总部复核：1=需要（默认，上级审核后流转总部）；0=上级审核通过直接进入旧品退回，
+-- 上级在会员端完成「确认旧品入库 / 发新品」，总部仍可在后台介入
+-- ⚠️ status 必须 0（CRMEB 约定 0=有效，getByName 按 status=false 过滤，写 1 会永远读不到）
+INSERT INTO eb_system_config (name, value, status, create_time, update_time)
+SELECT 'stock_exchange_hq_audit', '1', 0, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1) x WHERE EXISTS (SELECT 1 FROM eb_system_config WHERE name = 'stock_exchange_hq_audit'));
+-- ========== END: exchange_hq_audit_20260921.sql ==========
+
+-- ========== BEGIN: exchange_return_address_20260921.sql ==========
+-- 总部换货退回收件地址：上级为总部(0)的换货单，申请人寄回旧品时展示此地址（后台设置页可改）
+-- ⚠️ status 必须 0（CRMEB 约定 0=有效，getByName 按 status=false 过滤，写 1 会永远读不到）
+INSERT INTO eb_system_config (name, value, status, create_time, update_time)
+SELECT 'stock_exchange_return_address', '', 0, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1) x WHERE EXISTS (SELECT 1 FROM eb_system_config WHERE name = 'stock_exchange_return_address'));
+-- ========== END: exchange_return_address_20260921.sql ==========
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'CRMEB oneclick patches done' AS result;

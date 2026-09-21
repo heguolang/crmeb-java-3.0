@@ -173,4 +173,12 @@ public class StockExchange implements Serializable {
     @ApiModelProperty(value = "库存类型：1=实体 2=虚拟（取自关联订货单）")
     @TableField(exist = false)
     private Integer stockType;
+
+    @ApiModelProperty(value = "旧品寄回对象说明（如：总部 / 上级张三）")
+    @TableField(exist = false)
+    private String backTarget;
+
+    @ApiModelProperty(value = "旧品寄回地址（上级为总部取后台配置，否则取上级会员默认收货地址）")
+    @TableField(exist = false)
+    private String backAddress;
 }

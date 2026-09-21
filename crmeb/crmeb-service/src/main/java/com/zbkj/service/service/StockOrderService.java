@@ -167,6 +167,12 @@ public interface StockOrderService {
     /** 总部发新品（扣库存，填快递单号） */
     Boolean sendExchangeNew(Integer exchangeId, StockRequests.StockSendRequest request);
 
+    /** 上级在会员端确认旧品入库（直接上级 + 待旧品退回状态，状态 2 -> 3） */
+    Boolean confirmExchangeBackByParent(Integer uid, Integer exchangeId);
+
+    /** 上级在会员端发出新品（直接上级 + 待发新品状态，状态 3 -> 4） */
+    Boolean sendExchangeNewByParent(Integer uid, Integer exchangeId, StockRequests.StockSendRequest request);
+
     /** 换货单列表 */
     CommonPage<StockExchange> getAdminExchangeList(Integer status, com.zbkj.common.request.PageParamRequest page);
 

@@ -320,6 +320,25 @@ public class StockController {
         return CommonResult.failed();
     }
 
+    @ApiOperation(value = "上级确认换货旧品入库（查收下级寄回的旧品，状态 2 -> 3）")
+    @RequestMapping(value = "/exchange/confirmBack", method = RequestMethod.POST)
+    public CommonResult<String> confirmExchangeBackParent(@RequestParam Integer id) {
+        if (stockOrderService.confirmExchangeBackByParent(currentUid(), id)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @ApiOperation(value = "上级发出换货新品（填新快递单号，状态 3 -> 4）")
+    @RequestMapping(value = "/exchange/sendNew", method = RequestMethod.POST)
+    public CommonResult<String> sendExchangeNewParent(@RequestParam Integer id,
+                                                      @RequestBody @Validated StockRequests.StockSendRequest request) {
+        if (stockOrderService.sendExchangeNewByParent(currentUid(), id, request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
     @ApiOperation(value = "可换入商品清单（含目标拿货价与差价）")
     @RequestMapping(value = "/exchange/options", method = RequestMethod.GET)
     public CommonResult<List<HashMap<String, Object>>> exchangeOptions(

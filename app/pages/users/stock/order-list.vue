@@ -70,21 +70,22 @@
     <!-- 待我审核 -->
     <view v-if="tabType === 'audit'" class="card-list">
       <!-- 下级提交的换货申请：换货单在独立表里，必须单独带出来，否则上级永远看不到 -->
+      <!-- 覆盖待我处理的三种状态：0 待我审核 / 2 旧品待入库 / 3 待发新品 -->
       <view v-for="e in exList" :key="'ex' + e.id" class="order-card ex-card">
         <view class="row-1">
           <text class="order-no">{{ e.exchangeNo }}</text>
           <view class="pill-group">
             <text class="tp-pill is-exchange">换货</text>
-            <text class="st-pill st0">待我审核</text>
+            <text class="st-pill st0">{{ exStatusText(e.status) }}</text>
           </view>
         </view>
         <view class="audit-user">
           <view class="au-avatar">{{ (e.nickname || '下').slice(0, 1) }}</view>
           <view class="au-info">
             <text class="au-name">{{ e.nickname }}</text>
-            <text class="au-level">下级实体换货申请</text>
+            <text class="au-level">下级{{ e.targetStockType === 2 ? '换入虚拟库存' : '实体' }}换货申请</text>
           </view>
-          <view class="au-tip">等待您审核</view>
+          <view class="au-tip">{{ exStatusText(e.status) }}</view>
         </view>
         <view class="row-p">
           <image :src="e.productImage" class="p-img" mode="aspectFill" />
@@ -112,9 +113,24 @@
           </view>
         </view>
         <view class="ex-reason">换货原因：{{ e.reason }}</view>
-        <view class="row-op">
+        <!-- 状态 2：下级已寄回旧品，展示退回物流并确认入库 -->
+        <view v-if="e.status === 2" class="ex-back-box">
+          <view class="bb-title">下级已寄回旧品</view>
+          <view class="bb-row">
+            <text class="bb-label">退回快递</text>
+            <text class="bb-val">{{ e.backExpressName || '未填写' }} {{ e.backExpressNum || '' }}</text>
+          </view>
+          <view class="bb-tip">收到旧品并核验无误后，点击下方按钮确认入库</view>
+        </view>
+        <view class="row-op" v-if="e.status === 0">
           <button class="op-btn danger" size="mini" @click="auditEx(e, -1)">驳回</button>
           <button class="op-btn primary" size="mini" @click="auditEx(e, 1)">通过</button>
+        </view>
+        <view class="row-op" v-if="e.status === 2">
+          <button class="op-btn primary" size="mini" @click="confirmBackEx(e)">确认旧品入库</button>
+        </view>
+        <view class="row-op" v-if="e.status === 3">
+          <button class="op-btn primary" size="mini" @click="openSendNew(e)">发出新品</button>
         </view>
       </view>
 
@@ -260,11 +276,32 @@
     </view>
 
     <view class="bottom-tip">— 订货订单 —</view>
+
+    <!-- 换货「发出新品」弹窗 -->
+    <view v-if="sendNewModal.show" class="snm-mask" @click="cancelSendNew">
+      <view class="snm-box" @click.stop>
+        <view class="snm-title">发出新品</view>
+        <view class="snm-sub">换货单 {{ sendNewModal.exchangeNo }}</view>
+        <view class="snm-field">
+          <text class="snm-label">快递公司</text>
+          <input class="snm-input" v-model="sendNewModal.expressName" placeholder="如：顺丰速运" placeholder-class="snm-ph" />
+        </view>
+        <view class="snm-field">
+          <text class="snm-label">快递单号</text>
+          <input class="snm-input" v-model="sendNewModal.expressNum" placeholder="请输入快递单号" placeholder-class="snm-ph" />
+        </view>
+        <view class="snm-tip">提交后换货单完成，下级将收到发货通知</view>
+        <view class="snm-btns">
+          <button class="op-btn ghost snm-btn" @click="cancelSendNew">取消</button>
+          <button class="op-btn primary snm-btn" @click="submitSendNew">确认发出</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
-	import { getMyStockOrders, getAuditOrders, auditStockOrder, receiveStockOrder, payStockOrder, cancelStockOrder, getExchangeAuditList, auditStockExchange, parentSendStockOrder, parentUpdateStockExpress, getStockAgentInfo } from '@/api/stock.js';
+	import { getMyStockOrders, getAuditOrders, auditStockOrder, receiveStockOrder, payStockOrder, cancelStockOrder, getExchangeAuditList, auditStockExchange, confirmExchangeBack, sendExchangeNew, parentSendStockOrder, parentUpdateStockExpress, getStockAgentInfo } from '@/api/stock.js';
 	export default {
 		data() {
 			return {
@@ -278,6 +315,8 @@
 				sendForm: {},
 				editExpressId: null,
 				editForm: { expressName: '', expressNum: '' },
+				// 换货「发出新品」弹窗
+				sendNewModal: { show: false, id: null, exchangeNo: '', expressName: '', expressNum: '' },
 				parentDeliver: false,
 				loaded: false,
 				tabs: [
@@ -491,7 +530,7 @@
 					this.exList = res.data.list || [];
 				}).catch(() => { this.exList = []; });
 			},
-			// 上级审核换货单：1=通过（流转总部审核） -1=驳回（需填原因）
+			// 上级审核换货单：1=通过（是否流转总部由后台「换货需总部审核」开关决定） -1=驳回（需填原因）
 			auditEx(e, result) {
 				if (result === -1) {
 					uni.showModal({
@@ -511,7 +550,7 @@
 				} else {
 					uni.showModal({
 						title: '通过换货',
-						content: '通过后该换货单流转总部审核，再由总部安排旧品退回与新品发出。',
+						content: '确认通过该换货申请？通过后请按提示收旧品、发新品。',
 						success: (m) => {
 							if (!m.confirm) return;
 							auditStockExchange(e.id, { status: 1 }).then(() => {
@@ -523,6 +562,53 @@
 						}
 					});
 				}
+			},
+			// 换货单在上级侧的状态文案
+			exStatusText(status) {
+				if (status === 2) return '旧品待入库';
+				if (status === 3) return '待发新品';
+				return '待我审核';
+			},
+			// 确认旧品入库（状态 2 -> 3）
+			confirmBackEx(e) {
+				uni.showModal({
+					title: '确认旧品入库',
+					content: '确认已收到下级寄回的旧品并核验无误？确认后旧品数量回补库存。',
+					success: (m) => {
+						if (!m.confirm) return;
+						confirmExchangeBack(e.id).then(() => {
+							uni.showToast({ title: '旧品已入库', icon: 'success' });
+							this.load();
+						}).catch(err => {
+							uni.showModal({ title: '操作失败', content: err || '请稍后重试', showCancel: false });
+						});
+					}
+				});
+			},
+			// 发出新品（状态 3 -> 4）：填新快递单号
+			openSendNew(e) {
+				this.sendNewModal = { show: true, id: e.id, exchangeNo: e.exchangeNo, expressName: '', expressNum: '' };
+			},
+			cancelSendNew() {
+				this.sendNewModal.show = false;
+			},
+			submitSendNew() {
+				const m = this.sendNewModal;
+				if (!m.expressName.trim()) {
+					uni.showToast({ title: '请填写快递公司', icon: 'none' });
+					return;
+				}
+				if (!m.expressNum.trim()) {
+					uni.showToast({ title: '请填写快递单号', icon: 'none' });
+					return;
+				}
+				sendExchangeNew(m.id, { expressName: m.expressName.trim(), expressNum: m.expressNum.trim() }).then(() => {
+					uni.showToast({ title: '新品已发出', icon: 'success' });
+					this.sendNewModal.show = false;
+					this.load();
+				}).catch(err => {
+					uni.showModal({ title: '发货失败', content: err || '请稍后重试', showCancel: false });
+				});
 			},
 			toggleDetail() {},
 			receive(o) {
@@ -1099,5 +1185,113 @@
   font-size: 22rpx;
   color: #c3cad6;
   letter-spacing: 4rpx;
+}
+
+/* ---------- 换货：旧品退回信息块 ---------- */
+.ex-back-box {
+  margin-top: 14rpx;
+  background: #f0f6ff;
+  border: 1rpx solid #cfe3ff;
+  border-radius: 14rpx;
+  padding: 18rpx 20rpx;
+}
+.ex-back-box .bb-title {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #2b6fe3;
+  margin-bottom: 8rpx;
+}
+.ex-back-box .bb-row {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 6rpx;
+}
+.ex-back-box .bb-label {
+  flex: none;
+  width: 130rpx;
+  font-size: 23rpx;
+  color: #909399;
+}
+.ex-back-box .bb-val {
+  flex: 1;
+  font-size: 23rpx;
+  color: #303133;
+  line-height: 34rpx;
+  word-break: break-all;
+}
+.ex-back-box .bb-tip {
+  margin-top: 10rpx;
+  font-size: 21rpx;
+  color: #e6a23c;
+}
+
+/* ---------- 换货「发出新品」弹窗 ---------- */
+.snm-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.snm-box {
+  width: 580rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 36rpx 32rpx 28rpx;
+}
+.snm-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #303133;
+  text-align: center;
+}
+.snm-sub {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #909399;
+  text-align: center;
+}
+.snm-field {
+  display: flex;
+  align-items: center;
+  margin-top: 22rpx;
+  background: #f5f7fa;
+  border-radius: 12rpx;
+  padding: 18rpx 20rpx;
+}
+.snm-label {
+  flex: none;
+  width: 140rpx;
+  font-size: 25rpx;
+  color: #606266;
+}
+.snm-input {
+  flex: 1;
+  font-size: 25rpx;
+  color: #303133;
+}
+.snm-ph {
+  color: #c0c4cc;
+}
+.snm-tip {
+  margin-top: 18rpx;
+  font-size: 21rpx;
+  color: #909399;
+  text-align: center;
+}
+.snm-btns {
+  display: flex;
+  margin-top: 26rpx;
+}
+.snm-btn {
+  flex: 1;
+}
+.snm-btn + .snm-btn {
+  margin-left: 20rpx;
 }
 </style>
