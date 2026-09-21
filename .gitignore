@@ -58,3 +58,8 @@ crmeb/crmebimage/downloadf/
 _git.txt
 _push.txt
 _hooks.txt
+
+# 本地运行时上传的图片（业务数据，不入库；线上用自己的文件）
+# 注意：2026-09 之前已入库的 246 个历史图片仍在版本库内，需要清理时另开提交处理
+crmeb/crmebimage/public/product/
+crmeb/crmebimage/public/user/
