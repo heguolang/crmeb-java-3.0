@@ -82,10 +82,28 @@ public class StockController {
         return CommonResult.success(map);
     }
 
-    @ApiOperation(value = "新增下级代理")
+    @ApiOperation(value = "新增下级订货商（需对方同意后才生效）")
     @RequestMapping(value = "/agent/createSub", method = RequestMethod.POST)
     public CommonResult<String> createSubAgent(@RequestBody @Validated StockAgentCreateRequest request) {
         if (stockService.createSubAgent(currentUid(), request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @ApiOperation(value = "同意成为上级邀请的订货商")
+    @RequestMapping(value = "/agent/agree", method = RequestMethod.POST)
+    public CommonResult<String> agreeSubAgent() {
+        if (stockService.agreeSubAgent(currentUid(), true)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @ApiOperation(value = "拒绝订货商邀请")
+    @RequestMapping(value = "/agent/reject", method = RequestMethod.POST)
+    public CommonResult<String> rejectSubAgent() {
+        if (stockService.agreeSubAgent(currentUid(), false)) {
             return CommonResult.success();
         }
         return CommonResult.failed();
@@ -113,7 +131,7 @@ public class StockController {
             @Validated PageParamRequest pageParamRequest) {
         Integer uid = currentUid();
         StockAgent agent = stockService.getAgentByUid(uid);
-        if (agent == null || agent.getStatus() == 0) {
+        if (agent == null || agent.getStatus() != 1) {
             throw new com.zbkj.common.exception.CrmebException("您还不是订货代理或已被禁用");
         }
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<StoreProduct> lqw =

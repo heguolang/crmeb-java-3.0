@@ -60,7 +60,8 @@
             </div>
             <div class="col col-agent">
               <div class="agent-line">
-                <span class="avatar">{{ (row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
+                <img v-if="row.avatar" :src="row.avatar" class="avatar avatar-img" alt="" @error="row.avatar = ''" />
+                <span v-else class="avatar">{{ (row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
                 <div class="agent-text">
                   <div class="agent-name" :title="row.nickname">{{ row.nickname }}</div>
                   <div class="sub-text ellipsis" :title="'原单 ' + row.orderNo">原单 {{ row.orderNo }}</div>
@@ -543,6 +544,11 @@ export default {
   justify-content: center;
   margin-right: 10px;
   flex-shrink: 0;
+}
+/* 使用会员真实头像时保留圆形裁切 */
+.avatar-img {
+  background: #f2f4f8;
+  object-fit: cover;
 }
 .agent-text {
   min-width: 0;

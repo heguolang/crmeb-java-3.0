@@ -280,11 +280,6 @@
                   v-if="checkPermi(['admin:user:operate:founds'])"
                   >账户充减</el-dropdown-item
                 >
-                <el-dropdown-item
-                  @click.native="editBrokerage(scope.row.uid)"
-                  v-if="checkPermi(['admin:user:operate:founds'])"
-                  >修改佣金</el-dropdown-item
-                >
                 <el-dropdown-item @click.native="setBatch('group', scope.row)" v-if="checkPermi(['admin:user:group'])"
                   >设置分组</el-dropdown-item
                 >
@@ -439,7 +434,7 @@
     <el-dialog title="编辑" :visible.sync="visible" width="900px">
       <edit-from v-if="visible" :uid="uid" @resetForm="resetForm"></edit-from>
     </el-dialog>
-    <!--账户充减-->
+    <!--账户充减（余额 / 积分 / 佣金）-->
     <el-dialog
       title="账户充减"
       :visible.sync="VisiblePoint"
@@ -450,7 +445,7 @@
       <el-form
         :model="PointValidateForm"
         ref="PointValidateForm"
-        label-width="80px"
+        label-width="100px"
         class="demo-dynamic"
         v-loading="loadingPoint"
       >
@@ -487,28 +482,9 @@
             :max="999999"
           ></el-input-number>
         </el-form-item>
-      </el-form>
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="handlePointClose">取消</el-button>
-        <el-button type="primary" :loading="loadingBtn" @click="submitPointForm('PointValidateForm')">确定</el-button>
-      </span>
-    </el-dialog>
-    <!--修改佣金-->
-    <el-dialog
-      title="修改佣金"
-      :visible.sync="VisibleBrokerage"
-      width="540px"
-      :close-on-click-modal="false"
-      :before-close="handleBrokerageClose"
-    >
-      <el-form
-        :model="BrokerageValidateForm"
-        ref="BrokerageValidateForm"
-        label-width="100px"
-        v-loading="loadingBrokerage"
-      >
+        <el-divider />
         <el-form-item label="修改佣金：" required>
-          <el-radio-group v-model="BrokerageValidateForm.brokerageType">
+          <el-radio-group v-model="PointValidateForm.brokerageType">
             <el-radio :label="1">增加</el-radio>
             <el-radio :label="2">减少</el-radio>
           </el-radio-group>
@@ -516,19 +492,18 @@
         <el-form-item label="佣金金额：" required>
           <el-input-number
             controls-position="right"
-            v-model="BrokerageValidateForm.brokerageValue"
+            v-model="PointValidateForm.brokerageValue"
             :precision="2"
             :step="0.1"
             :min="0"
             :max="999999"
           ></el-input-number>
+          <div class="point-tip">填 0 表示本次不调整佣金</div>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="handleBrokerageClose">取消</el-button>
-        <el-button type="primary" :loading="loadingBtn" @click="submitBrokerageForm('BrokerageValidateForm')"
-          >确定</el-button
-        >
+        <el-button @click="handlePointClose">取消</el-button>
+        <el-button type="primary" :loading="loadingBtn" @click="submitPointForm('PointValidateForm')">确定</el-button>
       </span>
     </el-dialog>
     <!--账户详情-->
@@ -611,17 +586,12 @@ export default {
         integralValue: 0,
         moneyType: 2,
         moneyValue: 0,
-        uid: '',
-      },
-      loadingPoint: false,
-      VisiblePoint: false,
-      BrokerageValidateForm: {
         brokerageType: 1,
         brokerageValue: 0,
         uid: '',
       },
-      loadingBrokerage: false,
-      VisibleBrokerage: false,
+      loadingPoint: false,
+      VisiblePoint: false,
       visible: false,
       userIds: '',
       dialogVisible: false,
@@ -966,14 +936,32 @@ export default {
       this.uid = id;
       this.VisiblePoint = true;
     },
-    // 积分余额
+    // 账户充减（余额 / 积分 / 佣金）
     submitPointForm: Debounce(function (formName) {
       this.$refs[formName].validate((valid) => {
         if (valid) {
-          this.PointValidateForm.uid = this.uid;
+          const { moneyType, moneyValue, integralType, integralValue, brokerageType, brokerageValue } =
+            this.PointValidateForm;
           this.loadingBtn = true;
-          foundsApi(this.PointValidateForm)
-            .then((res) => {
+          foundsApi({
+            uid: this.uid,
+            moneyType,
+            moneyValue,
+            integralType,
+            integralValue,
+          })
+            .then(() => {
+              // 佣金金额大于 0 时才调整佣金
+              if (brokerageValue > 0) {
+                return brokerageApi({
+                  uid: this.uid,
+                  brokerageType,
+                  brokerageValue,
+                });
+              }
+              return null;
+            })
+            .then(() => {
               this.$message.success('设置成功');
               this.loadingBtn = false;
               this.handlePointClose();
@@ -995,43 +983,6 @@ export default {
         integralValue: 0,
         moneyType: 2,
         moneyValue: 0,
-        uid: '',
-      };
-    },
-    // 修改佣金
-    editBrokerage(id) {
-      this.uid = id;
-      this.VisibleBrokerage = true;
-    },
-    // 修改佣金
-    submitBrokerageForm: Debounce(function (formName) {
-      this.$refs[formName].validate((valid) => {
-        if (valid) {
-          if (!this.BrokerageValidateForm.brokerageValue || this.BrokerageValidateForm.brokerageValue <= 0) {
-            this.$message.error('佣金金额必须大于0');
-            return false;
-          }
-          this.BrokerageValidateForm.uid = this.uid;
-          this.loadingBtn = true;
-          brokerageApi(this.BrokerageValidateForm)
-            .then(() => {
-              this.$message.success('设置成功');
-              this.loadingBtn = false;
-              this.handleBrokerageClose();
-              this.getList();
-            })
-            .catch(() => {
-              this.loadingBtn = false;
-            });
-        } else {
-          return false;
-        }
-      });
-    }),
-    // 修改佣金
-    handleBrokerageClose() {
-      this.VisibleBrokerage = false;
-      this.BrokerageValidateForm = {
         brokerageType: 1,
         brokerageValue: 0,
         uid: '',
@@ -1342,6 +1293,14 @@ export default {
 
 .text-right {
   text-align: right;
+}
+
+.point-tip {
+  display: inline-block;
+  margin-left: 10px;
+  color: #909399;
+  font-size: 12px;
+  line-height: 32px;
 }
 
 .demo-table-expand {

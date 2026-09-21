@@ -81,7 +81,14 @@
           </view>
         </view>
         <view class="audit-user">
-          <view class="au-avatar">{{ (e.nickname || '下').slice(0, 1) }}</view>
+          <image
+            v-if="e.avatar && !avatarErr['e' + e.id]"
+            :src="avatarUrl(e.avatar)"
+            class="au-avatar au-avatar-img"
+            mode="aspectFill"
+            @error="onAvatarErr('e' + e.id)"
+          />
+          <view v-else class="au-avatar">{{ (e.nickname || '下').slice(0, 1) }}</view>
           <view class="au-info">
             <text class="au-name">{{ e.nickname }}</text>
             <text class="au-level">下级{{ e.targetStockType === 2 ? '换入虚拟库存' : '实体' }}换货申请</text>
@@ -141,7 +148,14 @@
           <text class="st-pill" :class="o.status === 10 ? 'stwait' : 'st0'">{{ auditStatusText(o.status) }}</text>
         </view>
         <view class="audit-user">
-          <view class="au-avatar">{{ (o.nickname || '下') }}</view>
+          <image
+            v-if="o.avatar && !avatarErr['o' + o.id]"
+            :src="avatarUrl(o.avatar)"
+            class="au-avatar au-avatar-img"
+            mode="aspectFill"
+            @error="onAvatarErr('o' + o.id)"
+          />
+          <view v-else class="au-avatar">{{ (o.nickname || '下').slice(0, 1) }}</view>
           <view class="au-info">
             <text class="au-name">{{ o.nickname }}</text>
             <text class="au-level">{{ o.levelName }}</text>
@@ -178,7 +192,14 @@
           <text class="st-pill stsend">待我发货</text>
         </view>
         <view class="audit-user">
-          <view class="au-avatar">{{ (o.nickname || '下') }}</view>
+          <image
+            v-if="o.avatar && !avatarErr['w' + o.id]"
+            :src="avatarUrl(o.avatar)"
+            class="au-avatar au-avatar-img"
+            mode="aspectFill"
+            @error="onAvatarErr('w' + o.id)"
+          />
+          <view v-else class="au-avatar">{{ (o.nickname || '下').slice(0, 1) }}</view>
           <view class="au-info">
             <text class="au-name">{{ o.nickname }}</text>
             <text class="au-level">{{ o.levelName }}</text>
@@ -212,7 +233,14 @@
           <text class="st-pill st0">已发货</text>
         </view>
         <view class="audit-user">
-          <view class="au-avatar">{{ (o.nickname || '下') }}</view>
+          <image
+            v-if="o.avatar && !avatarErr['s' + o.id]"
+            :src="avatarUrl(o.avatar)"
+            class="au-avatar au-avatar-img"
+            mode="aspectFill"
+            @error="onAvatarErr('s' + o.id)"
+          />
+          <view v-else class="au-avatar">{{ (o.nickname || '下').slice(0, 1) }}</view>
           <view class="au-info">
             <text class="au-name">{{ o.nickname }}</text>
             <text class="au-level">{{ o.levelName }}</text>
@@ -250,7 +278,14 @@
           <text class="st-pill st4">已完成</text>
         </view>
         <view class="audit-user">
-          <view class="au-avatar">{{ (o.nickname || '下') }}</view>
+          <image
+            v-if="o.avatar && !avatarErr['d' + o.id]"
+            :src="avatarUrl(o.avatar)"
+            class="au-avatar au-avatar-img"
+            mode="aspectFill"
+            @error="onAvatarErr('d' + o.id)"
+          />
+          <view v-else class="au-avatar">{{ (o.nickname || '下').slice(0, 1) }}</view>
           <view class="au-info">
             <text class="au-name">{{ o.nickname }}</text>
             <text class="au-level">{{ o.levelName }}</text>
@@ -303,6 +338,7 @@
 
 <script>
 	import { getMyStockOrders, getAuditOrders, auditStockOrder, receiveStockOrder, payStockOrder, cancelStockOrder, getExchangeAuditList, auditStockExchange, confirmExchangeBack, sendExchangeNew, parentSendStockOrder, parentUpdateStockExpress, getStockAgentInfo } from '@/api/stock.js';
+	import { HTTP_REQUEST_URL } from '@/config/app';
 	export default {
 		data() {
 			return {
@@ -310,6 +346,9 @@
 				status: null,
 				list: [],
 				exList: [],
+				// 头像加载失败的用户 key 集合（失败时回退昵称首字）
+				avatarErr: {},
+				imgHost: HTTP_REQUEST_URL,
 				sendWaitList: [],
 				sendSentList: [],
 				sendDoneList: [],
@@ -359,6 +398,15 @@
 			this.load();
 		},
 		methods: {
+			// 头像地址：绝对地址直接用，相对地址补域名前缀
+			avatarUrl(path) {
+				if (!path) return '';
+				if (/^https?:\/\//i.test(path)) return path;
+				return this.imgHost + '/' + String(path).replace(/^\/+/, '');
+			},
+			onAvatarErr(key) {
+				this.$set(this.avatarErr, key, true);
+			},
 			// 是否开启「订货订单由上级发货」模式（决定是否展示发货入口）
 			loadSendMode() {
 				getStockAgentInfo().then(res => {
@@ -860,6 +908,10 @@
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
+}
+/* 真实头像：去掉底色渐变，只保留圆形裁切 */
+.au-avatar-img {
+  background: #eef2f9;
 }
 .au-info {
   margin-left: 14rpx;

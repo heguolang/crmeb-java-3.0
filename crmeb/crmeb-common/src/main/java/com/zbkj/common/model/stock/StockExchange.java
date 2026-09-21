@@ -154,6 +154,10 @@ public class StockExchange implements Serializable {
     @TableField(exist = false)
     private String nickname;
 
+    @ApiModelProperty(value = "申请用户头像")
+    @TableField(exist = false)
+    private String avatar;
+
     @ApiModelProperty(value = "关联订货单号")
     @TableField(exist = false)
     private String orderNo;

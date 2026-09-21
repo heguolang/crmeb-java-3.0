@@ -69,7 +69,8 @@
             </div>
             <div class="col col-agent">
               <div class="agent-line">
-                <span class="avatar">{{ (row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
+                <img v-if="row.avatar" :src="row.avatar" class="avatar avatar-img" alt="" @error="row.avatar = ''" />
+                <span v-else class="avatar">{{ (row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
                 <div class="agent-text">
                   <div class="agent-name" :title="row.nickname">{{ row.nickname }}</div>
                   <div class="sub-text">{{ row.levelName }} · UID {{ row.uid }}</div>
@@ -90,7 +91,16 @@
               </template>
               <template v-else>
                 <div class="agent-line">
-                  <span class="avatar avatar-up">{{ (row.parentNickname || '?').slice(0, 1).toUpperCase() }}</span>
+                  <img
+                    v-if="row.parentAvatar"
+                    :src="row.parentAvatar"
+                    class="avatar avatar-up avatar-img"
+                    alt=""
+                    @error="row.parentAvatar = ''"
+                  />
+                  <span v-else class="avatar avatar-up">{{
+                    (row.parentNickname || '?').slice(0, 1).toUpperCase()
+                  }}</span>
                   <div class="agent-text">
                     <div class="agent-name" :title="row.parentNickname">{{ row.parentNickname }}</div>
                     <div class="sub-text">{{ row.parentLevelName || '上级代理' }} · UID {{ row.parentUid }}</div>
@@ -617,6 +627,11 @@ export default {
 .avatar-up {
   background: #fff7e6;
   color: #ff9900;
+}
+/* 使用会员真实头像时去掉底色，只保留圆形裁切 */
+.avatar-img {
+  background: #f2f4f8;
+  object-fit: cover;
 }
 .avatar-hq {
   background: #eef1f6;

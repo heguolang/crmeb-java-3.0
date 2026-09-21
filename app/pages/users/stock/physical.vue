@@ -7,19 +7,31 @@
       <view class="head-sub">已付款采购入仓 · 下级订货自动扣减</view>
     </view>
 
+    <!-- 身份信息 -->
+    <view class="info-bar">
+      <view class="info-item">
+        <text class="info-label">订货商级别</text>
+        <text class="info-val">{{ agentInfo.levelName || '—' }}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">上级ID</text>
+        <text class="info-val">{{ parentText }}</text>
+      </view>
+    </view>
+
     <!-- 库存列表 -->
     <view class="card-list">
       <view v-for="(p, idx) in list" :key="idx" class="p-card">
         <image :src="p.image" class="p-img" mode="aspectFill" />
         <view class="p-info">
-          <view class="p-name">
-            {{ p.productName }}
-            <text v-if="p.exchangeNum > 0" class="p-lock">换货中 {{ p.exchangeNum }}</text>
-          </view>
+          <view class="p-name">{{ p.productName }}</view>
           <view class="p-meta">可供应数量 <text class="p-num">{{ p.num }}</text></view>
+          <view v-if="p.exchangeNum > 0" class="p-lock">换货锁定 <text class="lock-num">{{ p.exchangeNum }}</text> 件</view>
+          <view class="p-op">
+            <button class="ex-btn" size="mini" @click="goExchange(p)">换货</button>
+            <button class="sell-btn" size="mini" :class="{ 'sell-disabled': p.num <= 0 }" @click="openSell(p)">线下销售</button>
+          </view>
         </view>
-        <button class="ex-btn" size="mini" @click="goExchange(p)">换货</button>
-        <button class="sell-btn" size="mini" :class="{ 'sell-disabled': p.num <= 0 }" @click="openSell(p)">线下销售</button>
       </view>
     </view>
 
@@ -54,7 +66,7 @@
 </template>
 
 <script>
-	import { getMyPhysicalStock, sellOffline } from '@/api/stock.js';
+	import { getMyPhysicalStock, sellOffline, getStockAgentInfo } from '@/api/stock.js';
 	export default {
 		data() {
 			return {
@@ -63,11 +75,18 @@
 				showSell: false,
 				sellRow: {},
 				sellNum: 1,
-				sellMark: ''
+				sellMark: '',
+				agentInfo: { isAgent: false, levelName: '', parentUid: 0 }
 			};
+		},
+		computed: {
+			parentText() {
+				return this.agentInfo.parentUid ? ('ID ' + this.agentInfo.parentUid) : '总部';
+			}
 		},
 		onLoad() {
 			this.load();
+			this.loadAgentInfo();
 		},
 		methods: {
 			load() {
@@ -75,6 +94,16 @@
 					this.list = res.data || [];
 					this.loaded = true;
 				}).catch(() => { this.loaded = true; });
+			},
+			loadAgentInfo() {
+				getStockAgentInfo().then(res => {
+					const d = res.data || {};
+					this.agentInfo = {
+						isAgent: !!d.isAgent,
+						levelName: d.levelName || '',
+						parentUid: d.parentUid || 0
+					};
+				}).catch(() => {});
 			},
 			navGoods() {
 				uni.navigateTo({ url: '/pages/users/stock/goods' });
@@ -162,6 +191,24 @@
 .head-title { position: relative; z-index: 1; margin-top: 16rpx; font-size: 38rpx; font-weight: 700; }
 .head-sub { position: relative; z-index: 1; margin-top: 10rpx; font-size: 23rpx; opacity: 0.85; }
 
+.info-bar {
+  margin-top: 20rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 8rpx 26rpx;
+  box-shadow: 0 4rpx 20rpx rgba(31, 45, 61, 0.06);
+}
+.info-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f2f4f8;
+}
+.info-item:last-child { border-bottom: none; }
+.info-label { font-size: 25rpx; color: #909399; flex-shrink: 0; }
+.info-val { font-size: 26rpx; color: #303133; font-weight: 600; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .card-list { margin-top: 8rpx; }
 .p-card {
   background: #fff;
@@ -169,29 +216,36 @@
   margin-top: 20rpx;
   padding: 26rpx;
   display: flex;
-  align-items: center;
   box-shadow: 0 4rpx 20rpx rgba(31, 45, 61, 0.06);
 }
-.p-img { width: 120rpx; height: 120rpx; border-radius: 14rpx; flex-shrink: 0; background: #f5f6fa; }
+.p-img { width: 140rpx; height: 140rpx; border-radius: 14rpx; flex-shrink: 0; background: #f5f6fa; }
 .p-info { flex: 1; margin-left: 20rpx; overflow: hidden; }
-.p-name { font-size: 28rpx; color: #303133; font-weight: 600; line-height: 38rpx; }
+.p-name {
+  font-size: 28rpx;
+  color: #303133;
+  font-weight: 600;
+  line-height: 38rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.p-meta { font-size: 23rpx; color: #909399; margin-top: 8rpx; }
+.p-num { color: #e93323; font-weight: 700; font-size: 28rpx; margin-left: 6rpx; }
 .p-lock {
   display: inline-block;
-  margin-left: 10rpx;
-  padding: 2rpx 12rpx;
-  border-radius: 999rpx;
+  margin-top: 8rpx;
   background: #fff4e6;
-  border: 1rpx solid #ffb45c;
   color: #c47400;
-  font-size: 20rpx;
-  font-weight: 400;
-  vertical-align: middle;
+  font-size: 21rpx;
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
 }
-.p-meta { font-size: 23rpx; color: #909399; margin-top: 10rpx; }
-.p-num { color: #2b6fe3; font-weight: 700; font-size: 30rpx; margin-left: 6rpx; }
-.sell-btn { background: linear-gradient(135deg, #1f5fc4, #2b7de9); color: #fff; border-radius: 999rpx; font-size: 24rpx; padding: 0 28rpx; flex-shrink: 0; }
+.lock-num { font-weight: 700; }
+.p-op { display: flex; align-items: center; margin-top: 16rpx; }
+.sell-btn { background: linear-gradient(135deg, #1f5fc4, #2b7de9); color: #fff; border-radius: 999rpx; font-size: 24rpx; padding: 0 40rpx; margin-left: 12rpx; }
 .sell-disabled { background: #c8cdd6; }
-.ex-btn { background: #fff; color: #2b6fe3; border: 1rpx solid #2b6fe3; border-radius: 999rpx; font-size: 24rpx; padding: 0 24rpx; flex-shrink: 0; margin-right: 12rpx; }
+.ex-btn { background: #fff; color: #2b6fe3; border: 1rpx solid #2b6fe3; border-radius: 999rpx; font-size: 24rpx; padding: 0 28rpx; }
 
 .empty-box { display: flex; flex-direction: column; align-items: center; padding: 110rpx 0 40rpx; }
 .empty-title { font-size: 28rpx; color: #606266; font-weight: 600; }

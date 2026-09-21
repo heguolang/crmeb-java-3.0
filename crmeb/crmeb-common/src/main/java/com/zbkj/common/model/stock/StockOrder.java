@@ -146,6 +146,10 @@ public class StockOrder implements Serializable {
     @TableField(exist = false)
     private String nickname;
 
+    @ApiModelProperty(value = "下单用户头像")
+    @TableField(exist = false)
+    private String avatar;
+
     @ApiModelProperty(value = "订单明细")
     @TableField(exist = false)
     private List<StockOrderProduct> productList;
@@ -185,6 +189,10 @@ public class StockOrder implements Serializable {
     @ApiModelProperty(value = "上级昵称（上级为总部时为「总部」）")
     @TableField(exist = false)
     private String parentNickname;
+
+    @ApiModelProperty(value = "上级头像")
+    @TableField(exist = false)
+    private String parentAvatar;
 
     @ApiModelProperty(value = "上级手机号")
     @TableField(exist = false)

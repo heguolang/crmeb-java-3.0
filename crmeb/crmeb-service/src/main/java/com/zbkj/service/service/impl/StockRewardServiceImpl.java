@@ -715,6 +715,7 @@ public class StockRewardServiceImpl implements StockRewardService {
             row.put("agentId", agent.getId());
             row.put("uid", agent.getUid());
             row.put("nickname", agent.getNickname());
+            row.put("avatar", agent.getAvatar());
             row.put("phone", agent.getPhone());
             row.put("levelName", agent.getLevelName());
             // 订货金额

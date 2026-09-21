@@ -22,6 +22,7 @@
             <el-select v-model="tableFrom.status" placeholder="所有状态" clearable style="width: 120px">
               <el-option label="启用" :value="1" />
               <el-option label="禁用" :value="0" />
+              <el-option label="待对方同意" :value="2" />
             </el-select>
           </el-form-item>
         </el-form>
@@ -57,7 +58,11 @@
         </el-table-column>
         <el-table-column label="状态" min-width="80">
           <template slot-scope="scope">
-            <span class="st-dot st-dot-lg" :class="{ on: scope.row.status === 1 }"><i></i>{{ scope.row.status === 1 ? '启用' : '禁用' }}</span>
+            <span
+              class="st-dot st-dot-lg"
+              :class="{ on: scope.row.status === 1, warn: scope.row.status === 2 }"
+              ><i></i>{{ agentStatusText(scope.row.status) }}</span
+            >
           </template>
         </el-table-column>
         <el-table-column label="备注" min-width="140" show-overflow-tooltip>
@@ -212,7 +217,9 @@
         <el-table-column prop="levelName" label="层级" width="90" />
         <el-table-column label="状态" width="70">
           <template slot-scope="scope">
-            <span class="st-dot" :class="{ on: scope.row.status === 1 }"><i></i>{{ scope.row.status === 1 ? '启用' : '禁用' }}</span>
+            <span class="st-dot" :class="{ on: scope.row.status === 1, warn: scope.row.status === 2 }"
+              ><i></i>{{ agentStatusText(scope.row.status) }}</span
+            >
           </template>
         </el-table-column>
       </el-table>
@@ -570,6 +577,10 @@ export default {
         this.$message.success('操作成功');
         this.getList();
       });
+    },
+    // 订货商状态文案：0=禁用 1=启用 2=待对方同意
+    agentStatusText(status) {
+      return { 0: '禁用', 1: '启用', 2: '待对方同意' }[status] || '启用';
     },
     onDelete(row) {
       this.$confirm('确认删除该订货商？', '提示').then(() => {

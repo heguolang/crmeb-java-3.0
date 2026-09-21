@@ -208,7 +208,14 @@
             <text class="ex-status" :class="'st' + e.status">{{ statusText(e.status) }}</text>
           </view>
           <view class="sub-user">
-            <view class="su-avatar">{{ (e.nickname || '下').slice(0, 1) }}</view>
+            <image
+              v-if="e.avatar && !avatarErr['s' + e.id]"
+              :src="avatarUrl(e.avatar)"
+              class="su-avatar su-avatar-img"
+              mode="aspectFill"
+              @error="onAvatarErr('s' + e.id)"
+            />
+            <view v-else class="su-avatar">{{ (e.nickname || '下').slice(0, 1) }}</view>
             <text class="su-name">{{ e.nickname }}</text>
             <text class="su-tag">下级申请</text>
           </view>
@@ -292,11 +299,15 @@
 <script>
 	import { getMyExchanges, applyStockExchange, fillExchangeBackExpress, getExchangeOptions, getExchangeQuota, payExchangeDiff, getExchangeAuditList } from '@/api/stock.js';
 	import { getAddressList } from '@/api/user.js';
+	import { HTTP_REQUEST_URL } from '@/config/app';
 	export default {
 		data() {
 			return {
 			list: [],
 			loaded: false,
+			// 头像加载失败的用户 key 集合（失败时回退昵称首字）
+			avatarErr: {},
+			imgHost: HTTP_REQUEST_URL,
 			// 换货记录页签：mine=我的换货（找上级） sub=下级换货（下级找我）
 			tab: 'mine',
 			subList: [],
@@ -350,6 +361,15 @@
 			this.load();
 		},
 		methods: {
+			// 头像地址：绝对地址直接用，相对地址补域名前缀
+			avatarUrl(path) {
+				if (!path) return '';
+				if (/^https?:\/\//i.test(path)) return path;
+				return this.imgHost + '/' + String(path).replace(/^\/+/, '');
+			},
+			onAvatarErr(key) {
+				this.$set(this.avatarErr, key, true);
+			},
 			statusText(s) {
 				return { 0: '待上级审核', 1: '待总部审核', 2: '待旧品退回', 3: '待发新品', 4: '已完成', '-1': '已驳回' }[s] || s;
 			},
@@ -847,6 +867,10 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+/* 真实头像：去掉底色渐变，只保留圆形裁切 */
+.su-avatar-img {
+  background: #eef2f9;
 }
 .su-name { margin-left: 12rpx; font-size: 24rpx; color: #3d4a5f; font-weight: 600; }
 .su-tag {

@@ -1114,7 +1114,10 @@ public class StockServiceImpl implements StockService {
             return map;
         }
         fillAgent(agent);
-        map.put("isAgent", true);
+        boolean pending = agent.getStatus() != null && agent.getStatus() == StockAgent.STATUS_PENDING;
+        // 待对方同意期间不算正式订货商：无订货中心权限，入口页展示「同意」按钮
+        map.put("isAgent", !pending && agent.getStatus() != null && agent.getStatus() == StockAgent.STATUS_ENABLED);
+        map.put("pendingAgent", pending);
         map.put("agent", agent);
         // 会员端展示：订货商级别与上级UID（0/空=总部）
         map.put("uid", agent.getUid());
@@ -1127,6 +1130,8 @@ public class StockServiceImpl implements StockService {
             }
         }
         map.put("parentUid", parentUid);
+        // 邀请人昵称（待同意时入口页展示「XX 邀请您成为订货商」）
+        map.put("parentNickname", agent.getParentName() == null ? "" : agent.getParentName());
         // 上级发货模式开关（stock_parent_deliver=1 时，会员端展示「订单发货」入口）
         map.put("parentDeliver", "1".equals(systemConfigService.getValueByKey("stock_parent_deliver")));
         return map;
@@ -1135,7 +1140,7 @@ public class StockServiceImpl implements StockService {
     @Override
     public Boolean createSubAgent(Integer uid, StockAgentCreateRequest request) {
         StockAgent parent = getAgentByUid(uid);
-        if (parent == null || parent.getStatus() == 0) {
+        if (parent == null || parent.getStatus() != 1) {
             throw new CrmebException("您还不是订货代理或已被禁用");
         }
         StockLevel parentLevel = stockLevelDao.selectById(parent.getLevelId());
@@ -1152,19 +1157,54 @@ public class StockServiceImpl implements StockService {
         if (user == null) {
             throw new CrmebException("该手机号尚未注册，请让对方先注册会员");
         }
+        if (user.getUid().equals(uid)) {
+            throw new CrmebException("不能把自己加为下级订货商");
+        }
         Integer count = stockAgentDao.selectCount(new LambdaQueryWrapper<StockAgent>()
                 .eq(StockAgent::getUid, user.getUid()).eq(StockAgent::getIsDel, 0));
         if (count != null && count > 0) {
-            throw new CrmebException("该用户已是订货代理");
+            throw new CrmebException("该用户已是订货商，或已有待确认的邀请");
         }
         StockAgent agent = new StockAgent();
         agent.setUid(user.getUid());
         agent.setLevelId(request.getLevelId());
         agent.setParentId(parent.getId());
-        agent.setStatus(1);
+        // 状态 2 = 待对方在订货中心确认同意；同意后才会变成 1（正常订货商）
+        agent.setStatus(StockAgent.STATUS_PENDING);
         agent.setMark(request.getMark() == null ? "" : request.getMark());
         agent.setIsDel(0);
-        return stockAgentDao.insert(agent) > 0;
+        boolean ok = stockAgentDao.insert(agent) > 0;
+        if (ok) {
+            logChange(agent.getId(), agent.getUid(), StockChangeLog.TYPE_ADD,
+                    null, levelName(agent.getLevelId()), "上级邀请成为订货商（待对方同意）");
+        }
+        return ok;
+    }
+
+    @Override
+    public Boolean agreeSubAgent(Integer uid, boolean agree) {
+        List<StockAgent> list = stockAgentDao.selectList(new LambdaQueryWrapper<StockAgent>()
+                .eq(StockAgent::getUid, uid).eq(StockAgent::getIsDel, 0)
+                .orderByDesc(StockAgent::getId).last(" limit 1"));
+        StockAgent agent = list.isEmpty() ? null : list.get(0);
+        if (agent == null || agent.getStatus() == null || agent.getStatus() != StockAgent.STATUS_PENDING) {
+            throw new CrmebException("没有待确认的订货商邀请");
+        }
+        boolean ok;
+        if (agree) {
+            LambdaUpdateWrapper<StockAgent> luw = new LambdaUpdateWrapper<>();
+            luw.eq(StockAgent::getId, agent.getId()).set(StockAgent::getStatus, 1);
+            ok = stockAgentDao.update(null, luw) > 0;
+        } else {
+            LambdaUpdateWrapper<StockAgent> luw = new LambdaUpdateWrapper<>();
+            luw.eq(StockAgent::getId, agent.getId()).set(StockAgent::getIsDel, 1);
+            ok = stockAgentDao.update(null, luw) > 0;
+        }
+        if (ok) {
+            logChange(agent.getId(), agent.getUid(), StockChangeLog.TYPE_STATUS,
+                    "待对方同意", agree ? "正常" : "已拒绝", agree ? "会员同意成为订货商" : "会员拒绝订货商邀请");
+        }
+        return ok;
     }
 
     @Override

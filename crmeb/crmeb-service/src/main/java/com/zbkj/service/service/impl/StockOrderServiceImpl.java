@@ -131,12 +131,12 @@ public class StockOrderServiceImpl implements StockOrderService {
     @Override
     public HashMap<String, Object> createOrder(Integer uid, StockOrderAddRequest request) {
         StockAgent agent = stockService.getAgentByUid(uid);
-        if (agent == null || agent.getStatus() == 0) {
+        if (agent == null || agent.getStatus() != 1) {
             throw new CrmebException("您还不是订货代理或已被禁用，无法下单");
         }
         StockAgent parent = agent.getParentId() != null && agent.getParentId() > 0
                 ? stockService.getAgentById(agent.getParentId()) : null;
-        if (agent.getParentId() != null && agent.getParentId() > 0 && (parent == null || parent.getStatus() == 0)) {
+        if (agent.getParentId() != null && agent.getParentId() > 0 && (parent == null || parent.getStatus() != 1)) {
             throw new CrmebException("上级代理账号异常，请联系上级处理");
         }
         // 懒处理：释放该代理已到期的"等待匹配"订单（付款单挂在状态10）
@@ -522,7 +522,7 @@ public class StockOrderServiceImpl implements StockOrderService {
     public List<HashMap<String, Object>> getMyPhysicalStock(Integer uid) {
         List<HashMap<String, Object>> result = new ArrayList<>();
         StockAgent agent = stockService.getAgentByUid(uid);
-        if (agent == null || agent.getStatus() == 0) {
+        if (agent == null || agent.getStatus() != 1) {
             return result;
         }
         // 按商品聚合：自购已付款实体采购单数量（虚拟单只入虚拟库存，不占云仓，故排除）
@@ -635,7 +635,7 @@ public class StockOrderServiceImpl implements StockOrderService {
     @Override
     public HashMap<String, Object> pickupVirtual(Integer uid, StockRequests.StockVirtualPickupRequest request) {
         StockAgent agent = stockService.getAgentByUid(uid);
-        if (agent == null || agent.getStatus() == 0) {
+        if (agent == null || agent.getStatus() != 1) {
             throw new CrmebException("您还不是订货代理或已被禁用");
         }
         if (request.getNum() == null || request.getNum() <= 0) {
@@ -975,7 +975,7 @@ public class StockOrderServiceImpl implements StockOrderService {
             throw new CrmebException("只有「等待匹配上级」状态的订单才能跳过匹配");
         }
         StockAgent agent = stockService.getAgentById(order.getAgentId());
-        if (agent == null || agent.getStatus() == 0) {
+        if (agent == null || agent.getStatus() != 1) {
             throw new CrmebException("下单代理不存在或已被禁用");
         }
         if (order.getUpSearchTime() == null) {
@@ -1631,7 +1631,7 @@ public class StockOrderServiceImpl implements StockOrderService {
     @Override
     public Boolean parentSendOrder(Integer uid, Integer orderId, StockRequests.StockSendRequest request) {
         StockAgent agent = stockService.getAgentByUid(uid);
-        if (agent == null || agent.getStatus() == 0) {
+        if (agent == null || agent.getStatus() != 1) {
             throw new CrmebException("您不是订货代理或已被禁用，无法发货");
         }
         if (!"1".equals(systemConfigService.getValueByKey(CFG_PARENT_DELIVER))) {
@@ -1671,7 +1671,7 @@ public class StockOrderServiceImpl implements StockOrderService {
     @Override
     public Boolean parentUpdateExpress(Integer uid, Integer orderId, StockRequests.StockSendRequest request) {
         StockAgent agent = stockService.getAgentByUid(uid);
-        if (agent == null || agent.getStatus() == 0) {
+        if (agent == null || agent.getStatus() != 1) {
             throw new CrmebException("您不是订货代理或已被禁用");
         }
         if (!"1".equals(systemConfigService.getValueByKey(CFG_PARENT_DELIVER))) {
@@ -2354,7 +2354,7 @@ public class StockOrderServiceImpl implements StockOrderService {
     @Override
     public void sellOffline(Integer uid, StockRequests.StockOfflineSaleRequest request) {
         StockAgent agent = stockService.getAgentByUid(uid);
-        if (agent == null || agent.getStatus() == 0) {
+        if (agent == null || agent.getStatus() != 1) {
             throw new CrmebException("您还不是订货代理或已被禁用");
         }
         if (request.getNum() == null || request.getNum() <= 0) {
@@ -2676,7 +2676,7 @@ public class StockOrderServiceImpl implements StockOrderService {
     public List<HashMap<String, Object>> getExchangeOptions(Integer uid, Integer productId, String skuKey) {
         List<HashMap<String, Object>> out = new ArrayList<>();
         StockAgent agent = stockService.getAgentByUid(uid);
-        if (agent == null || agent.getStatus() == 0) {
+        if (agent == null || agent.getStatus() != 1) {
             return out;
         }
         String sku = skuKey == null ? "" : skuKey.trim();
@@ -3230,6 +3230,7 @@ public class StockOrderServiceImpl implements StockOrderService {
             o.setProductList(itemMap.get(o.getId()));
             User u = userMap.get(o.getUid());
             o.setNickname(u == null ? "" : u.getNickname());
+            o.setAvatar(u == null ? "" : u.getAvatar());
             o.setAgentPhone(u == null ? "" : u.getPhone());
             // phone 为收货电话快照（新单）；历史订单快照为空时回退显示用户手机号
             if (o.getPhone() == null || o.getPhone().isEmpty()) {
@@ -3241,6 +3242,7 @@ public class StockOrderServiceImpl implements StockOrderService {
                 o.setParentIsHeadquarters(1);
                 o.setParentUid(null);
                 o.setParentNickname("总部");
+                o.setParentAvatar("");
                 o.setParentPhone("");
                 o.setParentLevelName("");
             } else {
@@ -3249,6 +3251,7 @@ public class StockOrderServiceImpl implements StockOrderService {
                 o.setParentLevelName(parentLevelNameMap.get(pa.getLevelId()));
                 User pu = parentUserMap.get(pa.getUid());
                 o.setParentNickname(pu == null ? ("用户" + pa.getUid()) : pu.getNickname());
+                o.setParentAvatar(pu == null ? "" : pu.getAvatar());
                 o.setParentPhone(pu == null ? "" : pu.getPhone());
             }
             StockExchange e = exchangeMap.get(o.getId());
@@ -3368,6 +3371,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         for (StockExchange e : list) {
             User u = userMap.get(e.getUid());
             e.setNickname(u == null ? "" : u.getNickname());
+            e.setAvatar(u == null ? "" : u.getAvatar());
             e.setOrderNo(orderNoMap.get(e.getOrderId()) == null ? "" : orderNoMap.get(e.getOrderId()));
             e.setProductImage(productImageMap.get(e.getProductId()) == null ? "" : productImageMap.get(e.getProductId()));
             e.setStockType(stockTypeMap.get(e.getOrderId()));

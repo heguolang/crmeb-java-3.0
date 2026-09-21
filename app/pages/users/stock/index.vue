@@ -8,11 +8,18 @@
         <view class="light-beam"></view>
         <view class="head-eyebrow">订货中心</view>
         <view class="user-row">
-          <view class="avatar">{{ (agent.nickname || '?').slice(0, 1) }}</view>
+          <image
+            v-if="agent.avatar && !avatarErr"
+            :src="avatarUrl(agent.avatar)"
+            class="avatar avatar-img"
+            mode="aspectFill"
+            @error="avatarErr = true"
+          />
+          <view v-else class="avatar">{{ (agent.nickname || '?').slice(0, 1) }}</view>
           <view class="user-info">
             <view class="nickname">{{ agent.nickname }}</view>
             <view class="meta-line">
-              <view class="badge">★ {{ agent.levelName || '订货代理' }}</view>
+              <view class="badge">★ {{ agent.levelName || '订货商' }}</view>
               <view class="upstream">上级 {{ parentUid > 0 ? (agent.parentName || '上级代理') : '总部' }}</view>
               <view v-if="parentUid > 0" class="up-id">ID {{ parentUid }}</view>
             </view>
@@ -103,9 +110,26 @@
 
     <!-- 非订货商：品牌化空态 -->
     <view v-if="loaded && !isAgent" class="gate">
-      <view class="gate-card">
+      <!-- 待对方同意：上级已邀请，这里给出同意入口 -->
+      <view v-if="pendingAgent" class="gate-card">
+        <view class="gate-ico gate-ico-invite">邀</view>
+        <view class="gate-title">您收到订货商邀请</view>
+        <view class="gate-desc">
+          {{ parentNickname || '您的上级' }} 邀请您成为「{{ inviteLevelName || '订货商' }}」，同意后即可进入订货中心，享受专价拿货与团队订货奖励
+        </view>
+        <view class="gate-line"></view>
+        <view class="gate-tip">邀请人ID：{{ parentUid > 0 ? parentUid : '总部' }}</view>
+        <view class="gate-sub">同意后立即开通，无需等待总部审核</view>
+        <view class="invite-btns">
+          <view class="invite-btn ghost" @click="rejectInvite">暂不接受</view>
+          <view class="invite-btn primary" @click="acceptInvite">同意成为订货商</view>
+        </view>
+      </view>
+
+      <!-- 未收到邀请：普通提示 -->
+      <view v-else class="gate-card">
         <view class="gate-ico">订</view>
-        <view class="gate-title">您还不是订货代理</view>
+        <view class="gate-title">您还不是订货商</view>
         <view class="gate-desc">订货中心为您提供专价拿货、库存管理、团队订货奖励等服务</view>
         <view class="gate-line"></view>
         <view class="gate-tip">请联系您的上级代理或总部为您开通订货权限</view>
@@ -117,16 +141,24 @@
 </template>
 
 <script>
-	import { getStockAgentInfo } from '@/api/stock.js';
+	import { getStockAgentInfo, agreeStockAgent, rejectStockAgent } from '@/api/stock.js';
 	import { guardModule } from '@/libs/moduleSwitch.js';
+	import { HTTP_REQUEST_URL } from '@/config/app';
 	export default {
 		data() {
 			return {
 				loaded: false,
 				isAgent: false,
+				// 待对方同意的订货商邀请
+				pendingAgent: false,
+				parentNickname: '',
+				inviteLevelName: '',
 				parentUid: 0,
 				parentDeliver: false,
 				agent: {},
+				// 头像加载失败时回退昵称首字
+				avatarErr: false,
+				imgHost: HTTP_REQUEST_URL,
 				// 角标计数：audit=待审核订单 / send=待发货订单 / exchangeAudit=待审核换货 / notice=未读消息
 				badges: { audit: 0, send: 0, exchangeAudit: 0, notice: 0 }
 			};
@@ -136,16 +168,26 @@
 			this.loadInfo();
 		},
 		methods: {
+			// 头像地址：绝对地址直接用，相对地址补域名前缀
+			avatarUrl(path) {
+				if (!path) return '';
+				if (/^https?:\/\//i.test(path)) return path;
+				return this.imgHost + '/' + String(path).replace(/^\/+/, '');
+			},
 			loadInfo() {
 				getStockAgentInfo().then(res => {
-					this.isAgent = res.data.isAgent;
-					this.agent = res.data.agent || {};
-					// 上级ID：0 表示上级是总部（此时不展示ID，只显示"总部"）
-					this.parentUid = res.data.parentUid || 0;
-					// 上级发货模式：开启时展示「订单发货」入口（仅实体订货单由上级发货）
-					this.parentDeliver = !!(res.data.parentDeliver);
-					// 未处理事项角标
 					const d = res.data || {};
+					this.isAgent = d.isAgent;
+					this.agent = d.agent || {};
+					// 待对方同意的订货商邀请
+					this.pendingAgent = !!d.pendingAgent;
+					this.parentNickname = d.parentNickname || '';
+					this.inviteLevelName = d.levelName || '';
+					// 上级ID：0 表示上级是总部（此时不展示ID，只显示"总部"）
+					this.parentUid = d.parentUid || 0;
+					// 上级发货模式：开启时展示「订单发货」入口（仅实体订货单由上级发货）
+					this.parentDeliver = !!d.parentDeliver;
+					// 未处理事项角标
 					this.badges = {
 						audit: Number(d.audit) || 0,
 						send: Number(d.send) || 0,
@@ -154,6 +196,34 @@
 					};
 					this.loaded = true;
 				}).catch(() => { this.loaded = true; });
+			},
+			// 同意成为订货商
+			acceptInvite() {
+				uni.showModal({
+					title: '同意成为订货商',
+					content: '同意后您将立即开通订货中心权限，用于专价拿货与团队订货奖励结算。',
+					success: (m) => {
+						if (!m.confirm) return;
+						agreeStockAgent().then(() => {
+							uni.showToast({ title: '已开通订货中心', icon: 'none' });
+							this.loadInfo();
+						});
+					}
+				});
+			},
+			// 拒绝邀请（作废该邀请，不影响其他功能）
+			rejectInvite() {
+				uni.showModal({
+					title: '暂不接受邀请',
+					content: '拒绝后本次邀请将作废，如后续需要可由上级重新邀请。',
+					success: (m) => {
+						if (!m.confirm) return;
+						rejectStockAgent().then(() => {
+							uni.showToast({ title: '已拒绝本次邀请', icon: 'none' });
+							this.loadInfo();
+						});
+					}
+				});
 			},
 			// 角标文本：超过 99 显示 99+
 			badgeText(n) {
@@ -240,6 +310,10 @@
   justify-content: center;
   flex-shrink: 0;
   box-shadow: 0 8rpx 22rpx rgba(10, 31, 78, 0.28);
+}
+/* 真实头像：去掉半透明底色，只保留圆形裁切 */
+.avatar-img {
+  background: #dce6f7;
 }
 .user-info { margin-left: 24rpx; flex: 1; min-width: 0; overflow: hidden; }
 .nickname {
@@ -432,6 +506,32 @@
   box-shadow: 0 12rpx 28rpx rgba(43, 111, 227, 0.32);
 }
 .gate-title { margin-top: 34rpx; font-size: 34rpx; font-weight: 700; color: #26324b; }
+/* 待同意邀请：图标带金色点缀（仅图标，不做大面积底色） */
+.gate-ico-invite {
+  background: linear-gradient(135deg, #3a8df2, #1f5fd6);
+  box-shadow: 0 12rpx 28rpx rgba(31, 95, 214, 0.32), inset 0 0 0 4rpx rgba(246, 205, 96, 0.55);
+}
+.invite-btns { display: flex; align-items: center; margin-top: 40rpx; width: 100%; }
+.invite-btn {
+  flex: 1;
+  height: 84rpx;
+  line-height: 84rpx;
+  text-align: center;
+  border-radius: 999rpx;
+  font-size: 27rpx;
+  font-weight: 600;
+}
+.invite-btn.ghost {
+  color: #7b8698;
+  background: #f2f5fa;
+}
+.invite-btn.primary {
+  margin-left: 20rpx;
+  flex: 1.4;
+  color: #fff;
+  background: linear-gradient(135deg, #4a9df8, #2b6fe3);
+  box-shadow: 0 10rpx 24rpx rgba(43, 111, 227, 0.30);
+}
 .gate-desc {
   margin-top: 18rpx;
   font-size: 24rpx;

@@ -90,8 +90,11 @@ public interface StockService {
     /** 我的代理身份（含层级名、上级昵称） */
     HashMap<String, Object> getMyAgentInfo(Integer uid);
 
-    /** 新增下级代理（按手机号绑定已注册用户） */
+    /** 新增下级订货商（按手机号绑定已注册用户，创建后为「待对方同意」状态） */
     Boolean createSubAgent(Integer uid, StockAgentCreateRequest request);
+
+    /** 被邀请人确认/拒绝订货商邀请（agree=true 同意并成为正式订货商，false 拒绝即作废邀请） */
+    Boolean agreeSubAgent(Integer uid, boolean agree);
 
     /** 我的下级代理列表 */
     List<StockAgent> getSubAgentList(Integer uid);

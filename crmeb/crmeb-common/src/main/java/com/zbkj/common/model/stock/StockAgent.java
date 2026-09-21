@@ -25,6 +25,13 @@ public class StockAgent implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    /** 状态：禁用（无订货中心权限） */
+    public static final int STATUS_DISABLED = 0;
+    /** 状态：正常订货商 */
+    public static final int STATUS_ENABLED = 1;
+    /** 状态：待对方在订货中心确认同意（此时仍无订货中心权限） */
+    public static final int STATUS_PENDING = 2;
+
     @ApiModelProperty(value = "主键")
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
@@ -38,7 +45,7 @@ public class StockAgent implements Serializable {
     @ApiModelProperty(value = "上级代理ID（0=上级为总部）")
     private Integer parentId;
 
-    @ApiModelProperty(value = "状态：0=禁用 1=启用")
+    @ApiModelProperty(value = "状态：0=禁用 1=启用 2=待对方同意（邀请中）")
     private Integer status;
 
     @ApiModelProperty(value = "备注")

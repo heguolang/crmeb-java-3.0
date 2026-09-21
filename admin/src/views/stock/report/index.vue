@@ -55,7 +55,8 @@
         <el-table-column label="代理商" min-width="130" show-overflow-tooltip>
           <template slot-scope="scope">
             <div class="agent-cell">
-              <span class="avatar">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
+              <img v-if="scope.row.avatar" :src="scope.row.avatar" class="avatar avatar-img" alt="" @error="scope.row.avatar = ''" />
+              <span v-else class="avatar">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
               <span class="agent-name">{{ scope.row.nickname }}</span>
             </div>
           </template>
@@ -246,6 +247,11 @@ export default {
   justify-content: center;
   margin-right: 8px;
   flex-shrink: 0;
+}
+/* 使用会员真实头像时保留圆形裁切 */
+.avatar-img {
+  background: #f2f4f8;
+  object-fit: cover;
 }
 .agent-name {
   font-size: 13px;

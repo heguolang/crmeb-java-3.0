@@ -14,9 +14,19 @@ export function getStockLevels() {
   return request.get('stock/agent/levels');
 }
 
-/** 新增下级代理 */
+/** 新增下级订货商（对方需在订货中心同意后生效） */
 export function createSubAgent(data) {
   return request.post('stock/agent/createSub', data);
+}
+
+/** 同意成为上级邀请的订货商 */
+export function agreeStockAgent() {
+  return request.post('stock/agent/agree');
+}
+
+/** 拒绝订货商邀请 */
+export function rejectStockAgent() {
+  return request.post('stock/agent/reject');
 }
 
 /** 我的下级列表 */

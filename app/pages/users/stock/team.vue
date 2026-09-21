@@ -5,7 +5,7 @@
       <view class="top-deco d1"></view>
       <view class="top-deco d2"></view>
       <view class="page-title">我的团队</view>
-      <view class="page-sub">发展下级代理，团队订货奖励自动结算</view>
+      <view class="page-sub">发展下级订货商，团队订货奖励自动结算</view>
     </view>
 
     <view class="page-body">
@@ -22,12 +22,12 @@
         </view>
         <view class="stat-divider"></view>
         <view class="stat-item">
-          <view class="stat-num c-grey">{{ stats.disabled }}</view>
-          <view class="stat-label">已禁用</view>
+          <view class="stat-num c-orange">{{ stats.pending }}</view>
+          <view class="stat-label">待对方同意</view>
         </view>
       </view>
 
-      <button class="add-btn" @click="showAdd = true">＋ 新增下级代理</button>
+      <button class="add-btn" @click="showAdd = true">＋ 新增下级订货商</button>
 
       <!-- 成员列表 -->
       <view v-if="list.length" class="section-title">
@@ -59,8 +59,11 @@
           </view>
         </view>
         <view class="agent-right">
-          <text class="agent-status" :class="a.status === 1 ? 'on' : 'off'">
-            <text class="st-dot-mini" :class="a.status === 1 ? 'd-on' : 'd-off'"></text>{{ a.status === 1 ? '正常' : '禁用' }}
+          <text class="agent-status" :class="a.status === 1 ? 'on' : (a.status === 2 ? 'wait' : 'off')">
+            <text
+              class="st-dot-mini"
+              :class="a.status === 1 ? 'd-on' : (a.status === 2 ? 'd-wait' : 'd-off')"
+            ></text>{{ statusText(a.status) }}
           </text>
           <view class="ord-btn" @click.stop="viewOrders(a)">查看订单</view>
         </view>
@@ -68,15 +71,15 @@
 
       <view v-if="!list.length && loaded" class="empty-card">
         <view class="empty-ico">队</view>
-        <view class="empty-txt">还没有下级代理</view>
-        <view class="empty-sub">点击上方「新增下级代理」邀请伙伴加入</view>
+        <view class="empty-txt">还没有下级订货商</view>
+        <view class="empty-sub">点击上方「新增下级订货商」邀请伙伴加入</view>
       </view>
     </view>
 
-    <!-- 新增下级代理弹窗 -->
+    <!-- 新增下级订货商弹窗 -->
     <view v-if="showAdd" class="mask" @click="showAdd = false">
       <view class="modal" @click.stop>
-        <view class="modal-title">新增下级代理</view>
+        <view class="modal-title">新增下级订货商</view>
         <text class="modal-close" @click="showAdd = false">✕</text>
         <view class="form-item">
           <view class="f-label">手机号</view>
@@ -91,7 +94,8 @@
             </view>
           </picker>
         </view>
-        <button class="submit-btn" @click="submitAdd">确定新增</button>
+        <view class="invite-note">提交后对方会收到邀请，需对方在订货中心点击「同意」后才正式成为订货商</view>
+        <button class="submit-btn" @click="submitAdd">发出邀请</button>
       </view>
     </view>
 
@@ -178,7 +182,7 @@
 				return {
 					total: this.list.length,
 					active: this.list.filter(a => a.status === 1).length,
-					disabled: this.list.filter(a => a.status !== 1).length
+					pending: this.list.filter(a => a.status === 2).length
 				};
 			}
 		},
@@ -206,11 +210,19 @@
 			onLevelChange(e) {
 				this.addForm.levelIndex = Number(e.detail.value);
 			},
+			// 订货商状态文案：0=禁用 1=正常 2=待对方同意
+			statusText(s) {
+				return { 0: '禁用', 1: '正常', 2: '待同意' }[s] || '正常';
+			},
 			submitAdd() {
 				if (!this.addForm.phone) return this.$util.Tips({ title: '请填写手机号' });
 				if (this.addForm.levelIndex < 0) return this.$util.Tips({ title: '请选择层级' });
 				createSubAgent({ phone: this.addForm.phone, levelId: this.levels[this.addForm.levelIndex].id }).then(() => {
-					this.$util.Tips({ title: '新增成功' });
+					uni.showModal({
+						title: '邀请已发出',
+						content: '已邀请对方成为「' + this.levelNames[this.addForm.levelIndex] + '」订货商。对方进入订货中心点击「同意」后即正式生效。',
+						showCancel: false
+					});
 					this.showAdd = false;
 					this.addForm = { phone: '', levelIndex: -1 };
 					this.load();
@@ -314,6 +326,7 @@
 .stat-num { font-size: 46rpx; font-weight: 700; color: #26324b; line-height: 1.1; }
 .stat-num.c-green { color: #18a852; }
 .stat-num.c-grey { color: #7b8698; }
+.stat-num.c-orange { color: #f08c2e; }
 .stat-label { margin-top: 8rpx; font-size: 23rpx; color: #909399; }
 .stat-divider { width: 1rpx; height: 56rpx; background: #eef1f6; }
 
@@ -396,6 +409,7 @@
   display: flex;
   align-items: center;
   &.on { color: #18a852; font-weight: 600; }
+  &.wait { color: #f08c2e; font-weight: 600; }
   &.off { color: #9aa7bd; }
 }
 .st-dot-mini {
@@ -404,6 +418,7 @@
   border-radius: 50%;
   margin-right: 8rpx;
   &.d-on { background: #21c26a; box-shadow: 0 0 0 6rpx rgba(33, 194, 106, 0.14); }
+  &.d-wait { background: #f0a04b; box-shadow: 0 0 0 6rpx rgba(240, 160, 75, 0.16); }
   &.d-off { background: #b8c0cd; }
 }
 
@@ -492,8 +507,17 @@
   font-size: 34rpx;
   color: #c0c4cc;
 }
+.invite-note {
+  margin-top: 4rpx;
+  font-size: 21rpx;
+  color: #a4adc0;
+  line-height: 32rpx;
+  background: #f6f9ff;
+  border-radius: 12rpx;
+  padding: 14rpx 18rpx;
+}
 .submit-btn {
-  margin-top: 14rpx;
+  margin-top: 22rpx;
   background: linear-gradient(135deg, #4a9df8, #2b6fe3);
   color: #fff;
   border-radius: 999rpx;
