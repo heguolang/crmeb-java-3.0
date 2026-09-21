@@ -492,8 +492,7 @@ public class StockController {
     public CommonResult<HashMap<String, Object>> getSetting() {
         HashMap<String, Object> map = new HashMap<>();
         String[] keys = {"stock_order_audit", "stock_diff_reward_status", "stock_exchange_diff",
-                "stock_ladder_status", "stock_ladder_cycle", "stock_peer_status",
-                "stock_peer_rate", "stock_peer_generations",
+                "stock_ladder_status", "stock_ladder_cycle",
                 "stock_parent_deliver", "stock_up_search_hours",
                 "stock_virtual_audit", "stock_wait_pay_hours",
                 "stock_exchange_single", "stock_exchange_diff_parent_rate",
@@ -511,8 +510,7 @@ public class StockController {
     public CommonResult<String> saveSetting(@RequestBody HashMap<String, Object> settingMap) {
         try {
             String[] keys = {"stock_order_audit", "stock_diff_reward_status", "stock_exchange_diff",
-                    "stock_ladder_status", "stock_ladder_cycle", "stock_peer_status",
-                    "stock_peer_rate", "stock_peer_generations",
+                    "stock_ladder_status", "stock_ladder_cycle",
                     "stock_parent_deliver", "stock_up_search_hours",
                     "stock_virtual_audit", "stock_wait_pay_hours",
                     "stock_exchange_single", "stock_exchange_diff_parent_rate",

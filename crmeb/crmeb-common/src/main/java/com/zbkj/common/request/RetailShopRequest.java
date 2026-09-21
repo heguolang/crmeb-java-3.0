@@ -43,14 +43,10 @@ public class RetailShopRequest {
     @Min(value = -1, message = "分销额度,不能小于-1")
     private Integer storeBrokerageQuota;
 
-    @ApiModelProperty(value = "一级返佣比例")
-    @NotNull(message = "一级返佣比例 不能为空")
-    @Range(min = 0, max = 100, message = "一级返佣比例请在0-100中选择")
+    @ApiModelProperty(value = "一级返佣比例（已废弃：改由「会员返佣配置」按会员等级设置，字段仅保留兼容）")
     private Integer storeBrokerageRatio;
 
-    @ApiModelProperty(value = "二级返佣比例")
-    @NotNull(message = "二级返佣比例 不能为空")
-    @Range(min = 0, max = 100, message = "二级返佣比例在0-100中选择")
+    @ApiModelProperty(value = "二级返佣比例（已废弃：改由「会员返佣配置」按会员等级设置，字段仅保留兼容）")
     private Integer storeBrokerageTwo;
 
     @ApiModelProperty(value = "分销关系绑定:0-所有用户，1-新用户")

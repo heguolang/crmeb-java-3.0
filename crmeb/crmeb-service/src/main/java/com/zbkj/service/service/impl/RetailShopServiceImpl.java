@@ -7,7 +7,6 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.zbkj.common.constants.SysConfigConstants;
-import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.page.CommonPage;
@@ -143,8 +142,10 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
 
         RetailShopRequest response = new RetailShopRequest();
         response.setBrokerageFuncStatus(Integer.parseInt(record.getStr(SysConfigConstants.CONFIG_KEY_BROKERAGE_FUNC_STATUS)));
-        response.setStoreBrokerageRatio(Integer.parseInt(record.getStr(SysConfigConstants.CONFIG_KEY_STORE_BROKERAGE_RATIO)));
-        response.setStoreBrokerageTwo(Integer.parseInt(record.getStr(SysConfigConstants.CONFIG_KEY_STORE_BROKERAGE_TWO)));
+        String brokerageRatio = record.getStr(SysConfigConstants.CONFIG_KEY_STORE_BROKERAGE_RATIO);
+        response.setStoreBrokerageRatio(cn.hutool.core.util.StrUtil.isBlank(brokerageRatio) ? 0 : Integer.parseInt(brokerageRatio));
+        String brokerageTwo = record.getStr(SysConfigConstants.CONFIG_KEY_STORE_BROKERAGE_TWO);
+        response.setStoreBrokerageTwo(cn.hutool.core.util.StrUtil.isBlank(brokerageTwo) ? 0 : Integer.parseInt(brokerageTwo));
         response.setUserExtractMinPrice(new BigDecimal(record.getStr(SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE)));
         response.setUserExtractBank(record.getStr(SysConfigConstants.CONFIG_EXTRACT_BANK).replace("\\n","\n"));
         response.setExtractTime(Integer.parseInt(record.getStr(SysConfigConstants.CONFIG_EXTRACT_FREEZING_TIME)));
@@ -168,13 +169,9 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
      */
     @Override
     public boolean setManageInfo(RetailShopRequest retailShopRequest) {
-        // 返佣比例之和+起来不能超过100%
-        int ration = retailShopRequest.getStoreBrokerageTwo() + retailShopRequest.getStoreBrokerageRatio();
-        if (ration > 100 || ration < 0) throw new CrmebException("返佣比例加起来不能超过100%");
-
+        // 一级/二级返佣比例已改由「会员返佣配置」按会员等级维护（OrderPayServiceImpl 读 eb_system_user_level_brokerage），
+        // 分销设置不再提交这两项，此处也不覆盖库中原值（商品详情页佣金区间仍会读取展示）。
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_BROKERAGE_FUNC_STATUS, retailShopRequest.getBrokerageFuncStatus().toString());
-        systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_STORE_BROKERAGE_RATIO, retailShopRequest.getStoreBrokerageRatio().toString());
-        systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_STORE_BROKERAGE_TWO, retailShopRequest.getStoreBrokerageTwo().toString());
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE, retailShopRequest.getUserExtractMinPrice().toString());
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_EXTRACT_BANK, retailShopRequest.getUserExtractBank());
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_EXTRACT_FREEZING_TIME, retailShopRequest.getExtractTime().toString());

@@ -118,52 +118,6 @@
             <el-radio label="0">关闭</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item prop="storeBrokerageRatio">
-          <span slot="label">
-            <span>一级返佣比例：</span>
-            <el-tooltip
-              class="item"
-              effect="dark"
-              content="订单交易成功后给上级返佣的比例0 - 100,例:5 = 反订单金额的5%"
-              placement="top-start"
-            >
-              <i class="el-icon-warning-outline" />
-            </el-tooltip>
-          </span>
-          <el-input-number
-            controls-position="right"
-            v-model="promoterForm.storeBrokerageRatio"
-            step-strictly
-            :min="0"
-            :max="100"
-            class="selWidth"
-            placeholder="订单交易成功后给上级返佣的比例0 - 100,例:5 = 反订单金额的5%"
-          ></el-input-number>
-          <span>%</span>
-        </el-form-item>
-        <el-form-item prop="storeBrokerageTwo">
-          <span slot="label">
-            <span>二级返佣比例：</span>
-            <el-tooltip
-              class="item"
-              effect="dark"
-              content="订单交易成功后给上级返佣的比例0 ~ 100,例:5 = 反订单金额的5%"
-              placement="top-start"
-            >
-              <i class="el-icon-warning-outline" />
-            </el-tooltip>
-          </span>
-          <el-input-number
-            controls-position="right"
-            v-model="promoterForm.storeBrokerageTwo"
-            step-strictly
-            :min="0"
-            :max="100"
-            class="selWidth"
-            placeholder="订单交易成功后给上级返佣的比例0 ~ 100,例:5 = 反订单金额的5%"
-          ></el-input-number>
-          <span>%</span>
-        </el-form-item>
         <el-form-item prop="extractTime">
           <span slot="label">
             <span>冻结时间：</span>
@@ -218,9 +172,8 @@
 </template>
 
 <script>
-import { configApi, configUpdateApi, productCheckApi } from '@/api/distribution';
+import { configApi, configUpdateApi } from '@/api/distribution';
 import { levelAllApi } from '@/api/user';
-import * as selfUtil from '@/utils/ZBKJIutil.js';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 import { Debounce } from '@/utils/validate';
 export default {
@@ -232,8 +185,6 @@ export default {
       loading: true,
       rules: {
         brokerageFuncStatus: [{ required: true, message: '请选择是否启用分销', trigger: 'change' }],
-        storeBrokerageRatio: [{ required: true, message: '请输入一级返佣比例', trigger: 'blur' }],
-        storeBrokerageTwo: [{ required: true, message: '请输入二级返佣比例', trigger: 'blur' }],
         registerDefaultIsPromoter: [{ required: true, message: '请选择注册是否默认推广员', trigger: 'change' }],
         registerDefaultUserLevel: [{ required: true, message: '请选择注册默认会员等级', trigger: 'change' }],
       },
@@ -287,8 +238,6 @@ export default {
     submitForm: Debounce(function (formName) {
       this.$refs[formName].validate((valid) => {
         if (valid) {
-          if (selfUtil.Add(this.promoterForm.storeBrokerageRatio, this.promoterForm.storeBrokerageTwo) > 100)
-            return this.$message.warning('返佣比例相加不能超过100%');
           this.loading = true;
           const payload = {
             ...this.promoterForm,

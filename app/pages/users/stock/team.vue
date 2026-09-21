@@ -37,15 +37,25 @@
       </view>
 
       <view v-for="a in list" :key="a.id" class="agent-card">
-        <view class="agent-avatar">{{ (a.nickname || '?').slice(0, 1) }}</view>
+        <image
+          v-if="avatarUrl(a) && !avatarErr[a.id]"
+          class="agent-avatar-img"
+          :src="avatarUrl(a)"
+          mode="aspectFill"
+          @error="onAvatarErr(a.id)"
+        />
+        <view v-else class="agent-avatar">{{ (a.nickname || '?').slice(0, 1) }}</view>
         <view class="agent-info">
           <view class="agent-line">
             <text class="agent-name">{{ a.nickname }}</text>
             <text class="agent-level">{{ a.levelName }}</text>
           </view>
           <view class="agent-sub">
+            <text class="as-item as-id">ID {{ a.uid }}</text>
             <text class="as-item">{{ a.phone || '暂无手机号' }}</text>
-            <text class="as-item">{{ a.createTime }} 加入</text>
+          </view>
+          <view class="agent-sub as-time">
+            <text class="as-item">{{ a.createTime }}</text>
           </view>
         </view>
         <view class="agent-right">
@@ -130,10 +140,13 @@
 
 <script>
 	import { getSubAgentList, getStockLevels, createSubAgent, getSubAgentOrders } from '@/api/stock.js';
+	import { HTTP_REQUEST_URL } from '@/config/app';
 	export default {
 		data() {
 			return {
 				list: [],
+				avatarErr: {},
+				imgHost: HTTP_REQUEST_URL,
 				loaded: false,
 				showAdd: false,
 				levels: [],
@@ -179,6 +192,16 @@
 					this.list = res.data || [];
 					this.loaded = true;
 				}).catch(() => { this.loaded = true; });
+			},
+			// 头像加载失败时回退成昵称首字
+			onAvatarErr(id) {
+				this.$set(this.avatarErr, id, true);
+			},
+			// 头像为相对路径（crmebimage/...）时补全为可访问地址；已是 http(s) 直接返回
+			avatarUrl(a) {
+				if (!a || !a.avatar) return '';
+				if (/^https?:\/\//i.test(a.avatar)) return a.avatar;
+				return this.imgHost + '/' + a.avatar.replace(/^\/+/, '');
 			},
 			onLevelChange(e) {
 				this.addForm.levelIndex = Number(e.detail.value);
@@ -344,6 +367,14 @@
   flex-shrink: 0;
   box-shadow: inset 0 0 0 1rpx #cfe4ff;
 }
+.agent-avatar-img {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #e8f3ff;
+  box-shadow: inset 0 0 0 1rpx #cfe4ff;
+}
 .agent-info { flex: 1; margin-left: 20rpx; overflow: hidden; }
 .agent-line { display: flex; align-items: center; }
 .agent-name { font-size: 28rpx; color: #26324b; font-weight: 700; margin-right: 14rpx; }
@@ -356,6 +387,8 @@
 }
 .agent-sub { margin-top: 10rpx; display: flex; }
 .as-item { font-size: 23rpx; color: #909399; margin-right: 24rpx; }
+.as-id { color: #5b6b85; font-weight: 600; }
+.as-time { margin-top: 4rpx; }
 /* 状态：圆点 + 彩字 */
 .agent-status {
   flex-shrink: 0;

@@ -53,18 +53,6 @@
           <span class="switch-tip">上级是总部（无上级）的换货单，寄回地址取这里；上级是普通订货商时，展示该上级会员的默认收货地址</span>
         </el-form-item>
         <el-divider />
-        <el-form-item label="平级奖">
-          <el-switch v-model="form.stock_peer_status" :active-value="'1'" :inactive-value="'0'" />
-          <span class="switch-tip">开启：同层级订货商之间按下级业绩发放平级奖励</span>
-        </el-form-item>
-        <el-form-item label="平级奖比例">
-          <el-input-number v-model="peerRateNum" :min="0" :max="100" :precision="2" size="small" style="width: 140px" />
-          <span class="switch-tip">%。按下级订单金额的此比例发放平级奖</span>
-        </el-form-item>
-        <el-form-item label="平级奖代数">
-          <el-input-number v-model="peerGenerationsNum" :min="1" :max="10" :precision="0" size="small" style="width: 140px" />
-          <span class="switch-tip">代。向上追溯的平级代数（1=仅同层直接平级）</span>
-        </el-form-item>
         <el-form-item label="阶梯业绩奖励">
           <el-switch v-model="form.stock_ladder_status" :active-value="'1'" :inactive-value="'0'" />
           <span class="switch-tip">开启：团队业绩达到阶梯后按【固定金额 或 业绩×比例】二选一奖励，每个订货商规则相同，按下方周期一次性自动结算</span>
@@ -132,10 +120,7 @@ export default {
         stock_exchange_hq_audit: '1',
         stock_exchange_return_address: '',
         stock_exchange_diff_parent_rate: '100',
-        stock_exchange_diff_wechat: '1',
-        stock_peer_status: '1',
-        stock_peer_rate: '5',
-        stock_peer_generations: '1'
+        stock_exchange_diff_wechat: '1'
       },
       ladders: [],
       settleMonth: ''
@@ -153,14 +138,6 @@ export default {
     exchangeDiffRateNum: {
       get() { return Number(this.form.stock_exchange_diff_parent_rate) || 0; },
       set(v) { this.form.stock_exchange_diff_parent_rate = String(v); }
-    },
-    peerRateNum: {
-      get() { return Number(this.form.stock_peer_rate) || 0; },
-      set(v) { this.form.stock_peer_rate = String(v); }
-    },
-    peerGenerationsNum: {
-      get() { return Number(this.form.stock_peer_generations) || 1; },
-      set(v) { this.form.stock_peer_generations = String(v); }
     }
   },
   methods: {
