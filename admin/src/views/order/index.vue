@@ -71,198 +71,109 @@
         </el-tabs>
         <el-button @click="exports" v-hasPermi="['admin:export:excel:order']">导出</el-button>
       </div>
-      <el-table
-        v-loading="listLoading"
-        :data="tableData.data"
-        size="mini"
-        class="table"
-        highlight-current-row
-        :row-key="
-          (row) => {
-            return row.orderId;
-          }
-        "
-      >
-        <!-- @selection-change="handleSelectionChange" -->
-        <!-- <el-table-column
-          type="selection"
-          :reserve-selection="true"
-          width="55"
-        /> -->
-        <el-table-column label="订单号" min-width="210" v-if="checkedCities.includes('订单号')">
-          <template slot-scope="scope">
-            <span style="display: block" v-text="scope.row.orderId" />
-            <span v-show="scope.row.isDel" style="color: #ed4014; display: block">用户已删除</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="orderType" label="订单类型" min-width="110" v-if="checkedCities.includes('订单类型')" />
-        <el-table-column label="收货人" min-width="180" v-if="checkedCities.includes('收货人')">
-          <template slot-scope="scope">
-            <div class="recipient-cell">
-              <div>姓名：{{ scope.row.realName || '-' }}</div>
-              <div>电话：{{ scope.row.userPhone || '-' }}</div>
-              <el-tooltip
-                v-if="scope.row.userAddress"
-                effect="dark"
-                :content="scope.row.userAddress"
-                placement="top"
-              >
-                <div class="recipient-address">地址：{{ scope.row.userAddress }}</div>
-              </el-tooltip>
-              <div v-else>地址：-</div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :show-overflow-tooltip="true"
-          label="商品信息"
-          min-width="400"
-          v-if="checkedCities.includes('商品信息')"
-        >
-          <template slot-scope="scope">
-            <div v-if="scope.row.productList && scope.row.productList.length" slot="reference">
-              <div
-                v-for="(val, i) in scope.row.productList"
-                :key="i"
-                class="tabBox acea-row row-middle"
-                style="flex-wrap: inherit"
-              >
-                <div class="demo-image__preview mr10">
-                  <el-image :src="val.info.image" :preview-src-list="[val.info.image]" />
-                </div>
-                <div class="text_overflow">
-                  <span class="tabBox_tit mr10"
-                    >{{ val.info.productName + ' | ' }}{{ val.info.sku ? val.info.sku : '-' }}</span
-                  >
-                  <span class="tabBox_pice">{{
-                    '￥' + val.info.price ? val.info.price + ' x ' + val.info.payNum : '-'
-                  }}</span>
-                </div>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="payPrice" label="实际支付" min-width="80" v-if="checkedCities.includes('实际支付')" />
-        <el-table-column label="支付方式" min-width="80" v-if="checkedCities.includes('支付方式')">
-          <template slot-scope="scope">
-            <span>{{ scope.row.payTypeStr }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="订单状态" min-width="100" v-if="checkedCities.includes('订单状态')">
-          <template slot-scope="scope">
-            <div>
-              <div v-if="scope.row.refundStatus === 1 || scope.row.refundStatus === 2" class="refunding">
-                <template>
-                  <el-popover trigger="hover" placement="left" :open-delay="500">
-                    <b style="color: #f124c7; cursor: pointer" slot="reference">{{ scope.row.statusStr.value }}</b>
-                    <div class="pup_card flex-column">
-                      <span>退款原因：{{ scope.row.refundReasonWap }}</span>
-                      <span>备注说明：{{ scope.row.refundReasonWapExplain }}</span>
-                      <span>退款时间：{{ scope.row.refundReasonTime }}</span>
-                      <span class="acea-row">
-                        退款凭证：
-                        <template v-if="scope.row.refundReasonWapImg">
-                          <div
-                            v-for="(item, index) in scope.row.refundReasonWapImg.split(',')"
-                            :key="index"
-                            class="demo-image__preview"
-                            style="width: 35px; height: auto; display: inline-block"
-                          >
-                            <el-image :src="item" :preview-src-list="[item]" />
-                          </div>
-                        </template>
-                        <span v-else style="display: inline-block">无</span>
-                      </span>
+      <!-- 订单卡片列表（复用订货商-订货商订单页样式） -->
+      <div v-loading="listLoading" class="order-list">
+        <div v-for="row in tableData.data" :key="row.orderId" class="order-card">
+          <!-- 卡片头：单号 + 时间 + 状态 -->
+          <div class="card-head">
+            <span class="head-label">订单编号：</span>
+            <span class="head-no">{{ row.orderId }}</span>
+            <span class="head-time">{{ shortTime(row.createTime) }}</span>
+            <span v-if="row.isDel" class="head-reason">用户已删除</span>
+            <el-popover v-if="row.refundStatus === 1 || row.refundStatus === 2" trigger="hover" placement="top" :open-delay="500">
+              <b :class="statusClass(row.statusStr.key) + ' head-status'" slot="reference">{{ row.statusStr.value }}</b>
+              <div class="pup_card flex-column">
+                <span>退款原因：{{ row.refundReasonWap }}</span>
+                <span>备注说明：{{ row.refundReasonWapExplain }}</span>
+                <span>退款时间：{{ row.refundReasonTime }}</span>
+                <span class="acea-row">
+                  退款凭证：
+                  <template v-if="row.refundReasonWapImg">
+                    <div
+                      v-for="(item, index) in row.refundReasonWapImg.split(',')"
+                      :key="index"
+                      class="demo-image__preview"
+                      style="width: 35px; height: auto; display: inline-block"
+                    >
+                      <el-image :src="item" :preview-src-list="[item]" />
                     </div>
-                  </el-popover>
-                </template>
+                  </template>
+                  <span v-else style="display: inline-block">无</span>
+                </span>
               </div>
-              <span v-else>{{ scope.row.statusStr.value }}</span>
+            </el-popover>
+            <span v-else :class="statusClass(row.statusStr.key) + ' head-status'">{{ row.statusStr.value }}</span>
+          </div>
+          <!-- 卡片体：商品 | 收货人 | 实际支付 | 类型/支付方式 | 操作 -->
+          <div class="card-body">
+            <div class="col col-goods">
+              <div v-for="(val, i) in row.productList" :key="i" class="goods-item">
+                <el-image :src="val.info.image" :preview-src-list="[val.info.image]" class="goods-img" fit="cover" />
+                <div class="goods-info">
+                  <div class="goods-name" :title="val.info.productName">
+                    {{ val.info.productName }}<span v-if="val.info.sku" class="goods-sku"> | {{ val.info.sku }}</span>
+                  </div>
+                  <div class="goods-num">￥{{ val.info.price }} × {{ val.info.payNum }}</div>
+                </div>
+              </div>
+              <div v-if="!(row.productList || []).length" class="sub-text">—</div>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" min-width="150" v-if="checkedCities.includes('创建时间')" />
-        <el-table-column label="操作" width="200" fixed="right" :render-header="renderHeader">
-          <template slot-scope="scope">
-            <template>
-              <a @click="onOrderDetails(scope.row.orderId)" v-if="checkPermi(['admin:order:info'])">详情</a>
-              <el-divider direction="vertical"></el-divider>
-            </template>
-            <template
-              v-if="scope.row.paid === false && !scope.row.isAlterPrice && checkPermi(['admin:order:update:price'])"
-            >
-              <a @click="edit(scope.row)">编辑</a>
-              <el-divider direction="vertical"></el-divider>
-            </template>
-            <template
-              v-if="
-                scope.row.statusStr.key === 'notShipped' &&
-                scope.row.refundStatus === 0 &&
-                checkPermi(['admin:order:send'])
-              "
-            >
-              <a @click="sendOrder(scope.row)">发送货</a>
-              <el-divider direction="vertical"></el-divider>
-            </template>
+            <div class="col col-recv">
+              <template v-if="row.realName">
+                <div class="recv-name">{{ row.realName }}<span class="sub-text recv-phone">{{ row.userPhone }}</span></div>
+                <el-tooltip v-if="row.userAddress" effect="dark" :content="row.userAddress" placement="top">
+                  <div class="recv-addr">{{ row.userAddress }}</div>
+                </el-tooltip>
+                <div v-else class="sub-text">地址：-</div>
+              </template>
+              <div v-else class="sub-text">无需收货信息</div>
+            </div>
+            <div class="col col-amount">
+              <div class="amount">¥{{ fmtMoney(row.payPrice) }}</div>
+              <div class="sub-text">实付</div>
+            </div>
+            <div class="col col-state">
+              <div class="sub-text">{{ row.payTypeStr || '—' }}</div>
+              <div class="recv-tags">
+                <span class="mini-chip">{{ orderTypeText(row) }}</span>
+              </div>
+            </div>
+            <div class="col col-ops">
+              <el-button v-if="checkPermi(['admin:order:info'])" size="mini" type="primary" plain class="op-btn" @click="onOrderDetails(row.orderId)">详情</el-button>
+              <el-button
+                v-if="row.paid === false && !row.isAlterPrice && checkPermi(['admin:order:update:price'])"
+                size="mini" type="warning" plain class="op-btn" @click="edit(row)"
+              >编辑</el-button>
+              <el-button
+                v-if="row.statusStr.key === 'notShipped' && row.refundStatus === 0 && checkPermi(['admin:order:send'])"
+                size="mini" type="primary" plain class="op-btn" @click="sendOrder(row)"
+              >发送货</el-button>
+              <!--视频号订单不可修改-->
+              <el-button
+                v-if="row.statusStr.key === 'spike' && row.type === 0 && checkPermi(['admin:order:tracking:number:update']) && !row.shipmentTaskId"
+                size="mini" type="primary" plain class="op-btn" @click="handleUpdateNumber(row)"
+              >修改快递单号</el-button>
+              <el-button
+                v-if="row.statusStr.key === 'toBeWrittenOff' && row.paid == true && row.refundStatus === 0 && checkPermi(['admin:order:write:update'])"
+                size="mini" type="success" plain class="op-btn" @click="onWriteOff(row)"
+              >立即核销</el-button>
+              <el-dropdown trigger="click" class="op-more">
+                <span class="el-dropdown-link">更多<i class="el-icon-arrow-down el-icon--right" /></span>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item @click.native="onOrderLog(row.orderId)" v-if="checkPermi(['admin:order:status:list'])">订单记录</el-dropdown-item>
+                  <el-dropdown-item @click.native="onOrderMark(row)" v-if="checkPermi(['admin:order:mark'])">订单备注</el-dropdown-item>
+                  <el-dropdown-item v-if="row.refundStatus === 1 && checkPermi(['admin:order:refund:refuse'])" @click.native="onOrderRefuse(row)">拒绝退款</el-dropdown-item>
+                  <el-dropdown-item v-if="row.refundStatus === 1 && checkPermi(['admin:order:refund'])" @click.native="onOrderRefund(row)">立即退款</el-dropdown-item>
+                  <el-dropdown-item v-if="row.statusStr.key === 'deleted' && checkPermi(['admin:order:delete'])" @click.native="handleDelete(row)">删除订单</el-dropdown-item>
+                  <el-dropdown-item v-if="row.statusStr.key !== 'unPaid'" @click.native="onOrderPrint(row)">打印小票</el-dropdown-item>
+                </el-dropdown-menu>
+              </el-dropdown>
+            </div>
+          </div>
+        </div>
 
-            <!--视频号订单不可修改-->
-            <template
-              v-if="
-                scope.row.statusStr.key === 'spike' &&
-                scope.row.type === 0 &&
-                checkPermi(['admin:order:tracking:number:update']) &&
-                !scope.row.shipmentTaskId
-              "
-            >
-              <a @click="handleUpdateNumber(scope.row)">修改快递单号</a>
-              <el-divider direction="vertical"></el-divider>
-            </template>
-            <template
-              v-if="
-                scope.row.statusStr.key === 'toBeWrittenOff' &&
-                scope.row.paid == true &&
-                scope.row.refundStatus === 0 &&
-                checkPermi(['admin:order:write:update'])
-              "
-            >
-              <a @click="onWriteOff(scope.row)">立即核销</a>
-              <el-divider direction="vertical"></el-divider>
-            </template>
-            <el-dropdown trigger="click">
-              <span class="el-dropdown-link"> 更多<i class="el-icon-arrow-down el-icon--right" /> </span>
-              <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item
-                  @click.native="onOrderLog(scope.row.orderId)"
-                  v-if="checkPermi(['admin:order:status:list'])"
-                  >订单记录</el-dropdown-item
-                >
-                <el-dropdown-item @click.native="onOrderMark(scope.row)" v-if="checkPermi(['admin:order:mark'])"
-                  >订单备注</el-dropdown-item
-                >
-                <el-dropdown-item
-                  v-if="scope.row.refundStatus === 1 && checkPermi(['admin:order:refund:refuse'])"
-                  @click.native="onOrderRefuse(scope.row)"
-                  >拒绝退款</el-dropdown-item
-                >
-                <!--v-show="((scope.row.statusStr.key !== 'refunded' && scope.row.statusStr.key !== 'unPaid') && (parseFloat(scope.row.payPrice) >= parseFloat(scope.row.refundPrice))) || (scope.row.payPrice == 0 && [0,1].indexOf(scope.row.refundStatus) !== -1)"-->
-                <el-dropdown-item
-                  v-if="scope.row.refundStatus === 1 && checkPermi(['admin:order:refund'])"
-                  @click.native="onOrderRefund(scope.row)"
-                  >立即退款</el-dropdown-item
-                >
-                <el-dropdown-item
-                  v-if="scope.row.statusStr.key === 'deleted' && checkPermi(['admin:order:delete'])"
-                  @click.native="handleDelete(scope.row, scope.$index)"
-                  >删除订单</el-dropdown-item
-                >
-                <el-dropdown-item v-if="scope.row.statusStr.key !== 'unPaid'" @click.native="onOrderPrint(scope.row)"
-                  >打印小票</el-dropdown-item
-                >
-              </el-dropdown-menu>
-            </el-dropdown>
-          </template>
-        </el-table-column>
-      </el-table>
+        <div v-if="!tableData.data.length && !listLoading" class="empty-tip">暂无订单</div>
+      </div>
       <div class="block">
         <el-pagination
           :page-sizes="[20, 40, 60, 80]"
@@ -276,19 +187,6 @@
         />
       </div>
     </el-card>
-    <div class="card_abs" v-show="card_select_show">
-      <template>
-        <div class="cell_ht">
-          <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange"
-            >全选</el-checkbox
-          >
-          <el-button type="text" @click="checkSave()">保存</el-button>
-        </div>
-        <el-checkbox-group v-model="checkedCities" @change="handleCheckedCitiesChange">
-          <el-checkbox v-for="item in columnData" :label="item" :key="item" class="check_cell">{{ item }}</el-checkbox>
-        </el-checkbox-group>
-      </template>
-    </div>
     <!--编辑-->
     <el-dialog title="编辑订单" :visible.sync="dialogVisible" width="500px" :before-close="handleClose">
       <zb-parser
@@ -392,7 +290,6 @@ import orderSend from './orderSend';
 import orderVideoSend from './orderVideoSend';
 import { storeStaffListApi } from '@/api/storePoint';
 import Cookies from 'js-cookie';
-import { isWriteOff } from '@/utils';
 import { orderExcelApi } from '@/api/store';
 import { expressAllApi } from '@/api/sms';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
@@ -471,14 +368,6 @@ export default {
       ids: '',
       orderids: '',
       cardLists: [],
-      isWriteOff: isWriteOff(),
-      proType: 0,
-      active: false,
-      card_select_show: false,
-      checkAll: false,
-      checkedCities: ['订单号', '订单类型', '收货人', '商品信息', '实际支付', '支付方式', '订单状态', '创建时间'],
-      columnData: ['订单号', '订单类型', '收货人', '商品信息', '实际支付', '支付方式', '订单状态', '创建时间'],
-      isIndeterminate: true,
       expressListNormal: [], //全部物流公司 normal
       expressListElec: [], //全部物流公司 elec
       orderDetail: null, //订单详情
@@ -492,6 +381,35 @@ export default {
   },
   methods: {
     checkPermi,
+    // ===== 卡片列表辅助（对齐订货商-订货商订单页） =====
+    shortTime(t) {
+      if (!t) return '-';
+      return String(t).substring(0, 16);
+    },
+    fmtMoney(v) {
+      const n = Number(v || 0);
+      return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    },
+    // 订单类型文案：type 0=普通 1=视频号
+    orderTypeText(row) {
+      return row.type === 1 ? '视频号订单' : '普通订单';
+    },
+    // 状态配色：未支付/待核销橙、未发货/待收货/待评价蓝、完成绿、退款/删除红灰
+    statusClass(key) {
+      return (
+        {
+          unPaid: 'is-warn',
+          notShipped: 'is-info',
+          spike: 'is-info',
+          bargain: 'is-info',
+          complete: 'is-ok',
+          toBeWrittenOff: 'is-warn',
+          refunding: 'is-danger',
+          refunded: 'is-danger',
+          deleted: 'is-muted',
+        }[key] || ''
+      );
+    },
     //重置
     handleReset() {
       this.tableFrom.type = 2;
@@ -631,7 +549,7 @@ export default {
       this.orderId = row.orderId;
     },
     // 订单删除
-    handleDelete(row, idx) {
+    handleDelete(row) {
       if (row.isDel) {
         this.$modalSure().then(() => {
           orderDeleteApi({ orderNo: row.orderId }).then(() => {
@@ -695,22 +613,6 @@ export default {
         });
       });
     },
-    handleSelectionChange(val) {
-      this.selectionList = val;
-      const data = [];
-      this.selectionList.map((item) => {
-        data.push(item.orderId);
-      });
-      this.ids = data.join(',');
-    },
-    // 选择时间
-    selectChange(tab) {
-      this.timeVal = [];
-      this.tableFrom.page = 1;
-      this.getList();
-      this.getOrderStatusNum();
-      // this.getOrderListData();
-    },
     // 具体日期
     onchangeTime(e) {
       this.timeVal = e;
@@ -752,9 +654,6 @@ export default {
           this.tableData.data = res.list || [];
           this.tableData.total = res.total;
           this.listLoading = false;
-          this.checkedCities = this.$cache.local.has('order_stroge')
-            ? this.$cache.local.getJSON('order_stroge')
-            : this.checkedCities;
         })
         .catch(() => {
           this.listLoading = false;
@@ -810,36 +709,6 @@ export default {
         window.open(res.fileName);
       });
     },
-    renderHeader(h) {
-      return (
-        <p>
-          <span style="padding-right:5px;">操作</span>
-          <i class="el-icon-setting" onClick={() => this.handleAddItem()}></i>
-        </p>
-      );
-    },
-    handleAddItem() {
-      if (this.card_select_show) {
-        this.$set(this, 'card_select_show', false);
-      } else if (!this.card_select_show) {
-        this.$set(this, 'card_select_show', true);
-      }
-    },
-    handleCheckAllChange(val) {
-      this.checkedCities = val ? this.columnData : [];
-      this.isIndeterminate = false;
-    },
-    handleCheckedCitiesChange(value) {
-      let checkedCount = value.length;
-      this.checkAll = checkedCount === this.columnData.length;
-      this.isIndeterminate = checkedCount > 0 && checkedCount < this.columnData.length;
-    },
-    checkSave() {
-      this.card_select_show = false;
-      this.$modal.loading('正在保存到本地，请稍候...');
-      this.$cache.local.setJSON('order_stroge', this.checkedCities);
-      setTimeout(this.$modal.closeLoading(), 1000);
-    },
     //打印小票
     onOrderPrint(data) {
       orderPrint(data.orderId)
@@ -854,59 +723,201 @@ export default {
 };
 </script>
 <style lang="scss" scoped>
-.el-table__body {
-  width: 100%;
-  table-layout: fixed !important;
+/* ===== 订单卡片列表（复用订货商-订货商订单页样式） ===== */
+.sub-text {
+  color: #909399;
+  font-size: 13px;
+  line-height: 20px;
+}
+.order-list {
+  min-height: 120px;
+}
+.order-card {
+  margin-bottom: 14px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+.order-card:hover {
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
 }
 
-.demo-table-expand {
-  ::v-deeplabel {
-    width: 83px !important;
-  }
+/* 卡片头 */
+.card-head {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 40px;
+  background: #f0f4fb;
+  font-size: 13px;
+}
+.head-label {
+  color: #606266;
+}
+.head-no {
+  font-weight: 600;
+  color: #303133;
+  font-size: 14px;
+}
+.head-time {
+  margin-left: 14px;
+  color: #909399;
+}
+.head-status {
+  margin-left: 14px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.head-status.is-warn { color: #ff9900; }
+.head-status.is-info { color: #409eff; }
+.head-status.is-ok { color: #19be6b; }
+.head-status.is-danger { color: #f56c6c; }
+.head-status.is-muted { color: #909399; }
+.head-reason {
+  color: #f56c6c;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.refunding {
-  span {
-    display: block;
-  }
+/* 卡片体：网格分列，列间细分隔线 */
+.card-body {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.6fr) 190px 110px 130px 130px;
+  align-items: center;
+  padding: 16px 0;
+}
+.col {
+  padding: 4px 16px;
+  min-width: 0;
+  align-self: center;
+}
+.col + .col {
+  border-left: 1px solid #f2f4f7;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.el-dropdown-link {
+/* 商品列 */
+.goods-item {
+  display: flex;
+  align-items: center;
+  margin: 4px 0;
+}
+.goods-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: #f5f7fa;
+  margin-right: 10px;
+}
+.goods-info {
+  min-width: 0;
+}
+.goods-name {
+  font-size: 14px;
+  color: #303133;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.goods-sku {
+  color: #909399;
+  font-size: 12px;
+}
+.goods-num {
+  font-size: 13px;
+  color: #909399;
+  line-height: 20px;
+  margin-top: 2px;
+}
+
+/* 收货人列 */
+.recv-name {
+  font-size: 14px;
+  color: #303133;
+  line-height: 22px;
+}
+.recv-phone {
+  margin-left: 8px;
+}
+.recv-addr {
+  font-size: 13px;
+  color: #606266;
+  line-height: 20px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* 金额列 */
+.col-amount {
+  text-align: center;
+}
+.amount {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e93323;
+  font-family: DIN, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 26px;
+}
+
+/* 类型/支付方式列 */
+.recv-tags {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+}
+.mini-chip {
+  padding: 0 8px;
+  border-radius: 3px;
+  background: #f5f7fa;
+  border: 1px solid #ebeef5;
+  color: #909399;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+/* 操作列：按钮竖排 */
+.col-ops {
+  align-items: center;
+}
+.op-btn {
+  min-width: 92px;
+  margin: 4px 0 !important;
+  margin-left: 0 !important;
+  display: block;
+}
+.op-more {
+  margin-top: 6px;
+}
+.op-more .el-dropdown-link {
   cursor: pointer;
   color: #409eff;
   font-size: 12px;
 }
-
-.el-icon-arrow-down {
+.op-more .el-icon-arrow-down {
   font-size: 12px;
 }
-
-.tabBox_tit {
-  font-size: 12px !important;
-  /*margin: 0 2px 0 10px;*/
-  letter-spacing: 1px;
-  /*padding: 5px 0;*/
-  box-sizing: border-box;
+.empty-tip {
+  text-align: center;
+  color: #909399;
+  font-size: 13px;
+  padding: 32px 0;
 }
 
-.recipient-cell {
-  font-size: 12px;
-  line-height: 1.6;
-  .recipient-address {
-    max-width: 160px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.text_overflow {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 400px;
-}
-
+/* 退款气泡内容 */
 .pup_card {
   width: 200px;
   border-radius: 5px;
@@ -915,49 +926,11 @@ export default {
   font-size: 12px;
   line-height: 16px;
 }
-
 .flex-column {
   display: flex;
   flex-direction: column;
 }
 
-.mt20 {
-  margin-top: 20px;
-}
-
-.relative {
-  position: relative;
-}
-
-.card_abs {
-  position: absolute;
-  padding-bottom: 15px;
-  top: 520px;
-  right: 40px;
-  width: 200px;
-  background: #fff;
-  z-index: 99999;
-  box-shadow: 0px 0px 14px 0px rgba(0, 0, 0, 0.1);
-}
-
-.cell_ht {
-  height: 50px;
-  padding: 15px 20px;
-  box-sizing: border-box;
-  border-bottom: 1px solid #eeeeee;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.check_cell {
-  width: 100%;
-  padding: 15px 20px 0;
-}
-
-::v-deep .el-checkbox__input.is-checked + .el-checkbox__label {
-  color: #606266;
-}
 .block {
   margin-bottom: 20px;
 }
