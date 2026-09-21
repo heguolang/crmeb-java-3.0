@@ -178,6 +178,9 @@
         <view class="row-op" v-if="Number(e.diffPrice) > 0 && e.diffPayStatus !== 1 && e.status !== -1">
           <button class="op-btn primary" @click="payDiff(e)">支付差价 ¥{{ e.diffPrice }}</button>
         </view>
+        <view class="row-op" v-if="e.status === 5">
+          <button class="op-btn primary" @click="confirmReceive(e)">确认收货</button>
+        </view>
         <!-- 寄回地址：上级为总部取后台配置，普通上级取其默认收货地址。独立块避免被 flex 挤压 -->
         <view v-if="e.status === 2" class="ex-back-addr">
           <view class="ba-top">
@@ -205,7 +208,7 @@
         <view v-for="e in subList" :key="'s' + e.id" class="ex-card sub-ex-card">
           <view class="row-1">
             <text class="ex-no">{{ e.exchangeNo }}</text>
-            <text class="ex-status" :class="'st' + e.status">{{ statusText(e.status) }}</text>
+            <text class="ex-status" :class="'st' + e.status">{{ statusText(e.status, true) }}</text>
           </view>
           <view class="sub-user">
             <image
@@ -297,7 +300,7 @@
 </template>
 
 <script>
-	import { getMyExchanges, applyStockExchange, fillExchangeBackExpress, getExchangeOptions, getExchangeQuota, payExchangeDiff, getExchangeAuditList } from '@/api/stock.js';
+	import { getMyExchanges, applyStockExchange, fillExchangeBackExpress, getExchangeOptions, getExchangeQuota, payExchangeDiff, getExchangeAuditList, confirmExchangeReceive } from '@/api/stock.js';
 	import { getAddressList } from '@/api/user.js';
 	import { HTTP_REQUEST_URL } from '@/config/app';
 	export default {
@@ -370,8 +373,26 @@
 			onAvatarErr(key) {
 				this.$set(this.avatarErr, key, true);
 			},
-			statusText(s) {
-				return { 0: '待上级审核', 1: '待总部审核', 2: '待旧品退回', 3: '待发新品', 4: '已完成', '-1': '已驳回' }[s] || s;
+			statusText(s, sub) {
+				const map = { 0: '待上级审核', 1: '待总部审核', 2: '待旧品退回', 3: '待发新品', 4: '已完成', 5: sub ? '待下级收货' : '待收货', '-1': '已驳回' };
+				return map[s] || s;
+			},
+			// 换货人确认收货（上级发新品后，收到货才算换货完成并结算差价奖励）
+			confirmReceive(e) {
+				uni.showModal({
+					title: '确认收货',
+					content: '确认已收到换货新品？确认后换货单完成。',
+					success: (m) => {
+						if (!m.confirm) return;
+						confirmExchangeReceive(e.id).then(() => {
+							uni.showToast({ title: '换货已完成', icon: 'success' });
+							this.load();
+							this.loadSub();
+						}).catch(err => {
+							uni.showModal({ title: '操作失败', content: err || '请稍后重试', showCancel: false });
+						});
+					}
+				});
 			},
 			// 有补差价且未支付：状态显示「待支付」
 			diffUnpaid(e) {
@@ -522,12 +543,39 @@
 					targetStockType: this.sourceType === 2 ? this.targetType : 1,
 					addressId: this.needsAddress ? this.selectedAddressId : null
 				}).then(() => {
-					this.$util.Tips({ title: '申请已提交' });
 					this.load();
 					this.loadQuota();
+					const diff = Number(this.selectedTarget.diffPrice || 0) * num;
+					if (diff > 0) {
+						// 有差价：支付后才推给上级审核，提交后立刻引导支付，避免下级找不到支付入口
+						uni.showModal({
+							title: '申请已提交',
+							content: '本单需补差价 ¥' + diff.toFixed(2) + '，支付后才会提交上级审核，是否立即支付？',
+							confirmText: '立即支付',
+							success: (m) => {
+								if (m.confirm) this.payLatestUnpaid();
+							}
+						});
+					} else {
+						this.$util.Tips({ title: '申请已提交' });
+					}
 				}).catch(err => {
 					// 后端校验失败的原因必须弹给用户，否则请求被 reject 后页面毫无反应
 					this.showTip(typeof err === 'string' ? err : '提交失败，请稍后重试');
+				});
+			},
+			// 找到刚提交的那笔换货单（最新一条待支付差价的）直接拉起支付
+			payLatestUnpaid() {
+				getMyExchanges({ page: 1, limit: 5 }).then(res => {
+					const list = (res.data && res.data.list) || [];
+					const target = list.find(e => Number(e.diffPrice) > 0 && e.diffPayStatus !== 1 && e.status === 0);
+					if (!target) {
+						this.$util.Tips({ title: '未找到待支付的换货单，请到「我的换货」里支付' });
+						return;
+					}
+					this.payDiff(target);
+				}).catch(() => {
+					this.$util.Tips({ title: '加载换货单失败，请到「我的换货」里支付' });
 				});
 			},
 			// 一键复制寄回地址：直接写剪贴板，避免长地址手抄出错
@@ -896,6 +944,7 @@
 .st2 { background: #ecf3ff; color: #2b6fe3; }
 .st3 { background: #ecf3ff; color: #2b6fe3; }
 .st4 { background: #e9f9ec; color: #18a852; }
+.st5 { background: #ecf3ff; color: #2b6fe3; }
 .st-1 { background: #ffecec; color: #f56c6c; }
 
 .ex-row { font-size: 25rpx; color: #3d4a5f; margin-bottom: 10rpx; line-height: 36rpx; }

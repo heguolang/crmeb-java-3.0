@@ -30,6 +30,7 @@ public class StockExchange implements Serializable {
     public static final Integer STATUS_WAIT_BACK = 2;           // 待旧品退回
     public static final Integer STATUS_WAIT_SEND = 3;           // 待发新品
     public static final Integer STATUS_COMPLETE = 4;            // 已完成
+    public static final Integer STATUS_WAIT_RECEIVE = 5;        // 待下级收货（上级已发新品，等换货人确认）
     public static final Integer STATUS_REJECT = -1;             // 驳回
 
     @ApiModelProperty(value = "主键")

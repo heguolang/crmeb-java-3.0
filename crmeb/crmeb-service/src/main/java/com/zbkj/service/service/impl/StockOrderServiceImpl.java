@@ -1033,6 +1033,8 @@ public class StockOrderServiceImpl implements StockOrderService {
         PageHelper.startPage(page.getPage(), page.getLimit());
         LambdaQueryWrapper<StockOrder> lqw = new LambdaQueryWrapper<>();
         lqw.eq(StockOrder::getParentAgentId, agent.getId()).eq(StockOrder::getIsDel, 0);
+        // 虚拟提货单由总部审核发货，上级既不能审也不能发，一律不出现在该列表
+        lqw.ne(StockOrder::getOrderType, StockOrder.ORDER_TYPE_PICKUP);
         if (status != null) {
             if (StockOrder.STATUS_WAIT_PARENT_AUDIT.equals(status)) {
                 // 「待我处理」同时包含：待上级审核(0) 与 等待匹配上级(10，下单时上级无库存待补货)
@@ -1404,6 +1406,10 @@ public class StockOrderServiceImpl implements StockOrderService {
         PageHelper.startPage(page.getPage(), page.getLimit());
         LambdaQueryWrapper<StockExchange> lqw = new LambdaQueryWrapper<>();
         lqw.eq(StockExchange::getParentAgentId, agent.getId()).eq(StockExchange::getIsDel, 0);
+        // 未支付差价的单不推给上级：支付后才进入上级的换货列表（申请人在「我的换货」里支付）
+        lqw.and(w -> w.ne(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT)
+                .or().le(StockExchange::getDiffPrice, BigDecimal.ZERO)
+                .or().eq(StockExchange::getDiffPayStatus, 1));
         if (status == null) {
             // 默认：待我处理的（待我审核 0 + 旧品待入库 2 + 待发新品 3），
             // 上级在会员端完成「审核 → 收旧品 → 发新品」整条链，不再只能去后台操作
@@ -1444,19 +1450,26 @@ public class StockOrderServiceImpl implements StockOrderService {
             return map;
         }
         // 待我审核的订货单（0 待上级审核 + 10 等待匹配上级，与「订单审核」列表口径一致）
+        // 提货单（order_type=2）由总部发货，与上级无关，不计入
         Integer audit = stockOrderDao.selectCount(new LambdaQueryWrapper<StockOrder>()
                 .eq(StockOrder::getParentAgentId, agent.getId())
                 .eq(StockOrder::getIsDel, 0)
+                .ne(StockOrder::getOrderType, StockOrder.ORDER_TYPE_PICKUP)
                 .in(StockOrder::getStatus, StockOrder.STATUS_WAIT_PARENT_AUDIT, StockOrder.STATUS_WAIT_MATCH));
-        // 待我发货的订货单（2 待发货，上级发货模式下需要我发出）
+        // 待我发货的订货单（2 待发货，上级发货模式下需要我发出；提货单由总部发货不计入）
         Integer send = stockOrderDao.selectCount(new LambdaQueryWrapper<StockOrder>()
                 .eq(StockOrder::getParentAgentId, agent.getId())
                 .eq(StockOrder::getIsDel, 0)
+                .ne(StockOrder::getOrderType, StockOrder.ORDER_TYPE_PICKUP)
                 .eq(StockOrder::getStatus, StockOrder.STATUS_WAIT_SEND));
         // 待我处理的换货单（待我审核 0 + 旧品待入库 2 + 待发新品 3，与换货审核列表口径一致）
+        // 未支付差价的单不推给上级，不计入角标
         Integer exchangeAudit = stockExchangeDao.selectCount(new LambdaQueryWrapper<StockExchange>()
                 .eq(StockExchange::getParentAgentId, agent.getId())
                 .eq(StockExchange::getIsDel, 0)
+                .and(w -> w.ne(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT)
+                        .or().le(StockExchange::getDiffPrice, BigDecimal.ZERO)
+                        .or().eq(StockExchange::getDiffPayStatus, 1))
                 .in(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT,
                         StockExchange.STATUS_WAIT_BACK, StockExchange.STATUS_WAIT_SEND));
         map.put("audit", audit == null ? 0 : audit);
@@ -1755,7 +1768,8 @@ public class StockOrderServiceImpl implements StockOrderService {
             });
             return true;
         }
-        // 通过：先确认上级真的有货可发，避免「上级无库存也换货成功」把库存扣成负数
+        // 通过：差价未支付不允许审核（支付后才推给上级），再确认上级真的有货可发
+        requireDiffPaid(exchange);
         requireParentStockEnough(exchange, "通过换货申请");
         if (isVirtualExchange(exchange)) {
             if (isVirtualTarget(exchange)) {
@@ -1894,9 +1908,8 @@ public class StockOrderServiceImpl implements StockOrderService {
                     "您的换货单 " + exchange.getExchangeNo() + " 被总部驳回：" + request.getReason().trim());
             return true;
         }
-        // 通过：实体换货 → 待旧品退回（总部介入时跳过上级复审，同样进入待旧品退回）；
-        // 虚拟换虚拟 → 直接完成（扣上级虚拟库存并入账）；虚拟换实体 → 直接待发新品
-        // 审核前先确认上级有货可发（总部发货的单子除外）
+        // 通过：差价未支付不允许审核；再确认上级有货可发（总部发货的单子除外）
+        requireDiffPaid(exchange);
         requireParentStockEnough(exchange, "通过换货申请");
         if (isVirtualExchange(exchange) && isVirtualTarget(exchange)) {
             requireDiffPaid(exchange);
@@ -1986,7 +1999,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         return doSendExchangeNew(exchange, request);
     }
 
-    /** 发出新品：扣减库存、记录新快递单号并完成换货（状态 3 → 4） */
+    /** 发出新品：扣减库存、记录新快递单号（状态 3 → 5 待下级收货，换货人确认收货后才完成） */
     private boolean doSendExchangeNew(StockExchange exchange, StockRequests.StockSendRequest request) {
         if (!exchange.getStatus().equals(StockExchange.STATUS_WAIT_SEND)) {
             throw new CrmebException("当前状态不可发新品");
@@ -2004,19 +2017,51 @@ public class StockOrderServiceImpl implements StockOrderService {
                     exchange.getExchangeNo(), "换货发出新品");
             exchange.setNewExpressName(request.getExpressName());
             exchange.setNewExpressNum(request.getExpressNum());
-            exchange.setStatus(StockExchange.STATUS_COMPLETE);
+            exchange.setStatus(StockExchange.STATUS_WAIT_RECEIVE);
             exchange.setSendTime(new Date());
-            exchange.setFinishTime(new Date());
             boolean ok = stockExchangeDao.updateById(exchange) > 0;
             if (ok) {
-                // 换货完成才结算差价奖励（支付时只收钱不发奖）
-                stockRewardService.settleExchangeDiffReward(exchange);
                 stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_SEND, "换货新品已发出",
                         "您的换货单 " + exchange.getExchangeNo() + " 新品已发出，快递：" + request.getExpressName()
-                                + " " + request.getExpressNum());
+                                + " " + request.getExpressNum() + "，请在收到货后确认收货");
             }
             return ok;
         }) != null;
+    }
+
+    /** 换货人确认收货（状态 5 → 4 已完成，差价奖励在此时结算） */
+    private boolean doConfirmReceiveExchange(StockExchange exchange) {
+        if (!exchange.getStatus().equals(StockExchange.STATUS_WAIT_RECEIVE)) {
+            throw new CrmebException("当前状态无需确认收货");
+        }
+        exchange.setStatus(StockExchange.STATUS_COMPLETE);
+        exchange.setFinishTime(new Date());
+        boolean ok = stockExchangeDao.updateById(exchange) > 0;
+        if (ok) {
+            // 换货完成才结算差价奖励（支付时只收钱不发奖）
+            stockRewardService.settleExchangeDiffReward(exchange);
+            stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_SEND, "换货完成",
+                    "您的换货单 " + exchange.getExchangeNo() + " 已确认收货，换货完成");
+        }
+        return ok;
+    }
+
+    @Override
+    public Boolean confirmReceiveExchange(Integer uid, Integer exchangeId) {
+        StockExchange exchange = stockExchangeDao.selectById(exchangeId);
+        if (exchange == null || exchange.getIsDel() == 1 || !exchange.getUid().equals(uid)) {
+            throw new CrmebException("换货单不存在");
+        }
+        return doConfirmReceiveExchange(exchange);
+    }
+
+    @Override
+    public Boolean confirmReceiveExchangeByAdmin(Integer exchangeId) {
+        StockExchange exchange = stockExchangeDao.selectById(exchangeId);
+        if (exchange == null || exchange.getIsDel() == 1) {
+            throw new CrmebException("换货单不存在");
+        }
+        return doConfirmReceiveExchange(exchange);
     }
 
     @Override
@@ -2312,12 +2357,13 @@ public class StockOrderServiceImpl implements StockOrderService {
     /**
      * 已完成换货对【上级】实体库存的影响：下级换货发出新品 = 从上级实体库存中出库，
      * 上级对应商品可供应量 -num。仅统计换入实体商品的换货单（虚拟换虚拟不走发货）。
+     * 待收货(5) 也计入——货已从上级发出、在途，不能再按有货算。
      */
     private Map<Integer, Integer> exchangeOutDeltaMap(Integer agentId) {
         Map<Integer, Integer> map = new HashMap<>();
         List<StockExchange> done = stockExchangeDao.selectList(new LambdaQueryWrapper<StockExchange>()
                 .eq(StockExchange::getParentAgentId, agentId)
-                .eq(StockExchange::getStatus, StockExchange.STATUS_COMPLETE)
+                .in(StockExchange::getStatus, StockExchange.STATUS_COMPLETE, StockExchange.STATUS_WAIT_RECEIVE)
                 .eq(StockExchange::getIsDel, 0));
         for (StockExchange e : done) {
             if (isVirtualTarget(e) || e.getTargetProductId() == null || e.getTargetProductId() <= 0) {
@@ -2341,7 +2387,7 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockExchange::getAgentId, agentId)
                 .in(StockExchange::getStatus, StockExchange.STATUS_WAIT_PARENT_AUDIT,
                         StockExchange.STATUS_WAIT_HQ_AUDIT, StockExchange.STATUS_WAIT_BACK,
-                        StockExchange.STATUS_WAIT_SEND)
+                        StockExchange.STATUS_WAIT_SEND, StockExchange.STATUS_WAIT_RECEIVE)
                 .eq(StockExchange::getIsDel, 0));
         for (StockExchange e : pending) {
             if (isVirtualExchange(e) || e.getProductId() == null) {

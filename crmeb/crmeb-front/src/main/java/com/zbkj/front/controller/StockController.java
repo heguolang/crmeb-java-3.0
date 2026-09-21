@@ -347,11 +347,20 @@ public class StockController {
         return CommonResult.failed();
     }
 
-    @ApiOperation(value = "上级发出换货新品（填新快递单号，状态 3 -> 4）")
+    @ApiOperation(value = "上级发出换货新品（填新快递单号，状态 3 -> 5 待收货）")
     @RequestMapping(value = "/exchange/sendNew", method = RequestMethod.POST)
     public CommonResult<String> sendExchangeNewParent(@RequestParam Integer id,
                                                       @RequestBody @Validated StockRequests.StockSendRequest request) {
         if (stockOrderService.sendExchangeNewByParent(currentUid(), id, request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @ApiOperation(value = "换货人确认收货（状态 5 -> 4 已完成）")
+    @RequestMapping(value = "/exchange/confirmReceive", method = RequestMethod.POST)
+    public CommonResult<String> confirmExchangeReceive(@RequestParam Integer id) {
+        if (stockOrderService.confirmReceiveExchange(currentUid(), id)) {
             return CommonResult.success();
         }
         return CommonResult.failed();

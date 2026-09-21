@@ -415,6 +415,16 @@ public class StockController {
         return CommonResult.failed();
     }
 
+    @PreAuthorize("hasAuthority('admin:stock:exchange:send')")
+    @ApiOperation(value = "代确认收货（下级长期未确认时的兜底，状态 5 -> 4）")
+    @RequestMapping(value = "/exchange/receive", method = RequestMethod.POST)
+    public CommonResult<String> confirmExchangeReceive(@RequestParam Integer id) {
+        if (stockOrderService.confirmReceiveExchangeByAdmin(id)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
     @PreAuthorize("hasAuthority('admin:stock:exchange:list')")
     @ApiOperation(value = "换货设置列表（按商品）")
     @RequestMapping(value = "/exchange/config", method = RequestMethod.GET)

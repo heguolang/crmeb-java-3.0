@@ -164,9 +164,14 @@ export function confirmExchangeBack(id) {
   return request.post('stock/exchange/confirmBack?id=' + id);
 }
 
-/** 上级发出换货新品（填新快递单号，状态 3 -> 4） */
+/** 上级发出换货新品（填新快递单号，状态 3 -> 5 待收货） */
 export function sendExchangeNew(id, data) {
   return request.post('stock/exchange/sendNew?id=' + id, data);
+}
+
+/** 换货人确认收货（状态 5 -> 4 已完成，差价奖励此时结算） */
+export function confirmExchangeReceive(id) {
+  return request.post('stock/exchange/confirmReceive?id=' + id);
 }
 
 /** 我的业绩 */

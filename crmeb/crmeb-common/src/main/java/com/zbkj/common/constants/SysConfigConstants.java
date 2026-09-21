@@ -77,6 +77,12 @@ public class SysConfigConstants {
     public static final String CONFIG_KEY_AGENT_CREDIT_TIMING = "agent_credit_timing";
     /** 会员端可申请的代理区域级别：1=省级 2=市级 3=区级，英文逗号分隔，如 "1,2" */
     public static final String CONFIG_KEY_AGENT_APPLY_REGIONS = "agent_apply_regions";
+    /** 代理默认奖励比例-省级（%）：代理申请通过弹窗的默认值，客户可改后保存 */
+    public static final String CONFIG_KEY_AGENT_DEFAULT_RATIO_PROVINCE = "agent_default_ratio_province";
+    /** 代理默认奖励比例-市级（%） */
+    public static final String CONFIG_KEY_AGENT_DEFAULT_RATIO_CITY = "agent_default_ratio_city";
+    /** 代理默认奖励比例-区级（%） */
+    public static final String CONFIG_KEY_AGENT_DEFAULT_RATIO_DISTRICT = "agent_default_ratio_district";
 
 
 

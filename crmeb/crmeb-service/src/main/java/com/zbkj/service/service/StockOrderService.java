@@ -170,8 +170,14 @@ public interface StockOrderService {
     /** 上级在会员端确认旧品入库（直接上级 + 待旧品退回状态，状态 2 -> 3） */
     Boolean confirmExchangeBackByParent(Integer uid, Integer exchangeId);
 
-    /** 上级在会员端发出新品（直接上级 + 待发新品状态，状态 3 -> 4） */
+    /** 上级在会员端发出新品（直接上级 + 待发新品状态，状态 3 -> 5 待收货） */
     Boolean sendExchangeNewByParent(Integer uid, Integer exchangeId, StockRequests.StockSendRequest request);
+
+    /** 换货人确认收货（本人 + 待收货状态，状态 5 -> 4 已完成，差价奖励此时结算） */
+    Boolean confirmReceiveExchange(Integer uid, Integer exchangeId);
+
+    /** 总部后台代确认收货（下级长期未确认时的兜底，状态 5 -> 4） */
+    Boolean confirmReceiveExchangeByAdmin(Integer exchangeId);
 
     /** 换货单列表 */
     CommonPage<StockExchange> getAdminExchangeList(Integer status, com.zbkj.common.request.PageParamRequest page);

@@ -97,7 +97,7 @@
       </div>
     </el-card>
 
-    <el-dialog :title="editForm.id ? '修改代理' : '添加代理'" :visible.sync="editVisible" width="520px">
+    <el-dialog :title="dialogTitle" :visible.sync="editVisible" width="520px" @closed="auditMode = false">
       <el-form :model="editForm" :rules="editRules" ref="editForm" label-width="90px" size="small">
         <el-form-item label="代理用户：" prop="uid">
           <div class="user-picker">
@@ -179,7 +179,7 @@
 </template>
 
 <script>
-import { agentListApi, agentSaveApi, agentUpdateApi, agentAuditApi, agentDeleteApi, cityTreeApi } from '@/api/daili';
+import { agentListApi, agentSaveApi, agentUpdateApi, agentAuditApi, agentDeleteApi, cityTreeApi, agentSettingApi } from '@/api/daili';
 import { userListApi } from '@/api/user';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 import { Debounce } from '@/utils/validate';
@@ -229,9 +229,17 @@ export default {
       pickUid: null,
       pickedUser: null,
       selectedUser: null,
+      // 审核模式：点「通过」时打开弹窗，确定=通过并保存比例，避免漏设
+      auditMode: false,
+      // 各级别默认奖励比例（代理设置里配置，读不到时用内置默认）
+      defaultRatios: { 1: 5, 2: 3, 3: 2 },
     };
   },
   computed: {
+    dialogTitle() {
+      if (this.auditMode) return '通过代理申请';
+      return this.editForm.id ? '修改代理' : '添加代理';
+    },
     // 区域联动：省级只到省、市级到市、区级到区县
     regionOptions() {
       const depth = Number(this.editForm.level) || 1;
@@ -261,9 +269,31 @@ export default {
   mounted() {
     this.getList();
     this.getCityList();
+    this.loadDefaultRatios();
   },
   methods: {
     checkPermi,
+    // 读取代理设置里的各级别默认奖励比例（无权限/失败时用内置默认：省5/市3/区2）
+    loadDefaultRatios() {
+      agentSettingApi()
+        .then((res) => {
+          if (!res) return;
+          const map = {
+            1: res.agent_default_ratio_province,
+            2: res.agent_default_ratio_city,
+            3: res.agent_default_ratio_district,
+          };
+          Object.keys(map).forEach((k) => {
+            const n = Number(map[k]);
+            if (!isNaN(n) && map[k] !== null && map[k] !== undefined && map[k] !== '') this.defaultRatios[k] = n;
+          });
+        })
+        .catch(() => {});
+    },
+    defaultRatioFor(level) {
+      const n = Number(this.defaultRatios[level]);
+      return isNaN(n) ? 5 : n;
+    },
     levelLabel(level) {
       const map = { 1: '省级', 2: '市级', 3: '区级' };
       return map[level] || '-';
@@ -381,6 +411,10 @@ export default {
       if (level === 2 && this.editForm.regionArr.length > 2) {
         this.editForm.regionArr = this.editForm.regionArr.slice(0, 2);
       }
+      // 新增 / 审核通过时，切换级别自动带入该级别默认比例（修改已有代理不覆盖已定比例）
+      if (this.auditMode || !this.editForm.id) {
+        this.editForm.ratio = this.defaultRatioFor(level);
+      }
     },
     onSubmit: Debounce(function () {
       this.$refs.editForm.validate((valid) => {
@@ -398,6 +432,10 @@ export default {
           status: this.editForm.id ? undefined : 1,
           applyMark: this.editForm.applyMark,
         };
+        if (this.auditMode) {
+          // 审核模式：一次更新同时写入级别/区域/比例与「通过」状态（后端会记审核时间与变更日志）
+          data.status = 1;
+        }
         if (!data.province || (level >= 2 && !data.city) || (level >= 3 && !data.district)) {
           return this.$message.warning('代理区域与级别不匹配，请重新选择');
         }
@@ -405,8 +443,9 @@ export default {
         const req = this.editForm.id ? agentUpdateApi(data) : agentSaveApi(data);
         req
           .then(() => {
-            this.$message.success(this.editForm.id ? '修改成功' : '添加成功');
+            this.$message.success(this.auditMode ? '已通过并保存设置' : this.editForm.id ? '修改成功' : '添加成功');
             this.editVisible = false;
+            this.auditMode = false;
             this.submitLoading = false;
             this.getList();
           })
@@ -416,14 +455,31 @@ export default {
       });
     }),
     onAudit(row, status) {
-      const tip = status === 1 ? '通过该代理申请？通过后请设置奖励比例' : '拒绝该代理申请？';
-      this.$confirm(tip, '提示', { type: 'warning' })
-        .then(() => agentAuditApi(row.id, status))
-        .then(() => {
-          this.$message.success('操作成功');
-          this.getList();
-        })
-        .catch(() => {});
+      if (status !== 1) {
+        this.$confirm('拒绝该代理申请？', '提示', { type: 'warning' })
+          .then(() => agentAuditApi(row.id, 2))
+          .then(() => {
+            this.$message.success('操作成功');
+            this.getList();
+          })
+          .catch(() => {});
+        return;
+      }
+      // 通过：直接打开设置弹窗（比例按级别默认带入），确定=通过并保存，避免忘记设置比例
+      this.auditMode = true;
+      this.editForm = {
+        id: row.id,
+        uid: String(row.uid),
+        level: row.level || 1,
+        regionArr: [row.province, row.city, row.district].filter((v) => v && v.length),
+        ratio: this.defaultRatioFor(row.level || 1),
+        applyMark: row.applyMark || '',
+      };
+      this.selectedUser = { uid: row.uid, nickname: row.nickname || '-' };
+      this.editVisible = true;
+      this.$nextTick(() => {
+        this.$refs.editForm && this.$refs.editForm.clearValidate();
+      });
     },
     onDelete(row) {
       this.$confirm('删除后该代理将不再获得区域奖励，确认删除？', '提示', { type: 'warning' })

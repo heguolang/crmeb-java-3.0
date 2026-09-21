@@ -258,6 +258,13 @@ public class AgentServiceImpl implements AgentService {
         map.put(SysConfigConstants.CONFIG_KEY_AGENT_CREDIT_TIMING,
                 ObjectUtil.defaultIfNull(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_AGENT_CREDIT_TIMING), "1"));
         map.put(SysConfigConstants.CONFIG_KEY_AGENT_APPLY_REGIONS, defaultApplyRegions());
+        // 各级别默认奖励比例（%）：代理申请「通过」弹窗的默认值，客户可改后保存
+        map.put(SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_PROVINCE,
+                ObjectUtil.defaultIfNull(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_PROVINCE), "5"));
+        map.put(SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_CITY,
+                ObjectUtil.defaultIfNull(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_CITY), "3"));
+        map.put(SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_DISTRICT,
+                ObjectUtil.defaultIfNull(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_DISTRICT), "2"));
         return map;
     }
 
@@ -280,10 +287,31 @@ public class AgentServiceImpl implements AgentService {
             if (!SysConfigConstants.CONFIG_KEY_AGENT_FUNC_STATUS.equals(key)
                     && !SysConfigConstants.CONFIG_KEY_AGENT_APPLY_STATUS.equals(key)
                     && !SysConfigConstants.CONFIG_KEY_AGENT_CREDIT_TIMING.equals(key)
-                    && !SysConfigConstants.CONFIG_KEY_AGENT_APPLY_REGIONS.equals(key)) {
+                    && !SysConfigConstants.CONFIG_KEY_AGENT_APPLY_REGIONS.equals(key)
+                    && !SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_PROVINCE.equals(key)
+                    && !SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_CITY.equals(key)
+                    && !SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_DISTRICT.equals(key)) {
                 continue;
             }
             String value = entry.getValue() == null ? "" : entry.getValue().toString();
+            // 默认奖励比例：只保留数字（0~100），空值跳过不覆盖
+            if (SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_PROVINCE.equals(key)
+                    || SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_CITY.equals(key)
+                    || SysConfigConstants.CONFIG_KEY_AGENT_DEFAULT_RATIO_DISTRICT.equals(key)) {
+                if (StrUtil.isBlank(value)) {
+                    continue;
+                }
+                try {
+                    java.math.BigDecimal ratio = new java.math.BigDecimal(value.trim());
+                    if (ratio.compareTo(java.math.BigDecimal.ZERO) < 0
+                            || ratio.compareTo(new java.math.BigDecimal("100")) > 0) {
+                        throw new CrmebException("默认奖励比例须在 0~100 之间");
+                    }
+                    value = ratio.stripTrailingZeros().toPlainString();
+                } catch (NumberFormatException e) {
+                    throw new CrmebException("默认奖励比例必须是数字");
+                }
+            }
             if (SysConfigConstants.CONFIG_KEY_AGENT_APPLY_REGIONS.equals(key)) {
                 // 只允许 1/2/3 的组合，空则清空（表示不开放任何申请）
                 StringBuilder sb = new StringBuilder();

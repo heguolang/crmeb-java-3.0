@@ -80,6 +80,7 @@
               <el-button v-if="row.status === 1 && checkPermi(['admin:stock:exchange:audit'])" size="mini" type="warning" plain class="op-btn" @click="audit(row)">总部审核</el-button>
               <el-button v-if="row.status === 2 && checkPermi(['admin:stock:exchange:back'])" size="mini" type="success" plain class="op-btn" @click="confirmBack(row)">旧品入库</el-button>
               <el-button v-if="row.status === 3 && checkPermi(['admin:stock:exchange:send'])" size="mini" type="primary" plain class="op-btn" @click="openSend(row)">发新品</el-button>
+              <el-button v-if="row.status === 5 && checkPermi(['admin:stock:exchange:send'])" size="mini" type="success" plain class="op-btn" @click="confirmReceive(row)">代确认收货</el-button>
             </div>
           </div>
         </div>
@@ -187,7 +188,7 @@
 </template>
 
 <script>
-import { stockExchangeListApi, stockExchangeAuditApi, stockExchangeBackApi, stockExchangeSendApi } from '@/api/stock';
+import { stockExchangeListApi, stockExchangeAuditApi, stockExchangeBackApi, stockExchangeSendApi, stockExchangeReceiveApi } from '@/api/stock';
 import { expressAllApi } from '@/api/sms';
 import { checkPermi } from '@/utils/permission';
 
@@ -199,7 +200,7 @@ export default {
       tableData: [],
       total: 0,
       tableFrom: { page: 1, limit: 20, status: null },
-      statusMap: { 0: '待上级审核', 1: '待总部审核', 2: '待旧品退回', 3: '待发新品', 4: '已完成', '-1': '已驳回' },
+      statusMap: { 0: '待上级审核', 1: '待总部审核', 2: '待旧品退回', 3: '待发新品', 5: '待下级收货', 4: '已完成', '-1': '已驳回' },
       auditVisible: false,
       auditRow: null,
       auditForm: { status: 1, reason: '' },
@@ -232,9 +233,22 @@ export default {
       this.tableFrom = { page: 1, limit: 20, status: null };
       this.getList();
     },
-    // 状态配色：待审核橙、待退回/待发新蓝、已完成绿、已驳回红
+    // 状态配色：待审核橙、待退回/待发新/待收货蓝、已完成绿、已驳回红
     statusClass(s) {
-      return { 0: 'is-warn', 1: 'is-warn', 2: 'is-info', 3: 'is-info', 4: 'is-ok', '-1': 'is-danger' }[s] || '';
+      return { 0: 'is-warn', 1: 'is-warn', 2: 'is-info', 3: 'is-info', 5: 'is-info', 4: 'is-ok', '-1': 'is-danger' }[s] || '';
+    },
+    // 总部代确认收货（下级长期未确认时兜底，状态 5 -> 4）
+    confirmReceive(row) {
+      this.$confirm('确认已由下级收货？确认后换货单完成并结算差价奖励。', '代确认收货', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        stockExchangeReceiveApi(row.id).then(() => {
+          this.$message.success('已确认收货');
+          this.getList();
+        });
+      }).catch(() => {});
     },
     shortTime(t) {
       if (!t) return '-';

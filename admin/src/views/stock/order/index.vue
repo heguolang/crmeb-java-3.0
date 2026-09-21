@@ -16,8 +16,8 @@
           </el-form-item>
           <el-form-item label="付款">
             <el-select v-model="tableFrom.payStatus" placeholder="全部" clearable style="width: 110px">
-              <el-option label="未付款" :value="0" />
-              <el-option label="已付款" :value="1" />
+              <el-option label="未支付" :value="0" />
+              <el-option label="已支付" :value="1" />
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -111,7 +111,7 @@
             </div>
             <div class="col col-state">
               <span class="state-text" :class="statusClass(row.status)">{{ statusMap[row.status] || row.status }}</span>
-              <div class="sub-text">{{ row.payStatus === 1 ? '已付款 · ' + payTypeText(row.payType) : '未付款' }}</div>
+              <div class="sub-text">{{ payStatusText(row) }}</div>
               <div v-if="row.expressNum" class="sub-text ellipsis" :title="(row.expressName || '') + ' ' + row.expressNum">{{ row.expressName }} {{ row.expressNum }}</div>
             </div>
             <div class="col col-ops">
@@ -282,6 +282,11 @@ export default {
       if (t === 3) return '余额支付';
       if (t === 2) return '记账欠款';
       return t === 1 ? '微信支付' : '未支付';
+    },
+    // 付款状态：只有已支付/未支付；已支付时附支付方式（历史数据 payType 为空时只显示已支付）
+    payStatusText(row) {
+      if (row.payStatus !== 1) return '未支付';
+      return row.payType ? '已支付 · ' + this.payTypeText(row.payType) : '已支付';
     },
     // 状态配色：待审核/待付款橙、待发货/待收货蓝、已完成绿、已驳回红
     statusClass(s) {

@@ -217,6 +217,7 @@
         <view class="row-total">共 {{ o.totalNum }} 件 · 合计 <text class="total-price">¥{{ o.totalPrice }}</text></view>
         <view v-if="o.realName" class="send-addr">
           <text class="sa-tag">收货</text>{{ o.realName }} {{ o.phone }} · {{ o.userAddress }}
+          <text class="sa-copy" @click="copyAddr(o)">复制</text>
         </view>
         <view class="send-form">
           <input class="sf-input" v-model="sendForm[o.id].expressName" placeholder="快递公司（如：顺丰速运）" placeholder-class="sf-ph" />
@@ -291,6 +292,19 @@
             <text class="au-level">{{ o.levelName }}</text>
           </view>
           <view class="au-tip">下级已收货</view>
+        </view>
+        <view v-for="p in o.productList" :key="p.id" class="row-p">
+          <image :src="p.image" class="p-img" mode="aspectFill" />
+          <view class="p-info">
+            <view class="p-name">{{ p.productName }}</view>
+            <view class="p-num">¥{{ p.price }} <text class="p-x">× {{ p.num }}</text></view>
+          </view>
+          <view class="p-sum">¥{{ p.totalPrice }}</view>
+        </view>
+        <view class="row-total">共 {{ o.totalNum }} 件 · 合计 <text class="total-price">¥{{ o.totalPrice }}</text></view>
+        <view v-if="o.realName" class="send-addr">
+          <text class="sa-tag">收货</text>{{ o.realName }} {{ o.phone }} · {{ o.userAddress }}
+          <text class="sa-copy" @click="copyAddr(o)">复制</text>
         </view>
         <view class="send-express">
           <text class="se-tag">快递</text>{{ o.expressName || '—' }}　{{ o.expressNum }}
@@ -498,6 +512,15 @@
 				}).catch(() => { this.loaded = true; });
 				if (this.tabType === 'audit') this.loadExList();
 			},
+			// 复制收货信息（收货人 + 电话 + 地址），方便去发货
+			copyAddr(o) {
+				const text = [o.realName, o.phone, o.userAddress].filter(v => v).join(' ，');
+				if (!text) return;
+				uni.setClipboardData({
+					data: text,
+					success: () => uni.showToast({ title: '收货信息已复制', icon: 'none' })
+				});
+			},
 			// 待我发货：parent_agent_id=我 的实体采购单，按 待发货(2)/已发货(3)/已完成(4) 分组
 			// （虚拟采购单付款/审核即完成入账不会到待发货；虚拟提货单由总部发货——这里再过滤一次兜底）
 			isParentSendOrder(o) {
@@ -616,6 +639,9 @@
 			exStatusText(status) {
 				if (status === 2) return '旧品待入库';
 				if (status === 3) return '待发新品';
+				if (status === 5) return '待下级收货';
+				if (status === 4) return '已完成';
+				if (status === -1) return '已驳回';
 				return '待我审核';
 			},
 			// 确认旧品入库（状态 2 -> 3）
@@ -981,6 +1007,15 @@
   border-radius: 6rpx;
   padding: 2rpx 10rpx;
   margin-right: 12rpx;
+}
+.sa-copy {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #2b6fe3;
+  border: 1rpx solid #2b6fe3;
+  border-radius: 6rpx;
+  padding: 2rpx 12rpx;
+  margin-left: 12rpx;
 }
 .send-form {
   margin-top: 18rpx;

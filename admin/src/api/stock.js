@@ -138,6 +138,11 @@ export function stockExchangeSendApi(id, data) {
   return request({ url: '/admin/stock/exchange/send', method: 'post', params: { id }, data });
 }
 
+/** 代确认收货（下级长期未确认时的兜底，状态 5 -> 4） */
+export function stockExchangeReceiveApi(id) {
+  return request({ url: '/admin/stock/exchange/receive', method: 'post', params: { id } });
+}
+
 /** 奖金明细 */
 export function stockRewardListApi(params) {
   return request({ url: '/admin/stock/reward/list', method: 'get', params });
