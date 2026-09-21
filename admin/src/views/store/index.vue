@@ -398,6 +398,11 @@ export default {
   font-weight: 600;
   color: #303133;
   padding: 0 16px;
+  white-space: nowrap;
+}
+.list-head .cell-sort {
+  padding: 0 8px;
+  text-align: center;
 }
 
 /* 数据行 */
