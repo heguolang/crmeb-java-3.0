@@ -108,11 +108,20 @@ public class StockRewardServiceImpl implements StockRewardService {
     }
 
     /**
-     * 换货差价奖励：换货人补付的差价 × 配置比例，奖励给其直接上级（幂等，按换货单号去重）
+     * 换货差价奖励：换货人补付的差价 × 配置比例，奖励给其直接上级（幂等，按换货单号去重）。
+     * 2026-09-21 起改为【换货单完成后】才结算（status=4 且差价已支付），
+     * 支付差价时不再发放——避免单子还在审核中奖励就先出去、驳回后奖励收不回。
      */
     @Override
     public void settleExchangeDiffReward(com.zbkj.common.model.stock.StockExchange exchange) {
         if (exchange == null || exchange.getDiffPrice() == null || exchange.getDiffPrice().signum() <= 0) {
+            return;
+        }
+        // 必须换货单已完成且差价已支付
+        if (!com.zbkj.common.model.stock.StockExchange.STATUS_COMPLETE.equals(exchange.getStatus())) {
+            return;
+        }
+        if (exchange.getDiffPayStatus() == null || exchange.getDiffPayStatus() != 1) {
             return;
         }
         if (!"1".equals(systemConfigService.getValueByKey("stock_exchange_diff"))) {
@@ -137,7 +146,7 @@ public class StockRewardServiceImpl implements StockRewardService {
             return;
         }
         StockAgent parent = stockService.getAgentById(exchange.getParentAgentId());
-        if (parent == null || parent.getStatus() == 0) {
+        if (parent == null || parent.getStatus() == null || parent.getStatus() != 1) {
             return;
         }
         createRewardIfAbsent(parent.getUid(), StockReward.TYPE_DIFF, exchange.getExchangeNo(), exchange.getUid(),

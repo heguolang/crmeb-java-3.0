@@ -1852,6 +1852,8 @@ public class StockOrderServiceImpl implements StockOrderService {
         exchange.setStatus(StockExchange.STATUS_COMPLETE);
         exchange.setFinishTime(new Date());
         stockExchangeDao.updateById(exchange);
+        // 换货完成才结算差价奖励（支付时只收钱不发奖）
+        stockRewardService.settleExchangeDiffReward(exchange);
         stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_SEND, "换货完成",
                 "您的换货单 " + exchange.getExchangeNo() + " 已由" + auditorDesc + "审核通过，"
                         + "新品虚拟库存已入账，可在【虚拟库存】中查看");
@@ -2007,6 +2009,8 @@ public class StockOrderServiceImpl implements StockOrderService {
             exchange.setFinishTime(new Date());
             boolean ok = stockExchangeDao.updateById(exchange) > 0;
             if (ok) {
+                // 换货完成才结算差价奖励（支付时只收钱不发奖）
+                stockRewardService.settleExchangeDiffReward(exchange);
                 stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_ORDER_SEND, "换货新品已发出",
                         "您的换货单 " + exchange.getExchangeNo() + " 新品已发出，快递：" + request.getExpressName()
                                 + " " + request.getExpressNum());
@@ -2767,8 +2771,7 @@ public class StockOrderServiceImpl implements StockOrderService {
                 exchange.setDiffPayTime(new Date());
                 stockExchangeDao.updateById(exchange);
             });
-            // 差价按比例奖励直接上级
-            stockRewardService.settleExchangeDiffReward(exchange);
+            // 差价奖励不在支付时结算：等换货单走到「已完成」再发（见 doSendExchangeNew / completeVirtualToVirtual）
             result.put("paid", true);
             result.put("payType", "yue");
         } else if ("weixin".equalsIgnoreCase(request.getPayType())) {
@@ -2795,8 +2798,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         exchange.setDiffPayType("weixin");
         exchange.setDiffPayTime(new Date());
         stockExchangeDao.updateById(exchange);
-        // 差价按比例奖励直接上级
-        stockRewardService.settleExchangeDiffReward(exchange);
+        // 差价奖励不在支付时结算：等换货单完成再发
         stockRewardService.sendNotice(exchange.getUid(), StockNotice.TYPE_REWARD, "换货差价支付成功",
                 "换货单 " + exchangeNo + " 差价 ¥" + exchange.getDiffPrice() + " 已支付成功");
         return true;
