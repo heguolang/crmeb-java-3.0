@@ -255,12 +255,15 @@
   @extend .el-menu-hover-bg-color;
 }
 
-/* ---------- 左侧垂直菜单（白底）的选中态 ----------
+/* ---------- 左侧垂直菜单（白底）的选中/悬停态 ----------
    顶栏横向菜单的选中色是 --prev-MenuActiveColor(#fff)，但左侧是白底，
-   白字看不见；这里单独给主色蓝，作用域限定在左侧栏，不影响顶栏 */
+   白字白图标看不见；这里单独给主色蓝，作用域限定在左侧栏，不影响顶栏。
+   hover 态必须覆盖全局规则（223 行起把 hover 的 i 强制成 MenuActiveColor 白色） */
 .layout-aside {
   .el-menu-item.is-active,
-  .el-submenu.is-active > .el-submenu__title {
+  .el-submenu.is-active > .el-submenu__title,
+  .el-menu-item:hover,
+  .el-submenu__title:hover {
     color: var(--prev-color-primary) !important;
     background-color: var(--prev-bg-menu-hover-ba-color) !important;
 

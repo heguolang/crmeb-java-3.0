@@ -40,7 +40,6 @@
           <div v-else class="user-avatar user-avatar--lg user-avatar--text">{{ avatarText }}</div>
           <div class="user-menu-meta">
             <div class="user-menu-name">{{ getUserInfos.name }}</div>
-            <div class="user-menu-role">{{ getUserInfos.introduction || '管理员' }}</div>
           </div>
         </li>
         <el-dropdown-item command="password" icon="el-icon-user">个人中心</el-dropdown-item>
