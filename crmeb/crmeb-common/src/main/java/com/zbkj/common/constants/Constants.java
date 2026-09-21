@@ -578,7 +578,7 @@ public class Constants {
     /** 自定义表单开关：关闭 */
     public static final String CONFIG_FORM_SWITCH_CLOSE = "'0'";
     /** 自定义表单开关：开启 */
-    public static final String CONFIG_FORM_SWITCH_OPEN = "'1'";
+    public static final String CONFIG_FORM_SWITCH_OPEN = "1";
 
     /** 公共JS配置 */
     // CRMEB chat 统计
