@@ -388,7 +388,7 @@ export default {
 /* 表头 */
 .list-head {
   display: grid;
-  grid-template-columns: 64px 90px minmax(220px, 1.55fr) 180px 180px 84px 150px;
+  grid-template-columns: 56px 80px minmax(200px, 2.3fr) minmax(150px, 1.15fr) minmax(165px, 1.25fr) 74px 148px;
   align-items: center;
   height: 46px;
   background: #ecf3fd;
@@ -403,7 +403,7 @@ export default {
 /* 数据行 */
 .list-row {
   display: grid;
-  grid-template-columns: 64px 90px minmax(220px, 1.55fr) 180px 180px 84px 150px;
+  grid-template-columns: 56px 80px minmax(200px, 2.3fr) minmax(150px, 1.15fr) minmax(165px, 1.25fr) 74px 148px;
   align-items: center;
   border-top: 1px solid #f0f2f5;
   transition: background 0.15s;
