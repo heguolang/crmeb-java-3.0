@@ -820,21 +820,23 @@ export default {
 /* 卡片体：网格分列，列间细分隔线 */
 .card-body {
   display: grid;
-  grid-template-columns: minmax(300px, 2fr) minmax(200px, 1.1fr) 150px 150px 140px;
+  grid-template-columns: minmax(280px, 1.5fr) minmax(210px, 1.2fr) 180px 190px 150px;
   align-items: center;
-  padding: 16px 0;
+  padding: 18px 0;
 }
 .col {
-  padding: 4px 16px;
+  padding: 4px 20px;
   min-width: 0;
   align-self: center;
 }
 .col + .col {
-  border-left: 1px solid #f2f4f7;
+  border-left: 1px solid #e9edf3;
   align-self: stretch;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  padding-left: 22px;
+  padding-right: 18px;
 }
 
 /* 键值行（用户/金额列） */
@@ -928,6 +930,9 @@ export default {
 }
 
 /* 金额列（总价/实付小字多行） */
+.col-amount .kv {
+  margin: 3px 0;
+}
 .col-amount .kv .v {
   color: #303133;
   font-weight: 500;
