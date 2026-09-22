@@ -64,6 +64,22 @@ public interface UserBillService extends IService<UserBill> {
     PageInfo<MonitorResponse> fundMonitoring(FundsMonitorRequest request);
 
     /**
+     * 积分资金流水监控
+     *
+     * @param request 查询参数
+     * @return PageInfo
+     */
+    PageInfo<MonitorResponse> fundMonitoringIntegral(FundsMonitorRequest request);
+
+    /**
+     * 佣金资金流水监控（eb_user_brokerage_record 全量 + eb_user_bill 后台充减）
+     *
+     * @param request 查询参数
+     * @return PageInfo
+     */
+    PageInfo<MonitorResponse> fundMonitoringBrokerage(FundsMonitorRequest request);
+
+    /**
      * 用户账单记录（现金）
      *
      * @param uid  用户uid

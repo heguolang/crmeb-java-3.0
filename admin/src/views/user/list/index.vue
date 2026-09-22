@@ -579,9 +579,9 @@ export default {
       pickerOptions: this.$timeOptions,
       loadingBtn: false,
       PointValidateForm: {
-        integralType: 2,
+        integralType: 1,
         integralValue: 0,
-        moneyType: 2,
+        moneyType: 1,
         moneyValue: 0,
         brokerageType: 1,
         brokerageValue: 0,
@@ -1003,24 +1003,35 @@ export default {
           const { moneyType, moneyValue, integralType, integralValue, brokerageType, brokerageValue } =
             this.PointValidateForm;
           this.loadingBtn = true;
-          foundsApi({
-            uid: this.uid,
-            moneyType,
-            moneyValue,
-            integralType,
-            integralValue,
-          })
-            .then(() => {
-              // 佣金金额大于 0 时才调整佣金
-              if (brokerageValue > 0) {
-                return brokerageApi({
-                  uid: this.uid,
-                  brokerageType,
-                  brokerageValue,
-                });
-              }
-              return null;
-            })
+          // 仅当金额或积分任一 > 0 才调余额/积分接口；只充佣金时跳过，避免被后端"修改值不能小于等于0"挡住
+          const tasks = [];
+          if (Number(moneyValue) > 0 || Number(integralValue) > 0) {
+            tasks.push(
+              foundsApi({
+                uid: this.uid,
+                moneyType,
+                moneyValue,
+                integralType,
+                integralValue,
+              })
+            );
+          }
+          if (Number(brokerageValue) > 0) {
+            tasks.push(
+              brokerageApi({
+                uid: this.uid,
+                brokerageType,
+                brokerageValue,
+              })
+            );
+          }
+          // 三个值都为 0：什么都不做，直接关闭并提示
+          if (tasks.length === 0) {
+            this.$message.warning('请至少填写一项金额');
+            this.loadingBtn = false;
+            return;
+          }
+          Promise.all(tasks)
             .then(() => {
               this.$message.success('设置成功');
               this.loadingBtn = false;
@@ -1039,9 +1050,9 @@ export default {
     handlePointClose() {
       this.VisiblePoint = false;
       this.PointValidateForm = {
-        integralType: 2,
+        integralType: 1,
         integralValue: 0,
-        moneyType: 2,
+        moneyType: 1,
         moneyValue: 0,
         brokerageType: 1,
         brokerageValue: 0,

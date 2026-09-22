@@ -38,8 +38,12 @@ public class FundsMonitorRequest extends UserCommonSearchRequest implements Seri
     @ApiModelProperty(value = "添加时间")
     private String dateLimit;
 
-    @ApiModelProperty(value = "明细类型:recharge-充值支付，admin-后台操作，productRefund商品退款，payProduct购买商品，transferIn佣金转入")
-    @StringContains(limitValues = {"recharge", "admin", "productRefund", "payProduct", "transferIn"}, message = "请选择正确的明细类型")
+    @ApiModelProperty(value = "明细类型:recharge-充值支付，admin-后台操作，productRefund商品退款，payProduct购买商品，transferIn佣金转入，exchange-换货差价，order-订单佣金，withdraw-佣金提现，yue-佣金转余额，stock-订货奖金，sign-签到奖励，reward-活动奖励，deduct-消费抵扣")
+    @StringContains(limitValues = {"recharge", "admin", "productRefund", "payProduct", "transferIn", "exchange",
+            "order", "withdraw", "yue", "stock", "sign", "reward", "deduct"}, message = "请选择正确的明细类型")
     private String title;
+
+    @ApiModelProperty(value = "账户类型:all-全部（默认），now_money-余额，integral-积分，brokerage_price-佣金")
+    private String category;
 
 }

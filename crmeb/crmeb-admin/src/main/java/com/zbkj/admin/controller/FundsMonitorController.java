@@ -49,11 +49,19 @@ public class FundsMonitorController {
      * @param request 搜索条件
      */
     @PreAuthorize("hasAuthority('admin:finance:monitor:list')")
-    @ApiOperation(value = "资金监控")
+    @ApiOperation(value = "资金监控（余额/佣金/全部三类）")
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     public CommonResult<CommonPage<MonitorResponse>> getList(@Validated FundsMonitorRequest request){
-        CommonPage<MonitorResponse> userExtractCommonPage = CommonPage.restPage(userBillService.fundMonitoring(request));
-        return CommonResult.success(userExtractCommonPage);
+        // 账户类型路由：integral 走积分表，brokerage_price 走佣金记录 union，其余（now_money/all）走 eb_user_bill
+        CommonPage<MonitorResponse> page;
+        if ("integral".equals(request.getCategory())) {
+            page = CommonPage.restPage(userBillService.fundMonitoringIntegral(request));
+        } else if ("brokerage_price".equals(request.getCategory())) {
+            page = CommonPage.restPage(userBillService.fundMonitoringBrokerage(request));
+        } else {
+            page = CommonPage.restPage(userBillService.fundMonitoring(request));
+        }
+        return CommonResult.success(page);
     }
 
     /**

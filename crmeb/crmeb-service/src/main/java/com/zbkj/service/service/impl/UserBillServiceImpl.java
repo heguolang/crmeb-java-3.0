@@ -34,6 +34,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -238,25 +239,42 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
             map.put("startTime", dateLimit.getStartTime());
             map.put("endTime", dateLimit.getEndTime());
         }
-        // 明细类型筛选
+        // 明细类型筛选（余额表：按 titleList 匹配，覆盖普通商城 + 订货体系全部实际标题）
         if (StrUtil.isNotBlank(request.getTitle())) {
+            List<String> titleList = new ArrayList<>();
             switch (request.getTitle()) {
-                case "recharge" :
-                    map.put("title", "充值支付");
+                case "recharge":
+                    titleList.add("充值支付");
                     break;
-                case "admin" :
-                    map.put("title", "后台操作");
+                case "admin":
+                    titleList.add("后台操作");
                     break;
-                case "productRefund" :
-                    map.put("title", "商品退款");
+                case "productRefund":
+                    titleList.add("商品退款");
+                    titleList.add("订货退款");
+                    titleList.add("换货差价退款");
                     break;
-                case "payProduct" :
-                    map.put("title", "购买商品");
+                case "payProduct":
+                    titleList.add("购买商品");
                     break;
-                case "transferIn" :
-                    map.put("title", "佣金转余额");
+                case "transferIn":
+                    titleList.add("佣金转余额");
+                    break;
+                case "exchange":
+                    titleList.add("换货差价");
                     break;
             }
+            if (!titleList.isEmpty()) {
+                map.put("titleList", titleList);
+            }
+        }
+        // 账户类型筛选（仅 now_money / brokerage_price 走本表；integral 走 fundMonitoringIntegral）
+        if (StrUtil.isNotBlank(request.getCategory())) {
+            String category = request.getCategory();
+            if ("now_money".equals(category) || "brokerage_price".equals(category)) {
+                map.put("category", category);
+            }
+            // integral 时不应走到这里，controller 会路由到 fundMonitoringIntegral
         }
         List<UserBillResponse> userBillResponses = dao.fundMonitoring(map);
         if (CollUtil.isEmpty(userBillResponses)) {
@@ -265,6 +283,130 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
         List<MonitorResponse> responseList = userBillResponses.stream().map(e -> {
             MonitorResponse monitorResponse = new MonitorResponse();
             BeanUtils.copyProperties(e, monitorResponse);
+            monitorResponse.setSourceTable("bill");
+            return monitorResponse;
+        }).collect(Collectors.toList());
+        return CommonPage.copyPageInfo(billPage, responseList);
+    }
+
+    @Override
+    public PageInfo<MonitorResponse> fundMonitoringIntegral(FundsMonitorRequest request) {
+        Page<UserBill> billPage = PageHelper.startPage(request.getPage(), request.getLimit());
+        Map<String, Object> map = new HashMap<>();
+        if (StrUtil.isNotBlank(request.getContent())) {
+            ValidateFormUtil.validatorUserCommonSearch(request);
+            String keywords = URLUtil.decode(request.getContent());
+            switch (request.getSearchType()) {
+                case UserConstants.USER_SEARCH_TYPE_ALL:
+                    map.put("keywords", keywords);
+                    break;
+                case UserConstants.USER_SEARCH_TYPE_UID:
+                    map.put("uid", Integer.valueOf(request.getContent()));
+                    break;
+                case UserConstants.USER_SEARCH_TYPE_NICKNAME:
+                    map.put("nickname", keywords);
+                    break;
+                case UserConstants.USER_SEARCH_TYPE_PHONE:
+                    map.put("phone", request.getContent());
+                    break;
+            }
+        }
+        if (StrUtil.isNotBlank(request.getDateLimit())) {
+            DateLimitUtilVo dateLimit = CrmebDateUtil.getDateLimit(request.getDateLimit());
+            map.put("startTime", dateLimit.getStartTime());
+            map.put("endTime", dateLimit.getEndTime());
+        }
+        if (StrUtil.isNotBlank(request.getTitle())) {
+            switch (request.getTitle()) {
+                case "admin":
+                    map.put("titleLikeList", CollUtil.newArrayList("后台"));
+                    break;
+                case "sign":
+                    map.put("titleLikeList", CollUtil.newArrayList("签到"));
+                    break;
+                case "order":
+                    map.put("titleLikeList", CollUtil.newArrayList("下单", "购买", "订单", "付款"));
+                    break;
+                case "reward":
+                    map.put("titleLikeList", CollUtil.newArrayList("奖励", "赠送"));
+                    break;
+                case "deduct":
+                    map.put("titleLikeList", CollUtil.newArrayList("抵扣", "消费", "扣除"));
+                    break;
+            }
+        }
+        List<UserBillResponse> userBillResponses = dao.fundMonitoringIntegral(map);
+        if (CollUtil.isEmpty(userBillResponses)) {
+            return CommonPage.copyPageInfo(billPage, CollUtil.newArrayList());
+        }
+        List<MonitorResponse> responseList = userBillResponses.stream().map(e -> {
+            MonitorResponse monitorResponse = new MonitorResponse();
+            BeanUtils.copyProperties(e, monitorResponse);
+            monitorResponse.setSourceTable("integral");
+            return monitorResponse;
+        }).collect(Collectors.toList());
+        return CommonPage.copyPageInfo(billPage, responseList);
+    }
+
+    @Override
+    public PageInfo<MonitorResponse> fundMonitoringBrokerage(FundsMonitorRequest request) {
+        Page<UserBill> billPage = PageHelper.startPage(request.getPage(), request.getLimit());
+        Map<String, Object> map = new HashMap<>();
+        if (StrUtil.isNotBlank(request.getContent())) {
+            ValidateFormUtil.validatorUserCommonSearch(request);
+            String keywords = URLUtil.decode(request.getContent());
+            switch (request.getSearchType()) {
+                case UserConstants.USER_SEARCH_TYPE_ALL:
+                    map.put("keywords", keywords);
+                    break;
+                case UserConstants.USER_SEARCH_TYPE_UID:
+                    map.put("uid", Integer.valueOf(request.getContent()));
+                    break;
+                case UserConstants.USER_SEARCH_TYPE_NICKNAME:
+                    map.put("nickname", keywords);
+                    break;
+                case UserConstants.USER_SEARCH_TYPE_PHONE:
+                    map.put("phone", request.getContent());
+                    break;
+            }
+        }
+        if (StrUtil.isNotBlank(request.getDateLimit())) {
+            DateLimitUtilVo dateLimit = CrmebDateUtil.getDateLimit(request.getDateLimit());
+            map.put("startTime", dateLimit.getStartTime());
+            map.put("endTime", dateLimit.getEndTime());
+        }
+        // 项目类型映射为 title 枚举（union 两表统一按 title 匹配）
+        if (StrUtil.isNotBlank(request.getTitle())) {
+            switch (request.getTitle()) {
+                case "admin":
+                    map.put("titleList", CollUtil.newArrayList("后台操作", "后台修改佣金"));
+                    break;
+                case "order":
+                    // 分销/代理体系佣金（标题为固定常量，精确匹配避免与"后台修改佣金"串味）
+                    map.put("titleList", CollUtil.newArrayList(
+                            "获得推广佣金", "获得自购返佣", "获得团队极差奖",
+                            "获得团队平级奖", "获得区域代理奖励"));
+                    break;
+                case "withdraw":
+                    map.put("titleList", CollUtil.newArrayList("提现申请", "提现申请拒绝"));
+                    break;
+                case "yue":
+                    map.put("titleList", CollUtil.newArrayList("佣金转余额"));
+                    break;
+                case "stock":
+                    // 订货商/代理体系奖金（如"订货奖金"），标题由 StockRewardServiceImpl 写入
+                    map.put("titleLikeList", CollUtil.newArrayList("订货", "代理奖励"));
+                    break;
+            }
+        }
+        List<UserBillResponse> userBillResponses = dao.fundMonitoringBrokerage(map);
+        if (CollUtil.isEmpty(userBillResponses)) {
+            return CommonPage.copyPageInfo(billPage, CollUtil.newArrayList());
+        }
+        List<MonitorResponse> responseList = userBillResponses.stream().map(e -> {
+            MonitorResponse monitorResponse = new MonitorResponse();
+            BeanUtils.copyProperties(e, monitorResponse);
+            monitorResponse.setSourceTable("brokerage");
             return monitorResponse;
         }).collect(Collectors.toList());
         return CommonPage.copyPageInfo(billPage, responseList);

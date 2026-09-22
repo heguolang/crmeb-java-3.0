@@ -11,13 +11,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 用户账单表
- * +----------------------------------------------------------------------
- * | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
- * +----------------------------------------------------------------------
- * | Copyright (c) 2016~2024 https://www.crmeb.com All rights reserved.
- * +----------------------------------------------------------------------
- * | Licensed CRMEB并不是自由软件，未经许可不能去掉CRMEB相关版权
+ * 资金流水对象（合并 eb_user_bill 余额/佣金 与 eb_user_integral_record 积分）
  * +----------------------------------------------------------------------
  * | Author: CRMEB Team <admin@crmeb.com>
  * +----------------------------------------------------------------------
@@ -25,12 +19,12 @@ import java.util.Date;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@ApiModel(value="MonitorResponse对象", description="资金监控对象")
+@ApiModel(value="MonitorResponse对象", description="资金流水对象")
 public class MonitorResponse implements Serializable {
 
     private static final long serialVersionUID=1L;
 
-    @ApiModelProperty(value = "用户账单id")
+    @ApiModelProperty(value = "账单id（来源表 id）")
     private Integer id;
 
     @ApiModelProperty(value = "用户uid")
@@ -42,7 +36,7 @@ public class MonitorResponse implements Serializable {
     @ApiModelProperty(value = "账单标题")
     private String title;
 
-    @ApiModelProperty(value = "明细数字")
+    @ApiModelProperty(value = "明细数字（积分时为整数）")
     private BigDecimal number;
 
     @ApiModelProperty(value = "备注")
@@ -53,5 +47,23 @@ public class MonitorResponse implements Serializable {
 
     @ApiModelProperty(value = "用户昵称")
     private String nickName;
+
+    @ApiModelProperty(value = "用户手机号")
+    private String phone;
+
+    @ApiModelProperty(value = "用户头像")
+    private String avatar;
+
+    @ApiModelProperty(value = "关联id（订单号等）")
+    private String linkId;
+
+    @ApiModelProperty(value = "明细种类：now_money-余额 / integral-积分 / brokerage_price-佣金")
+    private String category;
+
+    @ApiModelProperty(value = "剩余（变动后余额）")
+    private BigDecimal balance;
+
+    @ApiModelProperty(value = "来源表：bill / integral")
+    private String sourceTable;
 
 }
