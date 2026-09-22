@@ -46,4 +46,7 @@ public class FundsMonitorRequest extends UserCommonSearchRequest implements Seri
     @ApiModelProperty(value = "账户类型:all-全部（默认），now_money-余额，integral-积分，brokerage_price-佣金")
     private String category;
 
+    @ApiModelProperty(value = "关联单号（订单号/换货单号等，模糊匹配）")
+    private String linkId;
+
 }

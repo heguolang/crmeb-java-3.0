@@ -63,8 +63,77 @@
         <if test="phone != '' and phone != null ">
             and u.phone like CONCAT('%',#{phone},'%')
         </if>
+        <if test="linkId != '' and linkId != null ">
+            and ub.link_id like CONCAT('%',#{linkId},'%')
+        </if>
 
         ORDER BY ub.id DESC,ub.create_time DESC
+    </select>
+
+    <!-- 不限（全部）：UNION 三表，余额 + 佣金(记录表/bill表) + 积分 -->
+    <select id="fundMonitoringAll" resultType="com.zbkj.common.response.UserBillResponse" parameterType="map">
+        SELECT t.* FROM (
+            SELECT ub.id, ub.link_id AS linkId, ub.pm, ub.title, ub.category, ub.type,
+                   ub.number, ub.balance, ub.mark, ub.status,
+                   ub.create_time AS createTime, ub.update_time AS updateTime,
+                   u.nickname, ub.uid, u.phone, u.avatar, 'bill' AS sourceTable
+            FROM eb_user_bill ub
+            LEFT JOIN eb_user u ON ub.uid = u.uid
+            WHERE ub.category IN ('now_money','brokerage_price')
+            UNION ALL
+            SELECT ir.id, ir.link_id AS linkId,
+                   (CASE WHEN ir.type = 1 THEN 1 WHEN ir.type = 2 THEN 0 ELSE ir.type END) AS pm,
+                   ir.title, 'integral' AS category, ir.link_type AS type,
+                   ir.integral AS number, ir.balance, ir.mark, ir.status,
+                   ir.create_time AS createTime, ir.update_time AS updateTime,
+                   u.nickname, ir.uid, u.phone, u.avatar, 'integral' AS sourceTable
+            FROM eb_user_integral_record ir
+            LEFT JOIN eb_user u ON ir.uid = u.uid
+            UNION ALL
+            SELECT br.id, br.link_id AS linkId,
+                   (CASE WHEN br.type = 1 THEN 1 WHEN br.type = 2 THEN 0 ELSE br.type END) AS pm,
+                   br.title, 'brokerage_price' AS category, br.link_type AS type,
+                   br.price AS number, br.balance, br.mark, br.status,
+                   br.create_time AS createTime, br.update_time AS updateTime,
+                   u.nickname, br.uid, u.phone, u.avatar, 'brokerage' AS sourceTable
+            FROM eb_user_brokerage_record br
+            LEFT JOIN eb_user u ON br.uid = u.uid
+        ) t
+        where 1 = 1
+        <if test="titleList != null">
+            and t.title in
+            <foreach collection="titleList" item="tItem" open="(" separator="," close=")">#{tItem}</foreach>
+        </if>
+        <if test="titleLikeList != null">
+            and (
+            <foreach collection="titleLikeList" item="tItem" separator=" or ">
+                t.title like CONCAT('%',#{tItem},'%')
+            </foreach>
+            )
+        </if>
+        <if test="startTime != '' and endTime != '' and startTime != null and endTime != null">
+            and (t.createTime between #{startTime} and #{endTime})
+        </if>
+        <if test="keywords != '' and keywords != null ">
+            and (
+            t.uid like CONCAT('%',#{keywords},'%') or
+            t.nickname like CONCAT('%',#{keywords},'%') or
+            t.phone like CONCAT('%',#{keywords},'%')
+            )
+        </if>
+        <if test="uid != null ">
+            and t.uid = #{uid}
+        </if>
+        <if test="nickname != '' and nickname != null ">
+            and t.nickname like CONCAT('%',#{nickname},'%')
+        </if>
+        <if test="phone != '' and phone != null ">
+            and t.phone like CONCAT('%',#{phone},'%')
+        </if>
+        <if test="linkId != '' and linkId != null ">
+            and t.linkId like CONCAT('%',#{linkId},'%')
+        </if>
+        ORDER BY t.createTime DESC, t.id DESC
     </select>
 
     <select id="fundMonitoringIntegral" resultType="com.zbkj.common.response.UserBillResponse" parameterType="map">
@@ -106,6 +175,9 @@
         </if>
         <if test="phone != '' and phone != null ">
             and u.phone like CONCAT('%',#{phone},'%')
+        </if>
+        <if test="linkId != '' and linkId != null ">
+            and ir.link_id like CONCAT('%',#{linkId},'%')
         </if>
 
         ORDER BY ir.id DESC,ir.create_time DESC
@@ -159,6 +231,9 @@
         </if>
         <if test="phone != '' and phone != null ">
             and t.phone like CONCAT('%',#{phone},'%')
+        </if>
+        <if test="linkId != '' and linkId != null ">
+            and t.linkId like CONCAT('%',#{linkId},'%')
         </if>
         ORDER BY t.createTime DESC, t.id DESC
     </select>

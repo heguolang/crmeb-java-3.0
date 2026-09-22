@@ -64,6 +64,13 @@ public interface UserBillService extends IService<UserBill> {
     PageInfo<MonitorResponse> fundMonitoring(FundsMonitorRequest request);
 
     /**
+     * 资金监控 - 不限（UNION 三表：余额 + 佣金 + 积分）
+     * @param request 查询参数
+     * @return PageInfo
+     */
+    PageInfo<MonitorResponse> fundMonitoringAll(FundsMonitorRequest request);
+
+    /**
      * 积分资金流水监控
      *
      * @param request 查询参数

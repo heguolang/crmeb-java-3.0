@@ -79,4 +79,13 @@ public class UserBillResponse implements Serializable {
     @ApiModelProperty(value = "用户昵称")
     private String nickName;
 
+    @ApiModelProperty(value = "用户手机号")
+    private String phone;
+
+    @ApiModelProperty(value = "用户头像")
+    private String avatar;
+
+    @ApiModelProperty(value = "来源表：bill / integral / brokerage")
+    private String sourceTable;
+
 }

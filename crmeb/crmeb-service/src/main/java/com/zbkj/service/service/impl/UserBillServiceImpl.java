@@ -268,6 +268,10 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
                 map.put("titleList", titleList);
             }
         }
+        // 关联单号筛选
+        if (StrUtil.isNotBlank(request.getLinkId())) {
+            map.put("linkId", request.getLinkId());
+        }
         // 账户类型筛选（仅 now_money / brokerage_price 走本表；integral 走 fundMonitoringIntegral）
         if (StrUtil.isNotBlank(request.getCategory())) {
             String category = request.getCategory();
@@ -287,6 +291,105 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
             return monitorResponse;
         }).collect(Collectors.toList());
         return CommonPage.copyPageInfo(billPage, responseList);
+    }
+
+    @Override
+    public PageInfo<MonitorResponse> fundMonitoringAll(FundsMonitorRequest request) {
+        Page<UserBill> billPage = PageHelper.startPage(request.getPage(), request.getLimit());
+        Map<String, Object> map = buildMonitorQueryMap(request);
+        List<UserBillResponse> userBillResponses = dao.fundMonitoringAll(map);
+        if (CollUtil.isEmpty(userBillResponses)) {
+            return CommonPage.copyPageInfo(billPage, CollUtil.newArrayList());
+        }
+        List<MonitorResponse> responseList = userBillResponses.stream().map(e -> {
+            MonitorResponse monitorResponse = new MonitorResponse();
+            BeanUtils.copyProperties(e, monitorResponse);
+            // sourceTable 由 SQL 返回（bill / integral / brokerage），勿覆盖
+            return monitorResponse;
+        }).collect(Collectors.toList());
+        return CommonPage.copyPageInfo(billPage, responseList);
+    }
+
+    /**
+     * 组装资金监控公共查询条件（关键词/时间/uid/单号/标题映射）
+     * @param request 查询参数
+     * @return Map
+     */
+    private Map<String, Object> buildMonitorQueryMap(FundsMonitorRequest request) {
+        Map<String, Object> map = new HashMap<>();
+        if (StrUtil.isNotBlank(request.getContent())) {
+            ValidateFormUtil.validatorUserCommonSearch(request);
+            String keywords = URLUtil.decode(request.getContent());
+            switch (request.getSearchType()) {
+                case UserConstants.USER_SEARCH_TYPE_ALL:
+                    map.put("keywords", keywords);
+                    break;
+                case UserConstants.USER_SEARCH_TYPE_UID:
+                    map.put("uid", Integer.valueOf(request.getContent()));
+                    break;
+                case UserConstants.USER_SEARCH_TYPE_NICKNAME:
+                    map.put("nickname", keywords);
+                    break;
+                case UserConstants.USER_SEARCH_TYPE_PHONE:
+                    map.put("phone", request.getContent());
+                    break;
+            }
+        }
+        if (StrUtil.isNotBlank(request.getDateLimit())) {
+            DateLimitUtilVo dateLimit = CrmebDateUtil.getDateLimit(request.getDateLimit());
+            map.put("startTime", dateLimit.getStartTime());
+            map.put("endTime", dateLimit.getEndTime());
+        }
+        if (StrUtil.isNotBlank(request.getLinkId())) {
+            map.put("linkId", request.getLinkId());
+        }
+        // 项目类型 → 标题匹配：优先精确 titleList，其次模糊 titleLikeList
+        if (StrUtil.isNotBlank(request.getTitle())) {
+            switch (request.getTitle()) {
+                case "recharge":
+                    map.put("titleList", CollUtil.newArrayList("充值支付", "余额充值"));
+                    break;
+                case "admin":
+                    map.put("titleLikeList", CollUtil.newArrayList("后台"));
+                    break;
+                case "productRefund":
+                    map.put("titleLikeList", CollUtil.newArrayList("退款"));
+                    break;
+                case "payProduct":
+                    map.put("titleList", CollUtil.newArrayList("购买商品"));
+                    break;
+                case "transferIn":
+                    map.put("titleList", CollUtil.newArrayList("佣金转余额"));
+                    break;
+                case "exchange":
+                    map.put("titleLikeList", CollUtil.newArrayList("换货"));
+                    break;
+                case "stock":
+                    map.put("titleLikeList", CollUtil.newArrayList("订货", "代理奖励"));
+                    break;
+                case "order":
+                    map.put("titleList", CollUtil.newArrayList(
+                            "获得推广佣金", "获得自购返佣", "获得团队极差奖",
+                            "获得团队平级奖", "获得区域代理奖励"));
+                    break;
+                case "withdraw":
+                    map.put("titleList", CollUtil.newArrayList("提现申请", "提现申请拒绝"));
+                    break;
+                case "yue":
+                    map.put("titleList", CollUtil.newArrayList("佣金转余额"));
+                    break;
+                case "sign":
+                    map.put("titleLikeList", CollUtil.newArrayList("签到"));
+                    break;
+                case "reward":
+                    map.put("titleLikeList", CollUtil.newArrayList("奖励", "赠送"));
+                    break;
+                case "deduct":
+                    map.put("titleLikeList", CollUtil.newArrayList("抵扣", "消费", "扣除"));
+                    break;
+            }
+        }
+        return map;
     }
 
     @Override
@@ -315,6 +418,10 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
             DateLimitUtilVo dateLimit = CrmebDateUtil.getDateLimit(request.getDateLimit());
             map.put("startTime", dateLimit.getStartTime());
             map.put("endTime", dateLimit.getEndTime());
+        }
+        // 关联单号筛选
+        if (StrUtil.isNotBlank(request.getLinkId())) {
+            map.put("linkId", request.getLinkId());
         }
         if (StrUtil.isNotBlank(request.getTitle())) {
             switch (request.getTitle()) {
@@ -374,6 +481,10 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
             DateLimitUtilVo dateLimit = CrmebDateUtil.getDateLimit(request.getDateLimit());
             map.put("startTime", dateLimit.getStartTime());
             map.put("endTime", dateLimit.getEndTime());
+        }
+        // 关联单号筛选
+        if (StrUtil.isNotBlank(request.getLinkId())) {
+            map.put("linkId", request.getLinkId());
         }
         // 项目类型映射为 title 枚举（union 两表统一按 title 匹配）
         if (StrUtil.isNotBlank(request.getTitle())) {

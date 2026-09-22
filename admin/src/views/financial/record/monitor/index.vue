@@ -43,6 +43,15 @@
             <el-form-item label="用户搜索">
               <UserSearchInput ref="userSearchInput" v-model="tableFrom" />
             </el-form-item>
+            <el-form-item label="关联单号">
+              <el-input
+                v-model="tableFrom.linkId"
+                size="small"
+                clearable
+                placeholder="订单号 / 换货单号"
+                @keyup.enter.native="getList(1)"
+              />
+            </el-form-item>
             <el-form-item label-width="0">
               <el-button type="primary" size="small" icon="el-icon-search" @click="getList(1)">搜索</el-button>
               <el-button size="small" icon="el-icon-refresh-left" @click="handleReset">重置</el-button>
@@ -108,11 +117,7 @@
                   </div>
                   <div class="kv">
                     <span class="kv__k">会员账号：</span>
-                    <span class="kv__v kv__v--num">{{ row.phone || '-' }}</span>
-                  </div>
-                  <div class="kv">
-                    <span class="kv__k">用户等级：</span>
-                    <span class="status-tag status-tag--info">普通会员</span>
+                    <span class="kv__v kv__v--num">{{ row.phone || '—' }}</span>
                   </div>
                 </div>
               </div>
@@ -120,17 +125,15 @@
             <!-- 订单 -->
             <div class="list-cell">
               <div class="kv">
+                <span class="kv__k">单号：</span>
                 <span class="kv__v kv__v--num">{{ row.linkId && row.linkId !== '0' ? row.linkId : '—' }}</span>
                 <span v-if="row.linkId && row.linkId !== '0'" class="kv__copy" @click="copyText(row.linkId)">
                   <i class="el-icon-document-copy"></i>
                 </span>
               </div>
               <div class="kv">
-                <span class="kv__v kv__v--num">{{ row.createTime }}</span>
-              </div>
-              <div class="kv">
-                <span class="kv__k">备注：</span>
-                <span class="kv__v">{{ row.title || '—' }}</span>
+                <span class="kv__k">时间：</span>
+                <span class="kv__v kv__v--num">{{ row.createTime || '—' }}</span>
               </div>
             </div>
             <!-- 资金 -->
@@ -149,12 +152,12 @@
             <!-- 来源 -->
             <div class="list-cell">
               <div class="kv">
-                <span class="kv__k">来自分类：</span>
-                <span class="status-tag" :class="categoryTagClass(row.category)">{{ categoryLabel(row.category) }}</span>
+                <span class="kv__k">来源业务：</span>
+                <span class="kv__v">{{ row.title || '—' }}</span>
               </div>
               <div class="kv">
-                <span class="kv__k">账单来源：</span>
-                <span class="kv__v">{{ row.mark || '—' }}</span>
+                <span class="kv__k">备注：</span>
+                <span class="kv__v kv__v--wrap">{{ row.mark || '—' }}</span>
               </div>
             </div>
             <!-- 资金类型 -->
@@ -162,9 +165,12 @@
               <div class="status-tag" :class="categoryTagClass(row.category)">
                 {{ categoryLabel(row.category) }}
               </div>
+              <div class="status-tag status-tag--info type-tag">
+                {{ row.title || '—' }}
+              </div>
               <div class="kv" style="margin-top:6px">
                 <span class="status-tag" :class="row.pm == 1 ? 'status-tag--success' : 'status-tag--danger'">
-                  {{ row.pm == 1 ? '后台增加' : '后台扣减' }}
+                  {{ row.pm == 1 ? '增加' : '扣减' }}
                 </span>
               </div>
             </div>
@@ -203,6 +209,7 @@ export default {
       tableFrom: {
         category: 'all',
         title: '',
+        linkId: '',
         dateLimit: '',
         content: '',
         searchType: 'all',
@@ -222,6 +229,13 @@ export default {
           { value: 'admin', label: '后台操作' },
           { value: 'transferIn', label: '佣金转入' },
           { value: 'exchange', label: '换货差价' },
+          { value: 'stock', label: '订货奖金' },
+          { value: 'order', label: '订单佣金' },
+          { value: 'withdraw', label: '佣金提现' },
+          { value: 'yue', label: '佣金转余额' },
+          { value: 'sign', label: '签到奖励' },
+          { value: 'reward', label: '活动奖励' },
+          { value: 'deduct', label: '消费抵扣' },
         ],
         now_money: [
           { value: 'recharge', label: '余额充值' },
@@ -272,6 +286,7 @@ export default {
     // 重置
     handleReset() {
       this.tableFrom.title = '';
+      this.tableFrom.linkId = '';
       this.tableFrom.dateLimit = '';
       this.tableFrom.content = '';
       this.tableFrom.searchType = 'all';
@@ -446,14 +461,27 @@ export default {
   }
 }
 
-/* 金额增/减色 */
+/* 金额增/减色（中国惯例：增加=红，减少=绿） */
 .money-up {
-  color: #52a832;
+  color: #e04c4c;
   font-weight: 600;
 }
 
 .money-down {
-  color: #e04c4c;
+  color: #52a832;
   font-weight: 600;
+}
+
+/* 资金类型列的明细标签：独立一行，与账户标签区分 */
+.type-tag {
+  display: inline-block;
+  margin-top: 6px;
+}
+
+/* 长备注允许换行，避免撑破单元格 */
+.kv__v--wrap {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 20px;
 }
 </style>

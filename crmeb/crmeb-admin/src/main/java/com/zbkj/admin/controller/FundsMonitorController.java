@@ -52,14 +52,16 @@ public class FundsMonitorController {
     @ApiOperation(value = "资金监控（余额/佣金/全部三类）")
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     public CommonResult<CommonPage<MonitorResponse>> getList(@Validated FundsMonitorRequest request){
-        // 账户类型路由：integral 走积分表，brokerage_price 走佣金记录 union，其余（now_money/all）走 eb_user_bill
+        // 账户类型路由：integral 走积分表，brokerage_price 走佣金记录 union，now_money 走 bill，all 走三表 union
         CommonPage<MonitorResponse> page;
         if ("integral".equals(request.getCategory())) {
             page = CommonPage.restPage(userBillService.fundMonitoringIntegral(request));
         } else if ("brokerage_price".equals(request.getCategory())) {
             page = CommonPage.restPage(userBillService.fundMonitoringBrokerage(request));
-        } else {
+        } else if ("now_money".equals(request.getCategory())) {
             page = CommonPage.restPage(userBillService.fundMonitoring(request));
+        } else {
+            page = CommonPage.restPage(userBillService.fundMonitoringAll(request));
         }
         return CommonResult.success(page);
     }
