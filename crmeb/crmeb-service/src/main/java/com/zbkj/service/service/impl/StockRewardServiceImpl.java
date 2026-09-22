@@ -7,6 +7,8 @@ import com.github.pagehelper.PageInfo;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.constants.BrokerageRecordConstants;
+import com.zbkj.common.model.product.ProductCommissionConfig;
+import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.stock.StockAgent;
 import com.zbkj.common.model.stock.StockExchange;
 import com.zbkj.common.model.stock.StockLadder;
@@ -20,6 +22,7 @@ import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.StockRequests;
+import com.zbkj.common.utils.ProductCommissionUtil;
 import com.zbkj.service.dao.StockLadderDao;
 import com.zbkj.service.dao.StockNoticeDao;
 import com.zbkj.service.dao.StockOrderDao;
@@ -28,6 +31,7 @@ import com.zbkj.service.dao.StockRewardDao;
 import com.zbkj.service.dao.StockWithdrawDao;
 import com.zbkj.service.service.StockRewardService;
 import com.zbkj.service.service.StockService;
+import com.zbkj.service.service.StoreProductService;
 import com.zbkj.service.service.SystemConfigService;
 import com.zbkj.service.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,6 +90,9 @@ public class StockRewardServiceImpl implements StockRewardService {
 
     @Resource
     private SystemConfigService systemConfigService;
+
+    @Resource
+    private StoreProductService storeProductService;
 
     @Resource
     private TransactionTemplate transactionTemplate;
@@ -172,7 +179,7 @@ public class StockRewardServiceImpl implements StockRewardService {
         if (supplier == null || supplier.getStatus() == 0) {
             return;
         }
-        boolean diffEnabled = "1".equals(systemConfigService.getValueByKey("stock_diff_reward_status"));
+        boolean globalDiffEnabled = "1".equals(systemConfigService.getValueByKey("stock_diff_reward_status"));
         List<StockOrderProduct> items = stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
                 .eq(StockOrderProduct::getOrderId, order.getId()));
         BigDecimal cost = BigDecimal.ZERO;
@@ -196,7 +203,12 @@ public class StockRewardServiceImpl implements StockRewardService {
             cost = cost.add(supplyPrice.multiply(num));
             BigDecimal d = buyerPrice.subtract(supplyPrice);
             if (d.signum() > 0) {
-                diff = diff.add(d.multiply(num));
+                StoreProduct product = item.getProductId() != null ? storeProductService.getById(item.getProductId()) : null;
+                ProductCommissionConfig.Stock stockCfg = ProductCommissionUtil.parse(
+                        product != null ? product.getCommissionConfig() : null).getStock();
+                if (ProductCommissionUtil.resolveEnabled(stockCfg.getDiffEnabled(), globalDiffEnabled)) {
+                    diff = diff.add(d.multiply(num));
+                }
             }
         }
         if (cost.signum() > 0) {
@@ -204,7 +216,7 @@ public class StockRewardServiceImpl implements StockRewardService {
                     cost, BigDecimal.ZERO, cost,
                     "货款成本回款：" + order.getOrderNo() + "（下级订单货款按您的拿货价结算成本）");
         }
-        if (diffEnabled && diff.signum() > 0) {
+        if (diff.signum() > 0) {
             createRewardIfAbsent(supplier.getUid(), StockReward.TYPE_DIFF, order.getOrderNo(), order.getUid(),
                     diff, BigDecimal.ZERO, diff, "差价佣金：" + order.getOrderNo()
                             + "（下级拿价 − 您的拿价）×" + order.getTotalNum());
@@ -212,9 +224,7 @@ public class StockRewardServiceImpl implements StockRewardService {
     }
 
     /**
-     * 平级奖励（2026-09-18 调整：全局配置已废弃，改为按层级设置中的平级奖比例）：
-     * 需求口径 —— 下级代理 B 产生订货业绩时，其【直接上级】A 若与 B 同层级（同级平推），
-     * A 按其层级在层级设置中配置的平级奖比例（eb_stock_level.peer_rate）拿 B 本单金额的奖励，只拿直接一代。
+     * 平级/越级推荐奖：同级走平级（层级 peer_rate 或商品覆盖）；不同级走商品级越级配置。
      */
     private void calcPeerReward(StockOrder order) {
         StockAgent start = stockService.getAgentById(order.getAgentId());
@@ -228,21 +238,69 @@ public class StockRewardServiceImpl implements StockRewardService {
         if (up == null || up.getStatus() == null || up.getStatus() != 1) {
             return;
         }
-        // 仅同级平推产生平级奖
-        if (!up.getLevelId().equals(start.getLevelId())) {
-            return;
-        }
+        boolean sameLevel = up.getLevelId() != null && up.getLevelId().equals(start.getLevelId());
         com.zbkj.common.model.stock.StockLevel level = stockLevelDao.selectById(up.getLevelId());
-        if (level == null || level.getPeerRate() == null || level.getPeerRate().signum() <= 0) {
+        BigDecimal levelPeerRate = (level != null && level.getPeerRate() != null) ? level.getPeerRate() : null;
+
+        List<StockOrderProduct> items = stockOrderProductDao.selectList(new LambdaQueryWrapper<StockOrderProduct>()
+                .eq(StockOrderProduct::getOrderId, order.getId()));
+        if (items == null || items.isEmpty()) {
+            // 无明细时保持旧逻辑：仅同级整单平级
+            if (!sameLevel || levelPeerRate == null || levelPeerRate.signum() <= 0) {
+                return;
+            }
+            BigDecimal reward = order.getTotalPrice().multiply(levelPeerRate)
+                    .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+            if (reward.signum() > 0) {
+                createRewardIfAbsent(up.getUid(), StockReward.TYPE_PEER, order.getOrderNo(), order.getUid(),
+                        order.getTotalPrice(), levelPeerRate, reward,
+                        "平级奖励：同级下级单 " + order.getOrderNo() + " 按层级【" + level.getName()
+                                + "】比例 " + levelPeerRate + "%");
+            }
             return;
         }
-        BigDecimal reward = order.getTotalPrice().multiply(level.getPeerRate())
-                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-        if (reward.signum() > 0) {
+
+        BigDecimal peerTotal = BigDecimal.ZERO;
+        BigDecimal leapTotal = BigDecimal.ZERO;
+        boolean anyPeerOverride = false;
+        for (StockOrderProduct item : items) {
+            StoreProduct product = item.getProductId() != null ? storeProductService.getById(item.getProductId()) : null;
+            ProductCommissionConfig.Stock stockCfg = ProductCommissionUtil.parse(
+                    product != null ? product.getCommissionConfig() : null).getStock();
+            BigDecimal unitPrice = item.getPrice() == null ? BigDecimal.ZERO : item.getPrice();
+            int num = item.getNum() == null ? 0 : item.getNum();
+            if (sameLevel) {
+                BigDecimal override = ProductCommissionUtil.calcOverride(
+                        stockCfg.getPeerAmount(), stockCfg.getPeerRate(), unitPrice, num);
+                if (override != null) {
+                    anyPeerOverride = true;
+                    peerTotal = peerTotal.add(override);
+                } else if (levelPeerRate != null && levelPeerRate.signum() > 0 && num > 0) {
+                    peerTotal = peerTotal.add(unitPrice.multiply(levelPeerRate)
+                            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP)
+                            .multiply(new BigDecimal(num)));
+                }
+            } else {
+                BigDecimal override = ProductCommissionUtil.calcOverride(
+                        stockCfg.getLeapAmount(), stockCfg.getLeapRate(), unitPrice, num);
+                if (override != null) {
+                    leapTotal = leapTotal.add(override);
+                }
+            }
+        }
+        if (peerTotal.signum() > 0) {
+            String mark = anyPeerOverride
+                    ? "平级奖励：同级下级单 " + order.getOrderNo() + "（含商品级佣金覆盖）"
+                    : "平级奖励：同级下级单 " + order.getOrderNo() + " 按层级【"
+                    + (level != null ? level.getName() : "") + "】比例 "
+                    + (levelPeerRate != null ? levelPeerRate : BigDecimal.ZERO) + "%";
             createRewardIfAbsent(up.getUid(), StockReward.TYPE_PEER, order.getOrderNo(), order.getUid(),
-                    order.getTotalPrice(), level.getPeerRate(), reward,
-                    "平级奖励：同级下级单 " + order.getOrderNo() + " 按层级【" + level.getName()
-                            + "】比例 " + level.getPeerRate() + "%");
+                    order.getTotalPrice(), levelPeerRate == null ? BigDecimal.ZERO : levelPeerRate, peerTotal, mark);
+        }
+        if (leapTotal.signum() > 0) {
+            createRewardIfAbsent(up.getUid(), StockReward.TYPE_PEER, order.getOrderNo() + "-leap", order.getUid(),
+                    order.getTotalPrice(), BigDecimal.ZERO, leapTotal,
+                    "越级推荐奖：下级单 " + order.getOrderNo() + "（商品级配置）");
         }
     }
 

@@ -508,6 +508,10 @@ export default {
         datas.ids = that.activeValue.goodsList.ids.join();
       } else if (type == 3) {
         datas.cate_ids = that.activeValue.selectConfig.activeValue.join();
+      } else if (type == 5) {
+        const groupCfg = that.activeValue.productGroupConfig || {};
+        const groupIds = groupCfg.activeValue || [];
+        datas.group_ids = Array.isArray(groupIds) ? groupIds.join() : groupIds;
       }
       getThemeProduct(datas)
         .then(({ data }) => {

@@ -204,7 +204,7 @@ public interface ThemeService extends IService<Theme> {
      * @param limit 返回数量
      * @return 商品列表
      */
-    List<JSONObject> getThemeProduct(String ids, String cateIds, Integer order, Integer sort, Integer limit);
+    List<JSONObject> getThemeProduct(String ids, String cateIds, String groupIds, Integer order, Integer sort, Integer limit);
 
     /**
      * 获取移动端主题优惠券列表

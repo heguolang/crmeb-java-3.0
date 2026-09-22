@@ -134,6 +134,9 @@ public class StoreProduct implements Serializable {
     @ApiModelProperty(value = "是否单独分佣")
     private Boolean isSub;
 
+    @ApiModelProperty(value = "商品级佣金配置JSON：空字段取全局，0表示该商品无此项")
+    private String commissionConfig;
+
     @ApiModelProperty(value = "虚拟销量")
     private Integer ficti;
 

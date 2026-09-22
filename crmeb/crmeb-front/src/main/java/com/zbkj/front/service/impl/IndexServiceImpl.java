@@ -77,6 +77,9 @@ public class IndexServiceImpl implements IndexService {
     @Autowired
     private SystemAttachmentService systemAttachmentService;
 
+    @Autowired
+    private StoreProductGroupService storeProductGroupService;
+
 
     /**
      * 首页数据
@@ -151,6 +154,14 @@ public class IndexServiceImpl implements IndexService {
             return CommonPage.restPage(new ArrayList<>());
         }
         List<StoreProduct> storeProductList = storeProductService.getIndexProduct(type, pageParamRequest);
+        if (CollUtil.isNotEmpty(storeProductList)) {
+            java.util.Set<Integer> hiddenIds = storeProductGroupService.getHiddenProductIds(userService.getInfo());
+            if (CollUtil.isNotEmpty(hiddenIds)) {
+                storeProductList = storeProductList.stream()
+                        .filter(p -> !hiddenIds.contains(p.getId()))
+                        .collect(java.util.stream.Collectors.toList());
+            }
+        }
         if(CollUtil.isEmpty(storeProductList)) {
             return CommonPage.restPage(new ArrayList<>());
         }

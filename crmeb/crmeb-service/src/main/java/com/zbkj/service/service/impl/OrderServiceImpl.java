@@ -148,6 +148,9 @@ public class OrderServiceImpl implements OrderService {
     private StoreProductService storeProductService;
 
     @Autowired
+    private StoreProductGroupService storeProductGroupService;
+
+    @Autowired
     private StoreProductAttrValueService attrValueService;
 
     @Autowired
@@ -1529,6 +1532,7 @@ public class OrderServiceImpl implements OrderService {
                 if (!storeProduct.getIsShow()) {
                     throw new CrmebException("商品已下架，请刷新后重新选择");
                 }
+                storeProductGroupService.assertPurchaseAllowed(user, detailRequest.getProductId(), detailRequest.getProductNum());
                 if (storeProduct.getStock() < detailRequest.getProductNum()) {
                     throw new CrmebException("商品库存不足，请刷新后重新选择");
                 }
@@ -1676,6 +1680,7 @@ public class OrderServiceImpl implements OrderService {
             if (!storeProduct.getIsShow()) {
                 throw new CrmebException("商品已下架，请刷新后重新选择");
             }
+            storeProductGroupService.assertPurchaseAllowed(user, storeCart.getProductId(), storeCart.getCartNum());
             if (storeProduct.getStock() < storeCart.getCartNum()) {
                 throw new CrmebException("商品库存不足，请刷新后重新选择");
             }

@@ -16,6 +16,8 @@ import com.zbkj.common.model.agent.Agent;
 import com.zbkj.common.model.agent.AgentChangeLog;
 import com.zbkj.common.model.agent.AgentReward;
 import com.zbkj.common.model.order.StoreOrder;
+import com.zbkj.common.model.product.ProductCommissionConfig;
+import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.page.CommonPage;
@@ -23,10 +25,14 @@ import com.zbkj.common.request.AgentAdminRequest;
 import com.zbkj.common.request.AgentApplyRequest;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.utils.CrmebDateUtil;
+import com.zbkj.common.utils.ProductCommissionUtil;
+import com.zbkj.common.vo.StoreOrderInfoOldVo;
 import com.zbkj.service.dao.AgentChangeLogDao;
 import com.zbkj.service.dao.AgentDao;
 import com.zbkj.service.dao.AgentRewardDao;
 import com.zbkj.service.service.AgentService;
+import com.zbkj.service.service.StoreOrderInfoService;
+import com.zbkj.service.service.StoreProductService;
 import com.zbkj.service.service.SystemConfigService;
 import com.zbkj.service.service.UserBrokerageRecordService;
 import com.zbkj.service.service.UserService;
@@ -73,6 +79,12 @@ public class AgentServiceImpl implements AgentService {
 
     @Autowired
     private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private StoreOrderInfoService storeOrderInfoService;
+
+    @Autowired
+    private StoreProductService storeProductService;
 
     // ==================== 后台 ====================
 
@@ -452,69 +464,351 @@ public class AgentServiceImpl implements AgentService {
         if (exists > 0) {
             return new ArrayList<>();
         }
-        // 匹配区域代理
         List<Agent> activeAgents = agentDao.selectList(new LambdaQueryWrapper<Agent>()
                 .eq(Agent::getStatus, Agent.STATUS_PASS)
                 .eq(Agent::getIsDel, 0));
         if (CollUtil.isEmpty(activeAgents)) {
             return new ArrayList<>();
         }
-        // 逐级匹配：省/市/区各级各取一个最匹配的代理，全部参与分润
-        // （修复：原先 matchAgent 只取一个"最优"代理，订单落到南明区时只给区代 2%，
-        //   贵阳市代 3% 和贵州省代 5% 拿不到 —— 三级代理是独立区域授权，应同时生效）
         List<Agent> matchedList = matchAgents(address, activeAgents);
-        if (CollUtil.isEmpty(matchedList)) {
-            return new ArrayList<>();
-        }
-
         String frozenTime = systemConfigService.getValueByKey(Constants.CONFIG_KEY_STORE_BROKERAGE_EXTRACT_TIME);
         int frozenDays = Integer.parseInt(StrUtil.blankToDefault(frozenTime, "0"));
 
         ArrayList<UserBrokerageRecord> list = new ArrayList<>();
-        for (Agent matched : matchedList) {
-            if (ObjectUtil.isNull(matched.getRatio()) || matched.getRatio().compareTo(BigDecimal.ZERO) <= 0) {
-                logger.warn("区域代理【{}】奖励比例未设置，跳过订单{}", matched.getRegionName(), storeOrder.getOrderId());
-                continue;
+        if (CollUtil.isNotEmpty(matchedList)) {
+            Map<Integer, BigDecimal> rewardByAgentId = calcGeoRewards(storeOrder, matchedList);
+            Map<Integer, Agent> agentMap = matchedList.stream()
+                    .collect(Collectors.toMap(Agent::getId, a -> a, (a, b) -> a));
+            for (Map.Entry<Integer, BigDecimal> entry : rewardByAgentId.entrySet()) {
+                BigDecimal reward = entry.getValue();
+                if (reward == null || reward.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+                Agent matched = agentMap.get(entry.getKey());
+                if (matched == null) {
+                    continue;
+                }
+                list.add(buildAgentRecord(storeOrder, matched, reward, frozenDays,
+                        BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_AGENT,
+                        BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT,
+                        StrUtil.format("订单【{}】实付{}元，收货地址命中代理区域【{}】，区域代理奖励{}",
+                                storeOrder.getOrderId(), storeOrder.getPayPrice(), matched.getRegionName(), reward)));
             }
-            // 奖励金额 = 订单实付金额 * 比例（各级独立计算，互不影响）
-            BigDecimal reward = storeOrder.getPayPrice()
-                    .multiply(matched.getRatio())
-                    .divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
-            if (reward.compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
-            }
-
-            // 佣金记录（与团队奖同模式：先CREATE，按到账方式入账）
-            UserBrokerageRecord record = new UserBrokerageRecord();
-            record.setUid(matched.getUid());
-            record.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
-            record.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
-            record.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_AGENT);
-            record.setPrice(reward);
-            record.setMark(StrUtil.format("订单【{}】实付{}元，收货地址命中代理区域【{}】，比例{}%",
-                    storeOrder.getOrderId(), storeOrder.getPayPrice(), matched.getRegionName(), matched.getRatio()));
-            record.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE);
-            record.setFrozenTime(frozenDays);
-            record.setCreateTime(CrmebDateUtil.nowDateTime());
-            record.setBrokerageLevel(BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT);
-
-            // 奖励明细
-            AgentReward rewardRow = new AgentReward();
-            rewardRow.setAgentId(matched.getId());
-            rewardRow.setUid(matched.getUid());
-            rewardRow.setOrderId(storeOrder.getOrderId());
-            rewardRow.setOrderPayPrice(storeOrder.getPayPrice());
-            rewardRow.setRatio(matched.getRatio());
-            rewardRow.setRewardPrice(reward);
-            rewardRow.setRegionName(matched.getRegionName());
-            rewardRow.setRecordId(0);
-            rewardRow.setStatus(AgentReward.STATUS_WAIT);
-            rewardRow.setCreateTime(new Date());
-            agentRewardDao.insert(rewardRow);
-
-            list.add(record);
         }
+        // 平级/越级推荐奖（沿推广链找代理上下级）
+        list.addAll(assignAgentPeerLeap(storeOrder, frozenDays));
         return list;
+    }
+
+    /**
+     * 区域代理地理分润：支持商品级覆盖；syncMode 时上级比例含下级份额（极差）；
+     * superiorClaim 控制无下级时上级是否领取下级份额。
+     */
+    private Map<Integer, BigDecimal> calcGeoRewards(StoreOrder storeOrder, List<Agent> matchedList) {
+        Map<Integer, Agent> byLevel = new HashMap<>();
+        for (Agent a : matchedList) {
+            if (a.getLevel() != null) {
+                byLevel.put(a.getLevel(), a);
+            }
+        }
+        List<StoreOrderInfoOldVo> lines = storeOrderInfoService.getOrderListByOrderId(storeOrder.getId());
+        Map<Integer, BigDecimal> rewardByAgentId = new HashMap<>();
+        boolean anySync = false;
+        if (CollUtil.isNotEmpty(lines)) {
+            for (StoreOrderInfoOldVo line : lines) {
+                Integer productId = line.getProductId();
+                if (productId == null && line.getInfo() != null) {
+                    productId = line.getInfo().getProductId();
+                }
+                StoreProduct product = ObjectUtil.isNotNull(productId) ? storeProductService.getById(productId) : null;
+                ProductCommissionConfig.Agent agentCfg = ProductCommissionUtil.parse(
+                        product != null ? product.getCommissionConfig() : null).getAgent();
+                if (Boolean.TRUE.equals(agentCfg.getSyncMode())) {
+                    anySync = true;
+                    break;
+                }
+            }
+        }
+        if (!anySync) {
+            for (Agent matched : matchedList) {
+                BigDecimal reward = calcAgentRewardWithProductOverride(storeOrder, matched);
+                if (reward.compareTo(BigDecimal.ZERO) > 0) {
+                    rewardByAgentId.merge(matched.getId(), reward, BigDecimal::add);
+                }
+            }
+            return rewardByAgentId;
+        }
+        // 同总设置模式：按行累计 raw 后极差分配
+        if (CollUtil.isEmpty(lines)) {
+            for (Agent matched : matchedList) {
+                BigDecimal reward = calcAgentRewardWithProductOverride(storeOrder, matched);
+                if (reward.compareTo(BigDecimal.ZERO) > 0) {
+                    rewardByAgentId.merge(matched.getId(), reward, BigDecimal::add);
+                }
+            }
+            return rewardByAgentId;
+        }
+        BigDecimal sumPayP = BigDecimal.ZERO;
+        BigDecimal sumPayC = BigDecimal.ZERO;
+        BigDecimal sumPayD = BigDecimal.ZERO;
+        for (StoreOrderInfoOldVo line : lines) {
+            if (ObjectUtil.isNull(line.getInfo())) {
+                continue;
+            }
+            Integer productId = ObjectUtil.defaultIfNull(line.getProductId(), line.getInfo().getProductId());
+            StoreProduct product = ObjectUtil.isNotNull(productId) ? storeProductService.getById(productId) : null;
+            ProductCommissionConfig.Agent agentCfg = ProductCommissionUtil.parse(
+                    product != null ? product.getCommissionConfig() : null).getAgent();
+            if (!ProductCommissionUtil.resolveEnabled(agentCfg.getEnabled(), true)) {
+                continue;
+            }
+            boolean sync = Boolean.TRUE.equals(agentCfg.getSyncMode());
+            boolean claim = Boolean.TRUE.equals(agentCfg.getSuperiorClaim());
+            BigDecimal unitPrice = ObjectUtil.isNotNull(line.getInfo().getVipPrice())
+                    ? line.getInfo().getVipPrice() : line.getInfo().getPrice();
+            int payNum = ObjectUtil.defaultIfNull(line.getInfo().getPayNum(), 1);
+            BigDecimal rawP = calcLevelRaw(agentCfg, Agent.LEVEL_PROVINCE, byLevel.get(Agent.LEVEL_PROVINCE), unitPrice, payNum);
+            BigDecimal rawC = calcLevelRaw(agentCfg, Agent.LEVEL_CITY, byLevel.get(Agent.LEVEL_CITY), unitPrice, payNum);
+            BigDecimal rawD = calcLevelRaw(agentCfg, Agent.LEVEL_DISTRICT, byLevel.get(Agent.LEVEL_DISTRICT), unitPrice, payNum);
+            boolean hasP = byLevel.containsKey(Agent.LEVEL_PROVINCE);
+            boolean hasC = byLevel.containsKey(Agent.LEVEL_CITY);
+            boolean hasD = byLevel.containsKey(Agent.LEVEL_DISTRICT);
+            if (!sync) {
+                if (hasP) {
+                    sumPayP = sumPayP.add(rawP);
+                }
+                if (hasC) {
+                    sumPayC = sumPayC.add(rawC);
+                }
+                if (hasD) {
+                    sumPayD = sumPayD.add(rawD);
+                }
+                continue;
+            }
+            BigDecimal payD = hasD ? rawD : BigDecimal.ZERO;
+            BigDecimal lowerForC = hasD ? rawD : (claim ? BigDecimal.ZERO : rawD);
+            BigDecimal payC = hasC ? rawC.subtract(lowerForC).max(BigDecimal.ZERO) : BigDecimal.ZERO;
+            BigDecimal lowerForP;
+            if (hasC) {
+                lowerForP = rawC;
+            } else if (claim) {
+                lowerForP = hasD ? rawD : BigDecimal.ZERO;
+            } else {
+                lowerForP = rawC;
+            }
+            BigDecimal payP = hasP ? rawP.subtract(lowerForP).max(BigDecimal.ZERO) : BigDecimal.ZERO;
+            sumPayP = sumPayP.add(payP);
+            sumPayC = sumPayC.add(payC);
+            sumPayD = sumPayD.add(payD);
+        }
+        putLevelReward(rewardByAgentId, byLevel.get(Agent.LEVEL_PROVINCE), sumPayP);
+        putLevelReward(rewardByAgentId, byLevel.get(Agent.LEVEL_CITY), sumPayC);
+        putLevelReward(rewardByAgentId, byLevel.get(Agent.LEVEL_DISTRICT), sumPayD);
+        return rewardByAgentId;
+    }
+
+    private void putLevelReward(Map<Integer, BigDecimal> map, Agent agent, BigDecimal reward) {
+        if (agent == null || reward == null || reward.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        map.merge(agent.getId(), reward, BigDecimal::add);
+    }
+
+    private BigDecimal calcLevelRaw(ProductCommissionConfig.Agent agentCfg, Integer level, Agent matched,
+                                    BigDecimal unitPrice, int payNum) {
+        BigDecimal[] ar = ProductCommissionUtil.agentAmountRate(agentCfg, level);
+        BigDecimal override = ProductCommissionUtil.calcOverride(ar[0], ar[1], unitPrice, payNum);
+        if (override != null) {
+            return override;
+        }
+        BigDecimal ratio = matched != null ? matched.getRatio() : null;
+        if (ObjectUtil.isNull(ratio) || ratio.compareTo(BigDecimal.ZERO) <= 0 || ObjectUtil.isNull(unitPrice)) {
+            return BigDecimal.ZERO;
+        }
+        return unitPrice.multiply(ratio)
+                .divide(new BigDecimal("100"), 2, RoundingMode.DOWN)
+                .multiply(new BigDecimal(Math.max(payNum, 1)));
+    }
+
+    /**
+     * 区域代理平级/越级推荐奖：沿买家推广链找最近代理(start)及其上级代理(up)。
+     * 同级 → 平级奖；不同级 → 越级奖；仅商品级配置（空则不发）。
+     */
+    private List<UserBrokerageRecord> assignAgentPeerLeap(StoreOrder storeOrder, int frozenDays) {
+        ArrayList<UserBrokerageRecord> list = new ArrayList<>();
+        User buyer = userService.getById(storeOrder.getUid());
+        if (ObjectUtil.isNull(buyer)) {
+            return list;
+        }
+        Agent start = findNearestAgentAlongSpread(buyer.getUid(), 8);
+        if (start == null) {
+            return list;
+        }
+        User startUser = userService.getById(start.getUid());
+        if (ObjectUtil.isNull(startUser) || ObjectUtil.isNull(startUser.getSpreadUid()) || startUser.getSpreadUid() <= 0) {
+            return list;
+        }
+        Agent up = findNearestAgentAlongSpread(startUser.getSpreadUid(), 8);
+        if (up == null || up.getId().equals(start.getId())) {
+            return list;
+        }
+        boolean sameLevel = up.getLevel() != null && up.getLevel().equals(start.getLevel());
+        List<StoreOrderInfoOldVo> lines = storeOrderInfoService.getOrderListByOrderId(storeOrder.getId());
+        if (CollUtil.isEmpty(lines)) {
+            return list;
+        }
+        BigDecimal total = BigDecimal.ZERO;
+        for (StoreOrderInfoOldVo line : lines) {
+            if (ObjectUtil.isNull(line.getInfo())) {
+                continue;
+            }
+            Integer productId = ObjectUtil.defaultIfNull(line.getProductId(), line.getInfo().getProductId());
+            StoreProduct product = ObjectUtil.isNotNull(productId) ? storeProductService.getById(productId) : null;
+            ProductCommissionConfig.Agent agentCfg = ProductCommissionUtil.parse(
+                    product != null ? product.getCommissionConfig() : null).getAgent();
+            if (!ProductCommissionUtil.resolveEnabled(agentCfg.getEnabled(), true)) {
+                continue;
+            }
+            BigDecimal unitPrice = ObjectUtil.isNotNull(line.getInfo().getVipPrice())
+                    ? line.getInfo().getVipPrice() : line.getInfo().getPrice();
+            int payNum = ObjectUtil.defaultIfNull(line.getInfo().getPayNum(), 1);
+            BigDecimal override;
+            if (sameLevel) {
+                override = ProductCommissionUtil.calcOverride(agentCfg.getPeerAmount(), agentCfg.getPeerRate(), unitPrice, payNum);
+            } else {
+                override = ProductCommissionUtil.calcOverride(agentCfg.getLeapAmount(), agentCfg.getLeapRate(), unitPrice, payNum);
+            }
+            if (override != null) {
+                total = total.add(override);
+            }
+        }
+        if (total.compareTo(BigDecimal.ZERO) <= 0) {
+            return list;
+        }
+        String title = sameLevel
+                ? BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_AGENT_PEER
+                : BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_AGENT_LEAP;
+        Integer level = sameLevel
+                ? BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT_PEER
+                : BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT_LEAP;
+        String mark = StrUtil.format("订单【{}】{}推荐奖{}（推荐链 {}→{}）",
+                storeOrder.getOrderId(), sameLevel ? "平级" : "越级", total, start.getUid(), up.getUid());
+        list.add(buildAgentRecord(storeOrder, up, total, frozenDays, title, level, mark));
+        return list;
+    }
+
+    private Agent findNearestAgentAlongSpread(Integer startUid, int maxDepth) {
+        Integer uid = startUid;
+        for (int i = 0; i < maxDepth && uid != null && uid > 0; i++) {
+            Agent agent = agentDao.selectOne(new LambdaQueryWrapper<Agent>()
+                    .eq(Agent::getUid, uid)
+                    .eq(Agent::getStatus, Agent.STATUS_PASS)
+                    .eq(Agent::getIsDel, 0)
+                    .last("limit 1"));
+            if (agent != null) {
+                return agent;
+            }
+            User u = userService.getById(uid);
+            if (ObjectUtil.isNull(u) || ObjectUtil.isNull(u.getSpreadUid()) || u.getSpreadUid() <= 0
+                    || u.getSpreadUid().equals(uid)) {
+                break;
+            }
+            uid = u.getSpreadUid();
+        }
+        return null;
+    }
+
+    private UserBrokerageRecord buildAgentRecord(StoreOrder storeOrder, Agent matched, BigDecimal reward,
+                                                 int frozenDays, String title, Integer brokerageLevel, String mark) {
+        UserBrokerageRecord record = new UserBrokerageRecord();
+        record.setUid(matched.getUid());
+        record.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        record.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
+        record.setTitle(title);
+        record.setPrice(reward);
+        record.setMark(mark);
+        record.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE);
+        record.setFrozenTime(frozenDays);
+        record.setCreateTime(CrmebDateUtil.nowDateTime());
+        record.setBrokerageLevel(brokerageLevel);
+
+        AgentReward rewardRow = new AgentReward();
+        rewardRow.setAgentId(matched.getId());
+        rewardRow.setUid(matched.getUid());
+        rewardRow.setOrderId(storeOrder.getOrderId());
+        rewardRow.setOrderPayPrice(storeOrder.getPayPrice());
+        rewardRow.setRatio(ObjectUtil.defaultIfNull(matched.getRatio(), BigDecimal.ZERO));
+        rewardRow.setRewardPrice(reward);
+        rewardRow.setRegionName(matched.getRegionName());
+        rewardRow.setRecordId(0);
+        rewardRow.setStatus(AgentReward.STATUS_WAIT);
+        rewardRow.setCreateTime(new Date());
+        agentRewardDao.insert(rewardRow);
+        return record;
+    }
+
+    /**
+     * 区域代理奖励：支持商品级覆盖（空=代理比例，0=该商品无此项）。独立模式（非 syncMode）使用。
+     */
+    private BigDecimal calcAgentRewardWithProductOverride(StoreOrder storeOrder, Agent matched) {
+        List<StoreOrderInfoOldVo> lines = storeOrderInfoService.getOrderListByOrderId(storeOrder.getId());
+        BigDecimal fallbackRatio = matched.getRatio();
+        boolean needLineCalc = false;
+        if (CollUtil.isNotEmpty(lines)) {
+            for (StoreOrderInfoOldVo line : lines) {
+                Integer productId = line.getProductId();
+                if (productId == null && line.getInfo() != null) {
+                    productId = line.getInfo().getProductId();
+                }
+                StoreProduct product = ObjectUtil.isNotNull(productId) ? storeProductService.getById(productId) : null;
+                ProductCommissionConfig.Agent agentCfg = ProductCommissionUtil.parse(
+                        product != null ? product.getCommissionConfig() : null).getAgent();
+                BigDecimal[] ar = ProductCommissionUtil.agentAmountRate(agentCfg, matched.getLevel());
+                if (Boolean.FALSE.equals(agentCfg.getEnabled())
+                        || ProductCommissionUtil.hasOverride(ar[0], ar[1])
+                        || Boolean.TRUE.equals(agentCfg.getSyncMode())) {
+                    needLineCalc = true;
+                    break;
+                }
+            }
+        }
+        if (!needLineCalc) {
+            if (ObjectUtil.isNull(fallbackRatio) || fallbackRatio.compareTo(BigDecimal.ZERO) <= 0) {
+                logger.warn("区域代理【{}】奖励比例未设置，跳过订单{}", matched.getRegionName(), storeOrder.getOrderId());
+                return BigDecimal.ZERO;
+            }
+            return storeOrder.getPayPrice()
+                    .multiply(fallbackRatio)
+                    .divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (StoreOrderInfoOldVo line : lines) {
+            if (ObjectUtil.isNull(line.getInfo())) {
+                continue;
+            }
+            Integer productId = ObjectUtil.defaultIfNull(line.getProductId(), line.getInfo().getProductId());
+            StoreProduct product = ObjectUtil.isNotNull(productId) ? storeProductService.getById(productId) : null;
+            ProductCommissionConfig.Agent agentCfg = ProductCommissionUtil.parse(
+                    product != null ? product.getCommissionConfig() : null).getAgent();
+            if (!ProductCommissionUtil.resolveEnabled(agentCfg.getEnabled(), true)) {
+                continue;
+            }
+            BigDecimal unitPrice = ObjectUtil.isNotNull(line.getInfo().getVipPrice())
+                    ? line.getInfo().getVipPrice() : line.getInfo().getPrice();
+            int payNum = ObjectUtil.defaultIfNull(line.getInfo().getPayNum(), 1);
+            BigDecimal[] ar = ProductCommissionUtil.agentAmountRate(agentCfg, matched.getLevel());
+            BigDecimal override = ProductCommissionUtil.calcOverride(ar[0], ar[1], unitPrice, payNum);
+            if (override != null) {
+                total = total.add(override);
+            } else if (ObjectUtil.isNotNull(fallbackRatio) && fallbackRatio.compareTo(BigDecimal.ZERO) > 0
+                    && ObjectUtil.isNotNull(unitPrice)) {
+                total = total.add(unitPrice.multiply(fallbackRatio)
+                        .divide(new BigDecimal("100"), 2, RoundingMode.DOWN)
+                        .multiply(new BigDecimal(payNum)));
+            }
+        }
+        return total;
     }
 
     @Override
@@ -531,7 +825,9 @@ public class AgentServiceImpl implements AgentService {
         List<UserBrokerageRecord> recordList = userBrokerageRecordService
                 .findListByLinkIdAndLinkType(orderId, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER)
                 .stream()
-                .filter(r -> BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT.equals(r.getBrokerageLevel()))
+                .filter(r -> BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT.equals(r.getBrokerageLevel())
+                        || BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT_PEER.equals(r.getBrokerageLevel())
+                        || BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT_LEAP.equals(r.getBrokerageLevel()))
                 .collect(Collectors.toList());
         Date now = new Date();
         for (AgentReward reward : rewardList) {

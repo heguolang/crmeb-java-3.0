@@ -80,10 +80,11 @@ public class ThemeInfoController {
     @RequestMapping(value = "/theme/product", method = RequestMethod.GET)
     public CommonResult<List<JSONObject>> themeProduct(@RequestParam(value = "ids", required = false, defaultValue = "") String ids,
                                                        @RequestParam(value = "cate_ids", required = false, defaultValue = "") String cateIds,
+                                                       @RequestParam(value = "group_ids", required = false, defaultValue = "") String groupIds,
                                                        @RequestParam(value = "order", required = false, defaultValue = "0") Integer order,
                                                        @RequestParam(value = "sort", required = false, defaultValue = "0") Integer sort,
                                                        @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        return CommonResult.success(themeService.getThemeProduct(ids, cateIds, order, sort, limit));
+        return CommonResult.success(themeService.getThemeProduct(ids, cateIds, groupIds, order, sort, limit));
     }
 
     @ApiOperation(value = "主题优惠券列表")

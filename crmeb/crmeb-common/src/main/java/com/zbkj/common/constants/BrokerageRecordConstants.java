@@ -71,8 +71,20 @@ public class BrokerageRecordConstants {
     /** 分销等级—区域代理奖励 */
     public static final Integer BROKERAGE_LEVEL_AGENT = 12;
 
+    /** 分销等级—区域代理平级推荐奖 */
+    public static final Integer BROKERAGE_LEVEL_AGENT_PEER = 13;
+
+    /** 分销等级—区域代理越级推荐奖 */
+    public static final Integer BROKERAGE_LEVEL_AGENT_LEAP = 14;
+
     /** 佣金记录标题—区域代理奖励 */
     public static final String BROKERAGE_RECORD_TITLE_AGENT = "获得区域代理奖励";
+
+    /** 佣金记录标题—区域代理平级推荐奖 */
+    public static final String BROKERAGE_RECORD_TITLE_AGENT_PEER = "获得区域代理平级推荐奖";
+
+    /** 佣金记录标题—区域代理越级推荐奖 */
+    public static final String BROKERAGE_RECORD_TITLE_AGENT_LEAP = "获得区域代理越级推荐奖";
 
     /** 佣金记录标题—提现申请 */
     public static final String BROKERAGE_RECORD_TITLE_WITHDRAW_APPLY = "提现申请";

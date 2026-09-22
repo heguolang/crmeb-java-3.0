@@ -73,6 +73,9 @@ public class StoreCartServiceImpl extends ServiceImpl<StoreCartDao, StoreCart> i
     @Autowired
     private RedisUtil redisUtil;
 
+    @Autowired
+    private StoreProductGroupService storeProductGroupService;
+
 
     /**
     * 列表
@@ -180,6 +183,8 @@ public class StoreCartServiceImpl extends ServiceImpl<StoreCartDao, StoreCart> i
         if (ObjectUtil.isNull(product) || product.getIsDel() || !product.getIsShow()) {
             throw new CrmebException("未找到对应商品");
         }
+        User currentUser = userService.getInfo();
+        storeProductGroupService.assertPurchaseAllowed(currentUser, storeCartRequest.getProductId(), storeCartRequest.getCartNum());
         List<StoreProductAttrValue> attrValues = storeProductAttrValueService.getListByProductIdAndAttrId(product.getId(), storeCartRequest.getProductAttrUnique(), Constants.PRODUCT_TYPE_NORMAL);
         if (CollUtil.isEmpty(attrValues)) {
             throw new CrmebException("未找到对应的商品SKU");
@@ -187,7 +192,6 @@ public class StoreCartServiceImpl extends ServiceImpl<StoreCartDao, StoreCart> i
 
         // 普通商品部分(只有普通商品才能添加购物车)
         // 是否已经有同类型商品在购物车，有则添加数量没有则新增
-        User currentUser = userService.getInfo();
         StoreCart storeCartPram = new StoreCart();
         storeCartPram.setProductAttrUnique(storeCartRequest.getProductAttrUnique());
         storeCartPram.setUid(currentUser.getUid());

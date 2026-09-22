@@ -48,11 +48,24 @@
         </router-link>
         <!-- 商品采集入口已按需求隐藏（2026-09-17），恢复时取消下行注释 -->
         <!-- <el-button type="success" @click="onCopy" v-hasPermi="['admin:product:save']">商品采集</el-button> -->
+        <el-button
+          class="mr14"
+          :disabled="!selectedIds.length"
+          v-hasPermi="['admin:store:product:group:update']"
+          @click="openBatchGroup"
+        >批量分组{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
         <el-button @click="exports" v-hasPermi="['admin:export:excel:product']">导出</el-button>
       </div>
       <!-- 商品列表（参考图样式：浅蓝表头 + 数据行） -->
       <div class="list-table" v-loading="listLoading">
         <div class="list-head">
+          <div class="list-cell cell-check">
+            <el-checkbox
+              :indeterminate="isIndeterminate"
+              v-model="checkAll"
+              @change="handleCheckAll"
+            />
+          </div>
           <div class="list-cell cell-sort">排序</div>
           <div class="list-cell">图片</div>
           <div class="list-cell">商品信息</div>
@@ -63,6 +76,12 @@
         </div>
         <div class="list-body">
           <div v-for="row in tableData.data" :key="row.id" class="list-row">
+            <div class="list-cell cell-check">
+              <el-checkbox
+                :value="selectedIds.includes(row.id)"
+                @change="(val) => toggleSelect(row.id, val)"
+              />
+            </div>
             <div class="list-cell cell-sort"><span class="sort-num">{{ row.sort }}</span></div>
             <div class="list-cell">
               <el-image class="goods-img" :src="row.image" :preview-src-list="[row.image]" fit="cover" />
@@ -157,6 +176,24 @@
     >
       <store-edit @sucess="sucess" :productId="productId" v-if="drawer"></store-edit>
     </el-drawer>
+
+    <el-dialog title="批量加入商品分组" :visible.sync="batchGroupVisible" width="520px" :close-on-click-modal="false">
+      <div class="mb10 tip-text">已选 {{ selectedIds.length }} 个商品，将追加加入下方分组（不移除已有其它分组）</div>
+      <el-select
+        v-model="batchGroupIds"
+        multiple
+        filterable
+        clearable
+        placeholder="请选择商品分组"
+        style="width: 100%"
+      >
+        <el-option v-for="g in productGroupOptions" :key="g.id" :label="g.name" :value="g.id" />
+      </el-select>
+      <div slot="footer">
+        <el-button @click="batchGroupVisible = false">取消</el-button>
+        <el-button type="primary" :loading="batchGroupSaving" @click="submitBatchGroup">确定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -172,6 +209,7 @@ import {
   restoreApi,
   productExcelApi,
 } from '@/api/store';
+import { productGroupSimpleListApi, productGroupBatchBindApi } from '@/api/productGroup';
 import { getToken } from '@/utils/auth';
 import storeEdit from './components/storeEdit';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
@@ -208,6 +246,13 @@ export default {
       dialogVisible: false,
       drawer: false,
       productId: 0,
+      selectedIds: [],
+      checkAll: false,
+      isIndeterminate: false,
+      batchGroupVisible: false,
+      batchGroupIds: [],
+      batchGroupSaving: false,
+      productGroupOptions: [],
     };
   },
   mounted() {
@@ -217,6 +262,76 @@ export default {
   },
   methods: {
     checkPermi,
+    toggleSelect(id, checked) {
+      if (checked) {
+        if (!this.selectedIds.includes(id)) this.selectedIds.push(id);
+      } else {
+        this.selectedIds = this.selectedIds.filter((i) => i !== id);
+      }
+      this.syncCheckAllState();
+    },
+    handleCheckAll(val) {
+      const ids = (this.tableData.data || []).map((r) => r.id);
+      if (val) {
+        const set = new Set([...this.selectedIds, ...ids]);
+        this.selectedIds = Array.from(set);
+      } else {
+        this.selectedIds = this.selectedIds.filter((id) => !ids.includes(id));
+      }
+      this.syncCheckAllState();
+    },
+    syncCheckAllState() {
+      const ids = (this.tableData.data || []).map((r) => r.id);
+      if (!ids.length) {
+        this.checkAll = false;
+        this.isIndeterminate = false;
+        return;
+      }
+      const checkedCount = ids.filter((id) => this.selectedIds.includes(id)).length;
+      this.checkAll = checkedCount === ids.length;
+      this.isIndeterminate = checkedCount > 0 && checkedCount < ids.length;
+    },
+    clearSelection() {
+      this.selectedIds = [];
+      this.checkAll = false;
+      this.isIndeterminate = false;
+    },
+    openBatchGroup() {
+      if (!this.selectedIds.length) {
+        this.$message.warning('请先勾选商品');
+        return;
+      }
+      this.batchGroupIds = [];
+      productGroupSimpleListApi()
+        .then((res) => {
+          this.productGroupOptions = Array.isArray(res) ? res : res.list || [];
+          this.batchGroupVisible = true;
+        })
+        .catch(() => {
+          this.productGroupOptions = [];
+          this.batchGroupVisible = true;
+        });
+    },
+    submitBatchGroup() {
+      if (!this.batchGroupIds.length) {
+        this.$message.warning('请选择商品分组');
+        return;
+      }
+      this.batchGroupSaving = true;
+      productGroupBatchBindApi({
+        productIds: this.selectedIds,
+        groupIds: this.batchGroupIds,
+      })
+        .then(() => {
+          this.$message.success('已加入分组');
+          this.batchGroupVisible = false;
+          this.clearSelection();
+          this.batchGroupSaving = false;
+        })
+        .catch(() => {
+          this.batchGroupSaving = false;
+        });
+    },
     // ===== 列表辅助（参考图样式） =====
     fmtMoney(v) {
       const n = Number(v || 0);
@@ -258,6 +373,7 @@ export default {
     }),
     seachList() {
       this.tableFrom.page = 1;
+      this.clearSelection();
       this.getList();
       this.goodHeade();
     },
@@ -316,6 +432,7 @@ export default {
           this.tableData.data = res.list;
           this.tableData.total = res.total;
           this.listLoading = false;
+          this.syncCheckAllState();
         })
         .catch((res) => {
           this.listLoading = false;
@@ -324,10 +441,12 @@ export default {
     },
     pageChange(page) {
       this.tableFrom.page = page;
+      this.clearSelection();
       this.getList();
     },
     handleSizeChange(val) {
       this.tableFrom.limit = val;
+      this.clearSelection();
       this.getList();
     },
     // 删除
@@ -388,7 +507,7 @@ export default {
 /* 表头 */
 .list-head {
   display: grid;
-  grid-template-columns: 56px 80px minmax(220px, 2.45fr) minmax(120px, 1fr) minmax(125px, 1fr) minmax(60px, 0.5fr) minmax(125px, 1fr);
+  grid-template-columns: 44px 56px 80px minmax(220px, 2.45fr) minmax(120px, 1fr) minmax(125px, 1fr) minmax(60px, 0.5fr) minmax(125px, 1fr);
   align-items: center;
   height: 46px;
   background: #ecf3fd;
@@ -400,7 +519,8 @@ export default {
   padding: 0 16px;
   white-space: nowrap;
 }
-.list-head .cell-sort {
+.list-head .cell-sort,
+.list-head .cell-check {
   padding: 0 8px;
   text-align: center;
 }
@@ -408,7 +528,7 @@ export default {
 /* 数据行 */
 .list-row {
   display: grid;
-  grid-template-columns: 56px 80px minmax(220px, 2.45fr) minmax(120px, 1fr) minmax(125px, 1fr) minmax(60px, 0.5fr) minmax(125px, 1fr);
+  grid-template-columns: 44px 56px 80px minmax(220px, 2.45fr) minmax(120px, 1fr) minmax(125px, 1fr) minmax(60px, 0.5fr) minmax(125px, 1fr);
   align-items: center;
   border-top: 1px solid #f0f2f5;
   transition: background 0.15s;
@@ -421,8 +541,19 @@ export default {
   min-width: 0;
   align-self: center;
 }
-.cell-sort {
+.cell-sort,
+.cell-check {
   text-align: center;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.tip-text {
+  color: #909399;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.mb10 {
+  margin-bottom: 10px;
 }
 .sort-num {
   display: inline-block;

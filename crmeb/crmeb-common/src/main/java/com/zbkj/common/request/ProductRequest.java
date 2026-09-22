@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 商品搜索
@@ -45,4 +46,7 @@ public class ProductRequest implements Serializable {
 
     @ApiModelProperty(value = "是否新品")
     private Boolean news;
+
+    @ApiModelProperty(value = "排除的商品id（商品分组权限不可见）", hidden = true)
+    private List<Integer> excludeIds;
 }

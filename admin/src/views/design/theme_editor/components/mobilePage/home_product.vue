@@ -274,6 +274,9 @@ export default {
               selectConfig: {
                 activeValue: [],
               },
+              productGroupConfig: {
+                activeValue: [],
+              },
               goodsLabel: {
                 activeValue: [],
                 list: [],

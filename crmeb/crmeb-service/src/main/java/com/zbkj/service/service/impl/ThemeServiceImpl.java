@@ -52,6 +52,7 @@ import com.zbkj.service.dao.ThemeDao;
 import com.zbkj.service.service.ArticleService;
 import com.zbkj.service.service.StoreBargainService;
 import com.zbkj.service.service.StoreProductService;
+import com.zbkj.service.service.StoreProductGroupService;
 import com.zbkj.service.service.StoreCombinationService;
 import com.zbkj.service.service.StoreCouponService;
 import com.zbkj.service.service.StoreOrderService;
@@ -226,6 +227,9 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
 
     @Resource
     private StoreProductService storeProductService;
+
+    @Resource
+    private StoreProductGroupService storeProductGroupService;
 
     @Resource
     private StoreBargainService storeBargainService;
@@ -501,11 +505,19 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
      * @return 商品列表
      */
     @Override
-    public List<JSONObject> getThemeProduct(String ids, String cateIds, Integer order, Integer sort, Integer limit) {
+    public List<JSONObject> getThemeProduct(String ids, String cateIds, String groupIds, Integer order, Integer sort, Integer limit) {
         List<StoreProduct> productList;
         boolean appendFicti;
         if (StrUtil.isNotBlank(ids)) {
             List<Integer> productIdList = com.zbkj.common.utils.CrmebUtil.stringToArray(ids);
+            productList = storeProductService.findByIds(productIdList, "front");
+            appendFicti = true;
+        } else if (StrUtil.isNotBlank(groupIds)) {
+            List<Integer> groupIdList = com.zbkj.common.utils.CrmebUtil.stringToArray(groupIds);
+            List<Integer> productIdList = storeProductGroupService.getProductIdsByGroupIds(groupIdList);
+            if (CollUtil.isEmpty(productIdList)) {
+                return new ArrayList<>();
+            }
             productList = storeProductService.findByIds(productIdList, "front");
             appendFicti = true;
         } else {
@@ -517,6 +529,22 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
             pageParamRequest.setLimit(getThemeListLimit(limit));
             productList = storeProductService.findH5List(request, pageParamRequest);
             appendFicti = false;
+        }
+        if (CollUtil.isEmpty(productList)) {
+            return new ArrayList<>();
+        }
+        // 按当前用户过滤商品分组不可见商品
+        User user = null;
+        try {
+            user = userService.getInfo();
+        } catch (Exception ignore) {
+            // 未登录
+        }
+        java.util.Set<Integer> hiddenIds = storeProductGroupService.getHiddenProductIds(user);
+        if (CollUtil.isNotEmpty(hiddenIds)) {
+            productList = productList.stream()
+                    .filter(p -> !hiddenIds.contains(p.getId()))
+                    .collect(Collectors.toList());
         }
         if (CollUtil.isEmpty(productList)) {
             return new ArrayList<>();

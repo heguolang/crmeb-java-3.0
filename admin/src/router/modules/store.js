@@ -58,6 +58,19 @@ const storeRouter = {
       meta: { title: '保障服务', icon: '' },
     },
     {
+      path: 'productGroup',
+      component: () => import('@/views/store/productGroup/index'),
+      name: 'StoreProductGroup',
+      meta: { title: '商品分组', icon: '' },
+    },
+    {
+      path: 'productGroup/edit/:id?',
+      component: () => import('@/views/store/productGroup/edit'),
+      name: 'StoreProductGroupEdit',
+      meta: { title: '编辑商品分组', noCache: true, activeMenu: '/store/productGroup' },
+      hidden: true,
+    },
+    {
       path: 'commentSetting',
       component: () => import('@/views/store/commentSetting/index'),
       name: 'commentSetting',

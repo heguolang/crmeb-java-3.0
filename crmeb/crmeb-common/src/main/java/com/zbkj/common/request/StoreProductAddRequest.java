@@ -1,6 +1,7 @@
 package com.zbkj.common.request;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.zbkj.common.model.product.ProductCommissionConfig;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -135,4 +136,10 @@ public class StoreProductAddRequest implements Serializable {
 
     @ApiModelProperty(value = "保障服务ids(英文逗号拼接)")
     private String guaranteeIds;
+
+    @ApiModelProperty(value = "商品分组id列表（可多选）")
+    private List<Integer> productGroupIds;
+
+    @ApiModelProperty(value = "商品级佣金配置（空字段取全局，0表示该商品无此项）")
+    private ProductCommissionConfig commissionConfig;
 }

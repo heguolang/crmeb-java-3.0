@@ -202,6 +202,13 @@ public class SysConfigConstants {
     /********************************************************************************************* 协议END ****************/
 
 
+    /** 设置分组权限后其它会员能否看到分组中商品：0不能 1能(列表可见但不可进详情购买) */
+    public static final String CONFIG_KEY_PRODUCT_GROUP_OTHER_VISIBLE = "product_group_other_visible";
+    /** 自定义不符合商品分组权限条件的提示语开关 */
+    public static final String CONFIG_KEY_PRODUCT_GROUP_DENY_TIP_ENABLE = "product_group_deny_tip_enable";
+    /** 不符合商品分组权限条件的提示语 */
+    public static final String CONFIG_KEY_PRODUCT_GROUP_DENY_TIP = "product_group_deny_tip";
+
     /** 图片上传类型 1本地 2七牛云 3OSS 4COS 5京东, 默认本地 */
     public static final String CONFIG_UPLOAD_TYPE = "uploadType";
     /** 文件上传是否保存本地 */

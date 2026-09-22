@@ -1,5 +1,6 @@
 package com.zbkj.common.response;
 
+import com.zbkj.common.model.product.ProductCommissionConfig;
 import com.zbkj.common.model.product.StoreProductAttr;
 import com.zbkj.common.model.product.StoreProductGuarantee;
 import io.swagger.annotations.ApiModel;
@@ -167,4 +168,10 @@ public class StoreProductInfoResponse implements Serializable {
 
     @ApiModelProperty(value = "保障服务列表")
     private List<StoreProductGuarantee> guaranteeList;
+
+    @ApiModelProperty(value = "商品分组id列表")
+    private List<Integer> productGroupIds;
+
+    @ApiModelProperty(value = "商品级佣金配置")
+    private ProductCommissionConfig commissionConfig;
 }

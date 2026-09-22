@@ -6,6 +6,7 @@ import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageInfo;
 import com.zbkj.common.constants.*;
+import com.zbkj.common.model.product.ProductCommissionConfig;
 import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.product.StoreProductAttr;
 import com.zbkj.common.model.product.StoreProductAttrValue;
@@ -18,6 +19,7 @@ import com.zbkj.common.request.ProductListRequest;
 import com.zbkj.common.request.ProductRequest;
 import com.zbkj.common.response.*;
 import com.zbkj.common.utils.CrmebUtil;
+import com.zbkj.common.utils.ProductCommissionUtil;
 import com.zbkj.common.utils.RedisUtil;
 import com.zbkj.common.vo.CategoryTreeVo;
 import com.zbkj.common.vo.MyRecord;
@@ -99,6 +101,9 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private StoreProductAttrOptionService productAttrOptionService;
 
+    @Autowired
+    private StoreProductGroupService storeProductGroupService;
+
     /**
      * 获取分类
      * @return List<CategoryTreeVo>
@@ -123,6 +128,11 @@ public class ProductServiceImpl implements ProductService {
      */
     @Override
     public CommonPage<IndexProductResponse> getList(ProductRequest request, PageParamRequest pageRequest) {
+        User user = userService.getInfo();
+        java.util.Set<Integer> hiddenIds = storeProductGroupService.getHiddenProductIds(user);
+        if (CollUtil.isNotEmpty(hiddenIds)) {
+            request.setExcludeIds(new ArrayList<>(hiddenIds));
+        }
         List<StoreProduct> storeProductList = storeProductService.findH5List(request, pageRequest);
         if (CollUtil.isEmpty(storeProductList)) {
             return CommonPage.restPage(new ArrayList<>());
@@ -194,6 +204,10 @@ public class ProductServiceImpl implements ProductService {
         }
         // 获取用户
         User user = userService.getInfo();
+        // 商品分组权限：无权限不可进详情
+        if (!storeProductGroupService.canViewProduct(user, id)) {
+            throw new com.zbkj.common.exception.CrmebException(storeProductGroupService.getDenyTip());
+        }
         SystemUserLevel userLevel = null;
         if (ObjectUtil.isNotNull(user) && user.getLevel() > 0) {
             userLevel = systemUserLevelService.getByLevelId(user.getLevel());
@@ -255,7 +269,7 @@ public class ProductServiceImpl implements ProductService {
                 // 判断是否开启气泡
                 String isBubble = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_STORE_BROKERAGE_IS_BUBBLE);
                 if (isBubble.equals(Constants.COMMON_SWITCH_OPEN)) {
-                    productDetailResponse.setPriceName(getPacketPriceRange(storeProduct.getIsSub(), storeProductAttrValues, user.getIsPromoter()));
+                    productDetailResponse.setPriceName(getPacketPriceRange(storeProduct, storeProductAttrValues, user.getIsPromoter()));
                 }
             }
         } else {
@@ -297,6 +311,9 @@ public class ProductServiceImpl implements ProductService {
     public ProductDetailResponse getSkuDetail(Integer id) {
         // 获取用户
         User user = userService.getInfo();
+        if (!storeProductGroupService.canViewProduct(user, id)) {
+            throw new com.zbkj.common.exception.CrmebException(storeProductGroupService.getDenyTip());
+        }
         SystemUserLevel userLevel = null;
         if (ObjectUtil.isNotNull(user) && user.getLevel() > 0) {
             userLevel = systemUserLevelService.getByLevelId(user.getLevel());
@@ -361,36 +378,54 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * 获取商品佣金区间
-     * @param isSub 是否单独计算分佣
-     * @param attrValueList 商品属性列表
-     * @param isPromoter 是否推荐人
-     * @return String 金额区间
+     * 获取商品佣金区间（优先商品级 commission_config.distributor，其次旧 is_sub/SKU brokerage，再回落全局比例）
      */
-    private String getPacketPriceRange(Boolean isSub, List<StoreProductAttrValue> attrValueList, Boolean isPromoter) {
+    private String getPacketPriceRange(StoreProduct product, List<StoreProductAttrValue> attrValueList, Boolean isPromoter) {
         String priceName = "0";
-        if (!isPromoter) return priceName;
-        // 获取一级返佣比例
-        String brokerageRatioString = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_STORE_BROKERAGE_RATIO);
-        BigDecimal BrokerRatio = new BigDecimal(brokerageRatioString).divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
+        if (!isPromoter || CollUtil.isEmpty(attrValueList)) {
+            return priceName;
+        }
+        ProductCommissionConfig.Distributor distributor = ProductCommissionUtil.parse(
+                product != null ? product.getCommissionConfig() : null).getDistributor();
+        if (!ProductCommissionUtil.resolveEnabled(distributor.getEnabled(), true)) {
+            return "0";
+        }
+
         BigDecimal maxPrice;
         BigDecimal minPrice;
-        // 获取佣金比例区间
-        if (isSub) { // 是否单独分拥
-            maxPrice = attrValueList.stream().map(StoreProductAttrValue::getBrokerage).reduce(BigDecimal.ZERO,BigDecimal::max);
-            minPrice = attrValueList.stream().map(StoreProductAttrValue::getBrokerage).reduce(BigDecimal.ZERO,BigDecimal::min);
+        if (ProductCommissionUtil.hasOverride(distributor.getDirectAmount(), distributor.getDirectRate())) {
+            List<BigDecimal> amounts = attrValueList.stream().map(av -> {
+                BigDecimal unit = ObjectUtil.defaultIfNull(av.getPrice(), BigDecimal.ZERO);
+                BigDecimal line = ProductCommissionUtil.calcOverride(
+                        distributor.getDirectAmount(), distributor.getDirectRate(), unit, 1);
+                return ObjectUtil.defaultIfNull(line, BigDecimal.ZERO);
+            }).collect(Collectors.toList());
+            maxPrice = amounts.stream().max(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
+            minPrice = amounts.stream().min(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
+        } else if (product != null && Boolean.TRUE.equals(product.getIsSub())) {
+            maxPrice = attrValueList.stream().map(StoreProductAttrValue::getBrokerage)
+                    .filter(ObjectUtil::isNotNull).reduce(BigDecimal.ZERO, BigDecimal::max);
+            minPrice = attrValueList.stream().map(StoreProductAttrValue::getBrokerage)
+                    .filter(ObjectUtil::isNotNull).reduce(BigDecimal.ZERO, BigDecimal::min);
+            if (attrValueList.stream().noneMatch(av -> ObjectUtil.isNotNull(av.getBrokerage()))) {
+                maxPrice = BigDecimal.ZERO;
+                minPrice = BigDecimal.ZERO;
+            }
         } else {
-            BigDecimal _maxPrice = attrValueList.stream().map(StoreProductAttrValue::getPrice).reduce(BigDecimal.ZERO,BigDecimal::max);
-            BigDecimal _minPrice = attrValueList.stream().map(StoreProductAttrValue::getPrice).reduce(BigDecimal.ZERO,BigDecimal::min);
-            maxPrice = BrokerRatio.multiply(_maxPrice).setScale(2, RoundingMode.HALF_UP);
-            minPrice = BrokerRatio.multiply(_minPrice).setScale(2, RoundingMode.HALF_UP);
+            String brokerageRatioString = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_STORE_BROKERAGE_RATIO);
+            if (StrUtil.isBlank(brokerageRatioString)) {
+                return "0";
+            }
+            BigDecimal brokerRatio = new BigDecimal(brokerageRatioString).divide(new BigDecimal("100"), 4, RoundingMode.DOWN);
+            BigDecimal _maxPrice = attrValueList.stream().map(StoreProductAttrValue::getPrice).reduce(BigDecimal.ZERO, BigDecimal::max);
+            BigDecimal _minPrice = attrValueList.stream().map(StoreProductAttrValue::getPrice).reduce(BigDecimal.ZERO, BigDecimal::min);
+            maxPrice = brokerRatio.multiply(_maxPrice).setScale(2, RoundingMode.HALF_UP);
+            minPrice = brokerRatio.multiply(_minPrice).setScale(2, RoundingMode.HALF_UP);
         }
         if (minPrice.compareTo(BigDecimal.ZERO) == 0 && maxPrice.compareTo(BigDecimal.ZERO) == 0) {
             priceName = "0";
         } else if (minPrice.compareTo(BigDecimal.ZERO) == 0 && maxPrice.compareTo(BigDecimal.ZERO) > 0) {
             priceName = maxPrice.toString();
-        } else if (minPrice.compareTo(BigDecimal.ZERO) > 0 && maxPrice.compareTo(BigDecimal.ZERO) > 0) {
-            priceName = minPrice.toString();
         } else if (minPrice.compareTo(maxPrice) == 0) {
             priceName = minPrice.toString();
         } else {
@@ -407,6 +442,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public CommonPage<IndexProductResponse> getHotProductList(PageParamRequest pageRequest) {
         List<StoreProduct> storeProductList = storeProductService.getIndexProduct(Constants.INDEX_HOT_BANNER, pageRequest);
+        storeProductList = filterHiddenProducts(storeProductList);
         if (CollUtil.isEmpty(storeProductList)) {
             return CommonPage.restPage(new ArrayList<>());
         }
@@ -487,6 +523,7 @@ public class ProductServiceImpl implements ProductService {
         PageParamRequest pageRequest = new PageParamRequest();
         pageRequest.setLimit(9);
         List<StoreProduct> storeProductList = storeProductService.getIndexProduct(Constants.INDEX_RECOMMEND_BANNER, pageRequest);
+        storeProductList = filterHiddenProducts(storeProductList);
         if (CollUtil.isEmpty(storeProductList)) {
             return CommonPage.restPage(new ArrayList<>());
         }
@@ -551,13 +588,17 @@ public class ProductServiceImpl implements ProductService {
     public CommonPage<IndexProductResponse> getCategoryProductList(ProductListRequest request, PageParamRequest pageParamRequest) {
         ProductRequest searchRequest = new ProductRequest();
         BeanUtils.copyProperties(searchRequest, request);
+        User user = userService.getInfo();
+        java.util.Set<Integer> hiddenIds = storeProductGroupService.getHiddenProductIds(user);
+        if (CollUtil.isNotEmpty(hiddenIds)) {
+            searchRequest.setExcludeIds(new ArrayList<>(hiddenIds));
+        }
         List<StoreProduct> storeProductList = storeProductService.findH5List(searchRequest, pageParamRequest);
         if (CollUtil.isEmpty(storeProductList)) {
             return CommonPage.restPage(new ArrayList<>());
         }
         CommonPage<StoreProduct> storeProductCommonPage = CommonPage.restPage(storeProductList);
 
-        User user = userService.getInfo();
         List<IndexProductResponse> productResponseArrayList = new ArrayList<>();
         for (StoreProduct storeProduct : storeProductList) {
             IndexProductResponse productResponse = new IndexProductResponse();
@@ -592,6 +633,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<IndexProductResponse> getProductByIds(List<Integer> proIdList) {
         List<StoreProduct> byIdsAndLabel = storeProductService.findByIds(proIdList, "front");
+        byIdsAndLabel = filterHiddenProducts(byIdsAndLabel);
         List<IndexProductResponse> productFrontResponses = byIdsAndLabel.stream().map(productItem -> {
             IndexProductResponse response = new IndexProductResponse();
             BeanUtils.copyProperties(productItem, response);
@@ -631,6 +673,18 @@ public class ProductServiceImpl implements ProductService {
             }).collect(Collectors.toList());
         });
         return productFrontResponses;
+    }
+
+    /** 过滤当前用户因商品分组权限不可见的商品 */
+    private List<StoreProduct> filterHiddenProducts(List<StoreProduct> list) {
+        if (CollUtil.isEmpty(list)) {
+            return list;
+        }
+        java.util.Set<Integer> hiddenIds = storeProductGroupService.getHiddenProductIds(userService.getInfo());
+        if (CollUtil.isEmpty(hiddenIds)) {
+            return list;
+        }
+        return list.stream().filter(p -> !hiddenIds.contains(p.getId())).collect(Collectors.toList());
     }
 }
 

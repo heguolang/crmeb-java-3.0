@@ -97,6 +97,28 @@
                     </el-cascader>
                   </el-col>
                 </div>
+                <div class="c_row-item" v-else-if="item.tabVal == 5">
+                  <el-col class="label" :span="4">商品分组</el-col>
+                  <el-col :span="19" class="slider-box">
+                    <el-select
+                      v-model="item.productGroupConfig.activeValue"
+                      multiple
+                      clearable
+                      filterable
+                      placeholder="请选择商品分组"
+                      size="mini"
+                      style="width: 100%"
+                      @change="sliderChange"
+                    >
+                      <el-option
+                        v-for="g in productGroupOptions"
+                        :key="g.id"
+                        :label="g.name"
+                        :value="g.id"
+                      />
+                    </el-select>
+                  </el-col>
+                </div>
                 <!-- <div class="c_row-item" v-else>
                   <el-col class="label" :span="4">商品标签</el-col>
                   <el-col :span="19" class="slider-box">
@@ -213,6 +235,7 @@ import storeLabelList from '@/components/storeLabelList';
 import goodsList from '@/components/goodsList';
 import uploadPictures from '@/views/design/theme_editor/components/uploadPictures';
 import { cascaderListApi } from '@/api/product';
+import { productGroupSimpleListApi } from '@/api/productGroup';
 export default {
   name: 'c_promotion',
   props: {
@@ -266,12 +289,17 @@ export default {
           title: '指定分类',
         },
         {
+          activeValue: 5,
+          title: '指定分组',
+        },
+        {
           activeValue: 4,
           title: '商品标签',
         },
       ],
       brandData: [],
       treeSelect: [],
+      productGroupOptions: [],
       tabIndex: 1,
       selectIds: [],
     };
@@ -281,6 +309,7 @@ export default {
       this.defaults = this.configObj;
       this.configData = this.configObj[this.configNme];
       this.goodsCategory();
+      this.loadProductGroups();
     });
   },
   watch: {
@@ -289,7 +318,13 @@ export default {
         this.defaults = nVal;
         this.configData = nVal[this.configNme];
         this.tabIndex = nVal.styleConfig.tabVal;
-        // this.selectIds = nVal[this.configNme].goodsList.ids || [];
+        if (this.configData && Array.isArray(this.configData.list)) {
+          this.configData.list.forEach((item) => {
+            if (!item.productGroupConfig) {
+              this.$set(item, 'productGroupConfig', { activeValue: [] });
+            }
+          });
+        }
       },
       deep: true,
     },
@@ -325,6 +360,15 @@ export default {
         })
         .catch((res) => {
           this.$message.error(res.msg);
+        });
+    },
+    loadProductGroups() {
+      productGroupSimpleListApi()
+        .then((res) => {
+          this.productGroupOptions = Array.isArray(res) ? res : res.list || [];
+        })
+        .catch(() => {
+          this.productGroupOptions = [];
         });
     },
     openGoods() {
@@ -386,6 +430,11 @@ export default {
         this.itemObj.chiild[1].val = '最新出炉';
         this.itemObj.tabVal = 0;
         this.itemObj.selectConfig.activeValue = [];
+        if (!this.itemObj.productGroupConfig) {
+          this.itemObj.productGroupConfig = { activeValue: [] };
+        } else {
+          this.itemObj.productGroupConfig.activeValue = [];
+        }
         this.itemObj.goodsLabel.activeValue = [];
         this.itemObj.goodsLabel.list = [];
         this.itemObj.goodsSort = 0;
@@ -401,6 +450,11 @@ export default {
         }
         obj.tabVal = 1;
         obj.selectConfig.activeValue = [];
+        if (!obj.productGroupConfig) {
+          obj.productGroupConfig = { activeValue: [] };
+        } else {
+          obj.productGroupConfig.activeValue = [];
+        }
         obj.goodsLabel.activeValue = [];
         obj.goodsLabel.list = [];
         obj.goodsSort = 0;

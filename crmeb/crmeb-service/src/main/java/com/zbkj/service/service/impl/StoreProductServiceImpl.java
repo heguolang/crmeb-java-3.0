@@ -27,6 +27,7 @@ import com.zbkj.common.result.CommonResultCode;
 import com.zbkj.common.result.ProductResultCode;
 import com.zbkj.common.utils.CrmebDateUtil;
 import com.zbkj.common.utils.CrmebUtil;
+import com.zbkj.common.utils.ProductCommissionUtil;
 import com.zbkj.common.utils.RedisUtil;
 import com.zbkj.common.vo.MyRecord;
 import com.zbkj.service.dao.StoreProductDao;
@@ -41,6 +42,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -124,6 +126,8 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
     private StoreProductGuaranteeService guaranteeService;
     @Autowired
     private StoreProductAttrOptionService productAttrOptionService;
+    @Autowired
+    private StoreProductGroupService storeProductGroupService;
 
     private static final Logger logger = LoggerFactory.getLogger(StoreProductServiceImpl.class);
 
@@ -294,6 +298,15 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         storeProduct.setId(null);
         storeProduct.setAddTime(CrmebDateUtil.getNowTime());
         storeProduct.setIsShow(false);
+        ProductCommissionConfig syncedCfg = syncLegacyBrokerageIntoCommission(
+                request.getCommissionConfig(), request.getIsSub(), request.getAttrValue());
+        storeProduct.setCommissionConfig(ProductCommissionUtil.toJson(syncedCfg));
+        if (syncedCfg.getDistributor() != null && (
+                ProductCommissionUtil.hasOverride(syncedCfg.getDistributor().getDirectAmount(), syncedCfg.getDistributor().getDirectRate())
+                        || ProductCommissionUtil.hasOverride(syncedCfg.getDistributor().getIndirectAmount(), syncedCfg.getDistributor().getIndirectRate())
+                        || Boolean.TRUE.equals(syncedCfg.getDistributor().getEnabled()))) {
+            storeProduct.setIsSub(true);
+        }
 
         // 设置Acticity活动
         storeProduct.setActivity(getProductActivityStr(request.getActivity()));
@@ -413,6 +426,9 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
                 }
                 storeProductCouponService.saveBatch(couponList);
             }
+            if (request.getProductGroupIds() != null) {
+                storeProductGroupService.bindProductGroups(storeProduct.getId(), request.getProductGroupIds());
+            }
             return Boolean.TRUE;
         });
 
@@ -514,6 +530,15 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
 
         StoreProduct storeProduct = new StoreProduct();
         BeanUtils.copyProperties(storeProductRequest, storeProduct);
+        ProductCommissionConfig syncedCfg = syncLegacyBrokerageIntoCommission(
+                storeProductRequest.getCommissionConfig(), storeProductRequest.getIsSub(), storeProductRequest.getAttrValue());
+        storeProduct.setCommissionConfig(ProductCommissionUtil.toJson(syncedCfg));
+        if (syncedCfg.getDistributor() != null && (
+                ProductCommissionUtil.hasOverride(syncedCfg.getDistributor().getDirectAmount(), syncedCfg.getDistributor().getDirectRate())
+                        || ProductCommissionUtil.hasOverride(syncedCfg.getDistributor().getIndirectAmount(), syncedCfg.getDistributor().getIndirectRate())
+                        || Boolean.TRUE.equals(syncedCfg.getDistributor().getEnabled()))) {
+            storeProduct.setIsSub(true);
+        }
 
         // 设置Activity活动
         storeProduct.setActivity(getProductActivityStr(storeProductRequest.getActivity()));
@@ -640,6 +665,9 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
                 storeProductCouponService.saveBatch(couponList);
             } else {
                 storeProductCouponService.deleteByProductId(storeProduct.getId());
+            }
+            if (storeProductRequest.getProductGroupIds() != null) {
+                storeProductGroupService.bindProductGroups(storeProduct.getId(), storeProductRequest.getProductGroupIds());
             }
 
             return Boolean.TRUE;
@@ -769,6 +797,7 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
 
         StoreProductInfoResponse storeProductResponse = new StoreProductInfoResponse();
         BeanUtils.copyProperties(storeProduct, storeProductResponse);
+        storeProductResponse.setCommissionConfig(ProductCommissionUtil.parse(storeProduct.getCommissionConfig()));
 
         // 设置商品所参与的活动
         List<String> activityList = getProductActivityList(storeProduct.getActivity());
@@ -806,7 +835,78 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
             List<StoreProductGuarantee> guaranteeList = guaranteeService.findByIdList(CrmebUtil.stringToArray(storeProduct.getGuaranteeIds()));
             storeProductResponse.setGuaranteeList(guaranteeList);
         }
+        storeProductResponse.setProductGroupIds(storeProductGroupService.getGroupIdsByProductId(storeProduct.getId()));
+        // 旧 is_sub/SKU 佣金回填到佣金设置展示（仅当商品级分销配置为空时）
+        storeProductResponse.setCommissionConfig(fillCommissionFromLegacyIfEmpty(
+                storeProductResponse.getCommissionConfig(), storeProduct.getIsSub(), attrValueList));
         return storeProductResponse;
+    }
+
+    /**
+     * 保存时：旧版「单独分佣 + SKU 一二佣」迁入 commission_config.distributor（若商品级分销未配置）。
+     * 同时若已配商品级直属/间接佣金，回写 isSub 便于旧 UI 兼容。
+     */
+    private ProductCommissionConfig syncLegacyBrokerageIntoCommission(ProductCommissionConfig cfg,
+                                                                      Boolean isSub,
+                                                                      List<StoreProductAttrValueAddRequest> attrValues) {
+        ProductCommissionConfig config = cfg == null ? new ProductCommissionConfig() : cfg;
+        if (config.getDistributor() == null) {
+            config.setDistributor(new ProductCommissionConfig.Distributor());
+        }
+        ProductCommissionConfig.Distributor d = config.getDistributor();
+        boolean hasDistOverride = ProductCommissionUtil.hasOverride(d.getDirectAmount(), d.getDirectRate())
+                || ProductCommissionUtil.hasOverride(d.getIndirectAmount(), d.getIndirectRate())
+                || d.getEnabled() != null;
+        if (!hasDistOverride && Boolean.TRUE.equals(isSub) && CollUtil.isNotEmpty(attrValues)) {
+            BigDecimal direct = attrValues.stream()
+                    .map(StoreProductAttrValueAddRequest::getBrokerage)
+                    .filter(ObjectUtil::isNotNull)
+                    .findFirst().orElse(null);
+            BigDecimal indirect = attrValues.stream()
+                    .map(StoreProductAttrValueAddRequest::getBrokerageTwo)
+                    .filter(ObjectUtil::isNotNull)
+                    .findFirst().orElse(null);
+            if (direct != null || indirect != null) {
+                d.setEnabled(true);
+                if (d.getDirectAmount() == null && d.getDirectRate() == null) {
+                    d.setDirectAmount(direct);
+                }
+                if (d.getIndirectAmount() == null && d.getIndirectRate() == null) {
+                    d.setIndirectAmount(indirect);
+                }
+            }
+        }
+        return config;
+    }
+
+    /**
+     * 详情回显：商品级分销为空时，用旧 is_sub/SKU 佣金填充，便于「佣金设置」页看到历史数据。
+     */
+    private ProductCommissionConfig fillCommissionFromLegacyIfEmpty(ProductCommissionConfig cfg,
+                                                                    Boolean isSub,
+                                                                    List<StoreProductAttrValue> attrValueList) {
+        ProductCommissionConfig config = cfg == null ? new ProductCommissionConfig() : cfg;
+        if (config.getDistributor() == null) {
+            config.setDistributor(new ProductCommissionConfig.Distributor());
+        }
+        ProductCommissionConfig.Distributor d = config.getDistributor();
+        boolean hasDistOverride = ProductCommissionUtil.hasOverride(d.getDirectAmount(), d.getDirectRate())
+                || ProductCommissionUtil.hasOverride(d.getIndirectAmount(), d.getIndirectRate())
+                || d.getEnabled() != null;
+        if (hasDistOverride || !Boolean.TRUE.equals(isSub) || CollUtil.isEmpty(attrValueList)) {
+            return config;
+        }
+        BigDecimal direct = attrValueList.stream().map(StoreProductAttrValue::getBrokerage)
+                .filter(ObjectUtil::isNotNull).findFirst().orElse(null);
+        BigDecimal indirect = attrValueList.stream().map(StoreProductAttrValue::getBrokerageTwo)
+                .filter(ObjectUtil::isNotNull).findFirst().orElse(null);
+        if (direct == null && indirect == null) {
+            return config;
+        }
+        d.setEnabled(true);
+        d.setDirectAmount(direct);
+        d.setIndirectAmount(indirect);
+        return config;
     }
 
     /**
@@ -1269,6 +1369,9 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         lqw.eq(StoreProduct::getMerId, false);
         lqw.gt(StoreProduct::getStock, 0);
         lqw.eq(StoreProduct::getIsShow, true);
+        if (CollUtil.isNotEmpty(request.getExcludeIds())) {
+            lqw.notIn(StoreProduct::getId, request.getExcludeIds());
+        }
         if (ObjectUtil.isNotNull(request.getCid()) && !request.getCid().isEmpty()) {
             List<Integer> cidList = Stream.of(request.getCid().split(",")).map(Integer::valueOf).collect(Collectors.toList());
             //查找当前类下的所有子类
@@ -1330,7 +1433,8 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         lqw.select(StoreProduct::getId, StoreProduct::getImage, StoreProduct::getStoreName, StoreProduct::getSliderImage,
                 StoreProduct::getOtPrice, StoreProduct::getStock, StoreProduct::getSales, StoreProduct::getPrice, StoreProduct::getActivity,
                 StoreProduct::getFicti, StoreProduct::getIsSub, StoreProduct::getBrowse, StoreProduct::getUnitName,
-                StoreProduct::getBarCode, StoreProduct::getCateId, StoreProduct::getGuaranteeIds);
+                StoreProduct::getBarCode, StoreProduct::getCateId, StoreProduct::getGuaranteeIds,
+                StoreProduct::getCommissionConfig);
         lqw.eq(StoreProduct::getId, id);
         lqw.eq(StoreProduct::getIsRecycle, false);
         lqw.eq(StoreProduct::getIsDel, false);

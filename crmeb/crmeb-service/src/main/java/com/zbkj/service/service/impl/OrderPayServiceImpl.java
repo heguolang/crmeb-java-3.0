@@ -22,6 +22,7 @@ import com.zbkj.common.model.combination.StorePink;
 import com.zbkj.common.model.coupon.StoreCouponUser;
 import com.zbkj.common.model.order.StoreOrder;
 import com.zbkj.common.model.order.StoreOrderInfo;
+import com.zbkj.common.model.product.ProductCommissionConfig;
 import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.product.StoreProductAttrValue;
 import com.zbkj.common.model.product.StoreProductCoupon;
@@ -39,6 +40,7 @@ import com.zbkj.common.response.OrderPayResultResponse;
 import com.zbkj.common.response.PayConfigResponse;
 import com.zbkj.common.utils.CrmebUtil;
 import com.zbkj.common.utils.CrmebDateUtil;
+import com.zbkj.common.utils.ProductCommissionUtil;
 import com.zbkj.common.utils.RedisUtil;
 import com.zbkj.common.utils.WxPayUtil;
 import com.zbkj.common.vo.*;
@@ -706,7 +708,7 @@ public class OrderPayServiceImpl implements OrderPayService {
     }
 
     /**
-     * 计算推广佣金（按上级自己匹配等级的返佣配置，无配置时不回退全局比例）
+     * 计算推广佣金（按上级自己匹配等级的返佣配置；商品级佣金覆盖：空=全局，0=无此项）
      * @param record index-分销级数，spreadUid-分销人
      * @param orderId 订单id
      * @return BigDecimal
@@ -721,10 +723,44 @@ public class OrderPayServiceImpl implements OrderPayService {
         SystemUserLevel spreadMatchedLevel = userLevelService.resolveMatchedLevel(spreadUser);
         Integer spreadLevelId = ObjectUtil.isNotNull(spreadMatchedLevel) ? spreadMatchedLevel.getId() : null;
         Integer levelRate = getLevelBrokerageRate(spreadLevelId, index);
-        if (ObjectUtil.isNull(levelRate)) {
+        BigDecimal fallbackRate = ObjectUtil.isNotNull(levelRate) ? toRateDecimal(levelRate) : BigDecimal.ZERO;
+
+        List<StoreOrderInfoOldVo> orderInfoVoList = storeOrderInfoService.getOrderListByOrderId(orderId);
+        if (CollUtil.isEmpty(orderInfoVoList)) {
             return BigDecimal.ZERO;
         }
-        return calculateCommissionByRate(orderId, toRateDecimal(levelRate));
+        BigDecimal totalBrokerPrice = BigDecimal.ZERO;
+        for (StoreOrderInfoOldVo orderInfoVo : orderInfoVoList) {
+            if (ObjectUtil.isNull(orderInfoVo.getInfo())) {
+                continue;
+            }
+            Integer productId = ObjectUtil.defaultIfNull(orderInfoVo.getProductId(), orderInfoVo.getInfo().getProductId());
+            StoreProduct product = ObjectUtil.isNotNull(productId) ? storeProductService.getById(productId) : null;
+            ProductCommissionConfig cfg = ProductCommissionUtil.parse(
+                    ObjectUtil.isNotNull(product) ? product.getCommissionConfig() : null);
+            ProductCommissionConfig.Distributor distributor = cfg.getDistributor();
+            if (!ProductCommissionUtil.resolveEnabled(distributor.getEnabled(), true)) {
+                continue;
+            }
+            BigDecimal unitPrice = ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())
+                    ? orderInfoVo.getInfo().getVipPrice() : orderInfoVo.getInfo().getPrice();
+            int payNum = ObjectUtil.defaultIfNull(orderInfoVo.getInfo().getPayNum(), 1);
+            BigDecimal[] amountRate = ProductCommissionUtil.distributorAmountRate(distributor, index);
+            BigDecimal override = ProductCommissionUtil.calcOverride(amountRate[0], amountRate[1], unitPrice, payNum);
+            if (override != null) {
+                totalBrokerPrice = totalBrokerPrice.add(override);
+                continue;
+            }
+            if (fallbackRate.compareTo(BigDecimal.ZERO) <= 0 || ObjectUtil.isNull(unitPrice)) {
+                continue;
+            }
+            BigDecimal brokeragePrice = unitPrice.multiply(fallbackRate).setScale(2, BigDecimal.ROUND_DOWN);
+            if (brokeragePrice.compareTo(BigDecimal.ZERO) > 0 && payNum > 1) {
+                brokeragePrice = brokeragePrice.multiply(new BigDecimal(payNum));
+            }
+            totalBrokerPrice = totalBrokerPrice.add(brokeragePrice);
+        }
+        return totalBrokerPrice;
     }
 
     private BigDecimal calculateCommissionByRate(Integer orderId, BigDecimal rateBigDecimal) {
@@ -1513,7 +1549,10 @@ public class OrderPayServiceImpl implements OrderPayService {
     }
 
     private boolean isAgentBrokerageRecord(UserBrokerageRecord record) {
-        return BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT.equals(record.getBrokerageLevel());
+        Integer level = record.getBrokerageLevel();
+        return BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT.equals(level)
+                || BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT_PEER.equals(level)
+                || BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT_LEAP.equals(level);
     }
 
     /**
