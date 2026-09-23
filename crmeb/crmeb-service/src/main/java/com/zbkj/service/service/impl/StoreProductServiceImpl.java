@@ -514,9 +514,7 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         if (tempProduct.getIsRecycle() || tempProduct.getIsDel()) {
             throw new CrmebException("商品已删除");
         }
-        if (tempProduct.getIsShow()) {
-            throw new CrmebException("请先下架商品，再进行修改");
-        }
+        // 出售中(is_show=1)商品允许直接编辑保存，状态保持不变；仅回收站/已删除拦截（上方已拦截）
         // 如果商品是活动商品主商品不允许修改
 //        if (storeSeckillService.isExistByProductId(storeProductRequest.getId())) {
 //            throw new CrmebException("商品作为秒杀商品的主商品，需要修改请先删除对应秒杀商品");
@@ -530,6 +528,8 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
 
         StoreProduct storeProduct = new StoreProduct();
         BeanUtils.copyProperties(storeProductRequest, storeProduct);
+        // 请求对象已移除 storeInfo 字段，实体默认值是 ""，不兜底会把原简介清空
+        storeProduct.setStoreInfo(tempProduct.getStoreInfo() == null ? "" : tempProduct.getStoreInfo());
         ProductCommissionConfig syncedCfg = syncLegacyBrokerageIntoCommission(
                 storeProductRequest.getCommissionConfig(), storeProductRequest.getIsSub(), storeProductRequest.getAttrValue());
         storeProduct.setCommissionConfig(ProductCommissionUtil.toJson(syncedCfg));
@@ -622,7 +622,15 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         spd.setProductId(storeProduct.getId());
 
         Boolean execute = transactionTemplate.execute(e -> {
-            dao.updateById(storeProduct);
+            // 乐观锁并发保护：以编辑加载时的 version 为条件更新，更新行数为 0 说明期间已被他人修改
+            storeProduct.setVersion(null);
+            LambdaUpdateWrapper<StoreProduct> productUpdateWrapper = new LambdaUpdateWrapper<>();
+            productUpdateWrapper.eq(StoreProduct::getId, storeProduct.getId())
+                    .eq(StoreProduct::getVersion, tempProduct.getVersion())
+                    .set(StoreProduct::getVersion, tempProduct.getVersion() + 1);
+            if (dao.update(storeProduct, productUpdateWrapper) == 0) {
+                throw new CrmebException("商品信息已被他人修改，请刷新后重新编辑再保存");
+            }
 
             // 先删除原用attr+value
             attrService.deleteByProductIdAndType(storeProduct.getId(), Constants.PRODUCT_TYPE_NORMAL);

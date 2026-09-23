@@ -119,7 +119,7 @@
                 <router-link :to="{ path: '/store/list/creatProduct/' + row.id + '/1' }">详情</router-link>
               </el-button>
               <el-button
-                v-if="tableFrom.type !== '5' && tableFrom.type !== '1'"
+                v-if="tableFrom.type !== '5'"
                 size="mini" type="primary" plain class="op-btn" v-hasPermi="['admin:product:update']"
               >
                 <router-link :to="{ path: '/store/list/creatProduct/' + row.id }">编辑</router-link>
