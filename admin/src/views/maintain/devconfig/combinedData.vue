@@ -74,6 +74,12 @@
 import edit from '@/views/maintain/devconfig/combinedDataEdit';
 import * as systemGroupApi from '@/api/systemGroup';
 import cmDataList from './combineDataList';
+
+// 已迁移到业务菜单下的组合数据组：不再在本列表重复展示。
+// 注意：这里只做列表隐藏，**数据组本身必须保留**，新页面正是靠它取数。
+//   60 = 移动端_我的推广_分享海报   → 装修 → 推广海报
+//   55 = 移动端_我的_签到天数配置   → 营销 → 积分 → 签到配置
+const MIGRATED_GROUP_IDS = [60, 55];
 export default {
   // name: "combinedData"
   components: { edit, cmDataList },
@@ -118,7 +124,14 @@ export default {
     },
     handlerGetList(pram) {
       systemGroupApi.groupList(pram).then((data) => {
-        this.dataList = data;
+        const rawList = data.list || [];
+        const list = rawList.filter((item) => MIGRATED_GROUP_IDS.indexOf(item.id) === -1);
+        // total 要扣掉被隐藏的条数，否则分页总数对不上
+        this.dataList = {
+          ...data,
+          list,
+          total: Math.max(0, data.total - (rawList.length - list.length)),
+        };
       });
     },
     handleDataList(rowData) {

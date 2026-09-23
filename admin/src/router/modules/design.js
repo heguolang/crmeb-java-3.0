@@ -79,6 +79,14 @@ const designRouter = {
         title: '开屏广告',
       },
     },
+    {
+      path: 'spread_poster',
+      name: 'spreadPoster',
+      component: () => import('@/views/design/spread_poster/index'),
+      meta: {
+        title: '推广海报',
+      },
+    },
   ],
 };
 

@@ -154,6 +154,12 @@ const marketingRouter = {
           meta: { title: '积分配置', icon: '' },
         },
         {
+          path: 'signin',
+          component: () => import('@/views/marketing/integral/signin/index'),
+          name: 'integralSignIn',
+          meta: { title: '签到配置', icon: '' },
+        },
+        {
           path: 'integrallog',
           component: () => import('@/views/marketing/integral/integralLog/index'),
           name: 'integralLog',
