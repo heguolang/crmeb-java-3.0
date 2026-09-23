@@ -4246,5 +4246,52 @@ DELETE FROM `eb_system_group`      WHERE `id`  IN (37,48,52,57,58,59,65,67,68,70
 SELECT 'deprecated group data cleaned' AS result;
 -- ========== END: cleanup_deprecated_group_data_20260924.sql ==========
 
+-- ========== BEGIN: menu_business_entry_20260924.sql ==========
+-- 把原先只能从「维护 → 组合数据」点进去的三套配置，上提到业务菜单下 + 超管授权。
+-- 与 ALL_IN_ONE.sql 同名段保持一致（2026-09-24 补齐：此前 02 只在 menu_sync 里
+-- 建了这三条菜单，**没有发 eb_system_role_menu 授权**，非超管角色会看不到）。
+--   推广海报   装修(439) 下           ← 组合数据 id=60 移动端_我的推广_分享海报
+--   签到配置   营销 → 积分(84) 下      ← 组合数据 id=55 移动端_我的_签到天数配置
+--   充值设置   财务 → 财务操作(106) 下 ← 组合数据 id=62 移动端_充值金额设置
+--
+-- ⚠️ 幂等必须按 **component**，绝不能按 id：
+--   本段跑在 menu_sync_20260923.sql 之后，menu_sync 按 component 补插缺失项时
+--   **使用自增 id**。于是「id=709 已存在」≠「推广海报已建」——早期按 id 判断的写法
+--   在全新库里会把「充值设置」插成两条，已知会踩。
+-- 注：全新库里这三条 id 由自增决定，与线上（709/710/711）可能不同，功能无影响。
+-- ============================================================================
+
+INSERT INTO `eb_system_menu`
+  (`pid`, `name`, `component`, `perms`, `menu_type`, `sort`, `icon`, `is_show`, `is_delte`, `create_time`)
+SELECT 439, '推广海报', '/design/spread_poster', '', 'C', 95, '', 1, 0, NOW()
+  FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM (SELECT `component` FROM `eb_system_menu`) x
+                    WHERE x.`component` = '/design/spread_poster');
+
+INSERT INTO `eb_system_menu`
+  (`pid`, `name`, `component`, `perms`, `menu_type`, `sort`, `icon`, `is_show`, `is_delte`, `create_time`)
+SELECT 84, '签到配置', '/marketing/integral/signin', '', 'C', 99998, '', 1, 0, NOW()
+  FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM (SELECT `component` FROM `eb_system_menu`) x
+                    WHERE x.`component` = '/marketing/integral/signin');
+
+INSERT INTO `eb_system_menu`
+  (`pid`, `name`, `component`, `perms`, `menu_type`, `sort`, `icon`, `is_show`, `is_delte`, `create_time`)
+SELECT 106, '充值设置', '/financial/commission/recharge', '', 'C', 0, '', 1, 0, NOW()
+  FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM (SELECT `component` FROM `eb_system_menu`) x
+                    WHERE x.`component` = '/financial/commission/recharge');
+
+-- 超管(rid=1)授权：按 component 取真实 id，避免按死 id 授权到别的菜单上
+INSERT INTO `eb_system_role_menu` (`rid`, `menu_id`)
+SELECT 1, m.`id`
+  FROM `eb_system_menu` m
+ WHERE m.`component` IN ('/design/spread_poster',
+                         '/marketing/integral/signin',
+                         '/financial/commission/recharge')
+   AND NOT EXISTS (SELECT 1 FROM (SELECT `rid`, `menu_id` FROM `eb_system_role_menu`) x
+                    WHERE x.`rid` = 1 AND x.`menu_id` = m.`id`);
+-- ========== END: menu_business_entry_20260924.sql ==========
+
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'CRMEB oneclick patches done' AS result;
