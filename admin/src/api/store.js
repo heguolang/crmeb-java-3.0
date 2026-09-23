@@ -111,6 +111,56 @@ export function offShellApi(id) {
   });
 }
 /**
+ * 批量上架
+ */
+export function productBatchPutOnShellApi(data) {
+  return request({
+    url: '/admin/store/product/batch/putOnShell',
+    method: 'post',
+    data,
+  });
+}
+/**
+ * 批量下架
+ */
+export function productBatchOffShellApi(data) {
+  return request({
+    url: '/admin/store/product/batch/offShell',
+    method: 'post',
+    data,
+  });
+}
+/**
+ * 批量删除（type：recycle——回收站 delete——彻底删除）
+ */
+export function productBatchDeleteApi(data) {
+  return request({
+    url: '/admin/store/product/batch/delete',
+    method: 'post',
+    data,
+  });
+}
+/**
+ * 批量修改商品分类
+ */
+export function productBatchCateApi(data) {
+  return request({
+    url: '/admin/store/product/batch/cate',
+    method: 'post',
+    data,
+  });
+}
+/**
+ * 修改商品排序（值越大越靠前）
+ */
+export function productUpdateSortApi(id, sort) {
+  return request({
+    url: `/admin/store/product/sort/${id}`,
+    method: 'post',
+    params: { sort },
+  });
+}
+/**
  * 商品规格 列表
  * @param pram
  */

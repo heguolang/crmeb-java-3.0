@@ -195,6 +195,76 @@ public class StoreProductController {
         }
     }
 
+    /**
+     * 批量上架
+     */
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "批量上架商品")
+    @PreAuthorize("hasAuthority('admin:product:up')")
+    @ApiOperation(value = "批量上架")
+    @RequestMapping(value = "/batch/putOnShell", method = RequestMethod.POST)
+    public CommonResult<String> batchPutOnShell(@RequestBody @Validated StoreProductBatchRequest request) {
+        if (storeProductService.batchPutOnShelf(request.getIds())) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    /**
+     * 批量下架
+     */
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "批量下架商品")
+    @PreAuthorize("hasAuthority('admin:product:down')")
+    @ApiOperation(value = "批量下架")
+    @RequestMapping(value = "/batch/offShell", method = RequestMethod.POST)
+    public CommonResult<String> batchOffShell(@RequestBody @Validated StoreProductBatchRequest request) {
+        if (storeProductService.batchOffShelf(request.getIds())) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    /**
+     * 批量删除（移入回收站 / 彻底删除）
+     */
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.DELETE, description = "批量删除商品")
+    @PreAuthorize("hasAuthority('admin:product:delete')")
+    @ApiOperation(value = "批量删除商品")
+    @RequestMapping(value = "/batch/delete", method = RequestMethod.POST)
+    public CommonResult<String> batchDelete(@RequestBody @Validated StoreProductBatchRequest request) {
+        if (storeProductService.batchDeleteProduct(request.getIds(), request.getType())) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    /**
+     * 批量修改商品分类
+     */
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "批量修改商品分类")
+    @PreAuthorize("hasAuthority('admin:product:update')")
+    @ApiOperation(value = "批量修改商品分类")
+    @RequestMapping(value = "/batch/cate", method = RequestMethod.POST)
+    public CommonResult<String> batchUpdateCate(@RequestBody @Validated StoreProductBatchRequest request) {
+        if (storeProductService.batchUpdateCate(request.getIds(), request.getCateId())) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    /**
+     * 修改商品排序（值越大越靠前），修改后立即生效
+     */
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改商品排序")
+    @PreAuthorize("hasAuthority('admin:product:update')")
+    @ApiOperation(value = "修改商品排序")
+    @RequestMapping(value = "/sort/{id}", method = RequestMethod.POST)
+    public CommonResult<String> updateSort(@PathVariable Integer id, @RequestParam(value = "sort") Integer sort) {
+        if (storeProductService.updateSort(id, sort)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
     @PreAuthorize("hasAuthority('admin:product:import:product')")
     @ApiOperation(value = "导入99Api商品")
     @RequestMapping(value = "/importProduct", method = RequestMethod.POST)

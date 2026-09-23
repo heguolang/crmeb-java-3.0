@@ -1323,6 +1323,187 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
     }
 
     /**
+     * 批量上架（已在上架状态的商品自动跳过）
+     * @param ids 商品id列表
+     * @return Boolean
+     */
+    @Override
+    public Boolean batchPutOnShelf(List<Integer> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            throw new CrmebException("请选择商品");
+        }
+        Set<Integer> uniq = new HashSet<>(ids);
+        int success = 0;
+        StringBuilder failMsg = new StringBuilder();
+        for (Integer id : uniq) {
+            if (id == null || id <= 0) {
+                continue;
+            }
+            try {
+                if (putOnShelf(id)) {
+                    success++;
+                } else {
+                    failMsg.append("ID ").append(id).append(" 上架失败；");
+                }
+            } catch (Exception e) {
+                failMsg.append("ID ").append(id).append(" ").append(e.getMessage()).append("；");
+            }
+        }
+        if (failMsg.length() > 0) {
+            if (success == 0) {
+                throw new CrmebException(failMsg.toString());
+            }
+            throw new CrmebException("成功上架" + success + "个，失败明细：" + failMsg);
+        }
+        return Boolean.TRUE;
+    }
+
+    /**
+     * 批量下架（已在下架状态的商品自动跳过）
+     * @param ids 商品id列表
+     * @return Boolean
+     */
+    @Override
+    public Boolean batchOffShelf(List<Integer> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            throw new CrmebException("请选择商品");
+        }
+        Set<Integer> uniq = new HashSet<>(ids);
+        int success = 0;
+        StringBuilder failMsg = new StringBuilder();
+        for (Integer id : uniq) {
+            if (id == null || id <= 0) {
+                continue;
+            }
+            try {
+                if (offShelf(id)) {
+                    success++;
+                } else {
+                    failMsg.append("ID ").append(id).append(" 下架失败；");
+                }
+            } catch (Exception e) {
+                failMsg.append("ID ").append(id).append(" ").append(e.getMessage()).append("；");
+            }
+        }
+        if (failMsg.length() > 0) {
+            if (success == 0) {
+                throw new CrmebException(failMsg.toString());
+            }
+            throw new CrmebException("成功下架" + success + "个，失败明细：" + failMsg);
+        }
+        return Boolean.TRUE;
+    }
+
+    /**
+     * 批量删除商品
+     * @param ids 商品id列表
+     * @param type recycle——移入回收站 delete——彻底删除
+     * @return Boolean
+     */
+    @Override
+    public Boolean batchDeleteProduct(List<Integer> ids, String type) {
+        if (CollUtil.isEmpty(ids)) {
+            throw new CrmebException("请选择商品");
+        }
+        String deleteType = "delete".equals(type) ? "delete" : "recycle";
+        Set<Integer> uniq = new HashSet<>(ids);
+        int success = 0;
+        StringBuilder failMsg = new StringBuilder();
+        for (Integer id : uniq) {
+            if (id == null || id <= 0) {
+                continue;
+            }
+            try {
+                if (deleteProduct(id, deleteType)) {
+                    if ("recycle".equals(deleteType)) {
+                        storeCartService.productStatusNotEnable(id);
+                    } else {
+                        storeCartService.productDelete(id);
+                    }
+                    success++;
+                } else {
+                    failMsg.append("ID ").append(id).append(" 操作失败；");
+                }
+            } catch (Exception e) {
+                failMsg.append("ID ").append(id).append(" ").append(e.getMessage()).append("；");
+            }
+        }
+        if (failMsg.length() > 0) {
+            if (success == 0) {
+                throw new CrmebException(failMsg.toString());
+            }
+            throw new CrmebException("成功" + success + "个，失败明细：" + failMsg);
+        }
+        return Boolean.TRUE;
+    }
+
+    /**
+     * 批量修改商品分类（覆盖原分类）
+     * @param ids 商品id列表
+     * @param cateId 分类id，多个用逗号分隔
+     * @return Boolean
+     */
+    @Override
+    public Boolean batchUpdateCate(List<Integer> ids, String cateId) {
+        if (CollUtil.isEmpty(ids)) {
+            throw new CrmebException("请选择商品");
+        }
+        if (StrUtil.isBlank(cateId)) {
+            throw new CrmebException("请选择商品分类");
+        }
+        Set<Integer> cateIdSet = new HashSet<>();
+        for (String item : cateId.split(",")) {
+            if (StrUtil.isBlank(item)) {
+                continue;
+            }
+            Integer cid;
+            try {
+                cid = Integer.valueOf(item.trim());
+            } catch (NumberFormatException e) {
+                throw new CrmebException("商品分类id格式不正确");
+            }
+            if (ObjectUtil.isNull(categoryService.getById(cid))) {
+                throw new CrmebException("商品分类不存在：ID " + cid);
+            }
+            cateIdSet.add(cid);
+        }
+        if (cateIdSet.isEmpty()) {
+            throw new CrmebException("请选择商品分类");
+        }
+        String cateStr = StringUtils.join(cateIdSet, ",");
+        LambdaUpdateWrapper<StoreProduct> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.in(StoreProduct::getId, ids);
+        wrapper.eq(StoreProduct::getIsDel, false);
+        wrapper.set(StoreProduct::getCateId, cateStr);
+        return update(wrapper);
+    }
+
+    /**
+     * 修改商品排序，值越大越靠前
+     * @param id 商品id
+     * @param sort 排序值
+     * @return Boolean
+     */
+    @Override
+    public Boolean updateSort(Integer id, Integer sort) {
+        StoreProduct product = getById(id);
+        if (ObjectUtil.isNull(product)) {
+            throw new CrmebException("商品不存在");
+        }
+        int sortValue = sort == null ? 0 : sort;
+        if (sortValue < 0) {
+            sortValue = 0;
+        }
+        if (sortValue > 99999999) {
+            sortValue = 99999999;
+        }
+        LambdaUpdateWrapper<StoreProduct> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(StoreProduct::getId, id);
+        wrapper.set(StoreProduct::getSort, sortValue);
+        return update(wrapper);
+    }
+
+    /**
      * 首页商品列表
      * @param type 类型 【1 精品推荐 2 热门榜单 3首发新品 4促销单品】
      * @param pageParamRequest 分页参数

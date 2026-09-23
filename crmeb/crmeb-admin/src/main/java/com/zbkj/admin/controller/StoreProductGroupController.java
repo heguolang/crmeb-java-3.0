@@ -6,6 +6,7 @@ import com.zbkj.common.model.product.StoreProductGroup;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.StoreProductGroupBatchBindRequest;
+import com.zbkj.common.request.StoreProductGroupBatchUnbindRequest;
 import com.zbkj.common.request.StoreProductGroupRequest;
 import com.zbkj.common.request.StoreProductGroupSearchRequest;
 import com.zbkj.common.result.CommonResult;
@@ -104,6 +105,17 @@ public class StoreProductGroupController {
     @RequestMapping(value = "/batch/bind", method = RequestMethod.POST)
     public CommonResult<String> batchBind(@RequestBody @Validated StoreProductGroupBatchBindRequest request) {
         if (storeProductGroupService.batchBindProducts(request.getProductIds(), request.getGroupIds())) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:store:product:group:update')")
+    @ApiOperation(value = "批量将商品移出分组")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "批量将商品移出分组")
+    @RequestMapping(value = "/batch/unbind", method = RequestMethod.POST)
+    public CommonResult<String> batchUnbind(@RequestBody @Validated StoreProductGroupBatchUnbindRequest request) {
+        if (storeProductGroupService.batchUnbindProducts(request.getProductIds(), request.getGroupIds())) {
             return CommonResult.success();
         }
         return CommonResult.failed();

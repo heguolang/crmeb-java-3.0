@@ -155,6 +155,44 @@ public interface StoreProductService extends IService<StoreProduct> {
     Boolean putOnShelf(Integer id);
 
     /**
+     * 批量上架
+     * @param ids 商品id列表
+     * @return 是否成功
+     */
+    Boolean batchPutOnShelf(List<Integer> ids);
+
+    /**
+     * 批量下架
+     * @param ids 商品id列表
+     * @return 是否成功
+     */
+    Boolean batchOffShelf(List<Integer> ids);
+
+    /**
+     * 批量删除商品
+     * @param ids 商品id列表
+     * @param type 类型：recycle——回收站 delete——彻底删除
+     * @return 是否成功
+     */
+    Boolean batchDeleteProduct(List<Integer> ids, String type);
+
+    /**
+     * 批量修改商品分类
+     * @param ids 商品id列表
+     * @param cateId 分类id，多个用逗号分隔
+     * @return 是否成功
+     */
+    Boolean batchUpdateCate(List<Integer> ids, String cateId);
+
+    /**
+     * 修改商品排序
+     * @param id 商品id
+     * @param sort 排序值，越大越靠前
+     * @return 是否成功
+     */
+    Boolean updateSort(Integer id, Integer sort);
+
+    /**
      * 首页商品列表
      * @param type 类型 【1 精品推荐 2 热门榜单 3首发新品 4促销单品】
      * @param pageParamRequest 分页参数

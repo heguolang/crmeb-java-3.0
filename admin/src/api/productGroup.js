@@ -88,6 +88,15 @@ export function productGroupConfigSaveApi(data) {
   });
 }
 
+/** 批量将商品移出分组（groupIds 为空表示移除全部分组） */
+export function productGroupBatchUnbindApi(data) {
+  return request({
+    url: '/admin/store/product/group/batch/unbind',
+    method: 'post',
+    data,
+  });
+}
+
 /** 批量将商品加入分组 */
 export function productGroupBatchBindApi(data) {
   return request({

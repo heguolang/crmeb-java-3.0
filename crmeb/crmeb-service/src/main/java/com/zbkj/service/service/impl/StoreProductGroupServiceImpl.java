@@ -342,6 +342,22 @@ public class StoreProductGroupServiceImpl extends ServiceImpl<StoreProductGroupD
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean batchUnbindProducts(List<Integer> productIds, List<Integer> groupIds) {
+        if (CollUtil.isEmpty(productIds)) {
+            throw new CrmebException("请选择商品");
+        }
+        Set<Integer> productUniq = new HashSet<>(productIds);
+        LambdaQueryWrapper<StoreProductGroupRel> wrapper = Wrappers.lambdaQuery();
+        wrapper.in(StoreProductGroupRel::getProductId, productUniq);
+        if (CollUtil.isNotEmpty(groupIds)) {
+            wrapper.in(StoreProductGroupRel::getGroupId, new HashSet<>(groupIds));
+        }
+        relDao.delete(wrapper);
+        return Boolean.TRUE;
+    }
+
+    @Override
     public List<Integer> getGroupIdsByProductId(Integer productId) {
         if (productId == null || productId <= 0) {
             return Collections.emptyList();

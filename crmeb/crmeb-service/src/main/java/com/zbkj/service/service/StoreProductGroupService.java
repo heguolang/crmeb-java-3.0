@@ -67,6 +67,13 @@ public interface StoreProductGroupService extends IService<StoreProductGroup> {
     /** 查询商品所属分组id */
     List<Integer> getGroupIdsByProductId(Integer productId);
 
+    /**
+     * 批量将商品移出分组
+     * @param productIds 商品id列表
+     * @param groupIds 分组id列表，为空表示移除所选商品的全部分组
+     */
+    Boolean batchUnbindProducts(List<Integer> productIds, List<Integer> groupIds);
+
     /** 批量取商品所属分组名（商品id -> 逗号分隔分组名，无分组的商品不出现在结果里） */
     Map<Integer, String> getGroupNamesByProductIds(List<Integer> productIds);
 

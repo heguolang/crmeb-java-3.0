@@ -49,11 +49,43 @@
         <!-- 商品采集入口已按需求隐藏（2026-09-17），恢复时取消下行注释 -->
         <!-- <el-button type="success" @click="onCopy" v-hasPermi="['admin:product:save']">商品采集</el-button> -->
         <el-button
+          v-if="tableFrom.type === '2'"
+          class="mr14"
+          :disabled="!selectedIds.length"
+          v-hasPermi="['admin:product:up']"
+          @click="batchPutOnShell"
+        >批量上架{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
+        <el-button
+          v-else
+          class="mr14"
+          :disabled="!selectedIds.length"
+          v-hasPermi="['admin:product:down']"
+          @click="batchOffShell"
+        >批量下架{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
+        <el-button
+          class="mr14"
+          :disabled="!selectedIds.length"
+          v-hasPermi="['admin:product:delete']"
+          @click="batchDelete"
+        >{{ tableFrom.type === '5' ? '批量删除' : '批量移到回收站' }}{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
+        <el-button
+          class="mr14"
+          :disabled="!selectedIds.length"
+          v-hasPermi="['admin:product:update']"
+          @click="openBatchCate"
+        >批量修改分类{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
+        <el-button
           class="mr14"
           :disabled="!selectedIds.length"
           v-hasPermi="['admin:store:product:group:update']"
           @click="openBatchGroup"
         >批量分组{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
+        <el-button
+          class="mr14"
+          :disabled="!selectedIds.length"
+          v-hasPermi="['admin:store:product:group:update']"
+          @click="openUnbindGroup"
+        >批量取消分组{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
         <el-button @click="exports" v-hasPermi="['admin:export:excel:product']">导出</el-button>
       </div>
       <!-- 商品列表（参考图样式：浅蓝表头 + 数据行） -->
@@ -66,7 +98,7 @@
               @change="handleCheckAll"
             />
           </div>
-          <div class="list-cell cell-sort">排序</div>
+          <div class="list-cell cell-sort" title="数字越大越靠前">排序</div>
           <div class="list-cell">图片</div>
           <div class="list-cell">商品信息</div>
           <div class="list-cell">售价</div>
@@ -82,7 +114,19 @@
                 @change="(val) => toggleSelect(row.id, val)"
               />
             </div>
-            <div class="list-cell cell-sort"><span class="sort-num">{{ row.sort }}</span></div>
+            <div class="list-cell cell-sort">
+              <el-input-number
+                v-if="checkPermi(['admin:product:update'])"
+                v-model="row.sort"
+                :min="0"
+                :max="99999999"
+                :controls="false"
+                size="mini"
+                class="sort-input"
+                @change="(nv, ov) => onSortChange(row, nv, ov)"
+              />
+              <span v-else class="sort-num">{{ row.sort }}</span>
+            </div>
             <div class="list-cell">
               <el-image class="goods-img" :src="row.image" :preview-src-list="[row.image]" fit="cover" />
             </div>
@@ -195,6 +239,45 @@
         <el-button type="primary" :loading="batchGroupSaving" @click="submitBatchGroup">确定</el-button>
       </div>
     </el-dialog>
+
+    <el-dialog title="批量修改商品分类" :visible.sync="batchCateVisible" width="520px" :close-on-click-modal="false">
+      <div class="mb10 tip-text">已选 {{ selectedIds.length }} 个商品，所选分类将<b>覆盖</b>这些商品原有的分类</div>
+      <el-select
+        v-model="batchCateIds"
+        multiple
+        filterable
+        clearable
+        collapse-tags
+        placeholder="请选择商品分类（仅显示二级分类）"
+        style="width: 100%"
+      >
+        <el-option v-for="c in batchCateOptions" :key="c.id" :label="c.name" :value="c.id" />
+      </el-select>
+      <div slot="footer">
+        <el-button @click="batchCateVisible = false">取消</el-button>
+        <el-button type="primary" :loading="batchCateSaving" @click="submitBatchCate">确定</el-button>
+      </div>
+    </el-dialog>
+
+    <el-dialog title="批量取消商品分组" :visible.sync="unbindGroupVisible" width="520px" :close-on-click-modal="false">
+      <div class="mb10 tip-text">
+        已选 {{ selectedIds.length }} 个商品。<b>不勾选分组</b>时，将清除这些商品的<b>全部</b>分组；勾选后只移除所选分组
+      </div>
+      <el-select
+        v-model="unbindGroupIds"
+        multiple
+        filterable
+        clearable
+        placeholder="请选择要取消的分组（不选＝清除全部分组）"
+        style="width: 100%"
+      >
+        <el-option v-for="g in productGroupOptions" :key="g.id" :label="g.name" :value="g.id" />
+      </el-select>
+      <div slot="footer">
+        <el-button @click="unbindGroupVisible = false">取消</el-button>
+        <el-button type="primary" :loading="unbindGroupSaving" @click="submitUnbindGroup">确定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -209,8 +292,17 @@ import {
   productExportApi,
   restoreApi,
   productExcelApi,
+  productBatchPutOnShellApi,
+  productBatchOffShellApi,
+  productBatchDeleteApi,
+  productBatchCateApi,
+  productUpdateSortApi,
 } from '@/api/store';
-import { productGroupSimpleListApi, productGroupBatchBindApi } from '@/api/productGroup';
+import {
+  productGroupSimpleListApi,
+  productGroupBatchBindApi,
+  productGroupBatchUnbindApi,
+} from '@/api/productGroup';
 import { getToken } from '@/utils/auth';
 import storeEdit from './components/storeEdit';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
@@ -254,7 +346,35 @@ export default {
       batchGroupIds: [],
       batchGroupSaving: false,
       productGroupOptions: [],
+      batchCateVisible: false,
+      batchCateIds: [],
+      batchCateSaving: false,
+      unbindGroupVisible: false,
+      unbindGroupIds: [],
+      unbindGroupSaving: false,
     };
+  },
+  computed: {
+    // 批量修改分类：只展示二级分类（一级只作为容器，避免误选）；无二级时回退展示一级
+    batchCateOptions() {
+      const out = [];
+      const walk = (nodes, depth) => {
+        (nodes || []).forEach((n) => {
+          const children = n.child || n.children || [];
+          if (depth === 2) {
+            out.push({ id: n.id, name: n.name });
+          }
+          if (children.length) {
+            walk(children, depth + 1);
+          }
+        });
+      };
+      walk(this.merCateList, 1);
+      if (!out.length) {
+        (this.merCateList || []).forEach((n) => out.push({ id: n.id, name: n.name }));
+      }
+      return out;
+    },
   },
   mounted() {
     this.goodHeade();
@@ -333,6 +453,136 @@ export default {
           this.batchGroupSaving = false;
         });
     },
+    requireSelection() {
+      if (!this.selectedIds.length) {
+        this.$message.warning('请先勾选商品');
+        return false;
+      }
+      return true;
+    },
+    afterBatch() {
+      this.clearSelection();
+      this.getList();
+      this.goodHeade();
+    },
+    // 批量上架
+    batchPutOnShell() {
+      if (!this.requireSelection()) return;
+      const count = this.selectedIds.length;
+      this.$modalSure(`确定上架选中的 ${count} 个商品吗？`).then(() => {
+        productBatchPutOnShellApi({ ids: this.selectedIds }).then(() => {
+          this.$message.success(`已上架 ${count} 个商品`);
+          this.afterBatch();
+        });
+      });
+    },
+    // 批量下架
+    batchOffShell() {
+      if (!this.requireSelection()) return;
+      const count = this.selectedIds.length;
+      this.$modalSure(`确定下架选中的 ${count} 个商品吗？`).then(() => {
+        productBatchOffShellApi({ ids: this.selectedIds }).then(() => {
+          this.$message.success(`已下架 ${count} 个商品`);
+          this.afterBatch();
+        });
+      });
+    },
+    // 批量删除（回收站 tab 为彻底删除，其它 tab 为移入回收站）
+    batchDelete() {
+      if (!this.requireSelection()) return;
+      const count = this.selectedIds.length;
+      const isRealDelete = this.tableFrom.type === '5';
+      this.$modalSure(
+        isRealDelete
+          ? `确定彻底删除选中的 ${count} 个商品吗？删除后不可恢复`
+          : `确定将选中的 ${count} 个商品移入回收站吗？`,
+      ).then(() => {
+        productBatchDeleteApi({ ids: this.selectedIds, type: isRealDelete ? 'delete' : 'recycle' }).then(() => {
+          this.$message.success('操作成功');
+          if (this.tableData.data.length === count && this.tableFrom.page > 1) {
+            this.tableFrom.page = this.tableFrom.page - 1;
+          }
+          this.afterBatch();
+        });
+      });
+    },
+    // 批量修改分类
+    openBatchCate() {
+      if (!this.requireSelection()) return;
+      this.batchCateIds = [];
+      this.batchCateVisible = true;
+    },
+    // 多选 cascader 的值归一化成一维 id 数组（兼容 emitPath 关闭后的二维数组形态）
+    normalizeCateIds(val) {
+      const out = [];
+      (val || []).forEach((item) => {
+        const v = Array.isArray(item) ? item[item.length - 1] : item;
+        if (v !== null && v !== undefined && v !== '') out.push(v);
+      });
+      return Array.from(new Set(out));
+    },
+    submitBatchCate() {
+      const cateIdList = this.normalizeCateIds(this.batchCateIds);
+      if (!cateIdList.length) {
+        this.$message.warning('请选择商品分类');
+        return;
+      }
+      this.batchCateSaving = true;
+      productBatchCateApi({ ids: this.selectedIds, cateId: cateIdList.join(',') })
+        .then(() => {
+          this.$message.success('分类已修改');
+          this.batchCateVisible = false;
+          this.batchCateSaving = false;
+          this.afterBatch();
+        })
+        .catch(() => {
+          this.batchCateSaving = false;
+        });
+    },
+    // 批量取消分组
+    openUnbindGroup() {
+      if (!this.requireSelection()) return;
+      this.unbindGroupIds = [];
+      productGroupSimpleListApi()
+        .then((res) => {
+          this.productGroupOptions = Array.isArray(res) ? res : res.list || [];
+          this.unbindGroupVisible = true;
+        })
+        .catch(() => {
+          this.productGroupOptions = [];
+          this.unbindGroupVisible = true;
+        });
+    },
+    submitUnbindGroup() {
+      this.unbindGroupSaving = true;
+      productGroupBatchUnbindApi({ productIds: this.selectedIds, groupIds: this.unbindGroupIds })
+        .then(() => {
+          this.$message.success('已取消分组');
+          this.unbindGroupVisible = false;
+          this.unbindGroupSaving = false;
+          this.afterBatch();
+        })
+        .catch(() => {
+          this.unbindGroupSaving = false;
+        });
+    },
+    // 排序：输入框失焦/回车即自动保存，无需点保存按钮；保存后列表按新顺序重排
+    onSortChange(row, newVal, oldVal) {
+      if (newVal === null || newVal === undefined || newVal === '') return;
+      const val = Number(newVal);
+      if (isNaN(val) || val === Number(oldVal)) return;
+      productUpdateSortApi(row.id, val)
+        .then(() => {
+          this.$message.success('排序已保存');
+          this.refreshList();
+        })
+        .catch(() => {
+          row.sort = oldVal;
+        });
+    },
+    refreshList: Debounce(function () {
+      this.getList();
+    }),
     // ===== 列表辅助（参考图样式） =====
     fmtMoney(v) {
       const n = Number(v || 0);
@@ -508,7 +758,7 @@ export default {
 /* 表头 */
 .list-head {
   display: grid;
-  grid-template-columns: 44px 56px 80px minmax(220px, 2.45fr) minmax(120px, 1fr) minmax(125px, 1fr) minmax(60px, 0.5fr) minmax(125px, 1fr);
+  grid-template-columns: 44px 92px 80px minmax(220px, 2.35fr) minmax(120px, 1fr) minmax(125px, 1fr) minmax(60px, 0.5fr) minmax(125px, 1fr);
   align-items: center;
   height: 46px;
   background: #ecf3fd;
@@ -529,7 +779,7 @@ export default {
 /* 数据行 */
 .list-row {
   display: grid;
-  grid-template-columns: 44px 56px 80px minmax(220px, 2.45fr) minmax(120px, 1fr) minmax(125px, 1fr) minmax(60px, 0.5fr) minmax(125px, 1fr);
+  grid-template-columns: 44px 92px 80px minmax(220px, 2.35fr) minmax(120px, 1fr) minmax(125px, 1fr) minmax(60px, 0.5fr) minmax(125px, 1fr);
   align-items: center;
   border-top: 1px solid #f0f2f5;
   transition: background 0.15s;
@@ -566,6 +816,24 @@ export default {
   font-size: 13px;
   color: #606266;
   font-variant-numeric: tabular-nums;
+}
+/* 排序输入框：输入后失焦/回车即自动保存 */
+.sort-input {
+  width: 78px;
+}
+::v-deep .sort-input .el-input__inner {
+  padding-left: 6px;
+  padding-right: 6px;
+  text-align: center;
+}
+/* 批量操作按钮较多，表头区域允许换行 */
+.clearfix {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.clearfix .el-tabs {
+  flex: 1 1 100%;
 }
 
 /* 图片 */
