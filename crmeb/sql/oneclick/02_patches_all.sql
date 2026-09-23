@@ -2910,7 +2910,7 @@ INSERT INTO `tmp_menu_sync`
 ('/tuandui', 'M', '/yunying', '', '团队奖', 'user-solid', 104, 1, 0),
 ('/maintain//devconfiguration', 'M', '/maintain', '', '开发配置', '', 99999, 1, 0),
 ('/maintain/logistics', 'M', '/maintain', '', '物流设置', '', 99999, 1, 0),
-('/maintain/picture', 'C', '/maintain', 'admin:system:attachment:list', '素材管理', '', 1, 1, 0),
+('/maintain/picture', 'C', '/operation', 'admin:system:attachment:list', '素材管理', '', -1, 1, 0),
 ('/operation/maintain/schedule', 'C', '/maintain', '', '定时任务管理', '', 99, 1, 0),
 ('/dashboard', 'C', '/dashboard', '', '控制台', '', 9, 1, 0),
 ('/distribution/teamBrokerageRecord', 'C', '/financial', 'admin:system:team:level:brokerage:record', '团队奖记录', '', 8, 1, 0),
