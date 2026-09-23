@@ -4230,5 +4230,18 @@ DROP PROCEDURE IF EXISTS `dl_add_col_if_missing`;
 
 SELECT 'distributor_level order_product patches done' AS result;
 -- ========== END: distributor_level_order_product_20260923.sql ==========
+
+-- ========== BEGIN: cleanup_deprecated_group_data_20260924.sql ==========
+-- 清理 10 个已废弃的组合数据组（幂等，可重复执行）
+-- 背景：前端首页已全面装修器化（DIY），以下分组零消费，属于运营白配置的死配置：
+--   37 首页中部推荐banner / 52 精品推荐benner / 57 热门榜单推荐 / 58 首发新品推荐
+--   59 促销单品推荐 / 48 首页banner滚动图 / 67 首页导航 / 68 首页滚动新闻二期 / 70 超值爆款
+--   65 个人中心轮播图（后端仍返回 routine_my_banner，前端已不消费）
+-- 保留 8 个在用组：53/54/55/60/62/71/72/73
+DELETE FROM `eb_system_group_data` WHERE `gid` IN (37,48,52,57,58,59,65,67,68,70);
+DELETE FROM `eb_system_group`      WHERE `id`  IN (37,48,52,57,58,59,65,67,68,70);
+SELECT 'deprecated group data cleaned' AS result;
+-- ========== END: cleanup_deprecated_group_data_20260924.sql ==========
+
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'CRMEB oneclick patches done' AS result;
