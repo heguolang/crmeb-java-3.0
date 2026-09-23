@@ -44,7 +44,7 @@
           />
         </el-tabs>
         <router-link :to="{ path: '/store/list/creatProduct' }">
-          <el-button type="primary" v-hasPermi="['admin:product:save']">添加商品</el-button>
+          <el-button type="primary" class="add-btn" v-hasPermi="['admin:product:save']">添加商品</el-button>
         </router-link>
         <!-- 商品采集入口已按需求隐藏（2026-09-17），恢复时取消下行注释 -->
         <!-- <el-button type="success" @click="onCopy" v-hasPermi="['admin:product:save']">商品采集</el-button> -->
@@ -822,6 +822,10 @@ export default {
 }
 .clearfix .el-tabs {
   flex: 1 1 100%;
+}
+/* 添加商品按钮被 router-link 包裹，吃不到 el-button 相邻间距，手动补右边距 */
+.add-btn {
+  margin-right: 10px;
 }
 
 /* 图片 */
