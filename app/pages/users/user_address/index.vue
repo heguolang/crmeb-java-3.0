@@ -29,7 +29,13 @@
 						<view class='name'>详细地址</view>
 						<input type='text' placeholder='请填写具体地址' placeholder-style="color:#ccc;" name='detail'
 							placeholder-class='placeholder' v-model='userAddress.detail' maxlength="100"></input>
+						<!-- #ifndef H5 -->
+						<!-- H5 端不显示定位图标：uni.chooseLocation 依赖腾讯地图 key
+						     （manifest.json → h5.sdkConfigs.maps.qqmap.key），key 失效时
+						     uni.getLocation 会把腾讯原始报错（如「此key已被停用」）弹给会员。
+						     地址本来就可手填，故 H5 直接去掉该入口；小程序/APP 端不受影响。 -->
 						<view class='iconfont icon-dizhi font_color abs_right' @tap="chooseLocation"></view>
+						<!-- #endif -->
 					</view>
 				</view>
 				<view class='default acea-row row-middle borRadius14'>
@@ -264,6 +270,8 @@
 							this.$set(this.userAddress, 'detail', res.name);
 						}
 					})
+				}).catch(() => {
+					// 定位失败（未授权/key 失效等）时不再往下走，避免未处理的 Promise 拒绝
 				})
 			},
 			// 导入共享地址（小程序）
@@ -434,7 +442,10 @@
 				if (!/^1(3|4|5|7|8|9|6)\d{9}$/i.test(value.phone)) return that.$util.Tips({
 					title: '请输入正确的手机号码'
 				});
-				if (that.region == '省-市-区') return that.$util.Tips({
+				// region 未选择时是 ['省','市','区']（数组），选择后是 ['省名','市名','区名']；
+				// 原写法拿数组和 '省-市-区' 比较，== 恒为 false，导致该拦截从未生效，这里修正。
+				if (!that.region || !that.region.length || that.region[0] === '省' || that.region[1] === '市' ||
+					that.region[2] === '区') return that.$util.Tips({
 					title: '请选择所在地区'
 				});
 				if (!value.detail) return that.$util.Tips({

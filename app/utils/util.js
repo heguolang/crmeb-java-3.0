@@ -885,13 +885,22 @@ export default {
 								icon: 'none',
 								duration: 2000
 							});
-						} else {
-							uni.showToast({
-								title: err.errMsg,
-								icon: 'none',
-								duration: 2000
-							});
+							return;
 						}
+						// #endif
+						// 非「权限被拒」类失败：H5 静默处理。
+						// H5 定位依赖腾讯地图 key（manifest.json → h5.sdkConfigs.maps.qqmap.key），
+						// key 失效/欠费时 uni.getLocation 会原样回抛第三方报错（例如「此key已被停用」），
+						// 弹给会员既看不懂又像是系统坏了。定位失败不影响手动填写地址，故只打日志。
+						// #ifdef H5
+						console.warn('[getLocation] 定位失败：', err && err.errMsg);
+						// #endif
+						// #ifndef H5
+						uni.showToast({
+							title: err.errMsg,
+							icon: 'none',
+							duration: 2000
+						});
 						// #endif
 					}
 				})
