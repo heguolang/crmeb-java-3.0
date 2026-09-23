@@ -131,8 +131,12 @@ const actions = {
           commit('SET_ROLES', roles);
           // commit('SET_ROLES', ['admin'])
           commit('SET_NAME', account);
-          // commit('SET_AVATAR', avatar)
-          commit('SET_AVATAR', 'http://kaifa.crmeb.net/system/images/admin_logo.png');
+          // 头像不再写死外部链接。
+          // 原值 'http://kaifa.crmeb.net/system/images/admin_logo.png' 是 CRMEB 演示站地址，
+          // 该域名长期不可用（TCP 通、HTTP 挂 10 秒后 502）。浏览器每次渲染头像都会重新发起请求，
+          // 请求期间页面一直处于 loading → 标签页图标持续转圈、状态栏显示「正在加载 kaifa.crmeb.net…」。
+          // 置空后由 layout/navBars/breadcrumb/user.vue 降级为账号首字母占位块，零外部请求。
+          commit('SET_AVATAR', '');
           commit('SET_INTRODUCTION', 'CRMEB admin');
           commit('SET_PERMISSIONS', data.permissionsList); //权限标识
           resolve(data);
