@@ -112,15 +112,15 @@ SELECT @pg_menu_id, '商品分组配置', '', 'admin:store:product:group:config'
   FROM DUAL WHERE @pg_menu_id IS NOT NULL
    AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `perms` = 'admin:store:product:group:config' AND `is_delte` = 0);
 
-INSERT INTO `eb_system_menu`
-  (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`)
-SELECT @store_pid, '添加分组', '', 'admin:store:product:group:save', '/store/productGroup/edit', 'C', 84, 1, 0, NOW(), NOW()
-  FROM DUAL
- WHERE @store_pid IS NOT NULL
-   AND NOT EXISTS (
-         SELECT 1 FROM `eb_system_menu`
-          WHERE `component` = '/store/productGroup/edit' AND `is_delte` = 0
-       );
+-- 【已下线，不再创建】「添加分组」入口 /store/productGroup/edit
+--   背景：该入口后来被新的「商品分组」页面取代 ——
+--   product_group_level_source.sql 会把它 is_show 置 0 隐藏，
+--   fix_duplicate_data_20260923.sql 再按 name+perms 物理删除。
+--   若本脚本继续「缺失就补插」，就会与上面两步形成
+--   「插入 → 隐藏 → 删除 → 再插入」的死循环：
+--     · 每次执行补丁都多插一条菜单并多授一条角色权限；
+--     · 菜单随即被删，授权便成为指向不存在菜单 id 的孤儿数据。
+--   故此处改为不再创建。历史上已存在的行由 fix_duplicate_data_20260923.sql 清理。
 
 -- ---------- 5. 超管角色授权 ----------
 INSERT INTO `eb_system_role_menu` (`rid`, `menu_id`)
@@ -130,7 +130,7 @@ SELECT r.`id`, m.`id`
  WHERE r.`level` = 0 AND r.`status` = 1
    AND m.`is_delte` = 0
    AND (m.`perms` LIKE 'admin:store:product:group:%'
-        OR m.`component` IN ('/store/productGroup', '/store/productGroup/edit'))
+        OR m.`component` = '/store/productGroup')
    AND NOT EXISTS (
          SELECT 1 FROM `eb_system_role_menu` rm
           WHERE rm.`rid` = r.`id` AND rm.`menu_id` = m.`id`

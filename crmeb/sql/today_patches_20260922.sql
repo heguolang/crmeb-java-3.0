@@ -34,6 +34,9 @@ SET NAMES utf8mb4;
 
 -- ------------------------------------------------------------
 -- 1) 新建「运营」一级目录（已存在则跳过）
+--    ⚠️ 守卫与取值都**不能带 `pid = 0`**：一旦该行 pid 被别的脚本改写
+--       （例如 menu_sync 收敛父级归属），守卫就失配，每执行一次就多插一条。
+--       此处只按 component + is_delte 判定，并显式把 pid 归正为 0。
 -- ------------------------------------------------------------
 INSERT INTO `eb_system_menu`
   (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`)
@@ -41,14 +44,18 @@ SELECT 0, '运营', 's-operation', NULL, '/yunying', 'M', 190, 1, 0, NOW(), NOW(
   FROM DUAL
  WHERE NOT EXISTS (
        SELECT 1 FROM `eb_system_menu`
-        WHERE `component` = '/yunying' AND `pid` = 0 AND `is_delte` = 0
+        WHERE `component` = '/yunying' AND IFNULL(`is_delte`, 0) = 0
        );
 
 SET @yy_id := (
   SELECT `id` FROM `eb_system_menu`
-   WHERE `component` = '/yunying' AND `pid` = 0 AND `is_delte` = 0
+   WHERE `component` = '/yunying' AND IFNULL(`is_delte`, 0) = 0
    ORDER BY `id` LIMIT 1
 );
+
+UPDATE `eb_system_menu`
+   SET `pid` = 0
+ WHERE `id` = @yy_id AND NOT (`pid` <=> 0);
 
 -- 把 5 个模块迁移到「运营」下（仅移动当前仍在一级的，保证幂等）
 UPDATE `eb_system_menu`

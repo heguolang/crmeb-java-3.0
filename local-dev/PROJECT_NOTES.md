@@ -506,3 +506,64 @@ cd crmeb && bash ../local-dev/mvnw.sh -o -DskipTests \
   3. 订货商拿货价：走「订货商设置 → 拿货价 / 层级折扣」，与商品页无关
   4. 后台任意设置页保存不再报「配置名称存在多个」
   5. 商品分组权限 5 种口径（全部/仅分销商/仅区域代理/仅订货商/仅社群团队）前台表现正确
+
+---
+
+## I. 死代码审计工具与判定规则（2026-09-23 建立）
+
+工具在 `local-dev/tools/`，**纯静态分析、零依赖**（只用标准库），可对整个仓库复跑：
+
+| 脚本 | 作用 |
+|---|---|
+| `deadcode_scan.py` | Java：零外部引用的类 + 从未使用的 private 方法/字段；产出 JSON |
+| `deadcode_scan_front.py` | 前端：从 `main.js`/`permission.js` 出发的 import 图不可达文件 |
+| `deadcode_scan_dup.py` | 重复逻辑：方法体规范化后哈希一致的成组方法 |
+| `deadcode_apply.py` | 按 JSON 执行删除（class 整文件删；private 成员花括号配平删；顺带清未用 import）。**默认 dry-run**，加 `--apply` 才落盘 |
+
+完整审计结论与逐条判定理由见 **`local-dev/deadcode_audit_20260923.md`**。
+
+### ⚠️ 三个必须保留的判定陷阱规避（改脚本时别删）
+
+1. **注解要从 `class` 关键字位置往前取**，不能从正则匹配起点取。
+   否则 `@Service` 被漏读 → `OrderServiceImpl` 这类「按接口注入」的实现类会被误判成死代码（实测踩过）。
+2. **`@RestControllerAdvice` 必须单独列入框架注解白名单**（它不在 `@Component` 家族字面量里）。
+   否则 `GlobalExceptionHandler` / `ResultAdvice` 会被误删，**直接搞坏全局异常处理与统一响应包装**。
+3. **重复逻辑检测不能剥离字符串字面量**。
+   实测 `ProductUtils.getTaobaoProductInfo` / `getTmallProductInfo` 唯一差异就在
+   `item.getString("desc")` vs `getString("descUrl")`，剥离字面量后会误报为重复。
+
+### 判定边界（哪些「看着没用」的东西不能删）
+
+- `XxxServiceImpl`：源码无名字引用，但由 `@Service` + 按接口 `@Autowired` 装配 → **删了启动就失败**。
+- `@RestController` / `@Configuration` / `@Aspect` / `@RestControllerAdvice`：容器/路由可达。
+- `implements ResponseBodyAdvice / HandlerInterceptor / WebMvcConfigurer / BaseMapper / OncePerRequestFilter`：框架装配。
+- Lombok（`@Data/@Getter/@Setter/@Accessors/@Builder`）类里的私有字段：getter/setter 编译期生成，**不是无用字段**。
+  脚本对这类文件整文件跳过字段判定。
+- 带注解的私有方法（`@PostConstruct` / `@EventListener` / `@Scheduled`）：容器回调，不是死代码。
+- `admin/src/views/**/index.vue` 中内容相同的路由容器（`<router-view/>`）：每个都被各自路由引用，属正常设计。
+- **`app/` 目录一律不做判定**：uni-app 用 `easycom` 按目录约定自动注册组件、页面由 `pages.json` 驱动，
+  import 图分析在此不成立（会把 `manifest.json`、`vue.config.js` 都误报为不可达）。
+
+### 验证动作（缺一不可）
+
+```bash
+# 1) 三轮复扫必须同时为 0（级联失效会在第二轮才暴露）
+$PY local-dev/tools/deadcode_scan.py            # 零引用类 = 0，未用 private 成员 = 0
+$PY local-dev/tools/deadcode_scan_front.py admin/src   # 不可达 = 0
+
+# 2) 兜底：对被删类名做全仓库 grep，确认零残余引用
+
+# 3) Java 全量重编（先 touch 全部源文件！）
+cd crmeb && find . -name "*.java" -not -path "*/target/*" -exec touch {} +
+bash ../local-dev/mvnw.sh -o -DskipTests -pl crmeb-common,crmeb-service,crmeb-admin,crmeb-front -am compile
+
+# 4) 后台生产构建
+cd admin && NODE_OPTIONS=--openssl-legacy-provider node node_modules/@vue/cli-service/bin/vue-cli-service.js build
+```
+
+**为什么要 `touch` 源文件**：Maven 增量编译器按「源文件时间戳 vs .class 时间戳」判断，
+只删了**依赖模块**的类时，下游模块源文件没变 → 会输出 `Nothing to compile`，
+等于**根本没验证**。`mvn clean` 又会被运行中的 jar 锁住，所以用 touch 代替。
+
+**为什么不能 `rm -rf */target/classes`**：会触发宿主的安全删除拦截
+（`SAFE_DELETE_BULK_CONFIRM_REQUIRED`，一次 1578 个文件超阈值），直接用 touch 方案。
