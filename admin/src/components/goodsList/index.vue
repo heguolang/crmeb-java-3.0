@@ -17,6 +17,11 @@
           </el-option>
         </el-select>
       </el-form-item>
+      <el-form-item label="商品分组：" v-if="showGroup">
+        <el-select v-model="formValidate.group_id" size="small" clearable filterable placeholder="选择分组" @change="userSearchs" class="form_content_width">
+          <el-option v-for="group in groupOptions" :key="group.id" :label="group.name" :value="group.id" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="商品搜索：">
         <el-input
           clearable
@@ -89,6 +94,7 @@
 <script>
 import { mapState } from 'vuex';
 import { cascaderListApi, changeListApi } from '@/api/product';
+import { productGroupSimpleListApi } from '@/api/productGroup';
 import { liveGoods } from '@/api/live';
 import { getProductList } from '@/api/diy';
 export default {
@@ -122,6 +128,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    showGroup: {
+      type: Boolean,
+      default: false,
+    },
     selectIds: {
       type: Array,
       default: () => {
@@ -145,8 +155,10 @@ export default {
         limit: 15,
         cate_id: '',
         store_name: '',
+        group_id: '',
         is_new: this.is_new,
       },
+      groupOptions: [],
       total: 0,
       modals: false,
       loading: false,
@@ -209,6 +221,9 @@ export default {
   },
   mounted() {
     this.goodsCategory();
+    if (this.showGroup) {
+      this.fetchGroupOptions();
+    }
     if (this.diy) {
       this.productList();
     } else {
@@ -222,6 +237,7 @@ export default {
         limit: this.formValidate.limit,
         cate_id: this.formValidate.cate_id,
         store_name: this.formValidate.store_name,
+        group_id: this.formValidate.group_id,
         type: this.type ? this.type : this.goodType,
       };
       this.loading = true;
@@ -265,6 +281,16 @@ export default {
       this.images = images;
       this.diyVal = selection;
       this.$emit('getProductDiy', selection);
+    },
+    // 商品分组简表（showGroup 时使用）
+    fetchGroupOptions() {
+      productGroupSimpleListApi()
+        .then((res) => {
+          this.groupOptions = res.data || [];
+        })
+        .catch(() => {
+          this.groupOptions = [];
+        });
     },
     // 商品分类；
     goodsCategory() {

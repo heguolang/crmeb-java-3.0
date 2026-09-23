@@ -92,11 +92,20 @@ public class DistributorLevel implements Serializable {
     @ApiModelProperty(value = "直推商城消费总额条件关系：1=与，2=或")
     private Integer directConsumeRelation;
 
-    @ApiModelProperty(value = "升级条件-直推会员商城消费总额(元)")
+    @ApiModelProperty(value = "升级条件-直推会员商城消费总额(元)，已下线，列保留不再使用")
     private BigDecimal directUserConsumeAmount;
 
-    @ApiModelProperty(value = "直推会员商城消费总额条件关系：1=与，2=或")
+    @ApiModelProperty(value = "直推会员商城消费总额条件关系：1=与，2=或，已下线，列保留不再使用")
     private Integer directUserConsumeRelation;
+
+    @ApiModelProperty(value = "升级条件-下单指定商品ID，逗号分隔，空=未启用")
+    private String orderProductIds;
+
+    @ApiModelProperty(value = "下单指定商品条件关系：1=与，2=或")
+    private Integer orderProductRelation;
+
+    @ApiModelProperty(value = "下单指定商品达成方式：1=任买一件即可，2=需全部购买")
+    private Integer orderProductMode;
 
     // ==================== 状态 ====================
 

@@ -2,16 +2,6 @@
   <div>
     <el-row :gutter="24">
       <el-col :span="24">
-        <el-form-item label="佣金设置：" props="isSub">
-          <el-radio-group
-            v-model="formValidate.isSub"
-            @change="onChangetype(formValidate.isSub)"
-            :disabled="isDisabled"
-          >
-            <el-radio :label="true" class="radio">单独设置</el-radio>
-            <el-radio :label="false">默认设置</el-radio>
-          </el-radio-group>
-        </el-form-item>
         <el-form-item label="规格类型：" props="specType">
           <el-radio-group
             v-model="formValidate.specType"

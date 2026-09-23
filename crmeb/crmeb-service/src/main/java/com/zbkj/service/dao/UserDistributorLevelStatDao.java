@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 分销商等级统计 Mapper 接口
@@ -39,10 +40,20 @@ public interface UserDistributorLevelStatDao extends BaseMapper<UserDistributorL
     int countTeamUsers(@Param("uid") Integer uid);
 
     /**
-     * 直推中达到指定会员等级的人数
+     * 直推中达到指定分销商等级的人数（eb_user.distributor_level_id = eb_distributor_level.id）
      */
-    @Select("SELECT COUNT(*) FROM eb_user WHERE spread_uid = #{uid} AND level = #{levelId}")
+    @Select("SELECT COUNT(*) FROM eb_user WHERE spread_uid = #{uid} AND distributor_level_id = #{levelId}")
     int countDirectLevelUsers(@Param("uid") Integer uid, @Param("levelId") Integer levelId);
+
+    /**
+     * 本人已支付订单中包含的指定商品种数（任一命中即 > 0）
+     * 注意：订单明细表是 eb_store_order_info（不是 eb_store_order_product）
+     */
+    @Select("<script>SELECT COUNT(DISTINCT op.product_id) FROM eb_store_order o" +
+            " INNER JOIN eb_store_order_info op ON op.order_id = o.id" +
+            " WHERE o.uid = #{uid} AND o.paid = 1 AND o.is_del = 0 AND o.refund_status != 2" +
+            " AND op.product_id IN <foreach collection='productIds' item='pid' open='(' separator=',' close=')'>#{pid}</foreach></script>")
+    int countSelfPaidProductOrders(@Param("uid") Integer uid, @Param("productIds") List<Integer> productIds);
 
     /**
      * 累计充值额（已支付），实时聚合，不落表

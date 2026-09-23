@@ -1,6 +1,8 @@
 package com.zbkj.service.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjectUtil;
+
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
@@ -92,6 +94,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -369,16 +372,25 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
      * @param salesOrder 销量排序：asc/desc
      * @param cateId 分类ID
      * @param storeName 商品名称
+     * @param groupId 商品分组ID（可为空）
      * @param pageParamRequest 分页参数
      * @return 商品列表
      */
     @Override
-    public List<ThemeProductResponse> getProductList(String priceOrder, String salesOrder, String cateId, String storeName, PageParamRequest pageParamRequest) {
+    public List<ThemeProductResponse> getProductList(String priceOrder, String salesOrder, String cateId, String storeName, Integer groupId, PageParamRequest pageParamRequest) {
         ProductRequest request = new ProductRequest();
         request.setPriceOrder(priceOrder);
         request.setSalesOrder(salesOrder);
         request.setCid(cateId);
         request.setStoreName(storeName);
+        if (ObjectUtil.isNotNull(groupId) && groupId > 0) {
+            List<Integer> groupProductIdList = storeProductGroupService.getProductIdsByGroupIds(Collections.singletonList(groupId));
+            if (CollUtil.isEmpty(groupProductIdList)) {
+                // 指定了分组但分组内没有商品：直接返回空，不能退化成“返回全部商品”
+                return new ArrayList<>();
+            }
+            request.setProductIds(groupProductIdList);
+        }
 
         List<StoreProduct> productList = storeProductService.findH5List(request, pageParamRequest);
         if (CollUtil.isEmpty(productList)) {

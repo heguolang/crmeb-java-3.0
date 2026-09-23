@@ -32,6 +32,7 @@ function toProductListParams(params = {}) {
     store_name: params.store_name,
     priceOrder: params.priceOrder,
     salesOrder: params.salesOrder,
+    group_id: params.group_id,
   };
 }
 

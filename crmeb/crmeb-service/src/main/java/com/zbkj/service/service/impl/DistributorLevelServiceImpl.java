@@ -30,8 +30,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -185,7 +187,7 @@ public class DistributorLevelServiceImpl extends ServiceImpl<DistributorLevelDao
         Integer directLevelCount = ObjectUtil.defaultIfNull(request.getDirectLevelCount(), 0);
         Integer directLevelId = ObjectUtil.defaultIfNull(request.getDirectLevelId(), 0);
         if (directLevelCount > 0 && directLevelId <= 0) {
-            throw new CrmebException("直推指定等级人数大于0时，必须选择指定的会员等级");
+            throw new CrmebException("直推指定等级人数大于0时，必须选择指定的分销商等级");
         }
     }
 
@@ -218,6 +220,14 @@ public class DistributorLevelServiceImpl extends ServiceImpl<DistributorLevelDao
         level.setDirectConsumeRelation(ObjectUtil.defaultIfNull(request.getDirectConsumeRelation(), 1));
         level.setDirectUserConsumeAmount(ObjectUtil.defaultIfNull(request.getDirectUserConsumeAmount(), BigDecimal.ZERO));
         level.setDirectUserConsumeRelation(ObjectUtil.defaultIfNull(request.getDirectUserConsumeRelation(), 1));
+
+        // 下单指定商品：ID 列表存逗号分隔字符串，空列表=未启用
+        List<Integer> orderProductIds = request.getOrderProductIds() == null
+                ? new ArrayList<>()
+                : request.getOrderProductIds().stream().filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        level.setOrderProductIds(orderProductIds.isEmpty() ? "" : orderProductIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
+        level.setOrderProductRelation(ObjectUtil.defaultIfNull(request.getOrderProductRelation(), 1));
+        level.setOrderProductMode(ObjectUtil.defaultIfNull(request.getOrderProductMode(), 1));
 
         level.setIsShow(ObjectUtil.defaultIfNull(request.getIsShow(), true));
         return level;
@@ -533,7 +543,8 @@ public class DistributorLevelServiceImpl extends ServiceImpl<DistributorLevelDao
         BigDecimal totalRechargeThreshold = ObjectUtil.defaultIfNull(level.getTotalRechargeAmount(), BigDecimal.ZERO);
         BigDecimal teamProductThreshold = ObjectUtil.defaultIfNull(level.getTeamProductAmount(), BigDecimal.ZERO);
         BigDecimal directConsumeThreshold = ObjectUtil.defaultIfNull(level.getDirectConsumeAmount(), BigDecimal.ZERO);
-        BigDecimal directUserConsumeThreshold = ObjectUtil.defaultIfNull(level.getDirectUserConsumeAmount(), BigDecimal.ZERO);
+        // 下单指定商品：解析逗号分隔的商品ID
+        List<Integer> orderProductIds = parseOrderProductIds(level.getOrderProductIds());
 
         // 全部条件门槛为空：视为未配置，不参与自动升级
         boolean noCondition = directUserThreshold <= 0 && teamUserThreshold <= 0
@@ -542,7 +553,7 @@ public class DistributorLevelServiceImpl extends ServiceImpl<DistributorLevelDao
                 && totalRechargeThreshold.compareTo(BigDecimal.ZERO) <= 0
                 && teamProductThreshold.compareTo(BigDecimal.ZERO) <= 0
                 && directConsumeThreshold.compareTo(BigDecimal.ZERO) <= 0
-                && directUserConsumeThreshold.compareTo(BigDecimal.ZERO) <= 0;
+                && orderProductIds.isEmpty();
         if (noCondition) {
             return false;
         }
@@ -559,8 +570,18 @@ public class DistributorLevelServiceImpl extends ServiceImpl<DistributorLevelDao
                 || ObjectUtil.defaultIfNull(stat.getTeamProductAmount(), BigDecimal.ZERO).compareTo(teamProductThreshold) >= 0;
         boolean c7 = directConsumeThreshold.compareTo(BigDecimal.ZERO) <= 0
                 || ObjectUtil.defaultIfNull(stat.getDirectConsumeAmount(), BigDecimal.ZERO).compareTo(directConsumeThreshold) >= 0;
-        boolean c8 = directUserConsumeThreshold.compareTo(BigDecimal.ZERO) <= 0
-                || ObjectUtil.defaultIfNull(stat.getDirectUserConsumeAmount(), BigDecimal.ZERO).compareTo(directUserConsumeThreshold) >= 0;
+        // 下单指定商品：本人已支付订单中包含任一选中商品即满足
+        boolean c8;
+        if (orderProductIds.isEmpty()) {
+            // 未选择商品，该条件视为自动满足
+            c8 = true;
+        } else if (ObjectUtil.defaultIfNull(level.getOrderProductMode(), 1) == 2) {
+            // 需全部购买：命中的指定商品数需覆盖全部
+            c8 = statDao.countSelfPaidProductOrders(uid, orderProductIds) >= orderProductIds.size();
+        } else {
+            // 任买一件即可
+            c8 = statDao.countSelfPaidProductOrders(uid, orderProductIds) > 0;
+        }
 
         boolean result = c1;
         result = combine(level.getDirectUserRelation(), result, c2);
@@ -569,7 +590,29 @@ public class DistributorLevelServiceImpl extends ServiceImpl<DistributorLevelDao
         result = combine(level.getTotalConsumeRelation(), result, c5);
         result = combine(level.getTotalRechargeRelation(), result, c6);
         result = combine(level.getTeamProductRelation(), result, c7);
-        return combine(level.getDirectConsumeRelation(), result, c8);
+        return combine(level.getOrderProductRelation(), result, c8);
+    }
+
+    /**
+     * 解析「下单指定商品」逗号分隔的商品ID，空/非法返回空列表
+     */
+    private List<Integer> parseOrderProductIds(String orderProductIds) {
+        if (StrUtil.isBlank(orderProductIds)) {
+            return new ArrayList<>();
+        }
+        return Arrays.stream(orderProductIds.split(","))
+                .map(String::trim)
+                .filter(StrUtil::isNotBlank)
+                .map(s -> {
+                    try {
+                        return Integer.valueOf(s);
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     /**

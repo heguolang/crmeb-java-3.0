@@ -4187,5 +4187,48 @@ SELECT COUNT(*) AS 库里无备注的表数
 
 SELECT 'CRMEB table_comments done' AS result;
 -- ========== END: table_comments_20260923.sql ==========
+
+-- ========== BEGIN: distributor_level_order_product_20260923.sql ==========
+-- 分销商等级升级条件调整（幂等）：
+--   1) 「直推会员商城消费总额」条件下线，列保留但前后端不再使用；
+--   2) 新增「下单指定商品」条件：order_product_ids（逗号分隔商品ID，空=未启用）+ order_product_relation（1=与 2=或）
+--      + order_product_mode（1=任买一件即可，2=需全部购买）。
+DROP PROCEDURE IF EXISTS `dl_add_col_if_missing`;
+DELIMITER $$
+CREATE PROCEDURE `dl_add_col_if_missing`()
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = 'eb_distributor_level'
+                   AND COLUMN_NAME = 'order_product_ids') THEN
+    ALTER TABLE `eb_distributor_level`
+      ADD COLUMN `order_product_ids` varchar(512) NOT NULL DEFAULT ''
+      COMMENT '升级条件-下单指定商品ID，逗号分隔，空=未启用' AFTER `direct_user_consume_relation`;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = 'eb_distributor_level'
+                   AND COLUMN_NAME = 'order_product_relation') THEN
+    ALTER TABLE `eb_distributor_level`
+      ADD COLUMN `order_product_relation` tinyint(1) NOT NULL DEFAULT 1
+      COMMENT '下单指定商品条件关系：1=与，2=或' AFTER `order_product_ids`;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = 'eb_distributor_level'
+                   AND COLUMN_NAME = 'order_product_mode') THEN
+    ALTER TABLE `eb_distributor_level`
+      ADD COLUMN `order_product_mode` tinyint(1) NOT NULL DEFAULT 1
+      COMMENT '下单指定商品达成方式：1=任买一件即可，2=需全部购买' AFTER `order_product_relation`;
+  END IF;
+END$$
+DELIMITER ;
+CALL `dl_add_col_if_missing`();
+DROP PROCEDURE IF EXISTS `dl_add_col_if_missing`;
+
+SELECT 'distributor_level order_product patches done' AS result;
+-- ========== END: distributor_level_order_product_20260923.sql ==========
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'CRMEB oneclick patches done' AS result;

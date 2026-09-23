@@ -389,6 +389,7 @@ public class ThemeController {
      * @param salesOrder 销量排序
      * @param cateId 分类ID
      * @param storeName 商品名称
+     * @param groupId 商品分组ID
      * @return 商品列表
      */
     @PreAuthorize("hasAuthority('admin:theme:info')")
@@ -400,13 +401,15 @@ public class ThemeController {
             @ApiImplicitParam(name = "priceOrder", value = "价格排序 asc/desc", example = ""),
             @ApiImplicitParam(name = "salesOrder", value = "销量排序 asc/desc", example = ""),
             @ApiImplicitParam(name = "cate_id", value = "分类id", example = ""),
-            @ApiImplicitParam(name = "store_name", value = "商品名称", example = "")
+            @ApiImplicitParam(name = "store_name", value = "商品名称", example = ""),
+            @ApiImplicitParam(name = "group_id", value = "商品分组id", example = "")
     })
     public CommonResult<List<ThemeProductResponse>> productList(@Validated PageParamRequest pageParamRequest,
                                                                 @RequestParam(value = "priceOrder", required = false) String priceOrder,
                                                                 @RequestParam(value = "salesOrder", required = false) String salesOrder,
                                                                 @RequestParam(value = "cate_id", required = false) String cateId,
-                                                                @RequestParam(value = "store_name", required = false) String storeName) {
-        return CommonResult.success(themeService.getProductList(priceOrder, salesOrder, cateId, storeName, pageParamRequest));
+                                                                @RequestParam(value = "store_name", required = false) String storeName,
+                                                                @RequestParam(value = "group_id", required = false) Integer groupId) {
+        return CommonResult.success(themeService.getProductList(priceOrder, salesOrder, cateId, storeName, groupId, pageParamRequest));
     }
 }

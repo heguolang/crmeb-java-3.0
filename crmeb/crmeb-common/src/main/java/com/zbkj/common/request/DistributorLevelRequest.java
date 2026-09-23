@@ -13,6 +13,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 分销商等级 保存/更新请求
@@ -123,14 +124,27 @@ public class DistributorLevelRequest implements Serializable {
     @Max(value = 2, message = "条件关系只能是1(与)或2(或)")
     private Integer directConsumeRelation;
 
-    @ApiModelProperty(value = "升级条件-直推会员商城消费总额(元)", example = "0.00")
+    @ApiModelProperty(value = "升级条件-直推会员商城消费总额(元)，已下线，字段保留不再使用", example = "0.00")
     @Min(value = 0, message = "直推会员商城消费总额不能小于0")
     private BigDecimal directUserConsumeAmount;
 
-    @ApiModelProperty(value = "直推会员商城消费总额条件关系：1=与，2=或", example = "1")
+    @ApiModelProperty(value = "直推会员商城消费总额条件关系：1=与，2=或，已下线，字段保留不再使用", example = "1")
     @Min(value = 1, message = "条件关系只能是1(与)或2(或)")
     @Max(value = 2, message = "条件关系只能是1(与)或2(或)")
     private Integer directUserConsumeRelation;
+
+    @ApiModelProperty(value = "升级条件-下单指定商品ID列表，空=未启用")
+    private List<Integer> orderProductIds;
+
+    @ApiModelProperty(value = "下单指定商品条件关系：1=与，2=或", example = "1")
+    @Min(value = 1, message = "条件关系只能是1(与)或2(或)")
+    @Max(value = 2, message = "条件关系只能是1(与)或2(或)")
+    private Integer orderProductRelation;
+
+    @ApiModelProperty(value = "下单指定商品达成方式：1=任买一件即可，2=需全部购买", example = "1")
+    @Min(value = 1, message = "达成方式只能是1(任买一件)或2(全部购买)")
+    @Max(value = 2, message = "达成方式只能是1(任买一件)或2(全部购买)")
+    private Integer orderProductMode;
 
     // ==================== 状态 ====================
 

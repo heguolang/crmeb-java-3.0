@@ -49,4 +49,7 @@ public class ProductRequest implements Serializable {
 
     @ApiModelProperty(value = "排除的商品id（商品分组权限不可见）", hidden = true)
     private List<Integer> excludeIds;
+
+    @ApiModelProperty(value = "指定商品id集合（按分组筛选时使用）", hidden = true)
+    private List<Integer> productIds;
 }

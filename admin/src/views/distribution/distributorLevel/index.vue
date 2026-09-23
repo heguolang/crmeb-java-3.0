@@ -45,20 +45,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="updateTime" label="更新时间" width="160" align="center" />
-        <el-table-column label="操作" width="130" align="center" fixed="right">
+        <el-table-column label="操作" width="120" align="center" fixed="right">
           <template slot-scope="scope">
-            <el-button type="text" size="small" icon="el-icon-edit" @click="handleEdit(scope.row)">
-              编辑
-            </el-button>
-            <el-button
-              type="text"
-              size="small"
-              icon="el-icon-delete"
-              class="text-danger"
-              @click="handleDelete(scope.row)"
-            >
-              删除
-            </el-button>
+            <a @click="handleEdit(scope.row)">编辑</a>
+            <el-divider direction="vertical"></el-divider>
+            <a @click="handleDelete(scope.row)">删除</a>
           </template>
         </el-table-column>
       </el-table>
@@ -68,121 +59,192 @@
     <el-dialog
       :title="dialogTitle"
       :visible.sync="dialogVisible"
-      width="860px"
+      width="880px"
       :close-on-click-modal="false"
       @close="handleDialogClose"
     >
-      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="150px" class="level-form">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="等级名称：" prop="name">
-              <el-input v-model="formData.name" maxlength="50" placeholder="如：金牌分销商" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="等级权重：" prop="grade">
-              <el-input-number
-                v-model="formData.grade"
-                :min="1"
-                :max="9999"
-                :precision="0"
-                controls-position="right"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="自购返佣(%)：" prop="selfBrokerageRate">
-              <el-input-number
-                v-model="formData.selfBrokerageRate"
-                :min="0"
-                :max="100"
-                :precision="1"
-                controls-position="right"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="一级返佣(%)：" prop="brokerageRateOne">
-              <el-input-number
-                v-model="formData.brokerageRateOne"
-                :min="0"
-                :max="100"
-                :precision="1"
-                controls-position="right"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="二级返佣(%)：" prop="brokerageRateTwo">
-              <el-input-number
-                v-model="formData.brokerageRateTwo"
-                :min="0"
-                :max="100"
-                :precision="1"
-                controls-position="right"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-divider content-position="left">升级条件</el-divider>
-
-        <div class="cond-list">
-          <div v-for="item in conditionFields" :key="item.key" class="cond-row">
-            <span class="cond-label">{{ item.label }}</span>
-            <div class="cond-value">
-              <el-select
-                v-if="item.type === 'level'"
-                v-model="formData.directLevelId"
-                class="cond-select"
-                placeholder="选择等级"
-                clearable
-                filterable
-              >
-                <el-option
-                  v-for="level in userLevelOptions"
-                  :key="level.id"
-                  :label="level.name"
-                  :value="level.id"
-                />
-              </el-select>
-              <el-input
-                v-model="formData[item.key]"
-                class="cond-input"
-                @blur="normalizeCondition(item)"
-              >
-                <template slot="append">{{ item.unit }}</template>
-              </el-input>
-            </div>
-            <el-radio-group v-model="formData[item.relKey]" class="cond-relation">
-              <el-radio :label="1">与</el-radio>
-              <el-radio :label="2">或</el-radio>
-            </el-radio-group>
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-position="top"
+        size="small"
+        class="level-form"
+      >
+        <!-- 基础信息 -->
+        <div class="lf-sec">
+          <div class="lf-sec__hd"><span class="lf-sec__bar"></span>基础信息</div>
+          <div class="lf-sec__bd">
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="等级名称" prop="name">
+                  <el-input v-model="formData.name" maxlength="50" placeholder="如：金牌分销商" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="等级权重" prop="grade">
+                  <el-input-number
+                    v-model="formData.grade"
+                    :min="1"
+                    :max="9999"
+                    :precision="0"
+                    controls-position="right"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16">
+              <el-col :span="8">
+                <el-form-item label="自购返佣（%）" prop="selfBrokerageRate">
+                  <el-input-number
+                    v-model="formData.selfBrokerageRate"
+                    :min="0"
+                    :max="100"
+                    :precision="1"
+                    controls-position="right"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="一级返佣（%）" prop="brokerageRateOne">
+                  <el-input-number
+                    v-model="formData.brokerageRateOne"
+                    :min="0"
+                    :max="100"
+                    :precision="1"
+                    controls-position="right"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="二级返佣（%）" prop="brokerageRateTwo">
+                  <el-input-number
+                    v-model="formData.brokerageRateTwo"
+                    :min="0"
+                    :max="100"
+                    :precision="1"
+                    controls-position="right"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
           </div>
         </div>
 
-        <div class="form-tip cond-tip">
-          判定顺序：直推会员人数 「与/或」 团队会员人数 「与/或」 直推指定等级 「与/或」 累计商城总消费额 「与/或」
-          总充值额 「与/或」 团队商品总消费额 「与/或」 直推商城消费总额 「与/或」 直推会员商城消费总额。
-          门槛为 0 的条件视为自动满足；「直推指定等级」需同时选择目标等级与人数门槛。
+        <!-- 升级条件 -->
+        <div class="lf-sec">
+          <div class="lf-sec__hd">
+            <span class="lf-sec__bar"></span>升级条件
+            <span class="lf-sec__n">门槛为 0 视为自动满足</span>
+          </div>
+          <div class="lf-sec__bd">
+            <div class="cond-list">
+              <div v-for="item in conditionFields" :key="item.key" class="cond-row">
+                <span class="cond-label">{{ item.label.replace(/：$/, '') }}</span>
+                <div class="cond-value">
+                  <el-select
+                    v-if="item.type === 'level'"
+                    v-model="formData.directLevelId"
+                    class="cond-select"
+                    placeholder="选择分销商等级"
+                    clearable
+                    filterable
+                  >
+                    <el-option
+                      v-for="level in distributorLevelOptions"
+                      :key="level.id"
+                      :label="level.name"
+                      :value="level.id"
+                    />
+                  </el-select>
+                  <div v-else-if="item.type === 'product'" class="cond-product">
+                    <div class="cond-product__ops">
+                      <el-button size="mini" type="primary" plain icon="el-icon-goods" @click="openProductPicker">
+                        选择商品
+                      </el-button>
+                      <el-radio-group
+                        v-model="formData.orderProductMode"
+                        size="mini"
+                        class="cond-product__mode"
+                      >
+                        <el-radio-button :label="1">任买一件即可</el-radio-button>
+                        <el-radio-button :label="2">需全部购买</el-radio-button>
+                      </el-radio-group>
+                      <span v-if="selectedProducts.length" class="cond-product__sum">
+                        已选 {{ selectedProducts.length }} 件
+                      </span>
+                    </div>
+                    <div v-if="selectedProducts.length" class="cond-product__thumbs">
+                      <div
+                        v-for="p in selectedProducts"
+                        :key="p.id"
+                        class="cond-product__thumb"
+                        :title="p.storeName"
+                      >
+                        <img v-if="p.image" :src="p.image" alt="" />
+                        <div v-else class="cond-product__thumb-empty">
+                          <i class="el-icon-picture-outline"></i>
+                        </div>
+                        <i class="el-icon-close cond-product__del" @click.stop="removeProduct(p.id)"></i>
+                        <div class="cond-product__name">{{ p.storeName }}</div>
+                      </div>
+                    </div>
+                    <div v-else class="cond-product__empty">未选择商品，该条件视为自动满足</div>
+                  </div>
+                  <el-input
+                    v-if="item.type !== 'product'"
+                    v-model="formData[item.key]"
+                    class="cond-input"
+                    @blur="normalizeCondition(item)"
+                  >
+                    <template slot="append">{{ item.unit }}</template>
+                  </el-input>
+                </div>
+                <el-radio-group v-model="formData[item.relKey]" class="cond-relation">
+                  <el-radio :label="1">与</el-radio>
+                  <el-radio :label="2">或</el-radio>
+                </el-radio-group>
+              </div>
+            </div>
+            <div class="form-tip cond-tip">
+              判定顺序：直推会员人数 「与/或」 团队会员人数 「与/或」 直推指定分销商等级 「与/或」 累计商城总消费额 「与/或」
+              总充值额 「与/或」 团队商品总消费额 「与/或」 直推商城消费总额 「与/或」 下单指定商品。
+              「直推指定分销商等级」需同时选择目标等级与人数门槛；「下单指定商品」可多选商品并选择「任买一件即可 / 需全部购买」，
+              不选商品时该条件视为自动满足。
+            </div>
+          </div>
         </div>
 
-        <el-form-item label="是否显示：" prop="isShow">
-          <el-switch v-model="formData.isShow" active-text="显示" inactive-text="隐藏" />
-        </el-form-item>
+        <!-- 展示设置 -->
+        <div class="lf-sec">
+          <div class="lf-sec__hd"><span class="lf-sec__bar"></span>展示设置</div>
+          <div class="lf-sec__bd">
+            <el-form-item label="是否显示" prop="isShow">
+              <el-switch v-model="formData.isShow" active-text="显示" inactive-text="隐藏" />
+            </el-form-item>
+          </div>
+        </div>
       </el-form>
 
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitLoading" @click="handleSubmit">保存</el-button>
       </div>
+    </el-dialog>
+
+    <!-- 选择商品弹窗：支持名称搜索 / 分类 / 分组筛选 -->
+    <el-dialog :visible.sync="productPickerVisible" title="选择商品" width="900px" append-to-body>
+      <goods-list
+        v-if="productPickerVisible"
+        :ischeckbox="true"
+        :show-group="true"
+        :select-ids="formData.orderProductIds"
+        @getProductId="onPickProducts"
+      />
     </el-dialog>
   </div>
 </template>
@@ -196,7 +258,8 @@ import {
   distributorLevelDeleteApi,
   distributorLevelUseApi,
 } from '@/api/distributorLevel';
-import { levelAllApi } from '@/api/user';
+import { productDetailApi } from '@/api/store';
+import goodsList from '@/components/goodsList';
 
 const defaultForm = () => ({
   id: null,
@@ -220,8 +283,9 @@ const defaultForm = () => ({
   teamProductRelation: 1,
   directConsumeAmount: '0.00',
   directConsumeRelation: 1,
-  directUserConsumeAmount: '0.00',
-  directUserConsumeRelation: 1,
+  orderProductIds: [],
+  orderProductRelation: 1,
+  orderProductMode: 1,
   isShow: true,
 });
 
@@ -233,12 +297,15 @@ const fmtMoney = (v) => {
 
 export default {
   name: 'DistributorLevel',
+  components: { goodsList },
   data() {
     return {
       loading: false,
       submitLoading: false,
       tableData: [],
-      userLevelOptions: [],
+      distributorLevelOptions: [],
+      productPickerVisible: false,
+      selectedProducts: [],
       dialogVisible: false,
       dialogTitle: '新增分销商等级',
       formData: defaultForm(),
@@ -246,12 +313,12 @@ export default {
       conditionFields: [
         { key: 'directUserCount', relKey: 'directUserRelation', label: '直推会员人数：', unit: '人', type: 'int' },
         { key: 'teamUserCount', relKey: 'teamUserRelation', label: '团队会员人数：', unit: '人', type: 'int' },
-        { key: 'directLevelCount', relKey: 'directLevelRelation', label: '直推指定等级：', unit: '人', type: 'level' },
+        { key: 'directLevelCount', relKey: 'directLevelRelation', label: '直推指定分销商等级：', unit: '人', type: 'level' },
         { key: 'totalConsumeAmount', relKey: 'totalConsumeRelation', label: '累计商城总消费额：', unit: '元', type: 'money' },
         { key: 'totalRechargeAmount', relKey: 'totalRechargeRelation', label: '总充值额：', unit: '元', type: 'money' },
         { key: 'teamProductAmount', relKey: 'teamProductRelation', label: '团队商品总消费额：', unit: '元', type: 'money' },
         { key: 'directConsumeAmount', relKey: 'directConsumeRelation', label: '直推商城消费总额：', unit: '元', type: 'money' },
-        { key: 'directUserConsumeAmount', relKey: 'directUserConsumeRelation', label: '直推会员商城消费总额：', unit: '元', type: 'money' },
+        { key: 'orderProductIds', relKey: 'orderProductRelation', label: '下单指定商品：', type: 'product' },
       ],
       formRules: {
         name: [{ required: true, message: '请填写等级名称', trigger: 'blur' }],
@@ -278,16 +345,16 @@ export default {
         this.loading = false;
       }
     },
-    // 会员等级选项，仅用于「直推指定等级」条件
+    // 分销商等级选项，仅用于「直推指定等级」条件
     async fetchUserLevels() {
       try {
-        this.userLevelOptions = (await levelAllApi()) || [];
+        this.distributorLevelOptions = (await distributorLevelListApi()) || [];
       } catch (e) {
-        this.userLevelOptions = [];
+        this.distributorLevelOptions = [];
       }
     },
-    userNameOf(levelId) {
-      const hit = this.userLevelOptions.find((item) => item.id === levelId);
+    levelNameOf(levelId) {
+      const hit = this.distributorLevelOptions.find((item) => item.id === levelId);
       return hit ? hit.name : `等级${levelId}`;
     },
     // 列表里的升级条件摘要
@@ -302,7 +369,7 @@ export default {
       }
       if (Number(row.directLevelCount) > 0 && Number(row.directLevelId) > 0) {
         parts.push({
-          text: `直推${this.userNameOf(row.directLevelId)}人数≥${row.directLevelCount}人`,
+          text: `直推${this.levelNameOf(row.directLevelId)}人数≥${row.directLevelCount}人`,
           relation: row.directLevelRelation,
         });
       }
@@ -311,13 +378,17 @@ export default {
         ['totalRechargeAmount', '总充值额', 'totalRechargeRelation'],
         ['teamProductAmount', '团队商品总消费额', 'teamProductRelation'],
         ['directConsumeAmount', '直推商城消费总额', 'directConsumeRelation'],
-        ['directUserConsumeAmount', '直推会员商城消费总额', 'directUserConsumeRelation'],
       ];
       moneyFields.forEach(([key, label, relKey]) => {
         if (Number(row[key]) > 0) {
           parts.push({ text: `${label}≥${fmtMoney(row[key])}元`, relation: row[relKey] });
         }
       });
+      const productIds = this.parseOrderProductIds(row.orderProductIds);
+      if (productIds.length) {
+        const modeText = Number(row.orderProductMode) === 2 ? '全部购买' : '任买一件';
+        parts.push({ text: `下单指定商品（${productIds.length}件·${modeText}）`, relation: row.orderProductRelation });
+      }
       if (!parts.length) return '';
       return parts
         .map((item, index) => (index === 0 ? item.text : `${rel(item.relation)} ${item.text}`))
@@ -333,10 +404,63 @@ export default {
         this.formData[item.key] = fmtMoney(value);
       }
     },
+    // 解析「下单指定商品」逗号分隔ID串
+    parseOrderProductIds(str) {
+      if (!str) return [];
+      return String(str)
+        .split(',')
+        .map((s) => parseInt(s, 10))
+        .filter((n) => !isNaN(n) && n > 0);
+    },
+    // 编辑回显：为已选商品补拉名称，保证标签能显示
+    echoSelectedProducts(ids) {
+      this.selectedProducts = (ids || []).map((id) => {
+        const hit = this.selectedProducts.find((p) => p.id === id);
+        return hit || { id, storeName: `商品#${id}` };
+      });
+      const needFetch = (ids || []).filter((id) => {
+        const hit = this.selectedProducts.find((p) => p.id === id);
+        return !hit || hit.storeName.indexOf('商品#') === 0;
+      });
+      if (!needFetch.length) return;
+      Promise.all(needFetch.map((id) => productDetailApi(id).catch(() => null))).then((results) => {
+        results.forEach((d) => {
+          if (d && d.id) {
+            const hit = this.selectedProducts.find((p) => p.id === d.id);
+            if (hit) {
+              hit.storeName = d.storeName;
+              hit.image = d.image;
+            } else {
+              this.selectedProducts.push({ id: d.id, storeName: d.storeName, image: d.image });
+            }
+          }
+        });
+      });
+    },
+    // 打开选品弹窗
+    openProductPicker() {
+      this.productPickerVisible = true;
+    },
+    // 选品弹窗提交（images: [{image, product_id, store_name}]）
+    onPickProducts(images) {
+      this.selectedProducts = (images || []).map((item) => ({
+        id: item.product_id,
+        storeName: item.store_name || `商品#${item.product_id}`,
+        image: item.image,
+      }));
+      this.formData.orderProductIds = this.selectedProducts.map((p) => p.id);
+      this.productPickerVisible = false;
+    },
+    // 移除已选商品
+    removeProduct(id) {
+      this.selectedProducts = this.selectedProducts.filter((p) => p.id !== id);
+      this.formData.orderProductIds = this.formData.orderProductIds.filter((pid) => pid !== id);
+    },
     // 新增
     handleAdd() {
       this.dialogTitle = '新增分销商等级';
       this.formData = defaultForm();
+      this.selectedProducts = [];
       this.dialogVisible = true;
       this.$nextTick(() => this.$refs.formRef && this.$refs.formRef.clearValidate());
     },
@@ -369,10 +493,12 @@ export default {
           teamProductRelation: data.teamProductRelation != null ? Number(data.teamProductRelation) : 1,
           directConsumeAmount: fmtMoney(data.directConsumeAmount),
           directConsumeRelation: data.directConsumeRelation != null ? Number(data.directConsumeRelation) : 1,
-          directUserConsumeAmount: fmtMoney(data.directUserConsumeAmount),
-          directUserConsumeRelation: data.directUserConsumeRelation != null ? Number(data.directUserConsumeRelation) : 1,
+          orderProductIds: this.parseOrderProductIds(data.orderProductIds),
+          orderProductRelation: data.orderProductRelation != null ? Number(data.orderProductRelation) : 1,
+          orderProductMode: data.orderProductMode != null ? Number(data.orderProductMode) : 1,
           isShow: data.isShow !== false,
         };
+        this.echoSelectedProducts(this.formData.orderProductIds);
         this.dialogVisible = true;
         this.$nextTick(() => this.$refs.formRef && this.$refs.formRef.clearValidate());
       } catch (e) {
@@ -416,7 +542,7 @@ export default {
         if (!valid) return;
         const directLevelCount = Number(this.formData.directLevelCount) || 0;
         if (directLevelCount > 0 && !this.formData.directLevelId) {
-          this.$message.warning('直推指定等级人数大于 0 时，必须选择指定的会员等级');
+          this.$message.warning('直推指定等级人数大于 0 时，必须选择指定的分销商等级');
           return;
         }
         this.submitLoading = true;
@@ -441,8 +567,9 @@ export default {
           teamProductRelation: this.formData.teamProductRelation,
           directConsumeAmount: Number(this.formData.directConsumeAmount) || 0,
           directConsumeRelation: this.formData.directConsumeRelation,
-          directUserConsumeAmount: Number(this.formData.directUserConsumeAmount) || 0,
-          directUserConsumeRelation: this.formData.directUserConsumeRelation,
+          orderProductIds: this.formData.orderProductIds || [],
+          orderProductRelation: this.formData.orderProductRelation,
+          orderProductMode: this.formData.orderProductMode,
           isShow: this.formData.isShow !== false,
         };
         try {
@@ -464,6 +591,8 @@ export default {
     handleDialogClose() {
       this.$refs.formRef && this.$refs.formRef.resetFields();
       this.formData = defaultForm();
+      this.selectedProducts = [];
+      this.productPickerVisible = false;
     },
   },
 };
@@ -492,48 +621,98 @@ export default {
   color: #c0c4cc;
 }
 
-.text-danger {
-  color: #f56c6c;
+.level-form {
+  ::v-deep .el-form-item {
+    margin-bottom: 14px;
+  }
+
+  /* 顶部标签：统一字号/字重/行高，杜绝大小不一 */
+  ::v-deep .el-form-item__label {
+    padding: 0 0 4px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 600;
+    color: #303133;
+  }
+
+  ::v-deep .el-input-number .el-input__inner {
+    text-align: left;
+  }
+}
+
+/* ---------- 分区卡片：基础信息 / 升级条件 / 展示设置 ---------- */
+.lf-sec {
+  margin-bottom: 16px;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &__hd {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f0f2f5;
+    background: linear-gradient(90deg, var(--prev-color-primary-light-9, #ecf5ff) 0%, rgba(255, 255, 255, 0) 62%);
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  &__bar {
+    width: 3px;
+    height: 14px;
+    margin-right: 8px;
+    border-radius: 2px;
+    background: var(--prev-color-primary, #0256ff);
+  }
+
+  &__n {
+    margin-left: 10px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #a8abb2;
+  }
+
+  &__bd {
+    padding: 16px 16px 4px;
+
+    .cond-tip {
+      margin-bottom: 12px;
+    }
+  }
 }
 
 .dialog-footer {
   text-align: right;
 }
 
-.level-form {
-  ::v-deep .el-form-item {
-    margin-bottom: 16px;
-  }
-  ::v-deep .el-divider--horizontal {
-    margin: 6px 0 18px;
-  }
-}
-
 /* ---------- 升级条件行：条件名 + 数值(带单位) + 与/或 ---------- */
 .cond-list {
-  padding: 0 10px 0 0;
+  margin-bottom: 10px;
 }
 
 .cond-row {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .cond-label {
-  flex: 0 0 150px;
-  width: 150px;
-  text-align: right;
+  flex: 0 0 162px;
+  width: 162px;
   padding-right: 12px;
-  font-size: 14px;
-  color: #606266;
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
   line-height: 32px;
-
-  &::before {
-    content: '*';
-    color: #f56c6c;
-    margin-right: 4px;
-  }
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cond-value {
@@ -547,6 +726,129 @@ export default {
   flex: 0 0 150px;
   width: 150px;
   margin-right: 10px;
+}
+
+.cond-select--product {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* 下单指定商品：选择按钮 + 判定模式 + 缩略图 */
+.cond-product {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cond-product__ops {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  .cond-product__mode {
+    margin-left: 12px;
+  }
+
+  .cond-product__sum {
+    margin-left: 12px;
+    font-size: 12px;
+    color: #909399;
+  }
+}
+
+.cond-product__thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  gap: 8px;
+}
+
+.cond-product__thumb {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  background: #fafafa;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #c0c4cc;
+    font-size: 20px;
+  }
+
+  &:hover {
+    border-color: var(--prev-color-primary, #0256ff);
+    box-shadow: 0 2px 8px rgba(2, 86, 255, 0.16);
+  }
+}
+
+.cond-product__del {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  font-size: 11px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border-bottom-left-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+
+  &:hover {
+    background: #f56c6c;
+  }
+}
+
+.cond-product__thumb:hover .cond-product__del {
+  opacity: 1;
+}
+
+/* 名称悬浮显示（默认藏在底部） */
+.cond-product__name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2px 4px;
+  font-size: 10px;
+  line-height: 14px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateY(100%);
+  transition: all 0.18s ease;
+}
+
+.cond-product__thumb:hover .cond-product__name {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cond-product__empty {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #a8abb2;
 }
 
 .cond-input {
@@ -564,12 +866,13 @@ export default {
 }
 
 .cond-relation {
-  flex: 0 0 130px;
-  margin-left: 20px;
+  flex: 0 0 108px;
+  margin-left: 16px;
   white-space: nowrap;
+  text-align: right;
 
   ::v-deep .el-radio {
-    margin-right: 12px;
+    margin-right: 10px;
     &:last-child {
       margin-right: 0;
     }
@@ -583,7 +886,9 @@ export default {
 }
 
 .cond-tip {
-  margin: 4px 0 18px 0;
-  padding-left: 150px;
+  margin: 2px 0 0;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: #f7f8fa;
 }
 </style>

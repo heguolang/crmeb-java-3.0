@@ -1567,6 +1567,9 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         if (CollUtil.isNotEmpty(request.getExcludeIds())) {
             lqw.notIn(StoreProduct::getId, request.getExcludeIds());
         }
+        if (CollUtil.isNotEmpty(request.getProductIds())) {
+            lqw.in(StoreProduct::getId, request.getProductIds());
+        }
         if (ObjectUtil.isNotNull(request.getCid()) && !request.getCid().isEmpty()) {
             List<Integer> cidList = Stream.of(request.getCid().split(",")).map(Integer::valueOf).collect(Collectors.toList());
             //查找当前类下的所有子类

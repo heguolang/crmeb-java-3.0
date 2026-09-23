@@ -335,262 +335,647 @@
           </el-col>
         </el-row>
         <!-- 佣金设置 -->
-        <div v-show="currentTab == 4" class="commission-setting">
-          <el-alert
-            title="不填表示取全局/等级配置；显式填 0 表示该商品无此项奖励。金额(元)与比例(%)可二选一，同时填时以金额优先。"
-            type="info"
-            :closable="false"
-            show-icon
-            class="mb15"
-          />
-          <el-alert
-            title="规格库存里的「单独分佣 / 一二佣」为旧字段：保存时会自动迁入本页「分销商」配置；结算与商详气泡优先读本页配置。"
-            type="info"
-            :closable="false"
-            show-icon
-            class="mb15"
-          />
-          <el-divider content-position="left">分销商</el-divider>
-          <el-form-item label="分销返佣：">
-            <el-radio-group v-model="formValidate.commissionConfig.distributor.enabled" :disabled="isDisabled">
-              <el-radio :label="null">跟随全局</el-radio>
-              <el-radio :label="true">开启</el-radio>
-              <el-radio :label="false">关闭</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <div class="level-tip-line">
-            全局口径：运营 → 分销商等级（自购 / 一级 / 二级返佣%）；未填写的项按「分销商等级返佣 → 会员等级返佣」自动取值
-          </div>
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="一级返佣（直属上级）：">
-                <div class="commission-pair">
-                  <el-input
-                    v-model="formValidate.commissionConfig.distributor.directAmount"
-                    placeholder="金额(元)"
-                    clearable
-                    :disabled="isDisabled"
-                  />
-                  <span class="mx6">或</span>
-                  <el-input
-                    v-model="formValidate.commissionConfig.distributor.directRate"
-                    placeholder="比例(%)"
-                    clearable
-                    :disabled="isDisabled"
-                  />
+        <div v-show="currentTab == 4" class="cm">
+          <!-- 规则速览 + 分组状态 -->
+          <div class="cm-brief">
+            <ul class="cm-brief__rules">
+              <li><span class="cm-brief__k">留空</span>跟随全局 / 等级配置</li>
+              <li><span class="cm-brief__k">填 0</span>该商品无此项奖励</li>
+              <li><span class="cm-brief__k">金额 + 比例</span>同时填写时金额优先</li>
+            </ul>
+            <div class="cm-brief__stats">
+              <div
+                v-for="item in commissionSummary"
+                :key="item.key"
+                class="cm-stat"
+                :class="[`cm-stat--${item.key}`, `is-${item.state}`]"
+                @click="scrollToCommission(item.key)"
+              >
+                <div class="cm-stat__row">
+                  <span class="cm-stat__name">{{ item.name }}</span>
+                  <span class="cm-stat__count">{{ item.count }}<i>项</i></span>
                 </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="二级返佣（间接上级）：">
-                <div class="commission-pair">
-                  <el-input
-                    v-model="formValidate.commissionConfig.distributor.indirectAmount"
-                    placeholder="金额(元)"
-                    clearable
-                    :disabled="isDisabled"
-                  />
-                  <span class="mx6">或</span>
-                  <el-input
-                    v-model="formValidate.commissionConfig.distributor.indirectRate"
-                    placeholder="比例(%)"
-                    clearable
-                    :disabled="isDisabled"
-                  />
-                </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <div class="level-collapse-head" @click="toggleLevelPanel('distributor')">
-            <i :class="levelPanel.distributor ? 'el-icon-arrow-down' : 'el-icon-arrow-right'" />
-            <span class="level-collapse-title">按等级设置</span>
-            <span class="level-collapse-sub">按分销商等级单独配置，优先于上方统一设置；全部留空表示该等级走统一设置或全局</span>
-            <span v-if="levelConfiguredCount('distributor') > 0" class="level-collapse-count">已设置 {{ levelConfiguredCount('distributor') }} 项</span>
-            <el-button type="text" size="mini">{{ levelPanel.distributor ? '收起' : '展开' }}</el-button>
-          </div>
-          <el-table v-show="levelPanel.distributor" :data="distributorLevelOptions" size="mini" border class="level-table">
-            <el-table-column prop="name" label="等级" width="110" show-overflow-tooltip />
-            <el-table-column label="自购返佣" min-width="190">
-              <template slot-scope="{ row }">
-                <div class="commission-pair level-pair">
-                  <el-input v-model="levelRow('distributor', row.id).selfAmount" placeholder="金额" size="mini" clearable :disabled="isDisabled" />
-                  <span class="mx6">/</span>
-                  <el-input v-model="levelRow('distributor', row.id).selfRate" placeholder="比例%" size="mini" clearable :disabled="isDisabled" />
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="一级返佣" min-width="190">
-              <template slot-scope="{ row }">
-                <div class="commission-pair level-pair">
-                  <el-input v-model="levelRow('distributor', row.id).oneAmount" placeholder="金额" size="mini" clearable :disabled="isDisabled" />
-                  <span class="mx6">/</span>
-                  <el-input v-model="levelRow('distributor', row.id).oneRate" placeholder="比例%" size="mini" clearable :disabled="isDisabled" />
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="二级返佣" min-width="190">
-              <template slot-scope="{ row }">
-                <div class="commission-pair level-pair">
-                  <el-input v-model="levelRow('distributor', row.id).twoAmount" placeholder="金额" size="mini" clearable :disabled="isDisabled" />
-                  <span class="mx6">/</span>
-                  <el-input v-model="levelRow('distributor', row.id).twoRate" placeholder="比例%" size="mini" clearable :disabled="isDisabled" />
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="64">
-              <template slot-scope="{ row }">
-                <el-button type="text" size="mini" :disabled="isDisabled" @click="clearLevelRow('distributor', row)">清空</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-divider content-position="left">区域代理</el-divider>
-          <el-form-item label="省级代理商能拿到的佣金：">
-            <div>
-              <div class="commission-pair">
-                <el-input v-model="formValidate.commissionConfig.agent.provinceAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                <span class="mx6">或</span>
-                <el-input v-model="formValidate.commissionConfig.agent.provinceRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+                <span class="cm-stat__state"><i class="cm-stat__dot"></i>{{ item.stateText }}</span>
               </div>
-              <div class="pair-tip">金额和比例都为0.00或空表示采用代理商的提成比例计算佣金</div>
             </div>
-          </el-form-item>
-          <el-form-item label="市级代理商能拿到的佣金：">
-            <div>
-              <div class="commission-pair">
-                <el-input v-model="formValidate.commissionConfig.agent.cityAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                <span class="mx6">或</span>
-                <el-input v-model="formValidate.commissionConfig.agent.cityRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
-              </div>
-              <div class="pair-tip">金额和比例都为0.00或空表示采用代理商的提成比例计算佣金</div>
-            </div>
-          </el-form-item>
-          <el-form-item label="区级代理商能拿到的佣金：">
-            <div>
-              <div class="commission-pair">
-                <el-input v-model="formValidate.commissionConfig.agent.districtAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                <span class="mx6">或</span>
-                <el-input v-model="formValidate.commissionConfig.agent.districtRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
-              </div>
-              <div class="pair-tip">金额和比例都为0.00或空表示采用代理商的提成比例计算佣金</div>
-            </div>
-          </el-form-item>
-          <el-form-item label="代理商返佣：">
-            <div>
-              <el-radio-group v-model="formValidate.commissionConfig.agent.enabled" :disabled="isDisabled">
-                <el-radio :label="null">跟随全局</el-radio>
-                <el-radio :label="true">开启</el-radio>
-                <el-radio :label="false">关闭</el-radio>
-              </el-radio-group>
-              <div class="pair-tip">关闭后，将不给代理商返佣</div>
-            </div>
-          </el-form-item>
-          <div class="level-tip-line">
-            全局口径：运营 → 区域代理（默认奖励比例 省/市/区%，落库为各代理的提成比例）；未填写的级别按代理自身提成比例计算
           </div>
 
-          <el-divider content-position="left">团队奖</el-divider>
-          <el-form-item label="团队奖开关：">
-            <el-radio-group v-model="formValidate.commissionConfig.team.enabled" :disabled="isDisabled">
-              <el-radio :label="null">跟随全局</el-radio>
-              <el-radio :label="true">开启</el-radio>
-              <el-radio :label="false">关闭（本商品不参与团队奖）</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <div class="level-tip-line">
-            全局口径：运营 → 团队奖（团队极差比例% 按差额向上分配 + 平级奖比例%）；下方「比例」替换该等级极差比例后仍走差额分配（不重复发放），「金额」为该等级固定佣金
-          </div>
-          <div class="level-collapse-head" @click="toggleLevelPanel('team')">
-            <i :class="levelPanel.team ? 'el-icon-arrow-down' : 'el-icon-arrow-right'" />
-            <span class="level-collapse-title">按等级设置</span>
-            <span class="level-collapse-sub">按团队等级单独配置极差奖/平级奖，优先于全局团队等级配置；留空表示该等级走全局配置</span>
-            <span v-if="levelConfiguredCount('team') > 0" class="level-collapse-count">已设置 {{ levelConfiguredCount('team') }} 项</span>
-            <el-button type="text" size="mini">{{ levelPanel.team ? '收起' : '展开' }}</el-button>
-          </div>
-          <el-table v-show="levelPanel.team" :data="teamLevelOptions" size="mini" border class="level-table">
-            <el-table-column prop="name" label="等级" width="110" show-overflow-tooltip />
-            <el-table-column label="极差奖" min-width="190">
-              <template slot-scope="{ row }">
-                <div class="commission-pair level-pair">
-                  <el-input v-model="levelRow('team', row.id).diffAmount" placeholder="金额" size="mini" clearable :disabled="isDisabled" />
-                  <span class="mx6">/</span>
-                  <el-input v-model="levelRow('team', row.id).diffRate" placeholder="比例%" size="mini" clearable :disabled="isDisabled" />
+          <!-- ==================== 1. 分销商返佣 ==================== -->
+          <section class="cm-sec cm-sec--dist">
+            <header class="cm-sec__hd">
+              <div class="cm-sec__title">
+                <span class="cm-sec__dot"></span>
+                <h4>分销商返佣</h4>
+                <span class="cm-tag" :class="enabledClass(formValidate.commissionConfig.distributor.enabled)">{{
+                  enabledText(formValidate.commissionConfig.distributor.enabled)
+                }}</span>
+                <span class="cm-sec__count">已配置 {{ distributorValueCount }} 项</span>
+              </div>
+            </header>
+            <div class="cm-sec__bd">
+              <p v-if="isSectionOff('distributor') && distributorValueCount" class="cm-notice cm-notice--warn">
+                <i class="el-icon-warning-outline"></i>当前为「停用」，下方数值仍会保存，但不参与本商品结算
+              </p>
+              <div class="cm-hero">
+                <div class="cm-hero__label">
+                  分销返佣
+                  <span class="cm-hero__sub">总开关</span>
                 </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="平级奖" min-width="190">
-              <template slot-scope="{ row }">
-                <div class="commission-pair level-pair">
-                  <el-input v-model="levelRow('team', row.id).peerAmount" placeholder="金额" size="mini" clearable :disabled="isDisabled" />
-                  <span class="mx6">/</span>
-                  <el-input v-model="levelRow('team', row.id).peerRate" placeholder="比例%" size="mini" clearable :disabled="isDisabled" />
+                <div class="cm-hero__ctrl">
+                  <el-radio-group
+                    v-model="formValidate.commissionConfig.distributor.enabled"
+                    :disabled="isDisabled"
+                    class="cm-radios"
+                  >
+                    <el-radio :label="null">跟随全局</el-radio>
+                    <el-radio :label="true">启用</el-radio>
+                    <el-radio :label="false">停用</el-radio>
+                  </el-radio-group>
                 </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="64">
-              <template slot-scope="{ row }">
-                <el-button type="text" size="mini" :disabled="isDisabled" @click="clearLevelRow('team', row)">清空</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+              </div>
+              <div class="cm-grid">
+                <div class="cm-field">
+                  <div class="cm-field__label">
+                    一级返佣<span class="cm-field__sub">直属上级</span>
+                    <el-tooltip content="推广者的直接上级获得的佣金" placement="top">
+                      <i class="el-icon-question cm-field__q" />
+                    </el-tooltip>
+                  </div>
+                  <div class="cm-field__pair">
+                    <el-input
+                      v-model="formValidate.commissionConfig.distributor.directAmount"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('distributor.directAmount') === 'error' }"
+                    >
+                      <template slot="append">元</template>
+                    </el-input>
+                    <span class="cm-field__or">或</span>
+                    <el-input
+                      v-model="formValidate.commissionConfig.distributor.directRate"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('distributor.directRate') === 'error' }"
+                    >
+                      <template slot="append">%</template>
+                    </el-input>
+                  </div>
+                  <p v-if="fieldMsg('distributor.directAmount').text" class="cm-field__msg" :class="fieldMsg('distributor.directAmount').cls">
+                    <i v-if="fieldMsg('distributor.directAmount').icon" :class="fieldMsg('distributor.directAmount').icon"></i>
+                    {{ fieldMsg('distributor.directAmount').text }}
+                  </p>
+                </div>
+                <div class="cm-field">
+                  <div class="cm-field__label">
+                    二级返佣<span class="cm-field__sub">间接上级</span>
+                    <el-tooltip content="推广者的上二级（上级的上级）获得的佣金" placement="top">
+                      <i class="el-icon-question cm-field__q" />
+                    </el-tooltip>
+                  </div>
+                  <div class="cm-field__pair">
+                    <el-input
+                      v-model="formValidate.commissionConfig.distributor.indirectAmount"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('distributor.indirectAmount') === 'error' }"
+                    >
+                      <template slot="append">元</template>
+                    </el-input>
+                    <span class="cm-field__or">或</span>
+                    <el-input
+                      v-model="formValidate.commissionConfig.distributor.indirectRate"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('distributor.indirectRate') === 'error' }"
+                    >
+                      <template slot="append">%</template>
+                    </el-input>
+                  </div>
+                  <p v-if="fieldMsg('distributor.indirectAmount').text" class="cm-field__msg" :class="fieldMsg('distributor.indirectAmount').cls">
+                    <i
+                      v-if="fieldMsg('distributor.indirectAmount').icon"
+                      :class="fieldMsg('distributor.indirectAmount').icon"
+                    ></i>
+                    {{ fieldMsg('distributor.indirectAmount').text }}
+                  </p>
+                </div>
+              </div>
 
-          <el-divider content-position="left">门店</el-divider>
-          <el-alert
-            title="门店佣金/奖励金当前仅保存配置，结算链路待门店佣金模型上线后生效。"
-            type="warning"
-            :closable="false"
-            show-icon
-            class="mb15"
-          />
-          <el-form-item label="门店佣金：">
-            <el-radio-group v-model="formValidate.commissionConfig.store.brokerageEnabled" :disabled="isDisabled">
-              <el-radio :label="null">跟随全局</el-radio>
-              <el-radio :label="true">开启</el-radio>
-              <el-radio :label="false">关闭</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="佣金：">
-                <div class="commission-pair">
-                  <el-input v-model="formValidate.commissionConfig.store.brokerageAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                  <span class="mx6">或</span>
-                  <el-input v-model="formValidate.commissionConfig.store.brokerageRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+              <div class="cm-sub" :class="{ 'is-open': levelPanel.distributor }">
+                <div class="cm-sub__hd" @click="toggleLevelPanel('distributor')">
+                  <i :class="levelPanel.distributor ? 'el-icon-arrow-down' : 'el-icon-arrow-right'"></i>
+                  <span class="cm-sub__t">按分销商等级单独设置</span>
+                  <span v-if="levelConfiguredCount('distributor')" class="cm-stat__count">{{
+                    levelConfiguredCount('distributor')
+                  }}<i>项</i></span>
+                  <span class="cm-sub__n">优先级：等级覆盖 &gt; 上方统一设置 &gt; 全局</span>
+                  <el-button type="text" size="mini">{{ levelPanel.distributor ? '收起' : '展开' }}</el-button>
                 </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="奖励金：">
-                <div class="commission-pair">
-                  <el-input v-model="formValidate.commissionConfig.store.bonusAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                  <span class="mx6">或</span>
-                  <el-input v-model="formValidate.commissionConfig.store.bonusRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+                <div v-show="levelPanel.distributor" class="cm-sub__bd">
+                  <div class="list-table cm-lv cm-lv--dist">
+                    <div class="list-head">
+                      <div class="list-head__cell">等级</div>
+                      <div class="list-head__cell">自购返佣 · 金额 / 比例</div>
+                      <div class="list-head__cell">一级返佣 · 金额 / 比例</div>
+                      <div class="list-head__cell">二级返佣 · 金额 / 比例</div>
+                      <div class="list-head__cell list-head__cell--right">操作</div>
+                    </div>
+                    <div class="list-body">
+                      <div v-for="row in distributorLevelOptions" :key="`dl-${row.id}`" class="list-row">
+                        <div class="list-cell">
+                          <span class="status-tag status-tag--primary">{{ row.name }}</span>
+                        </div>
+                        <div class="list-cell">
+                          <div
+                            class="cm-field__pair cm-pair--sm"
+                            :class="pairIssueClass(`distributor.levels.${row.id}.selfAmount`, `distributor.levels.${row.id}.selfRate`)"
+                          >
+                            <el-input
+                              v-model="levelRow('distributor', row.id).selfAmount"
+                              placeholder="留空"
+                              size="mini"
+                              clearable
+                              :disabled="isDisabled"
+                            >
+                              <template slot="append">元</template>
+                            </el-input>
+                            <span class="cm-field__slash">/</span>
+                            <el-input
+                              v-model="levelRow('distributor', row.id).selfRate"
+                              placeholder="留空"
+                              size="mini"
+                              clearable
+                              :disabled="isDisabled"
+                            >
+                              <template slot="append">%</template>
+                            </el-input>
+                          </div>
+                        </div>
+                        <div class="list-cell">
+                          <div
+                            class="cm-field__pair cm-pair--sm"
+                            :class="pairIssueClass(`distributor.levels.${row.id}.oneAmount`, `distributor.levels.${row.id}.oneRate`)"
+                          >
+                            <el-input
+                              v-model="levelRow('distributor', row.id).oneAmount"
+                              placeholder="留空"
+                              size="mini"
+                              clearable
+                              :disabled="isDisabled"
+                            >
+                              <template slot="append">元</template>
+                            </el-input>
+                            <span class="cm-field__slash">/</span>
+                            <el-input
+                              v-model="levelRow('distributor', row.id).oneRate"
+                              placeholder="留空"
+                              size="mini"
+                              clearable
+                              :disabled="isDisabled"
+                            >
+                              <template slot="append">%</template>
+                            </el-input>
+                          </div>
+                        </div>
+                        <div class="list-cell">
+                          <div
+                            class="cm-field__pair cm-pair--sm"
+                            :class="pairIssueClass(`distributor.levels.${row.id}.twoAmount`, `distributor.levels.${row.id}.twoRate`)"
+                          >
+                            <el-input
+                              v-model="levelRow('distributor', row.id).twoAmount"
+                              placeholder="留空"
+                              size="mini"
+                              clearable
+                              :disabled="isDisabled"
+                            >
+                              <template slot="append">元</template>
+                            </el-input>
+                            <span class="cm-field__slash">/</span>
+                            <el-input
+                              v-model="levelRow('distributor', row.id).twoRate"
+                              placeholder="留空"
+                              size="mini"
+                              clearable
+                              :disabled="isDisabled"
+                            >
+                              <template slot="append">%</template>
+                            </el-input>
+                          </div>
+                        </div>
+                        <div class="list-cell cm-lv__op">
+                          <el-button type="text" size="mini" :disabled="isDisabled" @click="clearLevelRow('distributor', row)"
+                            >清空</el-button
+                          >
+                        </div>
+                      </div>
+                      <div v-if="!distributorLevelOptions.length" class="list-empty">
+                        <i class="el-icon-folder-opened"></i>
+                        <p>暂无分销商等级，请先到 运营 → 分销商等级 创建</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-form-item label="奖励金开关：">
-            <el-radio-group v-model="formValidate.commissionConfig.store.bonusEnabled" :disabled="isDisabled">
-              <el-radio :label="null">跟随全局</el-radio>
-              <el-radio :label="true">开启</el-radio>
-              <el-radio :label="false">关闭</el-radio>
-            </el-radio-group>
-          </el-form-item>
+              </div>
+            </div>
+          </section>
+
+          <!-- ==================== 2. 区域代理 ==================== -->
+          <section class="cm-sec cm-sec--agent">
+            <header class="cm-sec__hd">
+              <div class="cm-sec__title">
+                <span class="cm-sec__dot"></span>
+                <h4>区域代理佣金</h4>
+                <span class="cm-tag" :class="enabledClass(formValidate.commissionConfig.agent.enabled)">{{
+                  enabledText(formValidate.commissionConfig.agent.enabled)
+                }}</span>
+                <span class="cm-sec__count">已配置 {{ agentValueCount }} 项</span>
+              </div>
+            </header>
+            <div class="cm-sec__bd">
+              <p v-if="isSectionOff('agent') && agentValueCount" class="cm-notice cm-notice--warn">
+                <i class="el-icon-warning-outline"></i>当前为「停用」，下方数值仍会保存，但不参与本商品结算
+              </p>
+              <div class="cm-hero">
+                <div class="cm-hero__label">
+                  代理商返佣
+                  <span class="cm-hero__sub">总开关</span>
+                </div>
+                <div class="cm-hero__ctrl">
+                  <el-radio-group
+                    v-model="formValidate.commissionConfig.agent.enabled"
+                    :disabled="isDisabled"
+                    class="cm-radios"
+                  >
+                    <el-radio :label="null">跟随全局</el-radio>
+                    <el-radio :label="true">启用</el-radio>
+                    <el-radio :label="false">停用</el-radio>
+                  </el-radio-group>
+                </div>
+              </div>
+              <div class="cm-grid">
+                <div class="cm-field cm-field--tier">
+                  <div class="cm-field__label">
+                    <span class="cm-tier cm-tier--p">省</span>省级代理商
+                  </div>
+                  <div class="cm-field__pair">
+                    <el-input
+                      v-model="formValidate.commissionConfig.agent.provinceAmount"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('agent.provinceAmount') === 'error' }"
+                    >
+                      <template slot="append">元</template>
+                    </el-input>
+                    <span class="cm-field__or">或</span>
+                    <el-input
+                      v-model="formValidate.commissionConfig.agent.provinceRate"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('agent.provinceRate') === 'error' }"
+                    >
+                      <template slot="append">%</template>
+                    </el-input>
+                  </div>
+                  <p v-if="fieldMsg('agent.provinceAmount').text" class="cm-field__msg" :class="fieldMsg('agent.provinceAmount').cls">
+                    <i v-if="fieldMsg('agent.provinceAmount').icon" :class="fieldMsg('agent.provinceAmount').icon"></i>
+                    {{ fieldMsg('agent.provinceAmount').text }}
+                  </p>
+                </div>
+                <div class="cm-field cm-field--tier">
+                  <div class="cm-field__label">
+                    <span class="cm-tier cm-tier--c">市</span>市级代理商
+                  </div>
+                  <div class="cm-field__pair">
+                    <el-input
+                      v-model="formValidate.commissionConfig.agent.cityAmount"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('agent.cityAmount') === 'error' }"
+                    >
+                      <template slot="append">元</template>
+                    </el-input>
+                    <span class="cm-field__or">或</span>
+                    <el-input
+                      v-model="formValidate.commissionConfig.agent.cityRate"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('agent.cityRate') === 'error' }"
+                    >
+                      <template slot="append">%</template>
+                    </el-input>
+                  </div>
+                  <p v-if="fieldMsg('agent.cityAmount').text" class="cm-field__msg" :class="fieldMsg('agent.cityAmount').cls">
+                    <i v-if="fieldMsg('agent.cityAmount').icon" :class="fieldMsg('agent.cityAmount').icon"></i>
+                    {{ fieldMsg('agent.cityAmount').text }}
+                  </p>
+                </div>
+                <div class="cm-field cm-field--tier">
+                  <div class="cm-field__label">
+                    <span class="cm-tier cm-tier--d">区</span>区级代理商
+                  </div>
+                  <div class="cm-field__pair">
+                    <el-input
+                      v-model="formValidate.commissionConfig.agent.districtAmount"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('agent.districtAmount') === 'error' }"
+                    >
+                      <template slot="append">元</template>
+                    </el-input>
+                    <span class="cm-field__or">或</span>
+                    <el-input
+                      v-model="formValidate.commissionConfig.agent.districtRate"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('agent.districtRate') === 'error' }"
+                    >
+                      <template slot="append">%</template>
+                    </el-input>
+                  </div>
+                  <p v-if="fieldMsg('agent.districtAmount').text" class="cm-field__msg" :class="fieldMsg('agent.districtAmount').cls">
+                    <i v-if="fieldMsg('agent.districtAmount').icon" :class="fieldMsg('agent.districtAmount').icon"></i>
+                    {{ fieldMsg('agent.districtAmount').text }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ==================== 3. 团队奖 ==================== -->
+          <section class="cm-sec cm-sec--team">
+            <header class="cm-sec__hd">
+              <div class="cm-sec__title">
+                <span class="cm-sec__dot"></span>
+                <h4>团队奖</h4>
+                <span class="cm-tag" :class="enabledClass(formValidate.commissionConfig.team.enabled)">{{
+                  enabledText(formValidate.commissionConfig.team.enabled)
+                }}</span>
+                <span class="cm-sec__count">等级配置 {{ levelConfiguredCount('team') }} 项</span>
+              </div>
+            </header>
+            <div class="cm-sec__bd">
+              <div class="cm-hero">
+                <div class="cm-hero__label">
+                  团队奖
+                  <span class="cm-hero__sub">总开关</span>
+                </div>
+                <div class="cm-hero__ctrl">
+                  <el-radio-group
+                    v-model="formValidate.commissionConfig.team.enabled"
+                    :disabled="isDisabled"
+                    class="cm-radios"
+                  >
+                    <el-radio :label="null">跟随全局</el-radio>
+                    <el-radio :label="true">启用</el-radio>
+                    <el-radio :label="false">停用</el-radio>
+                  </el-radio-group>
+                </div>
+              </div>
+              <div class="cm-sub" :class="{ 'is-open': levelPanel.team }">
+                <div class="cm-sub__hd" @click="toggleLevelPanel('team')">
+                  <i :class="levelPanel.team ? 'el-icon-arrow-down' : 'el-icon-arrow-right'"></i>
+                  <span class="cm-sub__t">按团队等级设置</span>
+                  <span v-if="levelConfiguredCount('team')" class="cm-stat__count"
+                    >{{ levelConfiguredCount('team') }}<i>项</i></span
+                  >
+                  <span class="cm-sub__n">优先级：本表 &gt; 全局团队等级配置；留空即走全局</span>
+                  <el-button type="text" size="mini">{{ levelPanel.team ? '收起' : '展开' }}</el-button>
+                </div>
+                <div v-show="levelPanel.team" class="cm-sub__bd">
+                  <div class="list-table cm-lv cm-lv--team">
+                    <div class="list-head">
+                      <div class="list-head__cell">等级</div>
+                      <div class="list-head__cell">极差奖 · 金额 / 比例</div>
+                      <div class="list-head__cell">平级奖 · 金额 / 比例</div>
+                      <div class="list-head__cell list-head__cell--right">操作</div>
+                    </div>
+                    <div class="list-body">
+                      <div v-for="row in teamLevelOptions" :key="`tl-${row.id}`" class="list-row">
+                        <div class="list-cell">
+                          <span class="status-tag status-tag--primary">{{ row.name }}</span>
+                        </div>
+                        <div class="list-cell">
+                          <div
+                            class="cm-field__pair cm-pair--sm"
+                            :class="pairIssueClass(`team.levels.${row.id}.diffAmount`, `team.levels.${row.id}.diffRate`)"
+                          >
+                            <el-input
+                              v-model="levelRow('team', row.id).diffAmount"
+                              placeholder="留空"
+                              size="mini"
+                              clearable
+                              :disabled="isDisabled"
+                            >
+                              <template slot="append">元</template>
+                            </el-input>
+                            <span class="cm-field__slash">/</span>
+                            <el-input
+                              v-model="levelRow('team', row.id).diffRate"
+                              placeholder="留空"
+                              size="mini"
+                              clearable
+                              :disabled="isDisabled"
+                            >
+                              <template slot="append">%</template>
+                            </el-input>
+                          </div>
+                        </div>
+                        <div class="list-cell">
+                          <div
+                            class="cm-field__pair cm-pair--sm"
+                            :class="pairIssueClass(`team.levels.${row.id}.peerAmount`, `team.levels.${row.id}.peerRate`)"
+                          >
+                            <el-input
+                              v-model="levelRow('team', row.id).peerAmount"
+                              placeholder="留空"
+                              size="mini"
+                              clearable
+                              :disabled="isDisabled"
+                            >
+                              <template slot="append">元</template>
+                            </el-input>
+                            <span class="cm-field__slash">/</span>
+                            <el-input
+                              v-model="levelRow('team', row.id).peerRate"
+                              placeholder="留空"
+                              size="mini"
+                              clearable
+                              :disabled="isDisabled"
+                            >
+                              <template slot="append">%</template>
+                            </el-input>
+                          </div>
+                        </div>
+                        <div class="list-cell cm-lv__op">
+                          <el-button type="text" size="mini" :disabled="isDisabled" @click="clearLevelRow('team', row)"
+                            >清空</el-button
+                          >
+                        </div>
+                      </div>
+                      <div v-if="!teamLevelOptions.length" class="list-empty">
+                        <i class="el-icon-folder-opened"></i>
+                        <p>暂无团队等级，请先到 运营 → 团队等级 创建</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ==================== 4. 门店 ==================== -->
+          <section class="cm-sec cm-sec--store">
+            <header class="cm-sec__hd">
+              <div class="cm-sec__title">
+                <span class="cm-sec__dot"></span>
+                <h4>门店佣金 / 奖励金</h4>
+                <span class="cm-tag" :class="enabledClass(formValidate.commissionConfig.store.brokerageEnabled)">{{
+                  enabledText(formValidate.commissionConfig.store.brokerageEnabled)
+                }}</span>
+                <span class="cm-sec__count">已配置 {{ storeValueCount }} 项</span>
+              </div>
+            </header>
+            <div class="cm-sec__bd">
+              <p class="cm-notice cm-notice--warn">
+                <i class="el-icon-warning-outline"></i>门店佣金 / 奖励金当前仅保存配置，结算链路待门店佣金模型上线后生效
+              </p>
+              <div class="cm-hero">
+                <div class="cm-hero__label">
+                  门店佣金
+                  <span class="cm-hero__sub">开关</span>
+                </div>
+                <div class="cm-hero__ctrl">
+                  <el-radio-group
+                    v-model="formValidate.commissionConfig.store.brokerageEnabled"
+                    :disabled="isDisabled"
+                    class="cm-radios"
+                  >
+                    <el-radio :label="null">跟随全局</el-radio>
+                    <el-radio :label="true">启用</el-radio>
+                    <el-radio :label="false">停用</el-radio>
+                  </el-radio-group>
+                </div>
+              </div>
+              <div class="cm-grid">
+                <div class="cm-field">
+                  <div class="cm-field__label">佣金</div>
+                  <div class="cm-field__pair">
+                    <el-input
+                      v-model="formValidate.commissionConfig.store.brokerageAmount"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('store.brokerageAmount') === 'error' }"
+                    >
+                      <template slot="append">元</template>
+                    </el-input>
+                    <span class="cm-field__or">或</span>
+                    <el-input
+                      v-model="formValidate.commissionConfig.store.brokerageRate"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('store.brokerageRate') === 'error' }"
+                    >
+                      <template slot="append">%</template>
+                    </el-input>
+                  </div>
+                  <p v-if="fieldMsg('store.brokerageAmount').text" class="cm-field__msg" :class="fieldMsg('store.brokerageAmount').cls">
+                    <i v-if="fieldMsg('store.brokerageAmount').icon" :class="fieldMsg('store.brokerageAmount').icon"></i>
+                    {{ fieldMsg('store.brokerageAmount').text }}
+                  </p>
+                </div>
+                <div class="cm-field">
+                  <div class="cm-field__label">
+                    奖励金
+                    <span class="cm-field__sub">独立开关</span>
+                  </div>
+                  <div class="cm-field__pair">
+                    <el-input
+                      v-model="formValidate.commissionConfig.store.bonusAmount"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('store.bonusAmount') === 'error' }"
+                    >
+                      <template slot="append">元</template>
+                    </el-input>
+                    <span class="cm-field__or">或</span>
+                    <el-input
+                      v-model="formValidate.commissionConfig.store.bonusRate"
+                      placeholder="跟随全局"
+                      clearable
+                      :disabled="isDisabled"
+                      :class="{ 'is-bad': issueLevel('store.bonusRate') === 'error' }"
+                    >
+                      <template slot="append">%</template>
+                    </el-input>
+                  </div>
+                  <p v-if="fieldMsg('store.bonusAmount').text" class="cm-field__msg" :class="fieldMsg('store.bonusAmount').cls">
+                    <i v-if="fieldMsg('store.bonusAmount').icon" :class="fieldMsg('store.bonusAmount').icon"></i>
+                    {{ fieldMsg('store.bonusAmount').text }}
+                  </p>
+                </div>
+              </div>
+              <div class="cm-hero cm-hero--sub">
+                <div class="cm-hero__label">
+                  奖励金发放
+                  <span class="cm-hero__sub">开关</span>
+                </div>
+                <div class="cm-hero__ctrl">
+                  <el-radio-group
+                    v-model="formValidate.commissionConfig.store.bonusEnabled"
+                    :disabled="isDisabled"
+                    class="cm-radios"
+                  >
+                    <el-radio :label="null">跟随全局</el-radio>
+                    <el-radio :label="true">启用</el-radio>
+                    <el-radio :label="false">停用</el-radio>
+                  </el-radio-group>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-        <el-form-item>
-          <el-button v-show="Number(currentTab) > 0" class="submission" @click="handleSubmitUp">上一步</el-button>
-          <el-button
-            v-show="Number(currentTab) < 4"
-            class="submission"
-            :class="Number(currentTab) == 0 ? 'onePrimary' : ''"
-            @click="handleSubmitNest('formValidate')"
-            >下一步</el-button
-          >
-          <el-button v-show="!isDisabled" type="primary" class="submission" @click="handleSubmit('formValidate')"
-            >提交</el-button
-          >
-        </el-form-item>
+        <div class="cm-actions">
+          <div class="cm-actions__tip">
+            <template v-if="commissionErrorCount">
+              <i class="el-icon-error"></i>佣金设置有 {{ commissionErrorCount }} 项填写错误，需修正后才能保存
+            </template>
+            <template v-else-if="commissionWarnCount">
+              <i class="el-icon-warning-outline"></i>佣金设置有 {{ commissionWarnCount }} 项待确认，确认无误后可保存
+            </template>
+            <template v-else-if="commissionDirty">
+              <i class="el-icon-edit-outline"></i>佣金设置已修改，尚未保存
+            </template>
+            <span v-else class="cm-actions__step">编辑第 {{ Number(currentTab) + 1 }} / 5 步</span>
+          </div>
+          <div class="cm-actions__btns">
+            <el-button v-show="Number(currentTab) > 0" class="submission" @click="handleSubmitUp">上一步</el-button>
+            <el-button
+              v-show="Number(currentTab) < 4"
+              class="submission"
+              :class="Number(currentTab) == 0 ? 'onePrimary' : ''"
+              @click="handleSubmitNest('formValidate')"
+              >下一步</el-button
+            >
+            <el-button class="submission" @click="handleCancel">取消</el-button>
+            <el-button v-show="!isDisabled" type="primary" class="submission" @click="handleSubmit('formValidate')"
+              >保存商品</el-button
+            >
+          </div>
+        </div>
       </el-form>
     </el-card>
     <CreatTemplates ref="addTemplates" @getList="getShippingList" />
@@ -767,6 +1152,48 @@ function normalizeCommissionConfig(cfg) {
   return mergeCommissionConfig(cfg);
 }
 
+/* ==================== 佣金设置：UI 侧元数据（仅用于展示与校验，不参与提交） ==================== */
+/**
+ * 数值字段登记表
+ * path：formValidate.commissionConfig 下的取值路径
+ * type：amount=金额(元) / rate=比例(%)
+ * pair：与之互斥的另一个字段（同时填写时金额优先）
+ */
+const COMMISSION_FIELDS = [
+  { path: 'distributor.directAmount', type: 'amount', pair: 'distributor.directRate' },
+  { path: 'distributor.directRate', type: 'rate', pair: 'distributor.directAmount' },
+  { path: 'distributor.indirectAmount', type: 'amount', pair: 'distributor.indirectRate' },
+  { path: 'distributor.indirectRate', type: 'rate', pair: 'distributor.indirectAmount' },
+  { path: 'agent.provinceAmount', type: 'amount', pair: 'agent.provinceRate' },
+  { path: 'agent.provinceRate', type: 'rate', pair: 'agent.provinceAmount' },
+  { path: 'agent.cityAmount', type: 'amount', pair: 'agent.cityRate' },
+  { path: 'agent.cityRate', type: 'rate', pair: 'agent.cityAmount' },
+  { path: 'agent.districtAmount', type: 'amount', pair: 'agent.districtRate' },
+  { path: 'agent.districtRate', type: 'rate', pair: 'agent.districtAmount' },
+  { path: 'store.brokerageAmount', type: 'amount', pair: 'store.brokerageRate' },
+  { path: 'store.brokerageRate', type: 'rate', pair: 'store.brokerageAmount' },
+  { path: 'store.bonusAmount', type: 'amount', pair: 'store.bonusRate' },
+  { path: 'store.bonusRate', type: 'rate', pair: 'store.bonusAmount' },
+];
+
+/** 等级覆盖行中的「金额/比例」成对字段，用于同列互斥提醒 */
+const COMMISSION_LEVEL_PAIRS = [
+  { section: 'distributor', pairs: [['selfAmount', 'selfRate'], ['oneAmount', 'oneRate'], ['twoAmount', 'twoRate']] },
+  { section: 'team', pairs: [['diffAmount', 'diffRate'], ['peerAmount', 'peerRate']] },
+];
+
+/** 层级关系校验：上一级数值不应低于下一级（金额、比例分别比较） */
+const COMMISSION_LAYER_RULES = [
+  { hi: 'distributor.directAmount', lo: 'distributor.indirectAmount', loName: '二级返佣金额' },
+  { hi: 'distributor.directRate', lo: 'distributor.indirectRate', loName: '二级返佣比例' },
+  { hi: 'agent.provinceAmount', lo: 'agent.cityAmount', loName: '市级佣金金额' },
+  { hi: 'agent.provinceRate', lo: 'agent.cityRate', loName: '市级佣金比例' },
+  { hi: 'agent.cityAmount', lo: 'agent.districtAmount', loName: '区级佣金金额' },
+  { hi: 'agent.cityRate', lo: 'agent.districtRate', loName: '区级佣金比例' },
+  { hi: 'agent.provinceAmount', lo: 'agent.districtAmount', loName: '区级佣金金额' },
+  { hi: 'agent.provinceRate', lo: 'agent.districtRate', loName: '区级佣金比例' },
+];
+
 const objTitle = {
   price: {
     title: '售价',
@@ -880,6 +1307,7 @@ export default {
       distributorLevelOptions: [], // 分销商等级选项
       teamLevelOptions: [], // 团队等级选项
       levelPanel: { distributor: false, team: false }, // 等级表格展开/收起
+      commissionSnapshot: '', // 佣金配置基线快照（用于判断是否有未保存改动）
       // 批量添加数据
       oneFormBatch: [Object.assign({}, defaultObj.attrValue[0])],
     };
@@ -889,6 +1317,126 @@ export default {
       const obj = Object.assign({}, defaultObj.attrValue[0]);
       delete obj.image;
       return obj;
+    },
+    /** 佣金设置的全部校验结果：{ path: { level: error|warn, msg } } */
+    commissionIssues() {
+      const cfg = this.formValidate.commissionConfig || {};
+      const map = {};
+      const put = (path, level, msg) => {
+        if (!map[path]) map[path] = { level, msg };
+      };
+      COMMISSION_FIELDS.forEach((f) => {
+        const raw = this.getCfgValue(cfg, f.path);
+        if (raw === null || raw === undefined || raw === '') return;
+        const num = Number(raw);
+        if (!Number.isFinite(num)) {
+          put(f.path, 'error', '请输入有效数字');
+          return;
+        }
+        if (num < 0) {
+          put(f.path, 'error', f.type === 'rate' ? '比例不能为负数' : '金额不能为负数');
+          return;
+        }
+        if (f.type === 'rate' && num > 100) {
+          put(f.path, 'error', '比例需在 0 ~ 100 之间');
+          return;
+        }
+        if (f.type === 'rate' && f.pair) {
+          const pairRaw = this.getCfgValue(cfg, f.pair);
+          if (pairRaw !== null && pairRaw !== undefined && pairRaw !== '') {
+            put(f.path, 'warn', '金额已填写，该项比例不生效（金额优先）');
+          }
+        }
+      });
+      COMMISSION_LAYER_RULES.forEach((r) => {
+        const hi = this.numOf(this.getCfgValue(cfg, r.hi));
+        const lo = this.numOf(this.getCfgValue(cfg, r.lo));
+        if (hi === null || lo === null) return;
+        if (lo > hi) put(r.lo, 'warn', `${r.loName}高于上一级，请确认层级设置`);
+      });
+      // 等级覆盖行：负数 / 比例越界 / 同一列金额与比例冲突
+      COMMISSION_LEVEL_PAIRS.forEach((grp) => {
+        const section = cfg[grp.section];
+        const levels = section && Array.isArray(section.levels) ? section.levels : [];
+        levels.forEach((row) => {
+          if (!row || row.levelId === undefined || row.levelId === null) return;
+          grp.pairs.forEach((keys) => {
+            const amountKey = keys[0];
+            const rateKey = keys[1];
+            const aPath = `${grp.section}.levels.${row.levelId}.${amountKey}`;
+            const rPath = `${grp.section}.levels.${row.levelId}.${rateKey}`;
+            const a = this.numOf(row[amountKey]);
+            const r = this.numOf(row[rateKey]);
+            if (a !== null && !Number.isFinite(a)) put(aPath, 'error', '请输入有效数字');
+            else if (a !== null && a < 0) put(aPath, 'error', '金额不能为负数');
+            if (r !== null) {
+              if (!Number.isFinite(r)) put(rPath, 'error', '请输入有效数字');
+              else if (r < 0) put(rPath, 'error', '比例不能为负数');
+              else if (r > 100) put(rPath, 'error', '比例需在 0 ~ 100 之间');
+              else if (a !== null && Number.isFinite(a) && a >= 0) {
+                put(rPath, 'warn', '金额已填写，该项比例不生效（金额优先）');
+              }
+            }
+          });
+        });
+      });
+      return map;
+    },
+    commissionErrorCount() {
+      const issues = this.commissionIssues;
+      return Object.keys(issues).filter((k) => issues[k].level === 'error').length;
+    },
+    commissionWarnCount() {
+      const issues = this.commissionIssues;
+      return Object.keys(issues).filter((k) => issues[k].level === 'warn').length;
+    },
+    distributorValueCount() {
+      return this.countCommissionValues('distributor');
+    },
+    agentValueCount() {
+      return this.countCommissionValues('agent');
+    },
+    storeValueCount() {
+      return this.countCommissionValues('store');
+    },
+    /** 顶部状态卡数据（仅展示用途，不改变提交内容） */
+    commissionSummary() {
+      return [
+        {
+          key: 'dist',
+          name: '分销商返佣',
+          enabled: this.formValidate.commissionConfig.distributor.enabled,
+          count: this.distributorValueCount + this.levelConfiguredCount('distributor'),
+        },
+        {
+          key: 'agent',
+          name: '区域代理',
+          enabled: this.formValidate.commissionConfig.agent.enabled,
+          count: this.agentValueCount,
+        },
+        {
+          key: 'team',
+          name: '团队奖',
+          enabled: this.formValidate.commissionConfig.team.enabled,
+          count: this.levelConfiguredCount('team'),
+        },
+        {
+          key: 'store',
+          name: '门店',
+          enabled: this.formValidate.commissionConfig.store.brokerageEnabled,
+          count: this.storeValueCount,
+        },
+      ].map((item) => ({
+        ...item,
+        state: item.enabled === true ? 'on' : item.enabled === false ? 'off' : 'global',
+        stateText: this.enabledText(item.enabled),
+      }));
+    },
+    /** 佣金段（不含等级行）是否有未保存改动 */
+    commissionDirty() {
+      if (!this.commissionSnapshot) return false;
+      const cfg = this.formValidate.commissionConfig;
+      return JSON.stringify(cfg, (k, v) => (k === 'levels' ? undefined : v)) !== this.commissionSnapshot;
     },
   },
   watch: {
@@ -916,6 +1464,7 @@ export default {
     this.getGuaranteeList();
     this.loadProductGroups();
     this.loadLevelOptions();
+    this.markCommissionBaseline();
   },
   mounted() {
     this.getCopyConfig();
@@ -1217,6 +1766,7 @@ export default {
             commissionConfig: mergeCommissionConfig(info.commissionConfig),
           };
           this.ensureLevelRows();
+          this.markCommissionBaseline();
           // 获取服务保障被选id列表
           this.getGuranteeIdsList(info.guaranteeList);
           marketingSendApi({ type: 3 }).then((res) => {
@@ -1403,6 +1953,7 @@ export default {
     },
     // 提交
     handleSubmit: Debounce(function (name) {
+      if (this.locateCommissionErrors()) return;
       this.onChangeGroup();
       this.getFromData();
       this.formValidate.commissionConfig = normalizeCommissionConfig(this.formValidate.commissionConfig);
@@ -1683,6 +2234,105 @@ export default {
       keys.forEach((k) => {
         target[k] = null;
       });
+    },
+    /* ---------- 佣金设置：展示与校验辅助（只改 UI，不改变提交数据） ---------- */
+    /** 按 'a.b.c' 路径取值，路径中断返回 null */
+    getCfgValue(root, path) {
+      const keys = String(path).split('.');
+      let cur = root;
+      for (let i = 0; i < keys.length; i += 1) {
+        if (cur === null || cur === undefined) return null;
+        cur = cur[keys[i]];
+      }
+      return cur;
+    },
+    /** 空值归一：'' / null / undefined → null，其余转数字（非数字即为 NaN） */
+    numOf(val) {
+      if (val === null || val === undefined || val === '') return null;
+      return Number(val);
+    },
+    /** 统计某板块已填写的数值项（不含等级覆盖行） */
+    countCommissionValues(section) {
+      const cfg = this.formValidate.commissionConfig || {};
+      return COMMISSION_FIELDS.filter((f) => f.path.indexOf(`${section}.`) === 0).filter((f) => {
+        const v = this.getCfgValue(cfg, f.path);
+        return v !== null && v !== undefined && v !== '';
+      }).length;
+    },
+    enabledClass(val) {
+      return val === true ? 'is-on' : val === false ? 'is-off' : 'is-global';
+    },
+    enabledText(val) {
+      return val === true ? '已启用' : val === false ? '已停用' : '跟随全局';
+    },
+    isSectionOff(section) {
+      const cfg = this.formValidate.commissionConfig || {};
+      const part = cfg[section];
+      return !!part && part.enabled === false;
+    },
+    issueLevel(path) {
+      const issue = this.commissionIssues[path];
+      return issue ? issue.level : '';
+    },
+    /** 统一反显：仅在有错误/警告时返回内容，正常状态不显示小字（返回空 text 由 v-if 隐藏） */
+    fieldMsg(path) {
+      const issues = this.commissionIssues;
+      const own = issues[path];
+      const field = COMMISSION_FIELDS.filter((f) => f.path === path)[0];
+      const pairIssue = field && field.pair ? issues[field.pair] : null;
+      const pick = own || pairIssue;
+      if (!pick) {
+        return { cls: '', icon: '', text: '' };
+      }
+      return {
+        cls: pick.level === 'error' ? 'is-error' : 'is-warn',
+        icon: pick.level === 'error' ? 'el-icon-error' : 'el-icon-warning-outline',
+        text: pick.msg,
+      };
+    },
+    /** 等级表格里「金额 / 比例」这一组的整体状态样式 */
+    pairIssueClass(amountPath, ratePath) {
+      const a = this.commissionIssues[amountPath];
+      const r = this.commissionIssues[ratePath];
+      if ((a && a.level === 'error') || (r && r.level === 'error')) return 'is-error';
+      if (a || r) return 'is-warn';
+      return '';
+    },
+    scrollToCommission(key) {
+      const el = this.$el.querySelector(`.cm-sec--${key}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+    markCommissionBaseline() {
+      const cfg = this.formValidate.commissionConfig;
+      this.commissionSnapshot = JSON.stringify(cfg, (k, v) => (k === 'levels' ? undefined : v));
+    },
+    /** 保存前拦截：存在硬性错误时定位到佣金设置并阻止提交 */
+    locateCommissionErrors() {
+      const issues = this.commissionIssues;
+      const paths = Object.keys(issues).filter((k) => issues[k].level === 'error');
+      if (!paths.length) return false;
+      this.currentTab = '4';
+      this.$message.error(`佣金设置有 ${paths.length} 项填写错误，请修正后再保存`);
+      this.$nextTick(() => {
+        const el = this.$el.querySelector('.cm');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      return true;
+    },
+    handleCancel() {
+      if (this.isDisabled) {
+        this.$router.push({ path: '/store/index' });
+        return;
+      }
+      this.$confirm('离开后当前未保存的商品信息将丢失，确定取消编辑吗？', '取消编辑', {
+        confirmButtonText: '确定离开',
+        cancelButtonText: '继续编辑',
+        type: 'warning',
+      })
+        .then(() => {
+          this.$router.push({ path: '/store/index' });
+        })
+        .catch(() => {});
     },
     // 获取被选服务保障id列表
     getGuranteeIdsList(list) {
@@ -2004,82 +2654,616 @@ export default {
   font-size: 12px;
   color: #999;
 }
-.commission-setting {
-  padding: 0 10px 20px;
-}
-.commission-pair {
-  display: flex;
-  align-items: center;
-}
-.commission-pair .el-input {
-  width: 140px;
-}
-/* 按等级展开的覆盖表格（2026-09-23） */
-/* 等级表格展开/收起头部（2026-09-23） */
-.level-collapse-head {
-  display: flex;
-  align-items: center;
-  padding: 8px 10px;
-  margin-bottom: 10px;
-  background: var(--prev-color-primary-light-9);
-  border-radius: 4px;
-  cursor: pointer;
-  user-select: none;
-  i {
-    margin-right: 6px;
-    color: var(--prev-color-primary);
-    font-size: 14px;
+/* ==================== 佣金设置（重构：卡片分组 + 统一栅格 + 校验反馈） ==================== */
+/* 约定：仅做视觉/布局，不触碰任何字段绑定与提交逻辑 */
+@keyframes cm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
-  .level-collapse-title {
-    margin-right: 12px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #303133;
+  to {
+    opacity: 1;
+    transform: none;
   }
-  .level-collapse-sub {
-    flex: 1;
+}
+
+.cm {
+  padding: 6px 0 4px;
+  font-size: 13px;
+  color: #303133;
+
+  /* ---------- 顶部：口径速览 + 分组状态卡 ---------- */
+  .cm-brief {
+    margin-bottom: 16px;
+    padding: 12px 16px 14px;
+    border: 1px solid #e6ecf7;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
+
+    &__rules {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px 24px;
+      margin: 0 0 12px;
+      padding: 0 0 11px;
+      border-bottom: 1px dashed #e4e9f2;
+      list-style: none;
+
+      li {
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+        line-height: 20px;
+        color: #4b5567;
+      }
+
+      .cm-brief__k {
+        margin-right: 6px;
+        padding: 0 7px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 20px;
+        color: var(--prev-color-primary, #0256ff);
+        background: var(--prev-color-primary-light-9, #ecf5ff);
+      }
+    }
+
+    &__stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+  }
+
+  .cm-stat {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 9px 12px;
+    border: 1px solid #e8edf6;
+    border-left: 3px solid #c0c8d6;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    transition: box-shadow 0.18s ease, transform 0.18s ease;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(15, 34, 67, 0.08);
+      transform: translateY(-1px);
+    }
+
+    &__row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    &__name {
+      overflow: hidden;
+      font-size: 12px;
+      color: #606266;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &__count {
+      flex: 0 0 auto;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 20px;
+      color: #303133;
+      font-variant-numeric: tabular-nums;
+
+      i {
+        margin-left: 1px;
+        font-size: 11px;
+        font-style: normal;
+        font-weight: 400;
+        color: #a8abb2;
+      }
+    }
+
+    &__state {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      color: #909399;
+    }
+
+    &__dot {
+      flex: 0 0 auto;
+      width: 6px;
+      height: 6px;
+      margin-right: 5px;
+      border-radius: 50%;
+      background: #c0c8d6;
+    }
+
+    &.is-on .cm-stat__state {
+      color: #18a058;
+    }
+
+    &.is-on .cm-stat__dot {
+      background: #18a058;
+    }
+
+    &.is-off .cm-stat__state {
+      color: #d07200;
+    }
+
+    &.is-off .cm-stat__dot {
+      background: #d07200;
+    }
+
+    &.is-global .cm-stat__dot {
+      background: #3582f6;
+    }
+
+    &.cm-stat--dist {
+      border-left-color: #0256ff;
+    }
+
+    &.cm-stat--agent {
+      border-left-color: #12a06f;
+    }
+
+    &.cm-stat--team {
+      border-left-color: #e8850c;
+    }
+
+    &.cm-stat--store {
+      border-left-color: #6c4cf1;
+    }
+  }
+
+  /* ---------- 分组卡片 ---------- */
+  .cm-sec {
+    --cm-accent: #0256ff;
+    --cm-accent-soft: rgba(2, 86, 255, 0.07);
+
+    margin-bottom: 16px;
+    border: 1px solid #ebeef5;
+    border-radius: 6px;
+    background: #fff;
     overflow: hidden;
+    animation: cm-rise 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+    & + .cm-sec {
+      animation-delay: 0.06s;
+    }
+
+    &.cm-sec--agent {
+      --cm-accent: #12a06f;
+      --cm-accent-soft: rgba(18, 160, 111, 0.08);
+    }
+
+    &.cm-sec--team {
+      --cm-accent: #e8850c;
+      --cm-accent-soft: rgba(232, 133, 12, 0.09);
+    }
+
+    &.cm-sec--store {
+      --cm-accent: #6c4cf1;
+      --cm-accent-soft: rgba(108, 76, 241, 0.08);
+    }
+
+    &__hd {
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid #f0f2f5;
+      background: linear-gradient(90deg, var(--cm-accent-soft) 0%, rgba(255, 255, 255, 0) 62%);
+    }
+
+    &__title {
+      display: flex;
+      align-items: center;
+    }
+
+    &__title h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    &__dot {
+      width: 3px;
+      height: 14px;
+      margin-right: 8px;
+      border-radius: 2px;
+      background: var(--cm-accent);
+    }
+
+    &__count {
+      margin-left: auto;
+      font-size: 12px;
+      color: #909399;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &__bd {
+      padding: 14px 16px 16px;
+    }
+  }
+
+  .cm-tag {
+    display: inline-block;
+    height: 20px;
+    margin-left: 8px;
+    padding: 0 7px;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #7d838c;
+    background: #f4f4f5;
+
+    &.is-on {
+      color: #18a058;
+      background: rgba(24, 160, 88, 0.12);
+    }
+
+    &.is-off {
+      color: #d07200;
+      background: rgba(232, 133, 12, 0.14);
+    }
+  }
+
+  /* ---------- 停用提示条 ---------- */
+  .cm-notice {
+    display: flex;
+    align-items: center;
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 18px;
+
+    i {
+      margin-right: 6px;
+    }
+
+    &--warn {
+      border: 1px solid #ffe0bd;
+      background: #fff7ec;
+      color: #d07200;
+    }
+  }
+
+  /* ---------- 开关行（突出关键操作） ---------- */
+  .cm-hero {
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    border: 1px solid #eef1f6;
+    border-radius: 4px;
+    background: #fafbfd;
+
+    &--sub {
+      margin: 14px 0 0;
+    }
+
+    &__label {
+      flex: 0 0 auto;
+      position: relative;
+      min-width: 96px;
+      padding-left: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #303133;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 3px;
+        height: 12px;
+        border-radius: 2px;
+        background: var(--cm-accent);
+        transform: translateY(-50%);
+      }
+    }
+
+    &__sub {
+      margin-left: 6px;
+      font-size: 11px;
+      font-weight: 400;
+      color: #a8abb2;
+    }
+
+    &__ctrl {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+  }
+
+  .cm-radios {
+    ::v-deep .el-radio {
+      margin-right: 18px;
+    }
+
+    ::v-deep .el-radio__label {
+      font-size: 13px !important;
+    }
+  }
+
+  /* ---------- 数值输入区 ---------- */
+  .cm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(318px, 1fr));
+    gap: 14px 20px;
+  }
+
+  .cm-field {
+    &__label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    &__sub {
+      margin-left: 6px;
+      font-size: 12px;
+      font-weight: 400;
+      color: #a8abb2;
+    }
+
+    &__q {
+      margin-left: 4px;
+      font-size: 13px;
+      color: #c0c4cc;
+      cursor: help;
+    }
+
+    &__pair {
+      display: flex;
+      align-items: center;
+    }
+
+    &__pair ::v-deep .el-input {
+      width: 132px;
+    }
+
+    &__pair ::v-deep .el-input-group__append {
+      padding: 0 10px;
+      background: #f5f7fa;
+      color: #909399;
+    }
+
+    &__pair.is-warn ::v-deep .el-input__inner {
+      border-color: #e6a23c;
+    }
+
+    &__pair.is-error ::v-deep .el-input__inner,
+    &__pair ::v-deep .el-input.is-bad .el-input__inner {
+      border-color: #e04c4c;
+      box-shadow: 0 0 0 2px rgba(224, 76, 76, 0.1);
+    }
+
+    &__or,
+    &__slash {
+      flex: 0 0 auto;
+      margin: 0 8px;
+      font-size: 12px;
+      color: #a8abb2;
+    }
+
+    &__msg {
+      margin: 6px 0 0;
+      font-size: 12px;
+      line-height: 18px;
+      color: #a8abb2;
+
+      i {
+        margin-right: 4px;
+      }
+
+      &.is-error {
+        color: #e04c4c;
+      }
+
+      &.is-warn {
+        color: #d07200;
+      }
+    }
+  }
+
+  /* 省市区层级徽标 */
+  .cm-tier {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+
+    &--p {
+      background: #12a06f;
+    }
+
+    &--c {
+      background: #35b98c;
+    }
+
+    &--d {
+      background: #6fd0ad;
+    }
+  }
+
+  /* ---------- 折叠区（按等级设置） ---------- */
+  .cm-sub {
+    margin-top: 16px;
+    border: 1px solid #ebeef5;
+    border-radius: 4px;
+    overflow: hidden;
+
+    &__hd {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--cm-accent-soft);
+      cursor: pointer;
+      user-select: none;
+
+      i {
+        margin-right: 8px;
+        font-size: 14px;
+        color: var(--cm-accent);
+      }
+    }
+
+    &__t {
+      font-size: 13px;
+      font-weight: 600;
+      color: #303133;
+    }
+
+    &__n {
+      flex: 1;
+      margin-left: 12px;
+      overflow: hidden;
+      font-size: 12px;
+      color: #98a0ad;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &__bd {
+      padding: 10px 12px 12px;
+    }
+  }
+
+  /* 等级覆盖表：沿用全站 list-table 规范，仅覆盖模板与列宽 */
+  .cm-lv {
+    border-color: #e6ecf7;
+    border-radius: 4px;
+
+    .list-head {
+      height: 42px;
+      padding: 0 12px;
+    }
+
+    .list-head__cell {
+      font-size: 13px;
+      font-weight: 600;
+      color: #2c3e50;
+
+      &--right {
+        text-align: right;
+      }
+    }
+
+    .list-row {
+      padding: 10px 12px;
+    }
+
+    .list-cell {
+      padding-right: 12px;
+    }
+
+    .list-empty {
+      padding: 28px 0;
+    }
+
+    .cm-lv__op {
+      padding-right: 0;
+      text-align: right;
+    }
+  }
+
+  .cm-lv.cm-lv--dist {
+    --list-cols: 128px repeat(3, minmax(206px, 1fr)) 72px;
+  }
+
+  .cm-lv.cm-lv--team {
+    --list-cols: 128px repeat(2, minmax(238px, 1fr)) 72px;
+  }
+
+  .cm-pair--sm {
+    ::v-deep .el-input {
+      width: 96px;
+    }
+
+    ::v-deep .el-input__inner {
+      height: 28px;
+      line-height: 28px;
+    }
+
+    ::v-deep .el-input-group__append {
+      padding: 0 8px;
+      background: #f5f7fa;
+      color: #909399;
+    }
+  }
+}
+
+/* ---------- 底部操作栏 ---------- */
+.cm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f2f5;
+
+  &__tip {
     font-size: 12px;
     color: #909399;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+
+    i {
+      margin-right: 4px;
+    }
+
+    i.el-icon-error {
+      color: #e04c4c;
+    }
+
+    i.el-icon-warning-outline {
+      color: #d07200;
+    }
+
+    i.el-icon-edit-outline {
+      color: var(--prev-color-primary, #0256ff);
+    }
   }
-  .level-collapse-count {
-    margin-right: 10px;
-    font-size: 12px;
-    color: #e6a23c;
+
+  &__step {
+    color: #a8abb2;
+  }
+
+  &__btns {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .submission {
+      margin-left: 0;
+      margin-right: 0;
+    }
   }
 }
-/* 金额/比例输入行下方的说明文字 */
-.pair-tip {
-  margin-top: 2px;
-  font-size: 12px;
-  line-height: 18px;
-  color: #909399;
-}
-/* 板块级全局口径说明 */
-.level-tip-line {
-  margin: 0 0 12px 10px;
-  font-size: 12px;
-  line-height: 20px;
-  color: #909399;
-}
-.level-table {
-  width: 100%;
-  margin-bottom: 16px;
-  .level-pair .el-input {
-    width: 78px;
-  }
-  .mx6 {
-    margin: 0 4px;
+
+@media (prefers-reduced-motion: reduce) {
+  .cm .cm-sec,
+  .cm .cm-stat {
+    animation: none;
+    transition: none;
   }
 }
-.mx6 {
-  margin: 0 6px;
-  color: #909399;
-  flex-shrink: 0;
-}
-.mb15 {
-  margin-bottom: 15px;
-}
+
 </style>

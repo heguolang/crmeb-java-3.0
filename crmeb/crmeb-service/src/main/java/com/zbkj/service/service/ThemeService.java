@@ -171,10 +171,11 @@ public interface ThemeService extends IService<Theme> {
      * @param salesOrder 销量排序：asc/desc
      * @param cateId 分类ID
      * @param storeName 商品名称
+     * @param groupId 商品分组ID（可为空）
      * @param pageParamRequest 分页参数
      * @return 商品列表
      */
-    List<ThemeProductResponse> getProductList(String priceOrder, String salesOrder, String cateId, String storeName, PageParamRequest pageParamRequest);
+    List<ThemeProductResponse> getProductList(String priceOrder, String salesOrder, String cateId, String storeName, Integer groupId, PageParamRequest pageParamRequest);
 
     /**
      * 获取主题文章列表
