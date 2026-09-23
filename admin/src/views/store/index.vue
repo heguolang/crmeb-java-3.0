@@ -44,44 +44,38 @@
           />
         </el-tabs>
         <router-link :to="{ path: '/store/list/creatProduct' }">
-          <el-button type="primary" class="mr14" v-hasPermi="['admin:product:save']">添加商品</el-button>
+          <el-button type="primary" v-hasPermi="['admin:product:save']">添加商品</el-button>
         </router-link>
         <!-- 商品采集入口已按需求隐藏（2026-09-17），恢复时取消下行注释 -->
         <!-- <el-button type="success" @click="onCopy" v-hasPermi="['admin:product:save']">商品采集</el-button> -->
         <el-button
           v-if="tableFrom.type === '2'"
-          class="mr14"
           :disabled="!selectedIds.length"
           v-hasPermi="['admin:product:up']"
           @click="batchPutOnShell"
         >批量上架{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
         <el-button
           v-else
-          class="mr14"
           :disabled="!selectedIds.length"
           v-hasPermi="['admin:product:down']"
           @click="batchOffShell"
         >批量下架{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
         <el-button
-          class="mr14"
           :disabled="!selectedIds.length"
           v-hasPermi="['admin:product:delete']"
           @click="batchDelete"
         >{{ tableFrom.type === '5' ? '批量删除' : '批量移到回收站' }}{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
         <el-button
-          class="mr14"
           :disabled="!selectedIds.length"
           v-hasPermi="['admin:product:update']"
           @click="openBatchCate"
         >批量修改分类{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
         <el-button
-          class="mr14"
           :disabled="!selectedIds.length"
           v-hasPermi="['admin:store:product:group:update']"
           @click="openBatchGroup"
         >批量分组{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}</el-button>
         <el-button
-          class="mr14"
           :disabled="!selectedIds.length"
           v-hasPermi="['admin:store:product:group:update']"
           @click="openUnbindGroup"
@@ -132,9 +126,7 @@
             </div>
             <div class="list-cell">
               <div class="goods-name" :title="row.storeName">{{ row.storeName }}</div>
-              <div class="goods-tags">
-                <span v-for="(c, ci) in cateList(row.cateValues)" :key="ci" class="mini-chip">{{ c }}</span>
-              </div>
+              <div v-if="row.cateValues" class="sub-text">商品分类：{{ row.cateValues }}</div>
               <div class="sub-text">商品编号：ID {{ row.id }}</div>
               <div v-if="row.groupNames" class="sub-text">商品分组：{{ row.groupNames }}</div>
             </div>
@@ -588,10 +580,6 @@ export default {
       const n = Number(v || 0);
       return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     },
-    // 分类文本拆 chip（cateValues 形如 "电子,数码"）
-    cateList(v) {
-      return v ? String(v).split(',').filter(Boolean) : [];
-    },
     sucess() {
       this.$message.success('保存成功');
       this.drawer = false;
@@ -856,23 +844,7 @@ export default {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
-.goods-tags {
-  margin-top: 6px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.mini-chip {
-  padding: 0 8px;
-  border-radius: 3px;
-  background: #f5f7fa;
-  border: 1px solid #ebeef5;
-  color: #909399;
-  font-size: 12px;
-  line-height: 20px;
-  white-space: nowrap;
-}
-.goods-name + .goods-tags + .sub-text {
+.goods-name + .sub-text {
   margin-top: 6px;
 }
 
