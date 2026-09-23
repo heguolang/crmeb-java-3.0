@@ -140,6 +140,9 @@ public class OrderPayServiceImpl implements OrderPayService {
     private UserTeamLevelService userTeamLevelService;
 
     @Autowired
+    private DistributorLevelService distributorLevelService;
+
+    @Autowired
     private TeamBrokerageService teamBrokerageService;
 
     @Autowired
@@ -403,6 +406,9 @@ public class OrderPayServiceImpl implements OrderPayService {
             // 团队等级：按配置统计自购/团队金额（支付成功口径）并触发升级
             userTeamLevelService.processTeamLevelOnOrderPaid(storeOrder);
 
+            // 分销商等级：统计消费额（支付成功口径）并触发升级
+            distributorLevelService.processOnOrderPaid(storeOrder);
+
             // 佣金记录
             if (CollUtil.isNotEmpty(recordList)) {
                 recordList.forEach(temp -> {
@@ -643,7 +649,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             }
             SystemUserLevel spreadMatchedLevel = userLevelService.resolveMatchedLevel(spreadUser);
             Integer spreadLevelId = ObjectUtil.isNotNull(spreadMatchedLevel) ? spreadMatchedLevel.getId() : null;
-            Integer levelRate = getLevelBrokerageRate(spreadLevelId, index);
+            Integer levelRate = resolveBrokerageRate(spreadUid, spreadLevelId, index);
             BigDecimal brokerage = calculateCommission(record, storeOrder.getId());
             if (brokerage.compareTo(BigDecimal.ZERO) <= 0) {
                 return null;
@@ -683,11 +689,8 @@ public class OrderPayServiceImpl implements OrderPayService {
         if (storeOrder.getCombinationId() > 0 || storeOrder.getSeckillId() > 0 || storeOrder.getBargainId() > 0) {
             return CollUtil.newArrayList();
         }
-        Integer selfRate = getLevelBrokerageRate(buyerLevelId, BrokerageRecordConstants.BROKERAGE_LEVEL_SELF);
-        if (ObjectUtil.isNull(selfRate) || selfRate <= 0) {
-            return CollUtil.newArrayList();
-        }
-        BigDecimal brokerage = calculateCommissionByRate(storeOrder.getId(), toRateDecimal(selfRate));
+        Integer selfRate = resolveBrokerageRate(buyer.getUid(), buyerLevelId, BrokerageRecordConstants.BROKERAGE_LEVEL_SELF);
+        BigDecimal brokerage = calculateSelfCommission(storeOrder.getId(), buyer, selfRate);
         if (brokerage.compareTo(BigDecimal.ZERO) <= 0) {
             return CollUtil.newArrayList();
         }
@@ -722,7 +725,7 @@ public class OrderPayServiceImpl implements OrderPayService {
         }
         SystemUserLevel spreadMatchedLevel = userLevelService.resolveMatchedLevel(spreadUser);
         Integer spreadLevelId = ObjectUtil.isNotNull(spreadMatchedLevel) ? spreadMatchedLevel.getId() : null;
-        Integer levelRate = getLevelBrokerageRate(spreadLevelId, index);
+        Integer levelRate = resolveBrokerageRate(spreadUid, spreadLevelId, index);
         BigDecimal fallbackRate = ObjectUtil.isNotNull(levelRate) ? toRateDecimal(levelRate) : BigDecimal.ZERO;
 
         List<StoreOrderInfoOldVo> orderInfoVoList = storeOrderInfoService.getOrderListByOrderId(orderId);
@@ -745,8 +748,14 @@ public class OrderPayServiceImpl implements OrderPayService {
             BigDecimal unitPrice = ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())
                     ? orderInfoVo.getInfo().getVipPrice() : orderInfoVo.getInfo().getPrice();
             int payNum = ObjectUtil.defaultIfNull(orderInfoVo.getInfo().getPayNum(), 1);
-            BigDecimal[] amountRate = ProductCommissionUtil.distributorAmountRate(distributor, index);
-            BigDecimal override = ProductCommissionUtil.calcOverride(amountRate[0], amountRate[1], unitPrice, payNum);
+            // 取值优先级：按分销商等级的覆盖 → 一刀切覆盖 → 全局等级比例
+            BigDecimal[] levelArr = ProductCommissionUtil.distributorLevelAmountRate(
+                    distributor, spreadUser.getDistributorLevelId(), index);
+            BigDecimal override = ProductCommissionUtil.calcOverride(levelArr[0], levelArr[1], unitPrice, payNum);
+            if (override == null) {
+                BigDecimal[] amountRate = ProductCommissionUtil.distributorAmountRate(distributor, index);
+                override = ProductCommissionUtil.calcOverride(amountRate[0], amountRate[1], unitPrice, payNum);
+            }
             if (override != null) {
                 totalBrokerPrice = totalBrokerPrice.add(override);
                 continue;
@@ -763,8 +772,50 @@ public class OrderPayServiceImpl implements OrderPayService {
         return totalBrokerPrice;
     }
 
-    private BigDecimal calculateCommissionByRate(Integer orderId, BigDecimal rateBigDecimal) {
-        if (ObjectUtil.isNull(rateBigDecimal) || rateBigDecimal.compareTo(BigDecimal.ZERO) <= 0) {
+    /**
+     * 自购返佣逐商品计算：取值优先级 = 按买家分销商等级的覆盖（自购项）→ 全局自购比例。
+     * 商品级分销开关关闭的商品不计入。
+     */
+    private BigDecimal calculateSelfCommission(Integer orderId, User buyer, Integer globalSelfRate) {
+        List<StoreOrderInfoOldVo> orderInfoVoList = storeOrderInfoService.getOrderListByOrderId(orderId);
+        if (CollUtil.isEmpty(orderInfoVoList)) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal total = BigDecimal.ZERO;
+        for (StoreOrderInfoOldVo orderInfoVo : orderInfoVoList) {
+            if (ObjectUtil.isNull(orderInfoVo.getInfo())) {
+                continue;
+            }
+            Integer productId = ObjectUtil.defaultIfNull(orderInfoVo.getProductId(), orderInfoVo.getInfo().getProductId());
+            StoreProduct product = ObjectUtil.isNotNull(productId) ? storeProductService.getById(productId) : null;
+            ProductCommissionConfig.Distributor distributor = ProductCommissionUtil.parse(
+                    ObjectUtil.isNotNull(product) ? product.getCommissionConfig() : null).getDistributor();
+            if (!ProductCommissionUtil.resolveEnabled(distributor.getEnabled(), true)) {
+                continue;
+            }
+            BigDecimal unitPrice = ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())
+                    ? orderInfoVo.getInfo().getVipPrice() : orderInfoVo.getInfo().getPrice();
+            int payNum = ObjectUtil.defaultIfNull(orderInfoVo.getInfo().getPayNum(), 1);
+            BigDecimal[] levelArr = ProductCommissionUtil.distributorLevelAmountRate(
+                    distributor, buyer.getDistributorLevelId(), BrokerageRecordConstants.BROKERAGE_LEVEL_SELF);
+            BigDecimal override = ProductCommissionUtil.calcOverride(levelArr[0], levelArr[1], unitPrice, payNum);
+            if (override != null) {
+                total = total.add(override);
+                continue;
+            }
+            if (ObjectUtil.isNull(globalSelfRate) || globalSelfRate <= 0 || ObjectUtil.isNull(unitPrice)) {
+                continue;
+            }
+            BigDecimal line = unitPrice.multiply(toRateDecimal(globalSelfRate)).setScale(2, BigDecimal.ROUND_DOWN);
+            if (line.compareTo(BigDecimal.ZERO) > 0 && payNum > 1) {
+                line = line.multiply(new BigDecimal(payNum));
+            }
+            total = total.add(line);
+        }
+        return total;
+    }
+
+    private BigDecimal calculateCommissionByRate(Integer orderId, BigDecimal rateBigDecimal) {        if (ObjectUtil.isNull(rateBigDecimal) || rateBigDecimal.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
         List<StoreOrderInfoOldVo> orderInfoVoList = storeOrderInfoService.getOrderListByOrderId(orderId);
@@ -785,6 +836,18 @@ public class OrderPayServiceImpl implements OrderPayService {
             totalBrokerPrice = totalBrokerPrice.add(brokeragePrice);
         }
         return totalBrokerPrice;
+    }
+
+    /**
+     * 返佣比例取值：分销商等级优先（受配置 distributor_level_brokerage_enabled 控制），
+     * 未启用或未命中时回落原「按会员等级取返佣」逻辑，保证默认行为不变。
+     */
+    private Integer resolveBrokerageRate(Integer uid, Integer levelId, Integer brokerageLevel) {
+        Integer distributorRate = distributorLevelService.getBrokerageRate(uid, brokerageLevel);
+        if (ObjectUtil.isNotNull(distributorRate)) {
+            return distributorRate;
+        }
+        return getLevelBrokerageRate(levelId, brokerageLevel);
     }
 
     /**

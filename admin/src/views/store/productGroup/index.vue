@@ -109,8 +109,9 @@ import {
 const PERM_MAP = {
   all: '全部会员',
   promoter: '仅分销商',
-  agent: '仅代理商',
+  agent: '仅区域代理',
   stock_agent: '仅订货商',
+  team: '仅社群团队',
 };
 
 export default {

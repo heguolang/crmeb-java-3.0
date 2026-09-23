@@ -61,7 +61,7 @@ WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` c WHERE c.name = t.name);
 -- 4.1 顶级目录「代理」
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
 SELECT 0, '代理', 'clipboard', '', '/daili', 'M', 96, 1
-WHERE NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `pid`=0 AND `component`='/daili' AND `menu_type`='M');
+WHERE NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component`='/daili' AND `menu_type`='M' AND `is_delte`=0);
 
 -- 4.2 三个页面菜单
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)

@@ -494,6 +494,20 @@
 					}
 				},
 				{
+					"path": "product_group/index",
+					"style": {
+						"navigationBarTitleText": "商品分组",
+						"enablePullDownRefresh": true,
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
 					"path": "goods_bargain_details/index",
 					"style": {
 						"navigationBarTitleText": "砍价详情",

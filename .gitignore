@@ -73,3 +73,8 @@ local-dev/tmp*/**
 *.class
 *.jar
 !crmeb/**/src/main/**/*.jar
+
+# 数据库备份（含真实业务数据，仅本地留存）
+local-dev/backup_*/
+local-dev/*.sql
+!local-dev/sql/*.sql

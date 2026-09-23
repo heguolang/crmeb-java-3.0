@@ -1039,6 +1039,55 @@ export default {
     addDom(item, type) {
       this.addDomCon(item, type);
     },
+    /**
+     * 供宿主页面调用：往装修数据里插入一个「商品选项卡」组件，
+     * 并把「选择方式」预设为「指定分组」→ 传入的分组 id。
+     *
+     * 典型场景：商品分组编辑页的「一键插入分组商品」，
+     * 让分组商品直接出现在手机预览里、可拖动定位（H5 端即 promotionList 组件）。
+     *
+     * @param {Number|String} groupId 商品分组 id
+     * @return {Boolean} 是否插入成功
+     */
+    appendProductGroupComponent(groupId) {
+      const gid = Number(groupId) || 0;
+      if (gid <= 0) {
+        return false;
+      }
+      // lConfig 里的 home_product（cname=商品选项卡）对应的就是 H5 的 promotionList
+      const entry = this.lConfig.find((el) => el.name === 'home_product');
+      if (!entry) {
+        this.$message.error('装修组件尚未加载完成，请稍后重试');
+        return false;
+      }
+      // 复用左栏点击添加的既有逻辑：内部会生成唯一 num/id 并登记 defaultConfig
+      if (!this.addDomCon(entry, 1)) {
+        return false;
+      }
+      const added = this.mConfig[this.activeIndex];
+      if (!added) {
+        return false;
+      }
+      const store = this.$store.state.mobildConfig.defaultArray || {};
+      // 按 id 找刚登记进去的配置对象（defaultArray 的 key 是重新分配的 num，不能直接用 entry.num）
+      let cfg = store[added.num];
+      if (!cfg || cfg.id !== added.id) {
+        cfg = Object.values(store).find((el) => el && el.id === added.id);
+      }
+      const tab = cfg && cfg.tabConfig && cfg.tabConfig.list && cfg.tabConfig.list[0];
+      if (!tab) {
+        return false;
+      }
+      // tabVal = 5 即「指定分组」，与右栏「选择方式」下拉的取值一致
+      tab.tabVal = 5;
+      if (!tab.productGroupConfig) {
+        this.$set(tab, 'productGroupConfig', { activeValue: [] });
+      }
+      tab.productGroupConfig.activeValue = [gid];
+      // 提交一次，让右侧配置面板与手机预览同步刷新
+      this.$store.commit('mobildConfig/UPDATEARR', { num: added.num, val: cfg });
+      return true;
+    },
     // 点击显示相应的配置
     bindconfig(item, index) {
       this.rConfig = [];

@@ -269,7 +269,7 @@ public class ProductServiceImpl implements ProductService {
                 // 判断是否开启气泡
                 String isBubble = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_STORE_BROKERAGE_IS_BUBBLE);
                 if (isBubble.equals(Constants.COMMON_SWITCH_OPEN)) {
-                    productDetailResponse.setPriceName(getPacketPriceRange(storeProduct, storeProductAttrValues, user.getIsPromoter()));
+                    productDetailResponse.setPriceName(getPacketPriceRange(storeProduct, storeProductAttrValues, user.getIsPromoter(), user.getUid()));
                 }
             }
         } else {
@@ -378,9 +378,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * 获取商品佣金区间（优先商品级 commission_config.distributor，其次旧 is_sub/SKU brokerage，再回落全局比例）
+     * 获取商品佣金区间（取值优先级与结算一致：查看者分销商等级的覆盖 → 商品级一刀切 → 旧 is_sub/SKU 佣金 → 全局比例）
      */
-    private String getPacketPriceRange(StoreProduct product, List<StoreProductAttrValue> attrValueList, Boolean isPromoter) {
+    private String getPacketPriceRange(StoreProduct product, List<StoreProductAttrValue> attrValueList,
+                                       Boolean isPromoter, Integer viewerUid) {
         String priceName = "0";
         if (!isPromoter || CollUtil.isEmpty(attrValueList)) {
             return priceName;
@@ -390,14 +391,24 @@ public class ProductServiceImpl implements ProductService {
         if (!ProductCommissionUtil.resolveEnabled(distributor.getEnabled(), true)) {
             return "0";
         }
+        // 查看者的分销商等级决定一级返佣比例（与结算取值口径一致）
+        Integer viewerLevelId = null;
+        if (ObjectUtil.isNotNull(viewerUid)) {
+            User viewer = userService.getById(viewerUid);
+            viewerLevelId = ObjectUtil.isNotNull(viewer) ? viewer.getDistributorLevelId() : null;
+        }
+        BigDecimal[] levelArr = ProductCommissionUtil.distributorLevelAmountRate(distributor, viewerLevelId, 1);
 
         BigDecimal maxPrice;
         BigDecimal minPrice;
-        if (ProductCommissionUtil.hasOverride(distributor.getDirectAmount(), distributor.getDirectRate())) {
+        if (ProductCommissionUtil.hasOverride(levelArr[0], levelArr[1])
+                || ProductCommissionUtil.hasOverride(distributor.getDirectAmount(), distributor.getDirectRate())) {
+            final BigDecimal[] pair = ProductCommissionUtil.hasOverride(levelArr[0], levelArr[1])
+                    ? levelArr
+                    : new BigDecimal[]{distributor.getDirectAmount(), distributor.getDirectRate()};
             List<BigDecimal> amounts = attrValueList.stream().map(av -> {
                 BigDecimal unit = ObjectUtil.defaultIfNull(av.getPrice(), BigDecimal.ZERO);
-                BigDecimal line = ProductCommissionUtil.calcOverride(
-                        distributor.getDirectAmount(), distributor.getDirectRate(), unit, 1);
+                BigDecimal line = ProductCommissionUtil.calcOverride(pair[0], pair[1], unit, 1);
                 return ObjectUtil.defaultIfNull(line, BigDecimal.ZERO);
             }).collect(Collectors.toList());
             maxPrice = amounts.stream().max(BigDecimal::compareTo).orElse(BigDecimal.ZERO);

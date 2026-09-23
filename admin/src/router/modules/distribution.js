@@ -33,10 +33,10 @@ const distributionRouter = {
       meta: { title: '分销配置', icon: '' },
     },
     {
-      path: 'brokerageConfig',
-      component: () => import('@/views/distribution/brokerageConfig/index'),
-      name: 'brokerageConfig',
-      meta: { title: '会员返佣配置', icon: '' },
+      path: 'distributorLevel',
+      component: () => import('@/views/distribution/distributorLevel/index'),
+      name: 'DistributorLevel',
+      meta: { title: '分销商等级', icon: '' },
     },
     {
       path: 'teamGrade',

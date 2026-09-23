@@ -1534,10 +1534,11 @@ public class StockServiceImpl implements StockService {
         for (int i = curIdx - 1; i >= 0; i--) {
             StockLevel level = levels.get(i);
             if (matchUpgradeCondition(level, selfBuy, directAmount, teamAmount, boughtProductIds)) {
-                StockAgent update = new StockAgent();
-                update.setId(agent.getId());
-                update.setLevelId(level.getId());
-                stockAgentDao.updateById(update);
+                // CAS 更新：并发审核时只有层级仍未被改动才写成功，避免交叉覆盖
+                int rows = stockAgentDao.updateLevelCas(agent.getId(), level.getId(), agent.getLevelId());
+                if (rows <= 0) {
+                    return false;
+                }
                 logChange(agent.getId(), agent.getUid(), StockChangeLog.TYPE_LEVEL,
                         levelName(agent.getLevelId()), levelName(level.getId()), "满足升级条件自动升级");
                 return true;
@@ -1604,7 +1605,10 @@ public class StockServiceImpl implements StockService {
                 new LambdaQueryWrapper<com.zbkj.common.model.stock.StockOrder>()
                         .in(com.zbkj.common.model.stock.StockOrder::getAgentId, agentIds)
                         .eq(com.zbkj.common.model.stock.StockOrder::getPayStatus, 1)
-                        .eq(com.zbkj.common.model.stock.StockOrder::getIsDel, 0));
+                        .eq(com.zbkj.common.model.stock.StockOrder::getIsDel, 0)
+                        // 已驳回(-1)/已取消(-2)的订货单不计入升级业绩
+                        .notIn(com.zbkj.common.model.stock.StockOrder::getStatus,
+                                com.zbkj.common.model.stock.StockOrder.STATUS_REJECT, com.zbkj.common.model.stock.StockOrder.STATUS_CANCEL));
         BigDecimal total = BigDecimal.ZERO;
         for (com.zbkj.common.model.stock.StockOrder order : orders) {
             total = total.add(order.getTotalPrice() == null ? BigDecimal.ZERO : order.getTotalPrice());
@@ -1619,7 +1623,10 @@ public class StockServiceImpl implements StockService {
                 new LambdaQueryWrapper<com.zbkj.common.model.stock.StockOrder>()
                         .eq(com.zbkj.common.model.stock.StockOrder::getAgentId, agentId)
                         .eq(com.zbkj.common.model.stock.StockOrder::getPayStatus, 1)
-                        .eq(com.zbkj.common.model.stock.StockOrder::getIsDel, 0));
+                        .eq(com.zbkj.common.model.stock.StockOrder::getIsDel, 0)
+                        // 已驳回(-1)/已取消(-2)的订货单不计入购买商品判定
+                        .notIn(com.zbkj.common.model.stock.StockOrder::getStatus,
+                                com.zbkj.common.model.stock.StockOrder.STATUS_REJECT, com.zbkj.common.model.stock.StockOrder.STATUS_CANCEL));
         if (orders.isEmpty()) {
             return ids;
         }

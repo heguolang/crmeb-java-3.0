@@ -358,9 +358,12 @@
               <el-radio :label="false">关闭</el-radio>
             </el-radio-group>
           </el-form-item>
+          <div class="level-tip-line">
+            全局口径：运营 → 分销商等级（自购 / 一级 / 二级返佣%）；未填写的项按「分销商等级返佣 → 会员等级返佣」自动取值
+          </div>
           <el-row :gutter="16">
             <el-col :span="12">
-              <el-form-item label="直属上级：">
+              <el-form-item label="一级返佣（直属上级）：">
                 <div class="commission-pair">
                   <el-input
                     v-model="formValidate.commissionConfig.distributor.directAmount"
@@ -379,7 +382,7 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="间接上级：">
+              <el-form-item label="二级返佣（间接上级）：">
                 <div class="commission-pair">
                   <el-input
                     v-model="formValidate.commissionConfig.distributor.indirectAmount"
@@ -399,104 +402,138 @@
             </el-col>
           </el-row>
 
-          <el-divider content-position="left">区域代理</el-divider>
-          <el-form-item label="代理返佣：">
-            <el-radio-group v-model="formValidate.commissionConfig.agent.enabled" :disabled="isDisabled">
-              <el-radio :label="null">跟随全局</el-radio>
-              <el-radio :label="true">开启</el-radio>
-              <el-radio :label="false">关闭</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="同总设置：">
-            <el-radio-group v-model="formValidate.commissionConfig.agent.syncMode" :disabled="isDisabled">
-              <el-radio :label="null">关闭（各级独立）</el-radio>
-              <el-radio :label="true">开启（上级比例含下级份额）</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="上级领下级：">
-            <el-radio-group v-model="formValidate.commissionConfig.agent.superiorClaim" :disabled="isDisabled">
-              <el-radio :label="null">否</el-radio>
-              <el-radio :label="true">是（无下级时代理领取下级份额）</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-row :gutter="16">
-            <el-col :span="8">
-              <el-form-item label="省代：">
-                <div class="commission-pair">
-                  <el-input v-model="formValidate.commissionConfig.agent.provinceAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                  <span class="mx6">或</span>
-                  <el-input v-model="formValidate.commissionConfig.agent.provinceRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+          <div class="level-collapse-head" @click="toggleLevelPanel('distributor')">
+            <i :class="levelPanel.distributor ? 'el-icon-arrow-down' : 'el-icon-arrow-right'" />
+            <span class="level-collapse-title">按等级设置</span>
+            <span class="level-collapse-sub">按分销商等级单独配置，优先于上方统一设置；全部留空表示该等级走统一设置或全局</span>
+            <span v-if="levelConfiguredCount('distributor') > 0" class="level-collapse-count">已设置 {{ levelConfiguredCount('distributor') }} 项</span>
+            <el-button type="text" size="mini">{{ levelPanel.distributor ? '收起' : '展开' }}</el-button>
+          </div>
+          <el-table v-show="levelPanel.distributor" :data="distributorLevelOptions" size="mini" border class="level-table">
+            <el-table-column prop="name" label="等级" width="110" show-overflow-tooltip />
+            <el-table-column label="自购返佣" min-width="190">
+              <template slot-scope="{ row }">
+                <div class="commission-pair level-pair">
+                  <el-input v-model="levelRow('distributor', row.id).selfAmount" placeholder="金额" size="mini" clearable :disabled="isDisabled" />
+                  <span class="mx6">/</span>
+                  <el-input v-model="levelRow('distributor', row.id).selfRate" placeholder="比例%" size="mini" clearable :disabled="isDisabled" />
                 </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="市代：">
-                <div class="commission-pair">
-                  <el-input v-model="formValidate.commissionConfig.agent.cityAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                  <span class="mx6">或</span>
-                  <el-input v-model="formValidate.commissionConfig.agent.cityRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+              </template>
+            </el-table-column>
+            <el-table-column label="一级返佣" min-width="190">
+              <template slot-scope="{ row }">
+                <div class="commission-pair level-pair">
+                  <el-input v-model="levelRow('distributor', row.id).oneAmount" placeholder="金额" size="mini" clearable :disabled="isDisabled" />
+                  <span class="mx6">/</span>
+                  <el-input v-model="levelRow('distributor', row.id).oneRate" placeholder="比例%" size="mini" clearable :disabled="isDisabled" />
                 </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="区代：">
-                <div class="commission-pair">
-                  <el-input v-model="formValidate.commissionConfig.agent.districtAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                  <span class="mx6">或</span>
-                  <el-input v-model="formValidate.commissionConfig.agent.districtRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+              </template>
+            </el-table-column>
+            <el-table-column label="二级返佣" min-width="190">
+              <template slot-scope="{ row }">
+                <div class="commission-pair level-pair">
+                  <el-input v-model="levelRow('distributor', row.id).twoAmount" placeholder="金额" size="mini" clearable :disabled="isDisabled" />
+                  <span class="mx6">/</span>
+                  <el-input v-model="levelRow('distributor', row.id).twoRate" placeholder="比例%" size="mini" clearable :disabled="isDisabled" />
                 </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="平级推荐奖：">
-                <div class="commission-pair">
-                  <el-input v-model="formValidate.commissionConfig.agent.peerAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                  <span class="mx6">或</span>
-                  <el-input v-model="formValidate.commissionConfig.agent.peerRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
-                </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="越级推荐奖：">
-                <div class="commission-pair">
-                  <el-input v-model="formValidate.commissionConfig.agent.leapAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                  <span class="mx6">或</span>
-                  <el-input v-model="formValidate.commissionConfig.agent.leapRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
-                </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="64">
+              <template slot-scope="{ row }">
+                <el-button type="text" size="mini" :disabled="isDisabled" @click="clearLevelRow('distributor', row)">清空</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
 
-          <el-divider content-position="left">订货商</el-divider>
-          <el-form-item label="返差价：">
-            <el-radio-group v-model="formValidate.commissionConfig.stock.diffEnabled" :disabled="isDisabled">
+          <el-divider content-position="left">区域代理</el-divider>
+          <el-form-item label="省级代理商能拿到的佣金：">
+            <div>
+              <div class="commission-pair">
+                <el-input v-model="formValidate.commissionConfig.agent.provinceAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
+                <span class="mx6">或</span>
+                <el-input v-model="formValidate.commissionConfig.agent.provinceRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+              </div>
+              <div class="pair-tip">金额和比例都为0.00或空表示采用代理商的提成比例计算佣金</div>
+            </div>
+          </el-form-item>
+          <el-form-item label="市级代理商能拿到的佣金：">
+            <div>
+              <div class="commission-pair">
+                <el-input v-model="formValidate.commissionConfig.agent.cityAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
+                <span class="mx6">或</span>
+                <el-input v-model="formValidate.commissionConfig.agent.cityRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+              </div>
+              <div class="pair-tip">金额和比例都为0.00或空表示采用代理商的提成比例计算佣金</div>
+            </div>
+          </el-form-item>
+          <el-form-item label="区级代理商能拿到的佣金：">
+            <div>
+              <div class="commission-pair">
+                <el-input v-model="formValidate.commissionConfig.agent.districtAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
+                <span class="mx6">或</span>
+                <el-input v-model="formValidate.commissionConfig.agent.districtRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+              </div>
+              <div class="pair-tip">金额和比例都为0.00或空表示采用代理商的提成比例计算佣金</div>
+            </div>
+          </el-form-item>
+          <el-form-item label="代理商返佣：">
+            <div>
+              <el-radio-group v-model="formValidate.commissionConfig.agent.enabled" :disabled="isDisabled">
+                <el-radio :label="null">跟随全局</el-radio>
+                <el-radio :label="true">开启</el-radio>
+                <el-radio :label="false">关闭</el-radio>
+              </el-radio-group>
+              <div class="pair-tip">关闭后，将不给代理商返佣</div>
+            </div>
+          </el-form-item>
+          <div class="level-tip-line">
+            全局口径：运营 → 区域代理（默认奖励比例 省/市/区%，落库为各代理的提成比例）；未填写的级别按代理自身提成比例计算
+          </div>
+
+          <el-divider content-position="left">团队奖</el-divider>
+          <el-form-item label="团队奖开关：">
+            <el-radio-group v-model="formValidate.commissionConfig.team.enabled" :disabled="isDisabled">
               <el-radio :label="null">跟随全局</el-radio>
               <el-radio :label="true">开启</el-radio>
-              <el-radio :label="false">关闭</el-radio>
+              <el-radio :label="false">关闭（本商品不参与团队奖）</el-radio>
             </el-radio-group>
           </el-form-item>
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="平级销售奖：">
-                <div class="commission-pair">
-                  <el-input v-model="formValidate.commissionConfig.stock.peerAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                  <span class="mx6">或</span>
-                  <el-input v-model="formValidate.commissionConfig.stock.peerRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+          <div class="level-tip-line">
+            全局口径：运营 → 团队奖（团队极差比例% 按差额向上分配 + 平级奖比例%）；下方「比例」替换该等级极差比例后仍走差额分配（不重复发放），「金额」为该等级固定佣金
+          </div>
+          <div class="level-collapse-head" @click="toggleLevelPanel('team')">
+            <i :class="levelPanel.team ? 'el-icon-arrow-down' : 'el-icon-arrow-right'" />
+            <span class="level-collapse-title">按等级设置</span>
+            <span class="level-collapse-sub">按团队等级单独配置极差奖/平级奖，优先于全局团队等级配置；留空表示该等级走全局配置</span>
+            <span v-if="levelConfiguredCount('team') > 0" class="level-collapse-count">已设置 {{ levelConfiguredCount('team') }} 项</span>
+            <el-button type="text" size="mini">{{ levelPanel.team ? '收起' : '展开' }}</el-button>
+          </div>
+          <el-table v-show="levelPanel.team" :data="teamLevelOptions" size="mini" border class="level-table">
+            <el-table-column prop="name" label="等级" width="110" show-overflow-tooltip />
+            <el-table-column label="极差奖" min-width="190">
+              <template slot-scope="{ row }">
+                <div class="commission-pair level-pair">
+                  <el-input v-model="levelRow('team', row.id).diffAmount" placeholder="金额" size="mini" clearable :disabled="isDisabled" />
+                  <span class="mx6">/</span>
+                  <el-input v-model="levelRow('team', row.id).diffRate" placeholder="比例%" size="mini" clearable :disabled="isDisabled" />
                 </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="越级销售奖：">
-                <div class="commission-pair">
-                  <el-input v-model="formValidate.commissionConfig.stock.leapAmount" placeholder="金额(元)" clearable :disabled="isDisabled" />
-                  <span class="mx6">或</span>
-                  <el-input v-model="formValidate.commissionConfig.stock.leapRate" placeholder="比例(%)" clearable :disabled="isDisabled" />
+              </template>
+            </el-table-column>
+            <el-table-column label="平级奖" min-width="190">
+              <template slot-scope="{ row }">
+                <div class="commission-pair level-pair">
+                  <el-input v-model="levelRow('team', row.id).peerAmount" placeholder="金额" size="mini" clearable :disabled="isDisabled" />
+                  <span class="mx6">/</span>
+                  <el-input v-model="levelRow('team', row.id).peerRate" placeholder="比例%" size="mini" clearable :disabled="isDisabled" />
                 </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="64">
+              <template slot-scope="{ row }">
+                <el-button type="text" size="mini" :disabled="isDisabled" @click="clearLevelRow('team', row)">清空</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
 
           <el-divider content-position="left">门店</el-divider>
           <el-alert
@@ -571,6 +608,8 @@ import {
   guaranteeListApi,
 } from '@/api/store';
 import { productGroupSimpleListApi } from '@/api/productGroup';
+import { distributorLevelListApi } from '@/api/distributorLevel';
+import { teamLevelAllApi } from '@/api/teamLevel';
 import { marketingSendApi } from '@/api/marketing';
 import { shippingTemplatesList } from '@/api/logistics';
 import { goodDesignList } from '@/api/systemGroup';
@@ -638,6 +677,7 @@ function createDefaultCommissionConfig() {
       directRate: null,
       indirectAmount: null,
       indirectRate: null,
+      levels: [],
     },
     agent: {
       enabled: null,
@@ -649,17 +689,6 @@ function createDefaultCommissionConfig() {
       cityRate: null,
       districtAmount: null,
       districtRate: null,
-      peerAmount: null,
-      peerRate: null,
-      leapAmount: null,
-      leapRate: null,
-    },
-    stock: {
-      diffEnabled: null,
-      peerAmount: null,
-      peerRate: null,
-      leapAmount: null,
-      leapRate: null,
     },
     store: {
       brokerageEnabled: null,
@@ -669,7 +698,31 @@ function createDefaultCommissionConfig() {
       bonusAmount: null,
       bonusRate: null,
     },
+    team: {
+      enabled: null,
+      levels: [],
+    },
   };
+}
+
+/** 分销商等级覆盖行的数字字段 */
+const DISTRIBUTOR_LEVEL_KEYS = ['selfAmount', 'selfRate', 'oneAmount', 'oneRate', 'twoAmount', 'twoRate'];
+/** 团队奖等级覆盖行的数字字段 */
+const TEAM_LEVEL_KEYS = ['diffAmount', 'diffRate', 'peerAmount', 'peerRate'];
+
+function sanitizeLevelRows(list, keys) {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  return list
+    .filter((row) => row && Number(row.levelId) > 0)
+    .map((row) => {
+      const out = { levelId: Number(row.levelId) };
+      keys.forEach((k) => {
+        out[k] = toNullableNumber(row[k]);
+      });
+      return out;
+    });
 }
 
 function toNullableNumber(val) {
@@ -685,22 +738,28 @@ function mergeCommissionConfig(src) {
   if (!src || typeof src !== 'object') {
     return base;
   }
-  ['distributor', 'agent', 'stock', 'store'].forEach((section) => {
+  ['distributor', 'agent', 'store', 'team'].forEach((section) => {
     if (!src[section] || typeof src[section] !== 'object') {
       return;
     }
     Object.keys(base[section]).forEach((key) => {
-      if (Object.prototype.hasOwnProperty.call(src[section], key)) {
-        const v = src[section][key];
-        if (key === 'enabled' || key === 'diffEnabled' || key === 'brokerageEnabled' || key === 'bonusEnabled'
-          || key === 'syncMode' || key === 'superiorClaim') {
-          base[section][key] = v === null || v === undefined || v === '' ? null : !!v;
-        } else {
-          base[section][key] = toNullableNumber(v);
-        }
+      if (!Object.prototype.hasOwnProperty.call(src[section], key)) {
+        return;
+      }
+      const v = src[section][key];
+      if (key === 'levels') {
+        return; // 等级数组单独处理
+      }
+      if (key === 'enabled' || key === 'diffEnabled' || key === 'brokerageEnabled' || key === 'bonusEnabled'
+        || key === 'syncMode' || key === 'superiorClaim') {
+        base[section][key] = v === null || v === undefined || v === '' ? null : !!v;
+      } else {
+        base[section][key] = toNullableNumber(v);
       }
     });
   });
+  base.distributor.levels = sanitizeLevelRows(src.distributor.levels, DISTRIBUTOR_LEVEL_KEYS);
+  base.team.levels = sanitizeLevelRows(src.team.levels, TEAM_LEVEL_KEYS);
   return base;
 }
 
@@ -818,6 +877,9 @@ export default {
       guaranteeList: [], // 服务保障列表
       guaranteeIdsList: [], // 服务保障选择id列表
       productGroupOptions: [], // 商品分组选项
+      distributorLevelOptions: [], // 分销商等级选项
+      teamLevelOptions: [], // 团队等级选项
+      levelPanel: { distributor: false, team: false }, // 等级表格展开/收起
       // 批量添加数据
       oneFormBatch: [Object.assign({}, defaultObj.attrValue[0])],
     };
@@ -853,6 +915,7 @@ export default {
     // 获取服务保障列表
     this.getGuaranteeList();
     this.loadProductGroups();
+    this.loadLevelOptions();
   },
   mounted() {
     this.getCopyConfig();
@@ -1153,6 +1216,7 @@ export default {
             productGroupIds: info.productGroupIds || [],
             commissionConfig: mergeCommissionConfig(info.commissionConfig),
           };
+          this.ensureLevelRows();
           // 获取服务保障被选id列表
           this.getGuranteeIdsList(info.guaranteeList);
           marketingSendApi({ type: 3 }).then((res) => {
@@ -1539,6 +1603,87 @@ export default {
           this.productGroupOptions = [];
         });
     },
+    // 佣金设置：拉取分销商/团队两套等级，用于按等级展开配置
+    loadLevelOptions() {
+      distributorLevelListApi()
+        .then((res) => {
+          this.distributorLevelOptions = Array.isArray(res) ? res : res.list || [];
+          this.ensureLevelRows();
+        })
+        .catch(() => {});
+      teamLevelAllApi()
+        .then((res) => {
+          const list = Array.isArray(res) ? res : res.list || [];
+          this.teamLevelOptions = list.map((it) => ({ id: it.id, name: it.name }));
+          this.ensureLevelRows();
+        })
+        .catch(() => {});
+    },
+    // 为每个等级确保有一行覆盖记录（找不到时模板绑定的临时对象不会写回，所以必须先建行）
+    ensureLevelRows() {
+      const cfg = this.formValidate.commissionConfig;
+      if (!cfg) return;
+      this.ensureRows(cfg.distributor, this.distributorLevelOptions, DISTRIBUTOR_LEVEL_KEYS);
+      this.ensureRows(cfg.team, this.teamLevelOptions, TEAM_LEVEL_KEYS);
+    },
+    ensureRows(section, options, keys) {
+      if (!section || !Array.isArray(options) || !options.length) return;
+      if (!Array.isArray(section.levels)) {
+        this.$set(section, 'levels', []);
+      }
+      options.forEach((opt) => {
+        let row = section.levels.find((r) => Number(r.levelId) === Number(opt.id));
+        if (!row) {
+          row = { levelId: opt.id };
+          keys.forEach((k) => {
+            row[k] = null;
+          });
+          section.levels.push(row);
+        } else {
+          // 老数据行缺新字段时补齐（Vue2 需 $set 才有响应性，如后加的 discount）
+          keys.forEach((k) => {
+            if (row[k] === undefined) {
+              this.$set(row, k, null);
+            }
+          });
+        }
+      });
+    },
+    // 等级表格展开/收起
+    toggleLevelPanel(key) {
+      this.levelPanel[key] = !this.levelPanel[key];
+    },
+    // 统计某板块已填写覆盖值的等级行数（用于收起状态提示）
+    levelConfiguredCount(sectionKey) {
+      const section = this.formValidate.commissionConfig[sectionKey];
+      const keys = {
+        distributor: DISTRIBUTOR_LEVEL_KEYS,
+        team: TEAM_LEVEL_KEYS,
+      }[sectionKey] || [];
+      if (!section || !Array.isArray(section.levels)) return 0;
+      return section.levels.filter((r) =>
+        keys.some((k) => r[k] !== null && r[k] !== undefined && r[k] !== '')
+      ).length;
+    },
+    // 模板按等级取行（行由 ensureLevelRows 预建）
+    levelRow(sectionKey, levelId) {
+      const section = this.formValidate.commissionConfig[sectionKey];
+      const levels = section && Array.isArray(section.levels) ? section.levels : [];
+      return levels.find((r) => Number(r.levelId) === Number(levelId)) || {};
+    },
+    clearLevelRow(sectionKey, option) {
+      const section = this.formValidate.commissionConfig[sectionKey];
+      if (!section || !Array.isArray(section.levels)) return;
+      const target = section.levels.find((r) => Number(r.levelId) === Number(option.id));
+      if (!target) return;
+      const keys = {
+        distributor: DISTRIBUTOR_LEVEL_KEYS,
+        team: TEAM_LEVEL_KEYS,
+      }[sectionKey] || [];
+      keys.forEach((k) => {
+        target[k] = null;
+      });
+    },
     // 获取被选服务保障id列表
     getGuranteeIdsList(list) {
       if (list) {
@@ -1868,6 +2013,66 @@ export default {
 }
 .commission-pair .el-input {
   width: 140px;
+}
+/* 按等级展开的覆盖表格（2026-09-23） */
+/* 等级表格展开/收起头部（2026-09-23） */
+.level-collapse-head {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  background: var(--prev-color-primary-light-9);
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  i {
+    margin-right: 6px;
+    color: var(--prev-color-primary);
+    font-size: 14px;
+  }
+  .level-collapse-title {
+    margin-right: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #303133;
+  }
+  .level-collapse-sub {
+    flex: 1;
+    overflow: hidden;
+    font-size: 12px;
+    color: #909399;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .level-collapse-count {
+    margin-right: 10px;
+    font-size: 12px;
+    color: #e6a23c;
+  }
+}
+/* 金额/比例输入行下方的说明文字 */
+.pair-tip {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #909399;
+}
+/* 板块级全局口径说明 */
+.level-tip-line {
+  margin: 0 0 12px 10px;
+  font-size: 12px;
+  line-height: 20px;
+  color: #909399;
+}
+.level-table {
+  width: 100%;
+  margin-bottom: 16px;
+  .level-pair .el-input {
+    width: 78px;
+  }
+  .mx6 {
+    margin: 0 4px;
+  }
 }
 .mx6 {
   margin: 0 6px;

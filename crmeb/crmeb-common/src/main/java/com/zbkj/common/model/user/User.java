@@ -112,6 +112,9 @@ public class User implements Serializable {
     @ApiModelProperty(value = "团队等级")
     private Integer teamLevel;
 
+    @ApiModelProperty(value = "分销商等级ID，0=无")
+    private Integer distributorLevelId;
+
     @ApiModelProperty(value = "推广人id")
     private Integer spreadUid;
 

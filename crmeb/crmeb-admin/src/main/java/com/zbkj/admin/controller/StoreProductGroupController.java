@@ -126,4 +126,11 @@ public class StoreProductGroupController {
         }
         return CommonResult.failed();
     }
+
+    @PreAuthorize("hasAuthority('admin:store:product:group:update')")
+    @ApiOperation(value = "获取分组装修页ID（不存在则创建）")
+    @RequestMapping(value = "/theme/{id}", method = RequestMethod.POST)
+    public CommonResult<Integer> theme(@PathVariable(value = "id") Integer id) {
+        return CommonResult.success(storeProductGroupService.ensureTheme(id));
+    }
 }

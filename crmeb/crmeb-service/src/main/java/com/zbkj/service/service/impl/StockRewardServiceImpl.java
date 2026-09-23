@@ -7,8 +7,6 @@ import com.github.pagehelper.PageInfo;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.constants.BrokerageRecordConstants;
-import com.zbkj.common.model.product.ProductCommissionConfig;
-import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.stock.StockAgent;
 import com.zbkj.common.model.stock.StockExchange;
 import com.zbkj.common.model.stock.StockLadder;
@@ -22,7 +20,6 @@ import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.StockRequests;
-import com.zbkj.common.utils.ProductCommissionUtil;
 import com.zbkj.service.dao.StockLadderDao;
 import com.zbkj.service.dao.StockNoticeDao;
 import com.zbkj.service.dao.StockOrderDao;
@@ -31,7 +28,6 @@ import com.zbkj.service.dao.StockRewardDao;
 import com.zbkj.service.dao.StockWithdrawDao;
 import com.zbkj.service.service.StockRewardService;
 import com.zbkj.service.service.StockService;
-import com.zbkj.service.service.StoreProductService;
 import com.zbkj.service.service.SystemConfigService;
 import com.zbkj.service.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,9 +86,6 @@ public class StockRewardServiceImpl implements StockRewardService {
 
     @Resource
     private SystemConfigService systemConfigService;
-
-    @Resource
-    private StoreProductService storeProductService;
 
     @Resource
     private TransactionTemplate transactionTemplate;
@@ -202,13 +195,8 @@ public class StockRewardServiceImpl implements StockRewardService {
             BigDecimal num = new BigDecimal(item.getNum() == null ? 0 : item.getNum());
             cost = cost.add(supplyPrice.multiply(num));
             BigDecimal d = buyerPrice.subtract(supplyPrice);
-            if (d.signum() > 0) {
-                StoreProduct product = item.getProductId() != null ? storeProductService.getById(item.getProductId()) : null;
-                ProductCommissionConfig.Stock stockCfg = ProductCommissionUtil.parse(
-                        product != null ? product.getCommissionConfig() : null).getStock();
-                if (ProductCommissionUtil.resolveEnabled(stockCfg.getDiffEnabled(), globalDiffEnabled)) {
-                    diff = diff.add(d.multiply(num));
-                }
+            if (d.signum() > 0 && globalDiffEnabled) {
+                diff = diff.add(d.multiply(num));
             }
         }
         if (cost.signum() > 0) {
@@ -224,7 +212,8 @@ public class StockRewardServiceImpl implements StockRewardService {
     }
 
     /**
-     * 平级/越级推荐奖：同级走平级（层级 peer_rate 或商品覆盖）；不同级走商品级越级配置。
+     * 平级奖励：下级与供货上级同等级时，按上级所属层级的平级比例（eb_stock_level.peer_rate）发给上级。
+     * 不同等级不发放（订货商业绩口径只有「拿货价 + 平级奖励」，拿货价在运营 → 订货 → 商品与库存独立设置）。
      */
     private void calcPeerReward(StockOrder order) {
         StockAgent start = stockService.getAgentById(order.getAgentId());
@@ -260,47 +249,25 @@ public class StockRewardServiceImpl implements StockRewardService {
             return;
         }
 
+        if (!sameLevel || levelPeerRate == null || levelPeerRate.signum() <= 0) {
+            return;
+        }
         BigDecimal peerTotal = BigDecimal.ZERO;
-        BigDecimal leapTotal = BigDecimal.ZERO;
-        boolean anyPeerOverride = false;
         for (StockOrderProduct item : items) {
-            StoreProduct product = item.getProductId() != null ? storeProductService.getById(item.getProductId()) : null;
-            ProductCommissionConfig.Stock stockCfg = ProductCommissionUtil.parse(
-                    product != null ? product.getCommissionConfig() : null).getStock();
             BigDecimal unitPrice = item.getPrice() == null ? BigDecimal.ZERO : item.getPrice();
             int num = item.getNum() == null ? 0 : item.getNum();
-            if (sameLevel) {
-                BigDecimal override = ProductCommissionUtil.calcOverride(
-                        stockCfg.getPeerAmount(), stockCfg.getPeerRate(), unitPrice, num);
-                if (override != null) {
-                    anyPeerOverride = true;
-                    peerTotal = peerTotal.add(override);
-                } else if (levelPeerRate != null && levelPeerRate.signum() > 0 && num > 0) {
-                    peerTotal = peerTotal.add(unitPrice.multiply(levelPeerRate)
-                            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP)
-                            .multiply(new BigDecimal(num)));
-                }
-            } else {
-                BigDecimal override = ProductCommissionUtil.calcOverride(
-                        stockCfg.getLeapAmount(), stockCfg.getLeapRate(), unitPrice, num);
-                if (override != null) {
-                    leapTotal = leapTotal.add(override);
-                }
+            if (num > 0) {
+                peerTotal = peerTotal.add(unitPrice.multiply(levelPeerRate)
+                        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal(num)));
             }
         }
         if (peerTotal.signum() > 0) {
-            String mark = anyPeerOverride
-                    ? "平级奖励：同级下级单 " + order.getOrderNo() + "（含商品级佣金覆盖）"
-                    : "平级奖励：同级下级单 " + order.getOrderNo() + " 按层级【"
+            String mark = "平级奖励：同级下级单 " + order.getOrderNo() + " 按层级【"
                     + (level != null ? level.getName() : "") + "】比例 "
                     + (levelPeerRate != null ? levelPeerRate : BigDecimal.ZERO) + "%";
             createRewardIfAbsent(up.getUid(), StockReward.TYPE_PEER, order.getOrderNo(), order.getUid(),
                     order.getTotalPrice(), levelPeerRate == null ? BigDecimal.ZERO : levelPeerRate, peerTotal, mark);
-        }
-        if (leapTotal.signum() > 0) {
-            createRewardIfAbsent(up.getUid(), StockReward.TYPE_PEER, order.getOrderNo() + "-leap", order.getUid(),
-                    order.getTotalPrice(), BigDecimal.ZERO, leapTotal,
-                    "越级推荐奖：下级单 " + order.getOrderNo() + "（商品级配置）");
         }
     }
 

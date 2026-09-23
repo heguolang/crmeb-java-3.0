@@ -6,11 +6,15 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 商品级佣金配置（存 StoreProduct.commissionConfig JSON）
  * <p>
  * 约定：字段为 null 表示「取全局/等级配置」；数值 0 表示「该商品无此项」。
+ * <p>
+ * 注意：订货商不在此配置（拿货价/平级在「运营 → 订货 → 商品与库存」按商品独立设置），
+ * 历史 JSON 中的 stock 段已被忽略，不再参与任何结算。
  */
 @Data
 @ApiModel(value = "ProductCommissionConfig", description = "商品级佣金配置")
@@ -24,11 +28,11 @@ public class ProductCommissionConfig implements Serializable {
     @ApiModelProperty(value = "区域代理")
     private Agent agent = new Agent();
 
-    @ApiModelProperty(value = "订货商")
-    private Stock stock = new Stock();
-
     @ApiModelProperty(value = "门店")
     private Store store = new Store();
+
+    @ApiModelProperty(value = "团队奖")
+    private Team team = new Team();
 
     @Data
     public static class Distributor implements Serializable {
@@ -39,15 +43,30 @@ public class ProductCommissionConfig implements Serializable {
         private BigDecimal directRate;
         private BigDecimal indirectAmount;
         private BigDecimal indirectRate;
+        /** 按分销商等级单独配置（优先于上方一刀切字段；等级未配置时仍回落一刀切 → 全局） */
+        private List<DistributorLevel> levels;
+    }
+
+    @Data
+    public static class DistributorLevel implements Serializable {
+        private static final long serialVersionUID = 1L;
+        /** eb_distributor_level.id */
+        private Integer levelId;
+        private BigDecimal selfAmount;
+        private BigDecimal selfRate;
+        private BigDecimal oneAmount;
+        private BigDecimal oneRate;
+        private BigDecimal twoAmount;
+        private BigDecimal twoRate;
     }
 
     @Data
     public static class Agent implements Serializable {
         private static final long serialVersionUID = 1L;
         private Boolean enabled;
-        /** 同总设置模式：上级比例含下级份额 */
+        /** 同总设置模式：上级比例含下级份额（商品页已不提供入口，保留兼容历史 JSON） */
         private Boolean syncMode;
-        /** 无下级时代理是否领取下级份额 */
+        /** 无下级时代理是否领取下级份额（商品页已不提供入口，保留兼容历史 JSON） */
         private Boolean superiorClaim;
         private BigDecimal provinceAmount;
         private BigDecimal provinceRate;
@@ -55,21 +74,34 @@ public class ProductCommissionConfig implements Serializable {
         private BigDecimal cityRate;
         private BigDecimal districtAmount;
         private BigDecimal districtRate;
+        /** 已下线（区域代理无平级/越级推荐奖，仅保留字段兼容历史 JSON） */
         private BigDecimal peerAmount;
         private BigDecimal peerRate;
+        /** 已下线（区域代理无平级/越级推荐奖，仅保留字段兼容历史 JSON） */
         private BigDecimal leapAmount;
         private BigDecimal leapRate;
     }
 
     @Data
-    public static class Stock implements Serializable {
+    public static class Team implements Serializable {
         private static final long serialVersionUID = 1L;
-        /** 返差价开关：null=跟随全局 stock_diff_reward_status */
-        private Boolean diffEnabled;
+        /** 团队奖开关：null=跟随全局 team_brokerage_status；false=本商品不参与团队奖 */
+        private Boolean enabled;
+        /** 按团队等级单独配置（极差/平级），未配置的等级走全局 eb_system_team_level_config */
+        private List<TeamLevel> levels;
+    }
+
+    @Data
+    public static class TeamLevel implements Serializable {
+        private static final long serialVersionUID = 1L;
+        /** eb_system_team_level.id */
+        private Integer levelId;
+        /** 极差奖覆盖 */
+        private BigDecimal diffAmount;
+        private BigDecimal diffRate;
+        /** 平级奖覆盖 */
         private BigDecimal peerAmount;
         private BigDecimal peerRate;
-        private BigDecimal leapAmount;
-        private BigDecimal leapRate;
     }
 
     @Data

@@ -63,6 +63,14 @@ export function productGroupStatusApi(params) {
   });
 }
 
+/** 获取分组的装修页ID（不存在则后端懒创建），返回 eb_theme.id */
+export function productGroupThemeApi(id) {
+  return request({
+    url: `/admin/store/product/group/theme/${id}`,
+    method: 'post',
+  });
+}
+
 /** 获取全局配置 */
 export function productGroupConfigApi() {
   return request({

@@ -302,6 +302,13 @@ export function getThemeProduct(data) {
 }
 
 /**
+ * 商品分组落地页信息（含该分组的装修页 theme_id）
+ */
+export function getProductGroupDetail(id) {
+  return request.get(`product/group/detail/${id}`, {}, { noAuth: true });
+}
+
+/**
  * 获取主题文章列表
  */
 export function getThemeArticle(data = {}) {

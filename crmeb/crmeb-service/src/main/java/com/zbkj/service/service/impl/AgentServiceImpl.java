@@ -495,8 +495,7 @@ public class AgentServiceImpl implements AgentService {
                                 storeOrder.getOrderId(), storeOrder.getPayPrice(), matched.getRegionName(), reward)));
             }
         }
-        // 平级/越级推荐奖（沿推广链找代理上下级）
-        list.addAll(assignAgentPeerLeap(storeOrder, frozenDays));
+        // 区域代理只有「按区域的提成奖励」一项（无平级/越级推荐奖）
         return list;
     }
 
@@ -628,94 +627,6 @@ public class AgentServiceImpl implements AgentService {
         return unitPrice.multiply(ratio)
                 .divide(new BigDecimal("100"), 2, RoundingMode.DOWN)
                 .multiply(new BigDecimal(Math.max(payNum, 1)));
-    }
-
-    /**
-     * 区域代理平级/越级推荐奖：沿买家推广链找最近代理(start)及其上级代理(up)。
-     * 同级 → 平级奖；不同级 → 越级奖；仅商品级配置（空则不发）。
-     */
-    private List<UserBrokerageRecord> assignAgentPeerLeap(StoreOrder storeOrder, int frozenDays) {
-        ArrayList<UserBrokerageRecord> list = new ArrayList<>();
-        User buyer = userService.getById(storeOrder.getUid());
-        if (ObjectUtil.isNull(buyer)) {
-            return list;
-        }
-        Agent start = findNearestAgentAlongSpread(buyer.getUid(), 8);
-        if (start == null) {
-            return list;
-        }
-        User startUser = userService.getById(start.getUid());
-        if (ObjectUtil.isNull(startUser) || ObjectUtil.isNull(startUser.getSpreadUid()) || startUser.getSpreadUid() <= 0) {
-            return list;
-        }
-        Agent up = findNearestAgentAlongSpread(startUser.getSpreadUid(), 8);
-        if (up == null || up.getId().equals(start.getId())) {
-            return list;
-        }
-        boolean sameLevel = up.getLevel() != null && up.getLevel().equals(start.getLevel());
-        List<StoreOrderInfoOldVo> lines = storeOrderInfoService.getOrderListByOrderId(storeOrder.getId());
-        if (CollUtil.isEmpty(lines)) {
-            return list;
-        }
-        BigDecimal total = BigDecimal.ZERO;
-        for (StoreOrderInfoOldVo line : lines) {
-            if (ObjectUtil.isNull(line.getInfo())) {
-                continue;
-            }
-            Integer productId = ObjectUtil.defaultIfNull(line.getProductId(), line.getInfo().getProductId());
-            StoreProduct product = ObjectUtil.isNotNull(productId) ? storeProductService.getById(productId) : null;
-            ProductCommissionConfig.Agent agentCfg = ProductCommissionUtil.parse(
-                    product != null ? product.getCommissionConfig() : null).getAgent();
-            if (!ProductCommissionUtil.resolveEnabled(agentCfg.getEnabled(), true)) {
-                continue;
-            }
-            BigDecimal unitPrice = ObjectUtil.isNotNull(line.getInfo().getVipPrice())
-                    ? line.getInfo().getVipPrice() : line.getInfo().getPrice();
-            int payNum = ObjectUtil.defaultIfNull(line.getInfo().getPayNum(), 1);
-            BigDecimal override;
-            if (sameLevel) {
-                override = ProductCommissionUtil.calcOverride(agentCfg.getPeerAmount(), agentCfg.getPeerRate(), unitPrice, payNum);
-            } else {
-                override = ProductCommissionUtil.calcOverride(agentCfg.getLeapAmount(), agentCfg.getLeapRate(), unitPrice, payNum);
-            }
-            if (override != null) {
-                total = total.add(override);
-            }
-        }
-        if (total.compareTo(BigDecimal.ZERO) <= 0) {
-            return list;
-        }
-        String title = sameLevel
-                ? BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_AGENT_PEER
-                : BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_AGENT_LEAP;
-        Integer level = sameLevel
-                ? BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT_PEER
-                : BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT_LEAP;
-        String mark = StrUtil.format("订单【{}】{}推荐奖{}（推荐链 {}→{}）",
-                storeOrder.getOrderId(), sameLevel ? "平级" : "越级", total, start.getUid(), up.getUid());
-        list.add(buildAgentRecord(storeOrder, up, total, frozenDays, title, level, mark));
-        return list;
-    }
-
-    private Agent findNearestAgentAlongSpread(Integer startUid, int maxDepth) {
-        Integer uid = startUid;
-        for (int i = 0; i < maxDepth && uid != null && uid > 0; i++) {
-            Agent agent = agentDao.selectOne(new LambdaQueryWrapper<Agent>()
-                    .eq(Agent::getUid, uid)
-                    .eq(Agent::getStatus, Agent.STATUS_PASS)
-                    .eq(Agent::getIsDel, 0)
-                    .last("limit 1"));
-            if (agent != null) {
-                return agent;
-            }
-            User u = userService.getById(uid);
-            if (ObjectUtil.isNull(u) || ObjectUtil.isNull(u.getSpreadUid()) || u.getSpreadUid() <= 0
-                    || u.getSpreadUid().equals(uid)) {
-                break;
-            }
-            uid = u.getSpreadUid();
-        }
-        return null;
     }
 
     private UserBrokerageRecord buildAgentRecord(StoreOrder storeOrder, Agent matched, BigDecimal reward,

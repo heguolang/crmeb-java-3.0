@@ -8,6 +8,7 @@ import com.zbkj.common.model.product.ProductCommissionConfig;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 
 /**
  * 商品级佣金解析工具：
@@ -111,5 +112,68 @@ public final class ProductCommissionUtil {
             return new BigDecimal[]{d.getIndirectAmount(), d.getIndirectRate()};
         }
         return new BigDecimal[]{null, null};
+    }
+
+    /**
+     * 按分销商等级 + 返佣层级取商品配置的金额/比例（等级配置优先于一刀切）。
+     * @param brokerageLevel 0=自购 1=一级(直属) 2=二级(间接)
+     */
+    public static BigDecimal[] distributorLevelAmountRate(ProductCommissionConfig.Distributor d,
+                                                          Integer levelId, int brokerageLevel) {
+        ProductCommissionConfig.DistributorLevel lv = findDistributorLevel(
+                d == null ? null : d.getLevels(), levelId);
+        if (lv == null) {
+            return new BigDecimal[]{null, null};
+        }
+        if (brokerageLevel == 1) {
+            return new BigDecimal[]{lv.getOneAmount(), lv.getOneRate()};
+        }
+        if (brokerageLevel == 2) {
+            return new BigDecimal[]{lv.getTwoAmount(), lv.getTwoRate()};
+        }
+        return new BigDecimal[]{lv.getSelfAmount(), lv.getSelfRate()};
+    }
+
+    /**
+     * 按团队等级取商品配置的团队奖金额/比例。
+     * @param diff true=极差奖 false=平级奖
+     */
+    public static BigDecimal[] teamLevelAmountRate(ProductCommissionConfig.Team t,
+                                                   Integer levelId, boolean diff) {
+        ProductCommissionConfig.TeamLevel lv = findTeamLevel(t == null ? null : t.getLevels(), levelId);
+        if (lv == null) {
+            return new BigDecimal[]{null, null};
+        }
+        return diff
+                ? new BigDecimal[]{lv.getDiffAmount(), lv.getDiffRate()}
+                : new BigDecimal[]{lv.getPeerAmount(), lv.getPeerRate()};
+    }
+
+    /** 按 levelId 在分销商等级覆盖列表中查找 */
+    private static ProductCommissionConfig.DistributorLevel findDistributorLevel(
+            List<ProductCommissionConfig.DistributorLevel> levels, Integer levelId) {
+        if (levels == null || levels.isEmpty() || levelId == null || levelId <= 0) {
+            return null;
+        }
+        for (ProductCommissionConfig.DistributorLevel lv : levels) {
+            if (lv != null && levelId.equals(lv.getLevelId())) {
+                return lv;
+            }
+        }
+        return null;
+    }
+
+    /** 按 levelId 在团队等级覆盖列表中查找 */
+    private static ProductCommissionConfig.TeamLevel findTeamLevel(
+            List<ProductCommissionConfig.TeamLevel> levels, Integer levelId) {
+        if (levels == null || levels.isEmpty() || levelId == null || levelId <= 0) {
+            return null;
+        }
+        for (ProductCommissionConfig.TeamLevel lv : levels) {
+            if (lv != null && levelId.equals(lv.getLevelId())) {
+                return lv;
+            }
+        }
+        return null;
     }
 }

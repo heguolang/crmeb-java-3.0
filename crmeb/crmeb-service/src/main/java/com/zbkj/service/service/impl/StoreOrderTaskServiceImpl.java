@@ -130,6 +130,9 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
     private UserTeamLevelService userTeamLevelService;
 
     @Autowired
+    private DistributorLevelService distributorLevelService;
+
+    @Autowired
     private AgentService agentService;
 
     @Autowired
@@ -301,6 +304,8 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
 
             userLevelService.processLevelOnOrderComplete(storeOrder);
             userTeamLevelService.processTeamLevelOnOrderComplete(storeOrder);
+            // 分销商等级：完成时不再累加金额，仅重试一次升级判定
+            distributorLevelService.processOnOrderComplete(storeOrder);
             // 区域代理奖励明细状态同步
             agentService.syncRewardStatus(storeOrder.getOrderId());
             return Boolean.TRUE;
@@ -544,6 +549,9 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
 
             // 团队等级回滚
             userTeamLevelService.rollbackTeamLevelOnRefund(storeOrder);
+
+            // 分销商等级统计回退（只回退统计，不降级）
+            distributorLevelService.rollbackOnRefund(storeOrder);
 
             // 回滚库存
             Boolean rollbackStock = rollbackStock(storeOrder);

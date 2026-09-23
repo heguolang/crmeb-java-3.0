@@ -17,6 +17,7 @@ import com.zbkj.common.model.user.UserTeamLevelStat;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.response.UserTeamLevelRecordResponse;
 import com.zbkj.common.response.UserTeamLevelUserResponse;
+import com.zbkj.service.dao.LevelStatOrderLogDao;
 import com.zbkj.service.dao.UserTeamLevelDao;
 import com.zbkj.service.dao.UserTeamLevelStatDao;
 import com.zbkj.service.service.SystemConfigService;
@@ -58,6 +59,23 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Resource
+    private LevelStatOrderLogDao levelStatOrderLogDao;
+
+    /** 幂等流水模块名 */
+    private static final String MODULE = "TEAM";
+
+    /**
+     * 抢占式幂等标记：同一订单在同一场景下只允许统计一次。
+     * 支付回调队列重投时会重复消费，没有这层保护会导致统计重复累加、团队奖重复发放。
+     */
+    private boolean claimOnce(String orderNo, String scene) {
+        if (ObjectUtil.isNull(orderNo)) {
+            return true;
+        }
+        return levelStatOrderLogDao.insertIgnore(orderNo, MODULE, scene) > 0;
+    }
+
     @Override
     public Boolean processTeamLevelOnOrderPaid(StoreOrder storeOrder) {
         if (ObjectUtil.isNull(storeOrder) || !Boolean.TRUE.equals(storeOrder.getPaid())) {
@@ -68,6 +86,9 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
             return Boolean.TRUE;
         }
         return transactionTemplate.execute(e -> {
+            if (!claimOnce(storeOrder.getOrderId(), "PAID")) {
+                return Boolean.TRUE;
+            }
             List<Integer> affectedUids = applyPaidStats(storeOrder, amount);
             syncTeamLevels(affectedUids);
             return Boolean.TRUE;
@@ -88,6 +109,9 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
             return Boolean.TRUE;
         }
         return transactionTemplate.execute(e -> {
+            if (!claimOnce(storeOrder.getOrderId(), "COMPLETE")) {
+                return Boolean.TRUE;
+            }
             List<Integer> affectedUids = applyCompleteStats(storeOrder, amount);
             syncTeamLevels(affectedUids);
             return Boolean.TRUE;
@@ -111,6 +135,9 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         boolean wasPaid = Boolean.TRUE.equals(storeOrder.getPaid());
         boolean wasComplete = Integer.valueOf(3).equals(storeOrder.getStatus());
         return transactionTemplate.execute(e -> {
+            if (!claimOnce(storeOrder.getOrderId(), "REFUND")) {
+                return Boolean.TRUE;
+            }
             Set<Integer> affected = new HashSet<>();
             if (wasPaid) {
                 affected.addAll(rollbackPaidStats(storeOrder, amount));
@@ -380,17 +407,13 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
     }
 
     private void addSelfPaid(Integer uid, BigDecimal delta) {
-        UserTeamLevelStat stat = getOrInitStat(uid);
-        stat.setSelfPaidAmount(nonNegative(ObjectUtil.defaultIfNull(stat.getSelfPaidAmount(), BigDecimal.ZERO).add(delta)));
-        stat.setUpdateTime(DateUtil.date());
-        userTeamLevelStatDao.updateById(stat);
+        getOrInitStat(uid);
+        userTeamLevelStatDao.incrColumn(uid, "self_paid_amount", delta);
     }
 
     private void addSelfComplete(Integer uid, BigDecimal delta) {
-        UserTeamLevelStat stat = getOrInitStat(uid);
-        stat.setSelfCompleteAmount(nonNegative(ObjectUtil.defaultIfNull(stat.getSelfCompleteAmount(), BigDecimal.ZERO).add(delta)));
-        stat.setUpdateTime(DateUtil.date());
-        userTeamLevelStatDao.updateById(stat);
+        getOrInitStat(uid);
+        userTeamLevelStatDao.incrColumn(uid, "self_complete_amount", delta);
     }
 
     private Set<Integer> addDirectPaidToUpline(Integer buyerUid, BigDecimal delta) {
@@ -413,14 +436,8 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         }
         Integer directUid = buyer.getSpreadUid();
         affected.add(directUid);
-        UserTeamLevelStat stat = getOrInitStat(directUid);
-        if (isPaid) {
-            stat.setDirectPaidAmount(nonNegative(ObjectUtil.defaultIfNull(stat.getDirectPaidAmount(), BigDecimal.ZERO).add(delta)));
-        } else {
-            stat.setDirectCompleteAmount(nonNegative(ObjectUtil.defaultIfNull(stat.getDirectCompleteAmount(), BigDecimal.ZERO).add(delta)));
-        }
-        stat.setUpdateTime(DateUtil.date());
-        userTeamLevelStatDao.updateById(stat);
+        getOrInitStat(directUid);
+        userTeamLevelStatDao.incrColumn(directUid, isPaid ? "direct_paid_amount" : "direct_complete_amount", delta);
         return affected;
     }
 
@@ -451,14 +468,8 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
                 break;
             }
             affected.add(currentUid);
-            UserTeamLevelStat stat = getOrInitStat(currentUid);
-            if (isPaid) {
-                stat.setTeamPaidAmount(nonNegative(ObjectUtil.defaultIfNull(stat.getTeamPaidAmount(), BigDecimal.ZERO).add(delta)));
-            } else {
-                stat.setTeamCompleteAmount(nonNegative(ObjectUtil.defaultIfNull(stat.getTeamCompleteAmount(), BigDecimal.ZERO).add(delta)));
-            }
-            stat.setUpdateTime(DateUtil.date());
-            userTeamLevelStatDao.updateById(stat);
+            getOrInitStat(currentUid);
+            userTeamLevelStatDao.incrColumn(currentUid, isPaid ? "team_paid_amount" : "team_complete_amount", delta);
 
             User parent = userService.getById(currentUid);
             if (ObjectUtil.isNull(parent)) {

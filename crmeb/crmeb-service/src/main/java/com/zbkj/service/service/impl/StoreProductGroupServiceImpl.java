@@ -12,15 +12,18 @@ import com.zbkj.common.model.agent.Agent;
 import com.zbkj.common.model.product.StoreProductGroup;
 import com.zbkj.common.model.product.StoreProductGroupRel;
 import com.zbkj.common.model.stock.StockAgent;
+import com.zbkj.common.model.theme.Theme;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.request.StoreProductGroupRequest;
 import com.zbkj.common.request.StoreProductGroupSearchRequest;
+import com.zbkj.common.utils.CrmebDateUtil;
 import com.zbkj.common.utils.CrmebUtil;
 import com.zbkj.service.dao.AgentDao;
 import com.zbkj.service.dao.StoreProductGroupDao;
 import com.zbkj.service.dao.StoreProductGroupRelDao;
+import com.zbkj.service.dao.ThemeDao;
 import com.zbkj.service.service.StockService;
 import com.zbkj.service.service.StoreProductGroupService;
 import com.zbkj.service.service.SystemConfigService;
@@ -48,12 +51,17 @@ public class StoreProductGroupServiceImpl extends ServiceImpl<StoreProductGroupD
     public static final String CONFIG_DENY_TIP_ENABLE = "product_group_deny_tip_enable";
     public static final String CONFIG_DENY_TIP = "product_group_deny_tip";
     private static final String DEFAULT_DENY_TIP = "您暂无权限查看该商品";
+    /** 分组装修页标题前缀，便于在「装修 → 专题页面」里与普通微页面区分 */
+    private static final String THEME_TITLE_PREFIX = "商品分组-";
 
     @Resource
     private StoreProductGroupDao dao;
 
     @Resource
     private StoreProductGroupRelDao relDao;
+
+    @Resource
+    private ThemeDao themeDao;
 
     @Resource
     private SystemConfigService systemConfigService;
@@ -454,6 +462,9 @@ public class StoreProductGroupServiceImpl extends ServiceImpl<StoreProductGroupD
         if (StoreProductGroup.PERM_STOCK_AGENT.equals(type)) {
             return isEnabledStockAgent(user.getUid());
         }
+        if (StoreProductGroup.PERM_TEAM.equals(type)) {
+            return hasTeamLevel(user);
+        }
         return true;
     }
 
@@ -477,15 +488,105 @@ public class StoreProductGroupServiceImpl extends ServiceImpl<StoreProductGroupD
         return false;
     }
 
+    /**
+     * 等级门槛校验：levelOnly=true 时按权限类型取对应等级源比对
+     * all         -> 会员等级 eb_user.level（eb_system_user_level.id）
+     * promoter    -> 分销商等级 eb_user.distributor_level_id（eb_distributor_level.id）
+     * agent       -> 区域代理等级 eb_agent.level（固定枚举 1=省代 2=市代 3=区代）
+     * stock_agent -> 订货商等级 eb_stock_agent.level_id（eb_stock_level.id）
+     * team        -> 社群团队等级 eb_user.team_level（eb_system_team_level.id）
+     * 对应等级未配置时视为不限（与改造前行为一致）
+     */
     private boolean matchUserLevel(User user, StoreProductGroup group) {
-        if (!Boolean.TRUE.equals(group.getLevelOnly()) || StrUtil.isBlank(group.getUserLevelIds())) {
+        if (!Boolean.TRUE.equals(group.getLevelOnly())) {
             return true;
         }
-        if (user == null || user.getLevel() == null) {
+        String type = StrUtil.blankToDefault(group.getPermissionType(), StoreProductGroup.PERM_ALL);
+        if (StoreProductGroup.PERM_PROMOTER.equals(type)) {
+            if (StrUtil.isBlank(group.getDistributorLevelIds())) {
+                return true;
+            }
+            if (user == null) {
+                return false;
+            }
+            return containsLevel(group.getDistributorLevelIds(), user.getDistributorLevelId());
+        }
+        // 仅区域代理：等级为固定枚举 1=省代 2=市代 3=区代（eb_agent.level），不再读 eb_stock_level
+        if (StoreProductGroup.PERM_AGENT.equals(type)) {
+            if (StrUtil.isBlank(group.getAgentLevelIds())) {
+                return true;
+            }
+            if (user == null) {
+                return false;
+            }
+            return containsLevel(group.getAgentLevelIds(), getPassAgentLevel(user.getUid()));
+        }
+        // 仅订货商：等级来源 eb_stock_level
+        if (StoreProductGroup.PERM_STOCK_AGENT.equals(type)) {
+            if (StrUtil.isBlank(group.getStockLevelIds())) {
+                return true;
+            }
+            if (user == null) {
+                return false;
+            }
+            return containsLevel(group.getStockLevelIds(), getEnabledStockAgentLevel(user.getUid()));
+        }
+        // 仅社群团队：等级来源 eb_system_team_level.id（eb_user.team_level）
+        if (StoreProductGroup.PERM_TEAM.equals(type)) {
+            if (StrUtil.isBlank(group.getTeamLevelIds())) {
+                return true;
+            }
+            if (user == null) {
+                return false;
+            }
+            return containsLevel(group.getTeamLevelIds(), user.getTeamLevel());
+        }
+        // 全部会员：按会员等级
+        if (StrUtil.isBlank(group.getUserLevelIds())) {
+            return true;
+        }
+        if (user == null) {
             return false;
         }
-        List<Integer> levels = CrmebUtil.stringToArray(group.getUserLevelIds());
-        return levels.contains(user.getLevel());
+        return containsLevel(group.getUserLevelIds(), user.getLevel());
+    }
+
+    private boolean containsLevel(String ids, Integer levelId) {
+        if (StrUtil.isBlank(ids)) {
+            return true;
+        }
+        if (levelId == null) {
+            return false;
+        }
+        return CrmebUtil.stringToArray(ids).contains(levelId);
+    }
+
+    private Integer getPassAgentLevel(Integer uid) {
+        if (uid == null) {
+            return null;
+        }
+        Agent agent = agentDao.selectOne(Wrappers.<Agent>lambdaQuery()
+                .eq(Agent::getUid, uid)
+                .eq(Agent::getIsDel, 0)
+                .eq(Agent::getStatus, Agent.STATUS_PASS)
+                .last("limit 1"));
+        return agent == null ? null : agent.getLevel();
+    }
+
+    private Integer getEnabledStockAgentLevel(Integer uid) {
+        if (uid == null) {
+            return null;
+        }
+        StockAgent agent = stockService.getAgentByUid(uid);
+        if (agent == null || StockAgent.STATUS_ENABLED != agent.getStatus()) {
+            return null;
+        }
+        return agent.getLevelId();
+    }
+
+    /** 是否已获得社群团队等级（eb_user.team_level = eb_system_team_level.id，0=未获得） */
+    private boolean hasTeamLevel(User user) {
+        return user != null && user.getTeamLevel() != null && user.getTeamLevel() > 0;
     }
 
     private boolean isPassAgent(Integer uid) {
@@ -525,11 +626,69 @@ public class StoreProductGroupServiceImpl extends ServiceImpl<StoreProductGroupD
         return group;
     }
 
+    @Override
+    public StoreProductGroup getEnabledById(Integer id) {
+        if (ObjectUtil.isNull(id) || id <= 0) {
+            return null;
+        }
+        StoreProductGroup group = getById(id);
+        if (group == null || Boolean.TRUE.equals(group.getIsDel()) || !Boolean.TRUE.equals(group.getStatus())) {
+            return null;
+        }
+        return group;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Integer ensureTheme(Integer groupId) {
+        StoreProductGroup group = getValidGroup(groupId);
+        Integer bound = group.getThemeId();
+        if (ObjectUtil.isNotNull(bound) && bound > 0) {
+            Theme exist = themeDao.selectById(bound);
+            // Theme.isDel 是 Integer（0/1），不是 Boolean，别用 Boolean.TRUE.equals
+            if (ObjectUtil.isNotNull(exist) && !Integer.valueOf(1).equals(exist.getIsDel())) {
+                return bound;
+            }
+        }
+        // 懒创建装修页（自建微页面，内容落在 home_data）
+        int now = CrmebDateUtil.getNowTime();
+        Theme theme = new Theme()
+                .setVersion("")
+                .setTitle(THEME_TITLE_PREFIX + group.getName())
+                .setInfo("")
+                .setType(0)
+                .setPageType("micro")
+                .setIsUse(0)
+                .setIsDel(0)
+                .setAddTime(now)
+                .setUpTime(now);
+        if (themeDao.insert(theme) <= 0 || ObjectUtil.isNull(theme.getId())) {
+            throw new CrmebException("创建分组装修页失败");
+        }
+        Integer themeId = theme.getId();
+        // CAS 回写：只在 theme_id 仍为 0 时写入，避免并发下互相覆盖
+        boolean updated = update(Wrappers.<StoreProductGroup>lambdaUpdate()
+                .eq(StoreProductGroup::getId, groupId)
+                .eq(StoreProductGroup::getThemeId, 0)
+                .set(StoreProductGroup::getThemeId, themeId)
+                .set(StoreProductGroup::getUpdateTime, new Date()));
+        if (!updated) {
+            // 已被并发请求抢先绑定，丢弃自己刚建的记录，回读对方的
+            themeDao.deleteById(themeId);
+            StoreProductGroup latest = getById(groupId);
+            if (ObjectUtil.isNotNull(latest) && ObjectUtil.isNotNull(latest.getThemeId()) && latest.getThemeId() > 0) {
+                return latest.getThemeId();
+            }
+        }
+        return themeId;
+    }
+
     private void validatePermissionType(String type) {
         if (!StoreProductGroup.PERM_ALL.equals(type)
                 && !StoreProductGroup.PERM_PROMOTER.equals(type)
                 && !StoreProductGroup.PERM_AGENT.equals(type)
-                && !StoreProductGroup.PERM_STOCK_AGENT.equals(type)) {
+                && !StoreProductGroup.PERM_STOCK_AGENT.equals(type)
+                && !StoreProductGroup.PERM_TEAM.equals(type)) {
             throw new CrmebException("权限类型不正确");
         }
     }
@@ -539,6 +698,10 @@ public class StoreProductGroupServiceImpl extends ServiceImpl<StoreProductGroupD
         group.setPermissionType(request.getPermissionType());
         group.setUserGroupIds(joinIds(request.getUserGroupIds()));
         group.setUserLevelIds(joinIds(request.getUserLevelIds()));
+        group.setDistributorLevelIds(joinIds(request.getDistributorLevelIds()));
+        group.setAgentLevelIds(joinIds(request.getAgentLevelIds()));
+        group.setStockLevelIds(joinIds(request.getStockLevelIds()));
+        group.setTeamLevelIds(joinIds(request.getTeamLevelIds()));
         group.setLevelOnly(ObjectUtil.defaultIfNull(request.getLevelOnly(), false));
         group.setMinBuy(ObjectUtil.defaultIfNull(request.getMinBuy(), 1));
         if (group.getMinBuy() < 1) {

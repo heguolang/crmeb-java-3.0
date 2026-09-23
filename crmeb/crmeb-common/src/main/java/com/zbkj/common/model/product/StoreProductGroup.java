@@ -28,8 +28,12 @@ public class StoreProductGroup implements Serializable {
 
     public static final String PERM_ALL = "all";
     public static final String PERM_PROMOTER = "promoter";
+    /** 仅区域代理：等级为固定枚举 eb_agent.level（1=省代 2=市代 3=区代），不再用 eb_stock_level */
     public static final String PERM_AGENT = "agent";
+    /** 仅订货商：等级来源 eb_stock_level */
     public static final String PERM_STOCK_AGENT = "stock_agent";
+    /** 仅社群团队：等级来源 eb_system_team_level.id */
+    public static final String PERM_TEAM = "team";
 
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
@@ -37,7 +41,7 @@ public class StoreProductGroup implements Serializable {
     @ApiModelProperty(value = "分组名称")
     private String name;
 
-    @ApiModelProperty(value = "权限：all/promoter/agent/stock_agent")
+    @ApiModelProperty(value = "权限：all全部会员/promoter仅分销商/agent仅区域代理/stock_agent仅订货商/team仅社群团队")
     private String permissionType;
 
     @ApiModelProperty(value = "会员分组id，逗号分隔")
@@ -45,6 +49,18 @@ public class StoreProductGroup implements Serializable {
 
     @ApiModelProperty(value = "会员等级id，逗号分隔")
     private String userLevelIds;
+
+    @ApiModelProperty(value = "分销商等级id，逗号分隔")
+    private String distributorLevelIds;
+
+    @ApiModelProperty(value = "区域代理等级（eb_agent.level：1=省代 2=市代 3=区代），逗号分隔")
+    private String agentLevelIds;
+
+    @ApiModelProperty(value = "订货商等级id（eb_stock_level），逗号分隔")
+    private String stockLevelIds;
+
+    @ApiModelProperty(value = "社群团队等级id（eb_system_team_level），逗号分隔")
+    private String teamLevelIds;
 
     @ApiModelProperty(value = "是否仅限所选等级")
     private Boolean levelOnly;
@@ -63,6 +79,9 @@ public class StoreProductGroup implements Serializable {
 
     @ApiModelProperty(value = "图片角标")
     private String badge;
+
+    @ApiModelProperty(value = "绑定的装修页ID（eb_theme.id，page_type=micro），0=未创建")
+    private Integer themeId;
 
     @ApiModelProperty(value = "标题多行")
     private Boolean titleMulti;

@@ -26,7 +26,7 @@ public class StoreProductGroupRequest implements Serializable {
     @NotBlank(message = "分组名称不能为空")
     private String name;
 
-    @ApiModelProperty(value = "权限：all/promoter/agent/stock_agent", required = true)
+    @ApiModelProperty(value = "权限：all全部会员/promoter仅分销商/agent仅区域代理/stock_agent仅订货商/team仅社群团队", required = true)
     @NotBlank(message = "权限类型不能为空")
     private String permissionType;
 
@@ -35,6 +35,18 @@ public class StoreProductGroupRequest implements Serializable {
 
     @ApiModelProperty(value = "会员等级id列表")
     private List<Integer> userLevelIds;
+
+    @ApiModelProperty(value = "分销商等级id列表")
+    private List<Integer> distributorLevelIds;
+
+    @ApiModelProperty(value = "区域代理等级列表（1=省代 2=市代 3=区代）")
+    private List<Integer> agentLevelIds;
+
+    @ApiModelProperty(value = "订货商等级id列表（eb_stock_level）")
+    private List<Integer> stockLevelIds;
+
+    @ApiModelProperty(value = "社群团队等级id列表（eb_system_team_level）")
+    private List<Integer> teamLevelIds;
 
     @ApiModelProperty(value = "是否仅限所选等级")
     private Boolean levelOnly;

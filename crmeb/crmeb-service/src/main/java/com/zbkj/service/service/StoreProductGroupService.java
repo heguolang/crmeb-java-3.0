@@ -65,4 +65,14 @@ public interface StoreProductGroupService extends IService<StoreProductGroup> {
 
     /** 查询商品所属分组id */
     List<Integer> getGroupIdsByProductId(Integer productId);
+
+    /**
+     * 获取（必要时创建）分组的装修页ID。
+     * 装修页是 eb_theme 的一条记录（page_type=micro，内容存 home_data），
+     * 供分组编辑页内嵌装修器写入、H5 分组落地页读取。幂等。
+     */
+    Integer ensureTheme(Integer groupId);
+
+    /** 取启用中的分组（H5 分组落地页用）；不存在/已删/已停用返回 null */
+    StoreProductGroup getEnabledById(Integer id);
 }
