@@ -79,7 +79,8 @@ import cmDataList from './combineDataList';
 // 注意：这里只做列表隐藏，**数据组本身必须保留**，新页面正是靠它取数。
 //   60 = 移动端_我的推广_分享海报   → 装修 → 推广海报
 //   55 = 移动端_我的_签到天数配置   → 营销 → 积分 → 签到配置
-const MIGRATED_GROUP_IDS = [60, 55];
+//   62 = 移动端_充值金额设置       → 财务 → 财务操作 → 充值设置
+const MIGRATED_GROUP_IDS = [60, 55, 62];
 export default {
   // name: "combinedData"
   components: { edit, cmDataList },

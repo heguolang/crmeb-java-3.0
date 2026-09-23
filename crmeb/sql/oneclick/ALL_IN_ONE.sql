@@ -20791,6 +20791,7 @@ SELECT 'distributor_level order_product patches done' AS result;
 -- 把原先只能从「维护 → 组合数据」点进去的两套配置，上提到业务菜单下（幂等，按 id）：
 --   709 装修 → 推广海报        ← 组合数据 id=60 移动端_我的推广_分享海报
 --   710 营销 → 积分 → 签到配置  ← 组合数据 id=55 移动端_我的_签到天数配置
+--   711 财务 → 财务操作 → 充值设置 ← 组合数据 id=62 移动端_充值金额设置
 -- 组合数据本身不删（新页面正是靠它取数），仅前端列表隐藏，见 admin combinedData.vue。
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `component`, `perms`, `menu_type`, `sort`, `icon`, `is_show`, `is_delte`, `create_time`)
 SELECT 709, 439, '推广海报', '/design/spread_poster', '', 'C', 95, '', 1, 0, NOW()
@@ -20805,6 +20806,13 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1) t WHERE EXISTS (SELECT 1 FR
 
 INSERT INTO `eb_system_role_menu` (`rid`, `menu_id`)
 SELECT 1, 710 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `eb_system_role_menu` WHERE `rid` = 1 AND `menu_id` = 710);
+
+INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `component`, `perms`, `menu_type`, `sort`, `icon`, `is_show`, `is_delte`, `create_time`)
+SELECT 711, 106, '充值设置', '/financial/commission/recharge', '', 'C', 0, '', 1, 0, NOW()
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM (SELECT 1) t WHERE EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `id` = 711));
+
+INSERT INTO `eb_system_role_menu` (`rid`, `menu_id`)
+SELECT 1, 711 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `eb_system_role_menu` WHERE `rid` = 1 AND `menu_id` = 711);
 -- ========== END: menu_business_entry_20260924.sql ==========
 
 SET FOREIGN_KEY_CHECKS = 1;

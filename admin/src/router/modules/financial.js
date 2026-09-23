@@ -39,6 +39,12 @@ const financialRouter = {
           name: 'extractSetting',
           meta: { title: '提现设置', icon: '' },
         },
+        {
+          path: 'recharge',
+          component: () => import('@/views/financial/commission/recharge/index'),
+          name: 'rechargeSetting',
+          meta: { title: '充值设置', icon: '' },
+        },
       ],
     },
     {

@@ -2961,6 +2961,7 @@ INSERT INTO `tmp_menu_sync`
 ('/marketing/integral/integrallog', 'C', '/marketing/integral', 'admin:user:integral:list', '积分日志', '', 1, 1, 0),
 ('/financial/commission/setting', 'C', '/financial/commission', 'admin:finance:extract:setting:get', '提现设置', '', 2, 1, 0),
 ('/financial/commission/template', 'C', '/financial/commission', 'admin:finance:apply:list', '申请提现', '', 1, 1, 0),
+('/financial/commission/recharge', 'C', '/financial/commission', '', '充值设置', '', 0, 1, 0),
 ('/operation/logManager/adminLoginLog', 'C', '/operation/logManager', 'admin:log:login:list', '管理员登录日志', '', 1, 1, 0),
 ('/operation/logManager/adminOperateLog', 'C', '/operation/logManager', 'admin:log:sensitive:list', '管理员操作日志', '', 2, 1, 0),
 ('/operation/roleManager/adminList', 'C', '/operation/roleManager', 'admin:system:admin:list', '管理员列表', '', 1, 1, 0),
