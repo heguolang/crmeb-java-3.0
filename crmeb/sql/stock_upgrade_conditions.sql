@@ -64,14 +64,18 @@ INSERT INTO eb_system_config(name, title, form_id, value, status, create_time, u
 SELECT 'stock_up_search_hours', '上级无库存自动向上查找等待时长(小时)', 0, '12', 0, NOW(), NOW()
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM eb_system_config WHERE name = 'stock_up_search_hours');
 
--- 五级订货商默认数据（仅更新已存在行；新区级插入）
+-- 五级订货商默认数据
+-- ⚠️ 安全约束（2026-09-23 线上加固）：只在「该行仍是 stock.sql 播下的初始占位层级」时才升级命名，
+--    必须同时命中 id + 原名称 + 原排序 + 原折扣 四个条件。
+--    原因：线上 id 1~4 很可能已经被业务人员改成了别的层级（本机库现为 8/19/23），
+--    原来的 `WHERE id = 1..4` 会直接覆盖线上的拿货折扣、平级比例和升级门槛，改变拿货价与升降级判定。
 UPDATE eb_stock_level SET name = '分公司订货商', sort = 10, discount = 40.00,
        cond_self_buy = 1, self_buy_amount = 100000.00,
        cond_direct = 1, direct_order_amount = 500000.00,
        cond_team = 1, team_amount = 3000000.00,
        cond_product = 0, upgrade_product_ids = '',
        condition_logic = 0, peer_rate = 1.00
- WHERE id = 1;
+ WHERE id = 1 AND name = '总代' AND sort = 10 AND discount = 80.00;
 
 UPDATE eb_stock_level SET name = '全国订货商', sort = 20, discount = 50.00,
        cond_self_buy = 1, self_buy_amount = 50000.00,
@@ -79,7 +83,7 @@ UPDATE eb_stock_level SET name = '全国订货商', sort = 20, discount = 50.00,
        cond_team = 1, team_amount = 1000000.00,
        cond_product = 0, upgrade_product_ids = '',
        condition_logic = 0, peer_rate = 2.00
- WHERE id = 2;
+ WHERE id = 2 AND name = '一级代理' AND sort = 20 AND discount = 85.00;
 
 UPDATE eb_stock_level SET name = '省级订货商', sort = 30, discount = 60.00,
        cond_self_buy = 1, self_buy_amount = 20000.00,
@@ -87,7 +91,7 @@ UPDATE eb_stock_level SET name = '省级订货商', sort = 30, discount = 60.00,
        cond_team = 1, team_amount = 300000.00,
        cond_product = 0, upgrade_product_ids = '',
        condition_logic = 0, peer_rate = 3.00
- WHERE id = 3;
+ WHERE id = 3 AND name = '二级代理' AND sort = 30 AND discount = 90.00;
 
 UPDATE eb_stock_level SET name = '市级订货商', sort = 40, discount = 70.00,
        cond_self_buy = 1, self_buy_amount = 5000.00,
@@ -95,10 +99,16 @@ UPDATE eb_stock_level SET name = '市级订货商', sort = 40, discount = 70.00,
        cond_team = 1, team_amount = 80000.00,
        cond_product = 0, upgrade_product_ids = '',
        condition_logic = 0, peer_rate = 4.00
- WHERE id = 4;
+ WHERE id = 4 AND name = '普通代理' AND sort = 40 AND discount = 95.00;
 
+-- ⚠️ 安全约束（2026-09-23 线上加固）：补最后一级必须建立在「五级方案已就位」之上 ——
+--    只有已存在市级订货商（说明上面的默认数据已生效）时才插入。
+--    原写法只判 name != '区级订货商'，会在已有自定义层级的线上库里凭空插入一个
+--    cond_self_buy=1/1000 元 的等级，进而被自动升级逻辑命中，改变线上拿货价。
 INSERT INTO eb_stock_level(name, sort, discount, cond_self_buy, self_buy_amount,
                            cond_direct, direct_order_amount, cond_team, team_amount,
                            cond_product, upgrade_product_ids, condition_logic, peer_rate, is_del)
 SELECT '区级订货商', 50, 80.00, 1, 1000.00, 1, 5000.00, 1, 20000.00, 0, '', 0, 5.00, 0
-FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM eb_stock_level WHERE name = '区级订货商');
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT `name` FROM eb_stock_level) x WHERE x.`name` = '区级订货商')
+  AND     EXISTS (SELECT 1 FROM (SELECT `name` FROM eb_stock_level) y WHERE y.`name` = '市级订货商');

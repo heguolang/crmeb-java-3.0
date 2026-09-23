@@ -33,7 +33,9 @@ CREATE TABLE IF NOT EXISTS `eb_agent_change_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='reseller agent change log';
 
 -- 3) menu: rename 664? no -> 654 reward rule to stock setting (issue 13)
-UPDATE `eb_system_menu` SET `name` = '订货商设置' WHERE `id` = 654;
+-- 按 component 定位 + 兼保 id：线上 id 与本机可能不同，单靠 id 会改错菜单
+UPDATE `eb_system_menu` SET `name` = '订货商设置'
+ WHERE `id` = 654 AND `component` = '/stock/setting' AND `is_delte` = 0;
 
 -- 4) menu: new "level display" page under stock, below stock setting (issue 13)
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `component`, `perms`, `menu_type`, `sort`, `icon`, `is_show`, `is_delte`, `create_time`)

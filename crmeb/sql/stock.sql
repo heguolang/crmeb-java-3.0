@@ -14,6 +14,13 @@ CREATE TABLE IF NOT EXISTS `eb_stock_level` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='订货系统-代理层级配置';
 
+-- ⚠️ 安全约束（2026-09-23 线上加固）：占位层级**只在层级表为空的全新库**播种。
+--    原写法是「按 name 补插」，在已有自定义层级的线上库里会凭空多出
+--    一级代理/二级代理/普通代理 等行；这些行带拿货折扣与升级条件，
+--    会进入「订货商自动升级」判定（StockServiceImpl 按 cond_self_buy 等比较门槛），
+--    可能把会员自动升成不该有的等级。已有数据的库一律不动。
+SET @stock_level_seed := (SELECT COUNT(*) = 0 FROM `eb_stock_level`);
+
 INSERT INTO `eb_stock_level` (`name`, `sort`, `discount`)
 SELECT t.name, t.sort, t.discount FROM (
   SELECT '总代' AS name, 10 AS sort, 80.00 AS discount
@@ -21,7 +28,7 @@ SELECT t.name, t.sort, t.discount FROM (
   UNION ALL SELECT '二级代理', 30, 90.00
   UNION ALL SELECT '普通代理', 40, 95.00
 ) t
-WHERE NOT EXISTS (SELECT 1 FROM `eb_stock_level` l WHERE l.name = t.name);
+WHERE @stock_level_seed = 1;
 
 -- 2. 订货代理表（树形）-----------------------------------------
 CREATE TABLE IF NOT EXISTS `eb_stock_agent` (

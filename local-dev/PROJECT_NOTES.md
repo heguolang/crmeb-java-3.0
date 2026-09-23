@@ -310,6 +310,23 @@ crmeb/sql/
 已改为 phase3 同款模式：存储过程 `add_col_if_missing` + 逐列 `CALL`
 （MySQL 5.7 无 `ADD COLUMN IF NOT EXISTS`；`DELIMITER` 在本项目 mysql 客户端下可用）。
 
+### 🔒 上线前安全加固（2026-09-23，每次改补丁包都要复查这 5 条）
+
+补丁包要跑在**真实业务的线上库**（`deploy.sh` 的 `DB_NAME=crmeb_java3`），不能按"本机跑通就行"交付。
+以下 5 条是 2026-09-23 全量审计发现并修掉的隐患，**判定标准：幂等 + 不覆盖已有业务数据 + 不硬编码库名/id**。
+
+| # | 隐患 | 原写法 | 修法 |
+|---|---|---|---|
+| 1 | **本地设置快照冲掉线上真实配置** | `local_default_settings.sql` 分节用 `REPLACE INTO eb_system_config VALUES (…304 行…)`，按主键覆盖，含 `pay_weixin_app_*`、`APP_PRIVATE_KEY`、`sms_account/token`、`tx/qn/jd` 存储密钥、`store_brokerage_*` | **已从 `02_patches_all.sql` 停用两行 REPLACE**（含 `eb_page_diy` 装修页），保留源文件备用；要执行必须单独跑并逐项核对 |
+| 2 | **硬编码库名** | 3 个源脚本内 `USE \`crmeb\`;`，在拼接文件里残留 1 处 → 线上（库名 `crmeb_java3`）会打到错库或 `ERROR 1049` 中断其后全部语句 | 删除所有 `USE`，目标库由连接/命令行决定 |
+| 3 | **覆盖线上订货商等级** | `stock_upgrade_conditions.sql` 4 条 `UPDATE eb_stock_level … WHERE id = 1..4` → 直接改掉线上拿货折扣 / 平级比例 / 升级门槛 | 加四条件锁：`AND name='总代' AND sort=10 AND discount=80.00`（须同时命中才算"仍是初始占位行"） |
+| 4 | **凭空插入可升级的等级** | `stock.sql` 按 name 补插 `一级代理/二级代理/普通代理`；`区级订货商` 只判 name 不存在就插（`cond_self_buy=1/1000元` → 会被 `StockServiceImpl:1554` 的自动升级命中，改变线上拿货价） | 占位层级改为**仅当 `eb_stock_level` 为空**（`SET @stock_level_seed`）才播种；`区级订货商` 追加 `AND EXISTS(市级订货商)` |
+| 5 | **硬编码菜单 id 改名** | `stock_changelog_product_rel.sql` / `stock_issue_batch_20260918.sql` 的 `WHERE id = 660` / `654` | 追加 `AND component='/stock/agent'` / `'/stock/setting'` |
+
+**验收动作（必做）**：`mysql crmeb < 02_patches_all.sql` 跑两遍，要求
+`EXIT=0` + `grep -c '^ERROR'` 为 0 + **`eb_stock_level` / `eb_system_config` / `eb_system_menu` 前后 diff 为空**。
+只在本地跑一遍看不出副作用，必须做前后快照对比。
+
 ---
 
 ## F. 分销商等级模块（2026-09-23，原「会员返佣配置」）
@@ -445,9 +462,16 @@ cd /d/crmeb-java-3.0/admin && node node_modules/@vue/cli-service/bin/vue-cli-ser
 mysqldump -uroot -p --default-character-set=utf8mb4 crmeb > crmeb_backup_$(date +%Y%m%d).sql
 
 # 2) 执行一键补丁（幂等，含本轮全部 DDL + 数据清理）
-mysql -uroot -p --default-character-set=utf8mb4 crmeb < crmeb/sql/oneclick/02_patches_all.sql
+#    库名由连接决定：线上 crmeb_java3、本地 crmeb —— 脚本内已无 USE 语句
+mysql -uroot -p --default-character-set=utf8mb4 crmeb_java3 < crmeb/sql/oneclick/02_patches_all.sql
 # 末尾应输出：CRMEB fix_duplicate_data done / CRMEB oneclick patches done
 ```
+
+> ⚠️ 补丁包**不再包含**「本地设置快照」（`local_default_settings.sql` 分节）。
+> 该分节用 `REPLACE INTO` 按主键覆盖 `eb_system_config` / `eb_page_diy`，
+> 会把线上的微信支付配置、短信账号、存储密钥一起冲掉，故已停用。
+> 确实需要复刻本地展示设置时**单独执行**并逐项核对：
+> `mysql -uroot -p --default-character-set=utf8mb4 crmeb_java3 < crmeb/sql/local_default_settings.sql`
 
 补丁包内含的**数据清理**（`fix_duplicate_data_20260923.sql`，已并入末尾）：
 1. `eb_system_config` 同 name 重复行只保留 **id 最大（最后写入）** 的一条 ——

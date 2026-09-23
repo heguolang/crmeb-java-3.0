@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS `eb_stock_product_rel` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='参与订货的商品关联';
 
 -- 3. 菜单：订货代理 → 订货商管理
-UPDATE `eb_system_menu` SET `name` = '订货商管理' WHERE `id` = 660;
+-- 按 component 定位 + 兼保 id：线上 id 与本机可能不同，单靠 id 会改错菜单
+UPDATE `eb_system_menu` SET `name` = '订货商管理'
+ WHERE `id` = 660 AND `component` = '/stock/agent' AND `is_delte` = 0;
 
 -- 4. 菜单：删除提现管理（含提现审核按钮；不依赖固定 id）
 UPDATE `eb_system_menu`
