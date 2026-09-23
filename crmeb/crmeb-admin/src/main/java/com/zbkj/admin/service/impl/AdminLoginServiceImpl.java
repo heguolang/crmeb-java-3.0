@@ -43,9 +43,12 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -237,6 +240,10 @@ public class AdminLoginServiceImpl implements AdminLoginService {
         }
         // 系统运维菜单仅对 qxtec 下发，其他管理员（含超管）一律过滤
         boolean isHiddenAdmin = "qxtec".equals(loginUserVo.getUser().getAccount());
+        // 仅系统运维账号(qxtec)可见的顶级菜单组件：
+        //   /hidden   = 系统 → 运维面板
+        //   /maintain = 维护（开发配置 / 物流设置 / 定时任务管理，纯运维用途）
+        final Set<String> opsOnlyMenus = new HashSet<>(Arrays.asList("/hidden", "/maintain"));
         // 隐藏面板模块开关：关闭的模块不向前端下发菜单分组
         Map<String, String> moduleMenuSwitch = new HashMap<>();
         moduleMenuSwitch.put("/stock", "sys_switch_stock");
@@ -253,8 +260,8 @@ public class AdminLoginServiceImpl implements AdminLoginService {
         final boolean filterHidden = !isHiddenAdmin;
         menuList = menuList.stream().filter(m -> {
             if (StrUtil.isNotBlank(m.getComponent())) {
-                // 运维菜单只给 qxtec
-                if (filterHidden && "/hidden".equals(m.getComponent())) {
+                // 运维专属菜单（系统 / 维护）只给 qxtec
+                if (filterHidden && opsOnlyMenus.contains(m.getComponent())) {
                     return false;
                 }
                 String switchKey = moduleMenuSwitch.get(m.getComponent());

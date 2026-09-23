@@ -2966,7 +2966,7 @@ INSERT INTO `tmp_menu_sync`
 ('/operation/logManager/adminOperateLog', 'C', '/operation/logManager', 'admin:log:sensitive:list', '管理员操作日志', '', 2, 1, 0),
 ('/operation/roleManager/adminList', 'C', '/operation/roleManager', 'admin:system:admin:list', '管理员列表', '', 1, 1, 0),
 ('/operation/roleManager/identityManager', 'C', '/operation/roleManager', 'admin:system:role:list', '角色管理', '', 1, 1, 0),
-('/operation/roleManager/promiseRules', 'C', '/operation/roleManager', 'admin:system:menu:list', '权限规则', '', 1, 1, 0),
+('/operation/roleManager/promiseRules', 'C', '/maintain', 'admin:system:menu:list', '权限规则', '', 1, 1, 0),
 ('/operation/deliverGoods/freightSet', 'C', '/operation/deliverGoods', 'admin:shipping:templates:list', '运费模板', '', 2, 1, 0),
 ('/appSetting/publicAccount/wxMenus', 'C', '/appSetting/publicAccount', 'admin:wechat:menu:public:get', '微信菜单', '', 0, 1, 0),
 ('/appSetting/publicAccount/wxReply', 'M', '/appSetting/publicAccount', '', '自动回复', '', 1, 1, 0),
