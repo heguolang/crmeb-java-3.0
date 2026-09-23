@@ -92,6 +92,7 @@
                 <span v-for="(c, ci) in cateList(row.cateValues)" :key="ci" class="mini-chip">{{ c }}</span>
               </div>
               <div class="sub-text">商品编号：ID {{ row.id }}</div>
+              <div v-if="row.groupNames" class="sub-text">商品分组：{{ row.groupNames }}</div>
             </div>
             <div class="list-cell">
               <div class="irow"><span class="il">售价：</span><span class="iv">￥{{ fmtMoney(row.price) }}</span></div>

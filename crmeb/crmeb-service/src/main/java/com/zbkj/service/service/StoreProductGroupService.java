@@ -10,6 +10,7 @@ import com.zbkj.common.request.StoreProductGroupSearchRequest;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -65,6 +66,9 @@ public interface StoreProductGroupService extends IService<StoreProductGroup> {
 
     /** 查询商品所属分组id */
     List<Integer> getGroupIdsByProductId(Integer productId);
+
+    /** 批量取商品所属分组名（商品id -> 逗号分隔分组名，无分组的商品不出现在结果里） */
+    Map<Integer, String> getGroupNamesByProductIds(List<Integer> productIds);
 
     /**
      * 获取（必要时创建）分组的装修页ID。

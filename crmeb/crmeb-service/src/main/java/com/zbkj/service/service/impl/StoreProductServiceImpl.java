@@ -256,6 +256,12 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
                     storeProductRelationService.getList(product.getId(),"collect").size());
             storeProductResponses.add(storeProductResponse);
         }
+        // 批量填充所属商品分组名
+        Map<Integer, String> groupNamesMap = storeProductGroupService.getGroupNamesByProductIds(
+                storeProducts.stream().map(StoreProduct::getId).collect(Collectors.toList()));
+        for (StoreProductResponse response : storeProductResponses) {
+            response.setGroupNames(groupNamesMap.getOrDefault(response.getId(), ""));
+        }
         // 多条sql查询处理分页正确
         return CommonPage.copyPageInfo(storeProductPage, storeProductResponses);
     }

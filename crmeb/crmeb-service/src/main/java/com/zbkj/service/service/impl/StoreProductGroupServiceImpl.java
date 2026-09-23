@@ -37,6 +37,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -351,6 +352,38 @@ public class StoreProductGroupServiceImpl extends ServiceImpl<StoreProductGroupD
             return Collections.emptyList();
         }
         return rels.stream().map(StoreProductGroupRel::getGroupId).distinct().collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<Integer, String> getGroupNamesByProductIds(List<Integer> productIds) {
+        Map<Integer, String> result = new HashMap<>();
+        if (CollUtil.isEmpty(productIds)) {
+            return result;
+        }
+        List<StoreProductGroupRel> rels = relDao.selectList(Wrappers.<StoreProductGroupRel>lambdaQuery()
+                .in(StoreProductGroupRel::getProductId, productIds));
+        if (CollUtil.isEmpty(rels)) {
+            return result;
+        }
+        List<Integer> groupIds = rels.stream().map(StoreProductGroupRel::getGroupId).distinct().collect(Collectors.toList());
+        Map<Integer, String> nameMap = new HashMap<>();
+        for (StoreProductGroup g : listByIds(groupIds)) {
+            if (!Boolean.TRUE.equals(g.getIsDel())) {
+                nameMap.put(g.getId(), g.getName());
+            }
+        }
+        Map<Integer, List<Integer>> productGroupIds = rels.stream()
+                .collect(Collectors.groupingBy(StoreProductGroupRel::getProductId,
+                        Collectors.mapping(StoreProductGroupRel::getGroupId, Collectors.toList())));
+        productGroupIds.forEach((pid, gids) -> {
+            String names = gids.stream().distinct()
+                    .map(nameMap::get).filter(n -> n != null)
+                    .collect(Collectors.joining(","));
+            if (StrUtil.isNotBlank(names)) {
+                result.put(pid, names);
+            }
+        });
+        return result;
     }
 
     // -------------------- helpers --------------------
