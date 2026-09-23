@@ -1629,7 +1629,7 @@ SELECT t.name, t.title, 0, '1', 0, NOW(), NOW() FROM (
 -- 1) 顶级目录 /hidden（缺失才建）
 INSERT INTO `eb_system_menu`
   (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`)
-SELECT 0, '系统', 'warning', '', '/hidden', 'M', 88, 1, 0, NOW(), NOW()
+SELECT 0, '系统', 'warning', '', '/hidden', 'M', 55, 1, 0, NOW(), NOW()
   FROM DUAL
  WHERE NOT EXISTS (SELECT 1 FROM (SELECT `component` FROM `eb_system_menu`) x
                     WHERE x.`component` = '/hidden');
@@ -2857,7 +2857,7 @@ INSERT INTO `tmp_menu_sync`
 ('/dashboard', 'M', '', '', '首页', 'menu', 200, 1, 0),
 ('/design', 'M', '', '', '装修', 's-home', 85, 1, 0),
 ('/financial', 'M', '', '', '财务', 's-finance', 90, 1, 0),
-('/hidden', 'M', '', '', '系统', 'warning', 88, 1, 0),
+('/hidden', 'M', '', '', '系统', 'warning', 55, 1, 0),
 ('/javaMobile', 'M', '', '', '移动端管理', 'phone', 80, 1, 0),
 ('/maintain', 'M', '', '', '维护', 's-open', 60, 1, 0),
 ('/marketing', 'M', '', '', '营销', 's-marketing', 110, 1, 0),

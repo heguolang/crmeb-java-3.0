@@ -16477,7 +16477,7 @@ INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`,
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (690,689,'提现设置保存','','admin:finance:extract:setting:save',NULL,'A',1,0,0,'2026-09-18 08:12:01','2026-09-18 08:12:01');
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (691,652,'订货商级别设置','','admin:stock:level:list','/stock/level','C',8,1,0,'2026-09-18 15:45:44','2026-09-19 08:19:30');
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (692,641,'代理商变更记录','','admin:agent:changelog:list','/daili/changeLog','C',4,1,0,'2026-09-18 15:45:44','2026-09-18 15:45:44');
-INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (699,0,'系统','warning','','/hidden','M',88,1,0,'2026-09-19 08:03:03','2026-09-19 08:10:39');
+INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (699,0,'系统','warning','','/hidden','M',55,1,0,'2026-09-19 08:03:03','2026-09-19 08:10:39');
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (700,699,'运维面板','','','/hidden/panel','C',0,1,0,'2026-09-19 08:03:03','2026-09-19 08:03:03');
 /*!40000 ALTER TABLE `eb_system_menu` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -20548,7 +20548,7 @@ INSERT INTO eb_system_config (name, title, form_id, value, status, create_time, 
 -- 系统运维菜单（仅 qxtec 登录时由后端下发，其他管理员不可见；幂等）
 DELETE FROM eb_system_menu WHERE component='/hidden' OR component='/hidden/panel';
 INSERT INTO eb_system_menu (pid, name, icon, component, perms, menu_type, sort, is_show, is_delte)
-VALUES (0, '系统运维', 'cog', '/hidden', '', 'M', 88, 1, 0);
+VALUES (0, '系统运维', 'cog', '/hidden', '', 'M', 55, 1, 0);
 SET @hidden_pid = LAST_INSERT_ID();
 INSERT INTO eb_system_menu (pid, name, icon, component, perms, menu_type, sort, is_show, is_delte)
 VALUES (@hidden_pid, '运维面板', '', '/hidden/panel', '', 'C', 0, 1, 0);
