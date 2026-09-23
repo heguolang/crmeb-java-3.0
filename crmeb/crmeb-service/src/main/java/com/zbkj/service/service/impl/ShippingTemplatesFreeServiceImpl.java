@@ -109,22 +109,6 @@ public class ShippingTemplatesFreeServiceImpl extends ServiceImpl<ShippingTempla
     }
 
     /**
-     * 把模板下的所有数据标记为无效
-     *
-     * @param tempId Integer 运费模板id
-     * @author Mr.Zhang
-     * @since 2020-05-20
-     */
-    private void updateStatus(Integer tempId) {
-        LambdaQueryWrapper<ShippingTemplatesFree> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(ShippingTemplatesFree::getTempId, tempId);
-
-        ShippingTemplatesFree shippingTemplatesFree = new ShippingTemplatesFree();
-        shippingTemplatesFree.setStatus(false);
-        update(shippingTemplatesFree, lambdaQueryWrapper);
-    }
-
-    /**
      * 删除模板下的无效数据
      *
      * @param tempId Integer 运费模板id

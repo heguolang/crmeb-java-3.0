@@ -87,9 +87,6 @@ public class StoreSeckillServiceImpl extends ServiceImpl<StoreSeckillDao, StoreS
     private StoreProductAttrValueService storeProductAttrValueService;
 
     @Autowired
-    private StoreProductAttrResultService storeProductAttrResultService;
-
-    @Autowired
     private RedisUtil redisUtil;
 
     @Autowired

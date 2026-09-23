@@ -9,15 +9,12 @@ import com.zbkj.admin.service.ActionService;
 import com.zbkj.common.model.log.SensitiveMethodLog;
 import com.zbkj.common.utils.SpringUtil;
 import com.zbkj.common.vo.LoginUserVo;
-import org.apache.ibatis.javassist.Modifier;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -46,8 +43,6 @@ import java.util.Objects;
 @Aspect
 @Component
 public class SensitiveLogAspect {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(SensitiveLogAspect.class);
 
     @Resource
     private ActionService actionService;

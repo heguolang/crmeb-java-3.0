@@ -5,7 +5,6 @@ import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
@@ -24,7 +23,6 @@ import com.zbkj.common.model.order.StoreOrder;
 import com.zbkj.common.model.order.StoreOrderInfo;
 import com.zbkj.common.model.product.ProductCommissionConfig;
 import com.zbkj.common.model.product.StoreProduct;
-import com.zbkj.common.model.product.StoreProductAttrValue;
 import com.zbkj.common.model.product.StoreProductCoupon;
 import com.zbkj.common.model.sms.SmsTemplate;
 import com.zbkj.common.model.system.SystemAdmin;
@@ -47,7 +45,6 @@ import com.zbkj.common.vo.*;
 import com.zbkj.service.delete.OrderUtils;
 import com.zbkj.service.service.*;
 import lombok.Data;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -813,29 +810,6 @@ public class OrderPayServiceImpl implements OrderPayService {
             total = total.add(line);
         }
         return total;
-    }
-
-    private BigDecimal calculateCommissionByRate(Integer orderId, BigDecimal rateBigDecimal) {        if (ObjectUtil.isNull(rateBigDecimal) || rateBigDecimal.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
-        }
-        List<StoreOrderInfoOldVo> orderInfoVoList = storeOrderInfoService.getOrderListByOrderId(orderId);
-        if (CollUtil.isEmpty(orderInfoVoList)) {
-            return BigDecimal.ZERO;
-        }
-        BigDecimal totalBrokerPrice = BigDecimal.ZERO;
-        for (StoreOrderInfoOldVo orderInfoVo : orderInfoVoList) {
-            BigDecimal brokeragePrice;
-            if (ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())) {
-                brokeragePrice = orderInfoVo.getInfo().getVipPrice().multiply(rateBigDecimal).setScale(2, BigDecimal.ROUND_DOWN);
-            } else {
-                brokeragePrice = orderInfoVo.getInfo().getPrice().multiply(rateBigDecimal).setScale(2, BigDecimal.ROUND_DOWN);
-            }
-            if (brokeragePrice.compareTo(BigDecimal.ZERO) > 0 && orderInfoVo.getInfo().getPayNum() > 1) {
-                brokeragePrice = brokeragePrice.multiply(new BigDecimal(orderInfoVo.getInfo().getPayNum()));
-            }
-            totalBrokerPrice = totalBrokerPrice.add(brokeragePrice);
-        }
-        return totalBrokerPrice;
     }
 
     /**

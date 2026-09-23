@@ -15,7 +15,6 @@ import com.zbkj.common.utils.CrmebUtil;
 import com.zbkj.common.vo.SystemStoreNearVo;
 import com.zbkj.service.dao.SystemStoreDao;
 import com.zbkj.service.service.SystemAttachmentService;
-import com.zbkj.service.service.SystemConfigService;
 import com.zbkj.service.service.SystemStoreService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -44,9 +43,6 @@ public class SystemStoreServiceImpl extends ServiceImpl<SystemStoreDao, SystemSt
 
     @Resource
     private SystemStoreDao dao;
-
-    @Autowired
-    private SystemConfigService systemConfigService;
 
     @Autowired
     private SystemAttachmentService systemAttachmentService;

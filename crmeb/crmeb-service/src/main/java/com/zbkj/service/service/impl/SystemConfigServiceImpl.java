@@ -359,17 +359,6 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigDao, System
         return updateOrSaveValueByName(SysConfigConstants.CONFIG_CHANGE_COLOR, request.getValue());
     }
 
-    private SystemConfig getConfigByName(String name) {
-        String value = get(name);
-        if (StrUtil.isBlank(value)) {
-            value = "";
-        }
-        SystemConfig systemConfig = new SystemConfig();
-        systemConfig.setName(name);
-        systemConfig.setValue(value);
-        return systemConfig;
-    }
-
     private SystemConfig getConfigByNameException(String name) {
         String value = getValueByKeyException(name);
         SystemConfig systemConfig = new SystemConfig();

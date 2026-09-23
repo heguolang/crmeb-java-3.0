@@ -19,7 +19,6 @@ import com.zbkj.service.service.SystemAttachmentService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -34,9 +33,6 @@ public class StoreProductGuaranteeServiceImpl extends ServiceImpl<StoreProductGu
     private StoreProductService productService;
     @Autowired
     private SystemAttachmentService systemAttachmentService;
-
-    @Autowired
-    private TransactionTemplate transactionTemplate;
 
     /**
      * 保障服务列表

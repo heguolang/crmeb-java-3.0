@@ -13,7 +13,6 @@ import com.zbkj.common.constants.DateConstants;
 import com.zbkj.common.constants.PayConstants;
 import com.zbkj.common.constants.UserConstants;
 import com.zbkj.common.page.CommonPage;
-import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.constants.Constants;
 import com.zbkj.common.exception.CrmebException;
 import com.github.pagehelper.Page;
@@ -29,9 +28,7 @@ import com.zbkj.common.utils.ValidateFormUtil;
 import com.zbkj.common.vo.DateLimitUtilVo;
 import com.zbkj.service.dao.UserRechargeDao;
 import com.zbkj.service.service.UserRechargeService;
-import com.zbkj.service.service.UserService;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -58,9 +55,6 @@ public class UserRechargeServiceImpl extends ServiceImpl<UserRechargeDao, UserRe
 
     @Resource
     private UserRechargeDao dao;
-
-    @Autowired
-    private UserService userService;
 
 
     /**

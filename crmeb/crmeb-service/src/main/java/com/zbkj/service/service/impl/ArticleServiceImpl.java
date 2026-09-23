@@ -26,8 +26,6 @@ import com.zbkj.service.service.CategoryService;
 import com.zbkj.service.service.SystemAttachmentService;
 import com.zbkj.service.service.SystemConfigService;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -51,8 +49,6 @@ import java.util.stream.Collectors;
 */
 @Service
 public class ArticleServiceImpl extends ServiceImpl<ArticleDao, Article> implements ArticleService {
-
-    private Logger logger = LoggerFactory.getLogger(ArticleServiceImpl.class);
 
     @Resource
     private ArticleDao dao;

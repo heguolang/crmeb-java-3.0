@@ -1,9 +1,6 @@
 package com.zbkj.service.service.impl;
 
-import com.zbkj.service.service.ArticleService;
-import com.zbkj.service.service.UserTokenService;
 import com.zbkj.service.service.WechatUserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -20,15 +17,6 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class WechatUserServiceImpl implements WechatUserService {
-    @Autowired
-    private ArticleService articleService;
-
-//    @Lazy
-//    @Autowired
-//    private WeChatService weChatService;
-
-    @Autowired
-    private UserTokenService userTokenService;
 
 
 //    /**

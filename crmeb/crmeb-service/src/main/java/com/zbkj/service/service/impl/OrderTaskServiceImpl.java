@@ -6,7 +6,6 @@ import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.zbkj.common.constants.Constants;
@@ -117,10 +116,6 @@ public class OrderTaskServiceImpl implements OrderTaskService {
                 redisUtil.lPush(redisKey, data);
             }
         }
-    }
-
-    private StoreOrder getJavaBeanStoreOrder(Object data) {
-        return JSONObject.toJavaObject(JSONObject.parseObject(data.toString()), StoreOrder.class);
     }
 
     /**

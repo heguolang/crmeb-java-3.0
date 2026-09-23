@@ -1,7 +1,6 @@
 package com.zbkj.service.service.impl;
 
 import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -21,7 +20,6 @@ import com.zbkj.common.request.MerchantStoreRequest;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.response.MerchantStoreNearVo;
 import com.zbkj.common.response.StoreOrderVerificationConfirmResponse;
-import com.zbkj.common.utils.CrmebUtil;
 import com.zbkj.common.utils.RedisUtil;
 import com.zbkj.common.vo.OrderInfoDetailVo;
 import com.zbkj.common.vo.StoreOrderInfoOldVo;
@@ -30,7 +28,6 @@ import com.zbkj.service.dao.StoreOrderDao;
 import com.zbkj.service.dao.SystemStoreDao;
 import com.zbkj.service.service.MerchantStoreService;
 import com.zbkj.service.service.StoreOrderInfoService;
-import com.zbkj.service.service.StoreOrderService;
 import com.zbkj.service.service.StoreProductService;
 import com.zbkj.service.service.SystemConfigService;
 import com.zbkj.service.service.UserService;
@@ -69,9 +66,6 @@ public class MerchantStoreServiceImpl implements MerchantStoreService {
 
     @Autowired
     private StoreProductService storeProductService;
-
-    @Autowired
-    private StoreOrderService storeOrderService;
 
     @Autowired
     private StoreOrderInfoService storeOrderInfoService;

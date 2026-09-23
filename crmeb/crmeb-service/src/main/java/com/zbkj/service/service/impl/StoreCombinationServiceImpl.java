@@ -70,9 +70,6 @@ public class StoreCombinationServiceImpl extends ServiceImpl<StoreCombinationDao
     private StoreProductAttrValueService storeProductAttrValueService;
 
     @Autowired
-    private StoreProductAttrResultService storeProductAttrResultService;
-
-    @Autowired
     private StoreProductDescriptionService storeProductDescriptionService;
 
     @Autowired

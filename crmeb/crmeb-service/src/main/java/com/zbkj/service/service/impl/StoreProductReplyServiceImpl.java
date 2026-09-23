@@ -91,8 +91,6 @@ public class StoreProductReplyServiceImpl extends ServiceImpl<StoreProductReplyD
 
     @Autowired
     private TransactionTemplate transactionTemplate;
-    @Autowired
-    private SystemConfigService systemConfigService;
 
 
     /**

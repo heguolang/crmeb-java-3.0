@@ -80,9 +80,6 @@ public class StoreBargainServiceImpl extends ServiceImpl<StoreBargainDao, StoreB
     private StoreProductAttrValueService attrValueService;
 
     @Autowired
-    private StoreProductAttrResultService storeProductAttrResultService;
-
-    @Autowired
     private StoreProductDescriptionService storeProductDescriptionService;
 
     @Autowired

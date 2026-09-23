@@ -26,7 +26,6 @@ import com.zbkj.common.model.order.StoreOrder;
 import com.zbkj.common.model.order.StoreOrderInfo;
 import com.zbkj.common.model.product.StoreProductAttrValue;
 import com.zbkj.common.model.system.SystemAdmin;
-import com.zbkj.common.utils.RedisUtil;
 import com.zbkj.common.vo.ShopOrderPayVo;
 import com.zbkj.service.delete.OrderUtils;
 import com.zbkj.service.service.*;
@@ -43,7 +42,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -62,9 +60,6 @@ import java.util.stream.Collectors;
 public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
     //日志
     private static final Logger logger = LoggerFactory.getLogger(StoreOrderTaskServiceImpl.class);
-
-    @Autowired
-    private RedisUtil redisUtil;
 
     @Autowired
     private StoreOrderService storeOrderService;
@@ -92,9 +87,6 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
 
     @Autowired
     private StoreCombinationService storeCombinationService;
-
-    @Autowired
-    private UserBillService userBillService;
 
     @Autowired
     private TransactionTemplate transactionTemplate;
@@ -143,9 +135,6 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
 
     @Autowired
     private WechatVideoOrderService wechatVideoOrderService;
-
-    @Autowired
-    private PayComponentOrderProductService componentOrderProductService;
 
     @Autowired
     private PayComponentProductService componentProductService;

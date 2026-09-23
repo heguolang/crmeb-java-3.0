@@ -2300,18 +2300,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     }
 
     /**
-     * 获取request的where条件
-     * @param queryWrapper QueryWrapper<StoreOrder> 表达式
-     * @param request StoreOrderSearchRequest 请求参数
-     */
-    private void getRequestTimeWhere(QueryWrapper<StoreOrder> queryWrapper, StoreOrderSearchRequest request) {
-        if (StringUtils.isNotBlank(request.getDateLimit())) {
-            DateLimitUtilVo dateLimitUtilVo = CrmebDateUtil.getDateLimit(request.getDateLimit());
-            queryWrapper.between("create_time", dateLimitUtilVo.getStartTime(), dateLimitUtilVo.getEndTime());
-        }
-    }
-
-    /**
      * 根据订单状态获取where条件
      * @param queryWrapper QueryWrapper<StoreOrder> 表达式
      * @param status String 类型
@@ -2376,72 +2364,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
             default:
                 queryWrapper.eq("paid", 1);
                 queryWrapper.ne("refund_status", 2);
-                break;
-        }
-        queryWrapper.eq("is_system_del", 0);
-    }
-
-    /**
-     * 根据订单状态获取where条件
-     * @param queryWrapper QueryWrapper<StoreOrder> 表达式
-     * @param status String 类型
-     */
-    private void getStatusWhere(QueryWrapper<StoreOrder> queryWrapper, String status) {
-        if (StrUtil.isBlank(status)) {
-            return;
-        }
-        switch (status) {
-            case Constants.ORDER_STATUS_UNPAID: //未支付
-                queryWrapper.eq("paid", 0);//支付状态
-                queryWrapper.eq("status", 0); //订单状态
-                queryWrapper.eq("is_del", 0);//删除状态
-                break;
-            case Constants.ORDER_STATUS_NOT_SHIPPED: //未发货
-                queryWrapper.eq("paid", 1);
-                queryWrapper.eq("status", 0);
-                queryWrapper.eq("refund_status", 0);
-                queryWrapper.eq("shipping_type", 1);//配送方式
-                queryWrapper.eq("is_del", 0);
-                break;
-            case Constants.ORDER_STATUS_SPIKE: //待收货
-                queryWrapper.eq("paid", 1);
-                queryWrapper.eq("status", 1);
-                queryWrapper.eq("refund_status", 0);
-                queryWrapper.eq("is_del", 0);
-                break;
-            case Constants.ORDER_STATUS_BARGAIN: //待评价
-                queryWrapper.eq("paid", 1);
-                queryWrapper.eq("status", 2);
-                queryWrapper.eq("refund_status", 0);
-                queryWrapper.eq("is_del", 0);
-                break;
-            case Constants.ORDER_STATUS_COMPLETE: //交易完成
-                queryWrapper.eq("paid", 1);
-                queryWrapper.eq("status", 3);
-                queryWrapper.eq("refund_status", 0);
-                queryWrapper.eq("is_del", 0);
-                break;
-            case Constants.ORDER_STATUS_TOBE_WRITTEN_OFF: //待核销
-                queryWrapper.eq("paid", 1);
-                queryWrapper.eq("status", 0);
-                queryWrapper.eq("refund_status", 0);
-                queryWrapper.eq("shipping_type", 2);//配送方式
-                queryWrapper.eq("is_del", 0);
-                break;
-            case Constants.ORDER_STATUS_REFUNDING: //退款中
-                queryWrapper.eq("paid", 1);
-                queryWrapper.in("refund_status", 1,3);
-                queryWrapper.eq("is_del", 0);
-                break;
-            case Constants.ORDER_STATUS_REFUNDED: //已退款
-                queryWrapper.eq("paid", 1);
-                queryWrapper.eq("refund_status", 2);
-                queryWrapper.eq("is_del", 0);
-                break;
-            case Constants.ORDER_STATUS_DELETED: //已删除
-                queryWrapper.eq("is_del", 1);
-                break;
-            default:
                 break;
         }
         queryWrapper.eq("is_system_del", 0);

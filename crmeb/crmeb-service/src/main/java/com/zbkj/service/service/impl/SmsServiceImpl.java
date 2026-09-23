@@ -57,9 +57,6 @@ public class SmsServiceImpl implements SmsService {
     private RestTemplateUtil restTemplateUtil;
 
     @Autowired
-    private SmsRecordService smsRecordService;
-
-    @Autowired
     private RedisUtil redisUtil;
 
     @Autowired

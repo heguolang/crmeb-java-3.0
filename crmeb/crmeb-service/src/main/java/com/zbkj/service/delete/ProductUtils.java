@@ -57,9 +57,6 @@ public class ProductUtils {
     String rightUrl;
 
     @Autowired
-    private StoreProductCouponService storeProductCouponService;
-
-    @Autowired
     private SystemConfigService systemConfigService;
 
     @Autowired

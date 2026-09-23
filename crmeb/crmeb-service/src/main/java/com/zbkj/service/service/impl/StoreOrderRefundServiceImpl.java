@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zbkj.common.constants.Constants;
 import com.zbkj.common.constants.PayConstants;
 import com.zbkj.common.request.StoreOrderRefundRequest;
-import com.zbkj.common.utils.RestTemplateUtil;
 import com.zbkj.common.utils.WxPayUtil;
 import com.zbkj.common.vo.WxRefundVo;
 import com.zbkj.common.model.order.StoreOrder;
@@ -34,9 +33,6 @@ public class StoreOrderRefundServiceImpl extends ServiceImpl<StoreOrderDao, Stor
 
     @Autowired
     private SystemConfigService systemConfigService;
-
-    @Autowired
-    private RestTemplateUtil restTemplateUtil;
     @Autowired
     private WechatNewService wechatNewService;
 

@@ -68,8 +68,6 @@ public class PayComponentDraftProductServiceImpl extends ServiceImpl<PayComponen
     private SystemAttachmentService systemAttachmentService;
     @Autowired
     private PayComponentCatService catService;
-    @Autowired
-    private WechatVideoBeforeService wechatVideoBeforeService;
 
     /**
      * 添加商品

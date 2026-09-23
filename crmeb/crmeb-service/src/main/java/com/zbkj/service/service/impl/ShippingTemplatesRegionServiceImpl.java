@@ -129,18 +129,6 @@ public class ShippingTemplatesRegionServiceImpl extends ServiceImpl<ShippingTemp
     }
 
     /**
-     * 把模板下的所有数据标记为无效
-     *
-     * @param tempId Integer 运费模板id
-     */
-    private Boolean updateStatus(Integer tempId) {
-        LambdaUpdateWrapper<ShippingTemplatesRegion> wrapper = Wrappers.lambdaUpdate();
-        wrapper.set(ShippingTemplatesRegion::getStatus, false);
-        wrapper.eq(ShippingTemplatesRegion::getTempId, tempId);
-        return update(wrapper);
-    }
-
-    /**
      * 删除模板下的无效数据
      *
      * @param tempId Integer 运费模板id

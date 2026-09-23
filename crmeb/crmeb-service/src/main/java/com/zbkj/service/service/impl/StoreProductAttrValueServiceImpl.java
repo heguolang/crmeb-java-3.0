@@ -10,8 +10,6 @@ import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.product.StoreProductAttrValue;
 import com.zbkj.service.dao.StoreProductAttrValueDao;
 import com.zbkj.service.service.StoreProductAttrValueService;
-import com.zbkj.service.service.SystemConfigService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -35,9 +33,6 @@ public class StoreProductAttrValueServiceImpl extends ServiceImpl<StoreProductAt
 
     @Resource
     private StoreProductAttrValueDao dao;
-
-    @Autowired
-    private SystemConfigService systemConfigService;
 
     /**
      *

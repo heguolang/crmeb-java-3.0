@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.constants.BrokerageRecordConstants;
 import com.zbkj.common.model.stock.StockAgent;
@@ -872,10 +871,6 @@ public class StockRewardServiceImpl implements StockRewardService {
         return sum;
     }
 
-    private List<StockAgent> directChildren(Integer agentId) {
-        return stockService.getDirectChildren(agentId);
-    }
-
     private BigDecimal sumReward(Integer uid, Integer type) {
         LambdaQueryWrapper<StockReward> lqw = new LambdaQueryWrapper<>();
         lqw.eq(StockReward::getUid, uid).eq(StockReward::getStatus, StockReward.STATUS_CREDITED);
@@ -1022,14 +1017,6 @@ public class StockRewardServiceImpl implements StockRewardService {
             r.setLinkNickname(lu == null ? "" : lu.getNickname());
             r.setLinkPhone(lu == null ? "" : lu.getPhone());
             r.setProductNames(productNameMap.getOrDefault(r.getOrderNo(), ""));
-        }
-    }
-
-    private BigDecimal parseDecimal(String s, BigDecimal def) {
-        try {
-            return new BigDecimal(s.trim());
-        } catch (Exception e) {
-            return def;
         }
     }
 

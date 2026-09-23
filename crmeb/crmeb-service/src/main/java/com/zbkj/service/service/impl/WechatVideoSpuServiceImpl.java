@@ -7,7 +7,6 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.zbkj.common.constants.WeChatConstants;
 import com.zbkj.common.exception.CrmebException;
-import com.zbkj.common.utils.RedisUtil;
 import com.zbkj.common.utils.RestTemplateUtil;
 import com.zbkj.common.utils.WxUtil;
 import com.zbkj.common.vo.*;
@@ -35,9 +34,6 @@ import java.util.stream.Collectors;
  */
 @Service
 public class WechatVideoSpuServiceImpl implements WechatVideoSpuService {
-
-    @Autowired
-    private RedisUtil redisUtil;
 
     @Autowired
     private RestTemplateUtil restTemplateUtil;

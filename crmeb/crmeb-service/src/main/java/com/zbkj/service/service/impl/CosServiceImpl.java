@@ -6,11 +6,8 @@ import com.qcloud.cos.COSClient;
 import com.qcloud.cos.exception.CosClientException;
 import com.qcloud.cos.model.*;
 import com.zbkj.service.service.CosService;
-import com.zbkj.service.service.SystemAttachmentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -32,10 +29,6 @@ import java.io.File;
 public class CosServiceImpl implements CosService {
 
     private static final Logger logger = LoggerFactory.getLogger(CosServiceImpl.class);
-
-    @Lazy
-    @Autowired
-    private SystemAttachmentService systemAttachmentService;
 
     @Override
     public void uploadFile(CloudVo cloudVo, String webPth, String localFile, Integer id, COSClient cosClient) {

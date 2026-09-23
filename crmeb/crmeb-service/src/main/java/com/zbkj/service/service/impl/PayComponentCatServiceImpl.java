@@ -135,60 +135,6 @@ public class PayComponentCatServiceImpl extends ServiceImpl<PayComponentCatDao, 
     }
 
     /**
-     * 组装redis数据
-     * @param catList 类目列表
-     * @return List<FirstCatVo>
-     */
-    private List<FirstCatVo> assembleRedisData(List<PayComponentCat> catList) {
-        // 第一级
-        HashMap<Integer, String> firstMap = CollUtil.newHashMap();
-        catList.forEach(e -> {
-            if (!firstMap.containsKey(e.getFirstCatId())) {
-                firstMap.put(e.getFirstCatId(), e.getFirstCatName());
-            }
-        });
-        List<FirstCatVo> voList = CollUtil.newArrayList();
-        firstMap.forEach((k, v) -> {
-            FirstCatVo firstCatVo = new FirstCatVo();
-            firstCatVo.setFirstCatId(k);
-            firstCatVo.setFirstCatName(v);
-            voList.add(firstCatVo);
-        });
-        // 第二级
-        voList.forEach(e -> {
-            HashMap<Integer, String> secondMap = CollUtil.newHashMap();
-            catList.stream().filter(a -> a.getFirstCatId().equals(e.getFirstCatId())).forEach(cat -> {
-                if (!secondMap.containsKey(cat.getSecondCatId())) {
-                    secondMap.put(cat.getSecondCatId(), cat.getSecondCatName());
-                }
-            });
-            List<SecondCatVo> secondCatVoList = CollUtil.newArrayList();
-            secondMap.forEach((k, v) -> {
-                SecondCatVo secondCatVo = new SecondCatVo();
-                secondCatVo.setSecondCatId(k);
-                secondCatVo.setSecondCatName(v);
-                secondCatVoList.add(secondCatVo);
-            });
-            // 第三级
-            secondCatVoList.forEach(b -> {
-                List<ThirdCatVo> thirdCatVoList = catList.stream().filter(i -> i.getSecondCatId().equals(b.getSecondCatId())).map(o -> {
-                    ThirdCatVo thirdCatVo = new ThirdCatVo();
-                    thirdCatVo.setThirdCatId(o.getThirdCatId());
-                    thirdCatVo.setThirdCatName(o.getThirdCatName());
-                    thirdCatVo.setQualification(o.getQualification());
-                    thirdCatVo.setQualificationType(o.getQualificationType());
-                    thirdCatVo.setProductQualification(o.getProductQualification());
-                    thirdCatVo.setProductQualificationType(o.getProductQualificationType());
-                    return thirdCatVo;
-                }).collect(Collectors.toList());
-                b.setThirdCatList(thirdCatVoList);
-            });
-            e.setSecondCatList(secondCatVoList);
-        });
-        return voList;
-    }
-
-    /**
      * 组装redis数据 数据对应前端组件
      * @param catList 类目列表
      * @return List<FirstCatVo>

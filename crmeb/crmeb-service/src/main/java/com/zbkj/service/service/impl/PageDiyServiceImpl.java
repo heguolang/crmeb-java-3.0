@@ -9,14 +9,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.PageHelper;
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.zbkj.common.constants.SysConfigConstants;
-import com.zbkj.common.constants.UploadConstants;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.page.PageDiy;
 import com.zbkj.common.request.PageParamRequest;
@@ -27,8 +25,6 @@ import com.zbkj.common.result.SystemConfigResultCode;
 import com.zbkj.service.dao.page.PageDiyDao;
 import com.zbkj.service.service.PageDiyService;
 import com.zbkj.service.service.SystemConfigService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,8 +40,6 @@ import java.util.stream.Collectors;
 */
 @Service
 public class PageDiyServiceImpl extends ServiceImpl<PageDiyDao, PageDiy> implements PageDiyService {
-
-    private static final Logger logger = LoggerFactory.getLogger(PageDiyServiceImpl.class);
 
     @Resource
     private PageDiyDao dao;
@@ -273,27 +267,6 @@ public class PageDiyServiceImpl extends ServiceImpl<PageDiyDao, PageDiy> impleme
         if(ObjectUtil.isNotNull(pageDiyNameExist) && !pageDiyNameExist.isEmpty()){
             throw new CrmebException(CommonResultCode.VALIDATE_FAILED, "当前模版名称已经存在，请修改后再保存！");
         }
-    }
-
-////////////////////////////////// 内部处理json配置中的素材地址方法 START
-
-    /**
-     * 调用diy配置数据后结合本地配置，传递给递归方法替换
-     * @param diyValue 当前待操作的diy对象，其实仅仅用到了value
-     * @return 替换后的json对象
-     */
-    private String getModifiedJsonString(String diyValue) {
-        // 使用 Gson 解析 JSON 数据
-        Gson gson = new Gson();
-        JsonElement jsonElement = gson.fromJson(diyValue, JsonElement.class);
-
-        // 替换指定前缀的键
-        String adminApiPath = UploadConstants.UPLOAD_FILE_KEYWORD;
-        String newPrefix = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_LOCAL_UPLOAD_URL);
-        JsonElement modifiedJsonElement = replaceJsonValue(jsonElement, adminApiPath, newPrefix);
-
-        // 将修改后的 JSON 数据转换回字符串
-        return  gson.toJson(modifiedJsonElement);
     }
 
     /**

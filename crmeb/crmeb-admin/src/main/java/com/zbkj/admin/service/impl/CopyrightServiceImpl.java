@@ -11,7 +11,6 @@ import com.zbkj.common.constants.Constants;
 import com.zbkj.common.constants.SysConfigConstants;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.utils.RestTemplateUtil;
-import com.zbkj.service.service.SystemAttachmentService;
 import com.zbkj.service.service.SystemConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,8 +37,6 @@ public class CopyrightServiceImpl implements CopyrightService {
     private CrmebConfig crmebConfig;
     @Autowired
     private RestTemplateUtil restTemplateUtil;
-    @Autowired
-    private SystemAttachmentService systemAttachmentService;
 
     private static final String CRMEB_COPYRIGHT_URL = "https://authorize.crmeb.net/api/auth_cert_query?domain_name={}&label={}&version={}";
     private static final String CRMEB_COPYRIGHT_URL_DATA = "data";

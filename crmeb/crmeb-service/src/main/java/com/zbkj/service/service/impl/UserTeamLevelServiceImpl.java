@@ -520,12 +520,5 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         userTeamLevelStatDao.insert(init);
         return init;
     }
-
-    private BigDecimal nonNegative(BigDecimal v) {
-        if (ObjectUtil.isNull(v)) {
-            return BigDecimal.ZERO;
-        }
-        return v.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : v;
-    }
 }
 

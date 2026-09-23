@@ -133,8 +133,6 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     @Autowired
     private SystemStoreStaffService systemStoreStaffService;
     @Autowired
-    private UserAddressService userAddressService;
-    @Autowired
     private UserTokenService userTokenService;
 
     /**

@@ -55,9 +55,6 @@ public class ExcelServiceImpl implements ExcelService {
     private StoreBargainService storeBargainService;
 
     @Autowired
-    private SystemConfigService systemConfigService;
-
-    @Autowired
     private StoreCombinationService storeCombinationService;
 
     @Autowired

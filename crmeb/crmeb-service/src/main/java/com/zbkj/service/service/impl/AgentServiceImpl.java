@@ -1,7 +1,6 @@
 package com.zbkj.service.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -40,7 +39,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -76,9 +74,6 @@ public class AgentServiceImpl implements AgentService {
 
     @Autowired
     private SystemConfigService systemConfigService;
-
-    @Autowired
-    private TransactionTemplate transactionTemplate;
 
     @Autowired
     private StoreOrderInfoService storeOrderInfoService;

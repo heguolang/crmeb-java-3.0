@@ -450,20 +450,4 @@ public class MyRecord implements Serializable {
         return null;
     }
 
-    /**
-     * @param fieldName
-     * @param o
-     * @return
-     * @desc 获取属性的数据类型
-     */
-    private static Object getFiledType(String fieldName, Object o) {
-        Field[] fields = o.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            if (Objects.equals(fieldName, field.getName())) {
-                return field.getType();
-            }
-        }
-        return null;
-    }
-
 }
