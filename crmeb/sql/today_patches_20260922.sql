@@ -309,6 +309,22 @@ SELECT r.`id`, m.`id`
 -- ============================================================
 SET NAMES utf8mb4;
 
+-- 前置：eb_store_product 存在 slider_image varchar(2000) + flat_pattern varchar(1000)，
+-- utf8mb4 下约 12000 字节，已超过 InnoDB 8126 字节行上限。若仍是 Compact 行格式，
+-- 下面的 ADD COLUMN 会报 ERROR 1118 (Row size too large)。先转 Dynamic（长列走溢出页，
+-- 行内只留指针），MySQL 5.7+ 默认即为此格式，安全。
+SET @row_fmt := (
+  SELECT ROW_FORMAT FROM information_schema.TABLES
+   WHERE TABLE_SCHEMA = DATABASE()
+     AND TABLE_NAME = 'eb_store_product'
+);
+SET @sql_alter := IF(@row_fmt <> 'Dynamic',
+  'ALTER TABLE `eb_store_product` ROW_FORMAT=DYNAMIC',
+  'SELECT 1');
+PREPARE stmt0 FROM @sql_alter;
+EXECUTE stmt0;
+DEALLOCATE PREPARE stmt0;
+
 -- MySQL 5.7 兼容：用 information_schema 判断后 ADD COLUMN
 SET @col_exists := (
   SELECT COUNT(*) FROM information_schema.COLUMNS

@@ -63,3 +63,13 @@ _hooks.txt
 # 注意：2026-09 之前已入库的 246 个历史图片仍在版本库内，需要清理时另开提交处理
 crmeb/crmebimage/public/product/
 crmeb/crmebimage/public/user/
+
+# 本地临时验证目录（2026-09-23 清理）
+# 这些是本地验证 jar 是否打包成功时的解压残留，含大量 .class/.jar，切勿入库
+local-dev/tmp*/
+local-dev/tmp*/**
+
+# 编译产物兜底：任何时候都不要把 .class / .jar 提交进来
+*.class
+*.jar
+!crmeb/**/src/main/**/*.jar
