@@ -20,9 +20,14 @@ crmeb/*/LOG_HOME_IS_UNDEFINED/
 # Node
 **/node_modules/
 **/dist/
+**/dist_online/
 **/.cache/
 npm-debug.log*
 yarn-error.log*
+
+# Python
+__pycache__/
+*.pyc
 
 # Uni-app / HBuilder
 app/unpackage/
