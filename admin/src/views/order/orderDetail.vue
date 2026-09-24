@@ -36,15 +36,36 @@
         <el-tabs type="border-card" v-model="activeName">
           <el-tab-pane label="订单信息" name="detail">
             <div class="detailSection" style="border: none">
-              <div class="title">用户信息</div>
+              <div class="title">下单会员信息</div>
               <ul class="list">
                 <li class="item">
-                  <div class="lang">用户名称：</div>
-                  <div class="value">{{ orderDatalist.nikeName }} | {{ orderDatalist.uid }}</div>
+                  <div class="lang">下单昵称：</div>
+                  <div class="value">{{ orderDatalist.nikeName | filterEmpty }}</div>
                 </li>
                 <li class="item">
-                  <div class="lang">用户电话：</div>
-                  <div class="value">{{ orderDatalist.phone }}</div>
+                  <div class="lang">会员ID：</div>
+                  <div class="value">{{ orderDatalist.uid | filterEmpty }}</div>
+                </li>
+                <li class="item">
+                  <div class="lang">会员手机号：</div>
+                  <div class="value">{{ orderDatalist.phone | filterEmpty }}</div>
+                </li>
+              </ul>
+            </div>
+            <div class="detailSection" style="border: none">
+              <div class="title">推荐人信息</div>
+              <ul class="list">
+                <li class="item">
+                  <div class="lang">推荐人昵称：</div>
+                  <div class="value">{{ orderDatalist.spreadName | filterEmpty }}</div>
+                </li>
+                <li class="item">
+                  <div class="lang">推荐人ID：</div>
+                  <div class="value">{{ orderDatalist.spreadUid | filterEmpty }}</div>
+                </li>
+                <li class="item">
+                  <div class="lang">推荐人手机号：</div>
+                  <div class="value">{{ orderDatalist.spreadPhone | filterEmpty }}</div>
                 </li>
               </ul>
             </div>

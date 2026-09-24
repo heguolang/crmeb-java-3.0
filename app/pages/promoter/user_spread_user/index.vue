@@ -9,6 +9,19 @@
 						<view>当前佣金</view>
 					</view>
 					<view class='num'>{{spreadInfo.commissionCount}}</view>
+					<view class='level-box acea-row row-center-wrapper'>
+						<view class='level-item'>
+							<text class='iconfont icon-tuandui'></text>
+							<text class='label'>分销级别</text>
+							<text class='val'>{{spreadInfo.distributorLevelName || '未获得'}}</text>
+						</view>
+						<view class='level-line'></view>
+						<view class='level-item'>
+							<text class='iconfont icon-tuandui'></text>
+							<text class='label'>团队奖级别</text>
+							<text class='val'>{{spreadInfo.teamLevelName || '未获得'}}</text>
+						</view>
+					</view>
 					<view class='profit acea-row row-between-wrapper'>
 						<view class='item'>
 							<view>昨日收益</view>
@@ -131,23 +144,58 @@
 <style scoped lang="scss">
 	.my-promotion .header {
 		width: 100%;
-		height: 375rpx;
+		height: 470rpx;
 		position: relative;
 	}
 	.head_img{
 		width: 100%;
-		height: 375rpx;
+		height: 470rpx;
 		position: absolute;
 		top: 0;
 		z-index: 2;
 	}
 	.head_box{
 		width: 100%;
-		height: 375rpx;
+		height: 470rpx;
 		position: absolute;
 		top: 0;
 		z-index: 0;
 		@include main_bg_color(theme);
+	}
+	/* 分销级别 / 团队奖级别 */
+	.my-promotion .header .level-box {
+		margin: 18rpx 40rpx 0 40rpx;
+		height: 60rpx;
+		border-radius: 30rpx;
+		background-color: rgba(255, 255, 255, 0.16);
+		position: relative;
+	}
+	.my-promotion .header .level-box .level-item {
+		flex: 1;
+		text-align: center;
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.85);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.my-promotion .header .level-box .level-item .iconfont {
+		font-size: 26rpx;
+		margin-right: 8rpx;
+	}
+	.my-promotion .header .level-box .level-item .val {
+		color: #fff;
+		font-weight: bold;
+		margin-left: 10rpx;
+		max-width: 160rpx;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.my-promotion .header .level-box .level-line {
+		width: 2rpx;
+		height: 28rpx;
+		background-color: rgba(255, 255, 255, 0.35);
 	}
 	.my-promotion .header .name {
 		font-size: 30rpx;

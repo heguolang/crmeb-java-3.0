@@ -2,11 +2,13 @@ package com.zbkj.service.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.zbkj.common.constants.SysConfigConstants;
+import com.zbkj.common.model.system.DistributorLevel;
 import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.page.CommonPage;
@@ -23,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -57,6 +60,9 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
     @Autowired
     private UserBrokerageRecordService userBrokerageRecordService;
 
+    @Autowired
+    private DistributorLevelService distributorLevelService;
+
     /**
      * 获取分销列表
      * @param request 分销员分页列表查询请求对象
@@ -71,9 +77,20 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
         }
         List<User> userList = userPageInfo.getList();
         List<SpreadUserResponse> responseList = CollUtil.newArrayList();
+        // 分销商等级 id -> 名称（一次性查询，避免逐条回库；用 getUsableList 而非 getLevelInfo，后者查不到会抛异常）
+        HashMap<Integer, String> levelNameMap = CollUtil.newHashMap();
+        List<DistributorLevel> levelList = distributorLevelService.getUsableList();
+        if (CollUtil.isNotEmpty(levelList)) {
+            levelList.forEach(l -> levelNameMap.put(l.getId(), l.getName()));
+        }
         userList.forEach(user -> {
             SpreadUserResponse userResponse = new SpreadUserResponse();
             BeanUtils.copyProperties(user, userResponse);
+            // 分销商等级
+            Integer distributorLevelId = ObjectUtil.defaultIfNull(user.getDistributorLevelId(), 0);
+            userResponse.setDistributorLevelId(distributorLevelId);
+            userResponse.setDistributorLevelName(levelNameMap.getOrDefault(distributorLevelId, "无"));
+
             // 上级推广员名称
             userResponse.setSpreadNickname("无");
             if (ObjectUtil.isNotNull(user.getSpreadUid()) && user.getSpreadUid() > 0) {

@@ -102,7 +102,7 @@
         ORDER BY u.uid desc
     </select>
     <select id="findRetailPeopleList" resultType="com.zbkj.common.model.user.User">
-        SELECT uid,nickname,real_name,phone,avatar,spread_count,brokerage_price,spread_uid,promoter_time
+        SELECT uid,nickname,real_name,phone,avatar,spread_count,brokerage_price,spread_uid,promoter_time,distributor_level_id
         FROM eb_user
         where is_logoff = 0 and is_promoter = 1
         <if test="startTime != null and startTime != ''">

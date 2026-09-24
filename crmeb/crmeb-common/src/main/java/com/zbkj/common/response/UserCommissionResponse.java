@@ -37,4 +37,10 @@ public class UserCommissionResponse implements Serializable {
 
     @ApiModelProperty(value = "当前佣金")
     private BigDecimal commissionCount = BigDecimal.ZERO;
+
+    @ApiModelProperty(value = "分销级别名称，无则为「未获得」")
+    private String distributorLevelName = "未获得";
+
+    @ApiModelProperty(value = "团队奖级别名称，无则为「未获得」")
+    private String teamLevelName = "未获得";
 }

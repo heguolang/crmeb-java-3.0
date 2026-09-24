@@ -144,6 +144,12 @@ public class StoreOrderInfoResponse implements Serializable {
     @ApiModelProperty(value = "推广人名称")
     private String spreadName;
 
+    @ApiModelProperty(value = "推荐人ID")
+    private Integer spreadUid;
+
+    @ApiModelProperty(value = "推荐人手机号")
+    private String spreadPhone;
+
     @ApiModelProperty(value = "分销/分佣信息")
     private List<UserBrokerageRecord> brokerageList = new ArrayList<>();
 

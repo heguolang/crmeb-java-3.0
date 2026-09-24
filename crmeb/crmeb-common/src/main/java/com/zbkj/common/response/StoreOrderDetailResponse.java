@@ -37,6 +37,24 @@ public class StoreOrderDetailResponse implements Serializable {
     @ApiModelProperty(value = "订单号")
     private String orderId;
 
+    @ApiModelProperty(value = "下单会员ID")
+    private Integer uid;
+
+    @ApiModelProperty(value = "下单会员昵称")
+    private String nickname;
+
+    @ApiModelProperty(value = "下单会员手机号")
+    private String phone;
+
+    @ApiModelProperty(value = "推荐人ID")
+    private Integer spreadUid;
+
+    @ApiModelProperty(value = "推荐人昵称")
+    private String spreadNickname;
+
+    @ApiModelProperty(value = "推荐人手机号")
+    private String spreadPhone;
+
     @ApiModelProperty(value = "实际支付金额")
     private BigDecimal payPrice;
 

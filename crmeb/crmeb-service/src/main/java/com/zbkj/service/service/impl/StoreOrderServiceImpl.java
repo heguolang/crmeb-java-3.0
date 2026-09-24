@@ -376,15 +376,35 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
 
         //获取订单详情map
         HashMap<Integer, List<StoreOrderInfoOldVo>> orderInfoList = StoreOrderInfoService.getMapInId(orderIdList);
-//
-//        //根据用户获取信息
-//        List<Integer> userIdList = orderList.stream().map(StoreOrder::getUid).distinct().collect(Collectors.toList());
-//        //订单用户信息
-//        HashMap<Integer, User> userList = userService.getMapListInUid(userIdList);
+
+        // 下单会员信息（昵称 / 手机号）
+        List<Integer> userIdList = orderList.stream().map(StoreOrder::getUid).filter(ObjectUtil::isNotNull).distinct().collect(Collectors.toList());
+        HashMap<Integer, User> userMap = CollUtil.isEmpty(userIdList) ? CollUtil.newHashMap() : userService.getMapListInUid(userIdList);
+
+        // 推荐人：下单会员的 spread_uid，二次批量查询避免逐单回库
+        List<Integer> spreadUidList = userMap.values().stream()
+                .map(User::getSpreadUid)
+                .filter(uid -> ObjectUtil.isNotNull(uid) && uid > 0)
+                .distinct().collect(Collectors.toList());
+        HashMap<Integer, User> spreadUserMap = CollUtil.isEmpty(spreadUidList) ? CollUtil.newHashMap() : userService.getMapListInUid(spreadUidList);
 
         for (StoreOrder storeOrder : orderList) {
             StoreOrderDetailResponse storeOrderItemResponse = new StoreOrderDetailResponse();
             BeanUtils.copyProperties(storeOrder, storeOrderItemResponse);
+
+            User orderUser = userMap.get(storeOrder.getUid());
+            if (ObjectUtil.isNotNull(orderUser)) {
+                storeOrderItemResponse.setNickname(orderUser.getNickname());
+                storeOrderItemResponse.setPhone(orderUser.getPhone());
+                if (ObjectUtil.isNotNull(orderUser.getSpreadUid()) && orderUser.getSpreadUid() > 0) {
+                    User spreadUser = spreadUserMap.get(orderUser.getSpreadUid());
+                    if (ObjectUtil.isNotNull(spreadUser)) {
+                        storeOrderItemResponse.setSpreadUid(spreadUser.getUid());
+                        storeOrderItemResponse.setSpreadNickname(spreadUser.getNickname());
+                        storeOrderItemResponse.setSpreadPhone(spreadUser.getPhone());
+                    }
+                }
+            }
 
             storeOrderItemResponse.setProductList(orderInfoList.get(storeOrder.getId()));
 
@@ -776,6 +796,16 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
             User spread = brokerageUserMap.get(first.getUid());
             if (ObjectUtil.isNotNull(spread)) {
                 storeOrderInfoResponse.setSpreadName(spread.getNickname());
+            }
+        }
+
+        // 推荐人：下单会员的上级（eb_user.spread_uid），优先于按佣金记录反推
+        if (ObjectUtil.isNotNull(user.getSpreadUid()) && user.getSpreadUid() > 0) {
+            User spreadUser = userService.getById(user.getSpreadUid());
+            if (ObjectUtil.isNotNull(spreadUser)) {
+                storeOrderInfoResponse.setSpreadUid(spreadUser.getUid());
+                storeOrderInfoResponse.setSpreadName(spreadUser.getNickname());
+                storeOrderInfoResponse.setSpreadPhone(spreadUser.getPhone());
             }
         }
 

@@ -57,6 +57,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="nickname" label="用户信息" min-width="130" />
+        <el-table-column label="分销等级" min-width="110">
+          <template slot-scope="scope">
+            <span>{{ scope.row.distributorLevelName || '无' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column
           sortable
           prop="spreadCount"

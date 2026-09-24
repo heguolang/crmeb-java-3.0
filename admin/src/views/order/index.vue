@@ -128,9 +128,18 @@
               <div v-if="!(row.productList || []).length" class="sub-text">—</div>
             </div>
             <div class="col col-recv">
-              <div class="kv"><span class="k">用户：</span><span class="v">{{ row.realName || '-' }}</span></div>
-              <div class="kv"><span class="k">昵称：</span><span class="v">{{ row.nickname || '-' }}</span></div>
-              <div class="kv"><span class="k" style="flex-shrink:0">手机：</span><span class="v">{{ row.userPhone || '-' }}</span></div>
+              <!-- 下单会员（先看会员，再看收货） -->
+              <div class="kv member-row">
+                <span class="k">下单会员：</span>
+                <span class="v">{{ row.nickname || '-' }}<span class="member-uid">（UID {{ row.uid || '-' }}）</span></span>
+              </div>
+              <div class="kv"><span class="k" style="flex-shrink:0">会员手机：</span><span class="v">{{ row.phone || '-' }}</span></div>
+              <div class="kv">
+                <span class="k">推荐人：</span>
+                <span class="v">{{ row.spreadNickname || '无' }}<span class="member-uid" v-if="row.spreadUid">（UID {{ row.spreadUid }}）</span></span>
+              </div>
+              <div class="kv"><span class="k">收货人：</span><span class="v">{{ row.realName || '-' }}</span></div>
+              <div class="kv"><span class="k" style="flex-shrink:0">收货电话：</span><span class="v">{{ row.userPhone || '-' }}</span></div>
               <div class="kv">
                 <span class="k">地址：</span>
                 <el-tooltip v-if="row.userAddress" effect="dark" :content="row.userAddress" placement="top">
@@ -837,6 +846,16 @@ export default {
   justify-content: center;
   padding-left: 22px;
   padding-right: 18px;
+}
+/* 下单会员：与下面的收货信息做视觉区分 */
+.col .member-row .v {
+  color: #303133;
+  font-weight: 600;
+}
+.col .member-uid {
+  color: #909399;
+  font-weight: 400;
+  margin-left: 2px;
 }
 
 /* 键值行（用户/金额列） */

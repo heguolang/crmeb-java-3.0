@@ -25,6 +25,8 @@ import com.zbkj.common.model.coupon.StoreCoupon;
 import com.zbkj.common.model.coupon.StoreCouponUser;
 import com.zbkj.common.model.finance.UserRecharge;
 import com.zbkj.common.model.order.StoreOrder;
+import com.zbkj.common.model.system.DistributorLevel;
+import com.zbkj.common.model.system.SystemTeamLevel;
 import com.zbkj.common.model.system.SystemUserLevel;
 import com.zbkj.common.model.user.*;
 import com.zbkj.common.page.CommonPage;
@@ -128,6 +130,12 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
     private UserExperienceRecordService experienceRecordService;
 
     @Autowired
+    private DistributorLevelService distributorLevelService;
+
+    @Autowired
+    private SystemTeamLevelService systemTeamLevelService;
+
+    @Autowired
     private FrontTokenComponent tokenComponent;
 
     /**
@@ -145,7 +153,44 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         userCommissionResponse.setLastDayCount(yesterdayIncomes);
         userCommissionResponse.setExtractCount(totalMoney);
         userCommissionResponse.setCommissionCount(user.getBrokeragePrice());
+        // 分销级别 / 团队奖级别
+        userCommissionResponse.setDistributorLevelName(resolveDistributorLevelName(user.getDistributorLevelId()));
+        userCommissionResponse.setTeamLevelName(resolveTeamLevelName(user.getTeamLevel()));
         return userCommissionResponse;
+    }
+
+    /**
+     * 分销级别名称
+     */
+    private String resolveDistributorLevelName(Integer levelId) {
+        if (ObjectUtil.isNull(levelId) || levelId <= 0) {
+            return "未获得";
+        }
+        // 用 getUsableList 而非 getLevelInfo：后者在等级被删除/不存在时会抛异常
+        List<DistributorLevel> levelList = distributorLevelService.getUsableList();
+        if (CollUtil.isEmpty(levelList)) {
+            return "未获得";
+        }
+        for (DistributorLevel level : levelList) {
+            if (levelId.equals(level.getId()) && StrUtil.isNotBlank(level.getName())) {
+                return level.getName();
+            }
+        }
+        return "未获得";
+    }
+
+    /**
+     * 团队奖级别名称（eb_user.team_level 存的是 eb_system_team_level.id）
+     */
+    private String resolveTeamLevelName(Integer teamLevelId) {
+        if (ObjectUtil.isNull(teamLevelId) || teamLevelId <= 0) {
+            return "未获得";
+        }
+        SystemTeamLevel level = systemTeamLevelService.getById(teamLevelId);
+        if (ObjectUtil.isNull(level) || StrUtil.isBlank(level.getName())) {
+            return "未获得";
+        }
+        return level.getName();
     }
 
     /**

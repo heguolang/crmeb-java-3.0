@@ -77,4 +77,10 @@ public class SpreadUserResponse {
 
     @ApiModelProperty(value = "成为分销员时间")
     private Date promoterTime;
+
+    @ApiModelProperty(value = "分销商等级ID，0=无")
+    private Integer distributorLevelId;
+
+    @ApiModelProperty(value = "分销商等级名称")
+    private String distributorLevelName;
 }
