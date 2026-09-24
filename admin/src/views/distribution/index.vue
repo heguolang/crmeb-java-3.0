@@ -33,10 +33,10 @@
           </template>
         </el-table-column>
         <!-- 分销商信息：昵称 / ID+手机 / 上级 / 成为时间 四行。
-             本页唯一的弹性列（min-width）：整表多余宽度全部收进这里，
-             换来「分销等级 → 推广业绩 → 佣金 → 操作」四列紧密相接不留空隙——
-             这是 2026-09-24 用户标注「佣金/操作移到指定位置」的落地方案。 -->
-        <el-table-column label="分销商信息" min-width="160">
+             min-width 208：四个内容列按用户标注稿比例（384:271:271:297 @1920）
+             折算的弹性权重，el-table 按 min-width 加权分多余宽度，
+             宽屏下最终列宽即复现标注稿比例。 -->
+        <el-table-column label="分销商信息" min-width="208">
           <template slot-scope="scope">
             <div class="info-name">{{ scope.row.nickname || '—' }}</div>
             <div class="info-line">ID：{{ scope.row.uid }}<span v-if="scope.row.phone"> · {{ scope.row.phone }}</span></div>
@@ -46,8 +46,9 @@
             <div class="info-line">成为：{{ fmtTime(scope.row.promoterTime) }}</div>
           </template>
         </el-table-column>
-        <!-- 分销等级：着色 chip，与代理管理的「级别」列同款。定宽，不做弹性列 -->
-        <el-table-column label="分销等级" width="88">
+        <!-- 分销等级：着色 chip，与代理管理的「级别」列同款。
+             弹性列（min-width 146），按标注稿比例参与宽度分配，宽屏下有呼吸空间 -->
+        <el-table-column label="分销等级" min-width="146">
           <template slot-scope="scope">
             <span v-if="scope.row.distributorLevelId > 0" class="lv-chip">{{ scope.row.distributorLevelName }}</span>
             <span v-else class="hq">未分级</span>
@@ -55,8 +56,8 @@
         </el-table-column>
         <!-- 推广业绩：三行小台账（人数 / 单数 / 金额），比横排三列省 2 个列宽；
              三个标签统一 4 字，正好填满 .kv-k 的 52px 定宽，数值左缘对齐。
-             定宽 150：最宽行「订单金额 1,635,000.00 元」实测 127px（13px）+ 内边距。 -->
-        <el-table-column label="推广业绩" width="150">
+             弹性列（min-width 146，内容下限），按标注稿比例参与分配 -->
+        <el-table-column label="推广业绩" min-width="146">
           <template slot-scope="scope">
             <div class="kv"><span class="kv-k">一级用户</span><span class="kv-v">{{ scope.row.spreadCount || 0 }} 人</span></div>
             <div class="kv"><span class="kv-k">推广订单</span><span class="kv-v">{{ scope.row.spreadOrderNum || 0 }} 单</span></div>
@@ -65,9 +66,9 @@
         </el-table-column>
         <!-- 佣金：四行小台账，标签左定宽 + 数值紧随，纵向可直接比对；
              可提现是唯一需要"一眼看到"的金额，加粗着主色，其余用中性色弱化。
-             定宽 150：「已提现 0.00 · 0次」最宽（标签 39 + 数值 29 + 后缀 32 + 内边距 16）。
-             位置按用户标注：紧跟「推广业绩」，中间不留弹性空隙。 -->
-        <el-table-column label="佣金（元）" width="150">
+             弹性列（min-width 160，内容下限 148），按标注稿比例参与分配。
+             位置紧跟「推广业绩」，中间不留空隙。 -->
+        <el-table-column label="佣金（元）" min-width="160">
           <template slot-scope="scope">
             <div class="kv"><span class="kv-k">可提现</span><span class="kv-v kv-v--strong">{{ money(scope.row.brokeragePrice) }}</span></div>
             <div class="kv"><span class="kv-k">总额</span><span class="kv-v">{{ money(scope.row.totalBrokeragePrice) }}</span></div>
