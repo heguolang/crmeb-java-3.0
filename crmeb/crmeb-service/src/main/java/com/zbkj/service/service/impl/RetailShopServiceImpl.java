@@ -154,6 +154,7 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
         keys.add(SysConfigConstants.RETAIL_STORE_BROKERAGE_SHARE_NODE);
         keys.add(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_IS_PROMOTER);
         keys.add(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_USER_LEVEL);
+        keys.add(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_DISTRIBUTOR_LEVEL);
         keys.add(SysConfigConstants.CONFIG_KEY_BROKERAGE_CREDIT_TIMING);
         MyRecord record = systemConfigService.getValuesByKeyList(keys);
 
@@ -174,6 +175,8 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
         response.setRegisterDefaultIsPromoter(cn.hutool.core.util.StrUtil.isBlank(registerDefaultIsPromoter) ? 0 : Integer.parseInt(registerDefaultIsPromoter));
         String registerDefaultUserLevel = record.getStr(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_USER_LEVEL);
         response.setRegisterDefaultUserLevel(cn.hutool.core.util.StrUtil.isBlank(registerDefaultUserLevel) ? 0 : Integer.parseInt(registerDefaultUserLevel));
+        String registerDefaultDistributorLevel = record.getStr(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_DISTRIBUTOR_LEVEL);
+        response.setRegisterDefaultDistributorLevel(cn.hutool.core.util.StrUtil.isBlank(registerDefaultDistributorLevel) ? 0 : Integer.parseInt(registerDefaultDistributorLevel));
         String brokerageCreditTiming = record.getStr(SysConfigConstants.CONFIG_KEY_BROKERAGE_CREDIT_TIMING);
         response.setBrokerageCreditTiming(cn.hutool.core.util.StrUtil.isBlank(brokerageCreditTiming) ? 1 : Integer.parseInt(brokerageCreditTiming));
         return response;
@@ -200,6 +203,8 @@ public class RetailShopServiceImpl extends ServiceImpl<UserDao, User> implements
         Integer registerDefaultUserLevel = ObjectUtil.defaultIfNull(retailShopRequest.getRegisterDefaultUserLevel(), 0);
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_IS_PROMOTER, registerDefaultIsPromoter.toString());
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_USER_LEVEL, registerDefaultUserLevel.toString());
+        Integer registerDefaultDistributorLevel = ObjectUtil.defaultIfNull(retailShopRequest.getRegisterDefaultDistributorLevel(), 0);
+        systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_DISTRIBUTOR_LEVEL, registerDefaultDistributorLevel.toString());
         Integer brokerageCreditTiming = ObjectUtil.defaultIfNull(retailShopRequest.getBrokerageCreditTiming(), 1);
         systemConfigService.updateOrSaveValueByName(SysConfigConstants.CONFIG_KEY_BROKERAGE_CREDIT_TIMING, brokerageCreditTiming.toString());
         return true;

@@ -84,19 +84,19 @@
             <el-radio label="0">否</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item prop="registerDefaultUserLevel">
+        <el-form-item prop="registerDefaultDistributorLevel">
           <span slot="label">
-            <span>注册默认会员等级：</span>
+            <span>注册默认分销商等级：</span>
             <el-tooltip
               class="item"
               effect="dark"
-              content="用户首次注册/登录时默认赋予的会员等级，选「不设置」则保持无等级"
+              content="用户首次注册/登录时默认赋予的分销商等级（分销商等级页维护），选「不设置」则保持无等级"
               placement="top-start"
             >
               <i class="el-icon-warning-outline" />
             </el-tooltip>
           </span>
-          <el-select v-model="promoterForm.registerDefaultUserLevel" placeholder="请选择" class="selWidth" clearable>
+          <el-select v-model="promoterForm.registerDefaultDistributorLevel" placeholder="请选择" class="selWidth" clearable>
             <el-option :value="0" label="不设置"></el-option>
             <el-option
               v-for="item in levelList"
@@ -173,7 +173,7 @@
 
 <script>
 import { configApi, configUpdateApi } from '@/api/distribution';
-import { levelAllApi } from '@/api/user';
+import { distributorLevelListApi } from '@/api/distributorLevel';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 import { Debounce } from '@/utils/validate';
 export default {
@@ -186,7 +186,7 @@ export default {
       rules: {
         brokerageFuncStatus: [{ required: true, message: '请选择是否启用分销', trigger: 'change' }],
         registerDefaultIsPromoter: [{ required: true, message: '请选择注册是否默认推广员', trigger: 'change' }],
-        registerDefaultUserLevel: [{ required: true, message: '请选择注册默认会员等级', trigger: 'change' }],
+        registerDefaultDistributorLevel: [{ required: true, message: '请选择注册默认分销商等级', trigger: 'change' }],
       },
     };
   },
@@ -205,10 +205,11 @@ export default {
       }
       return true;
     },
+    // 分销商等级下拉：只留启用且未删除的
     getLevelList() {
-      levelAllApi()
+      distributorLevelListApi()
         .then((res) => {
-          this.levelList = res || [];
+          this.levelList = (res || []).filter((l) => l.isShow && !l.isDel);
         })
         .catch(() => {
           this.levelList = [];
@@ -228,6 +229,8 @@ export default {
           ).toString();
           this.promoterForm.registerDefaultUserLevel =
             res.registerDefaultUserLevel == null ? 0 : Number(res.registerDefaultUserLevel);
+          this.promoterForm.registerDefaultDistributorLevel =
+            res.registerDefaultDistributorLevel == null ? 0 : Number(res.registerDefaultDistributorLevel);
           this.promoterForm.brokerageCreditTiming =
             res.brokerageCreditTiming == null ? 1 : Number(res.brokerageCreditTiming);
         })
@@ -243,6 +246,7 @@ export default {
             ...this.promoterForm,
             registerDefaultIsPromoter: Number(this.promoterForm.registerDefaultIsPromoter),
             registerDefaultUserLevel: Number(this.promoterForm.registerDefaultUserLevel || 0),
+            registerDefaultDistributorLevel: Number(this.promoterForm.registerDefaultDistributorLevel || 0),
             brokerageCreditTiming: Number(this.promoterForm.brokerageCreditTiming || 1),
           };
           configUpdateApi(payload)

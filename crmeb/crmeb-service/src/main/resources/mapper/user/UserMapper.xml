@@ -124,6 +124,15 @@
         <if test="phone != '' and phone != null ">
             and phone like CONCAT('%',#{phone},'%')
         </if>
+        <!-- 分销商等级：0 = 未分级（库中 null 或 0 都算），>0 = 指定等级 id -->
+        <choose>
+            <when test="distributorLevelId != null and distributorLevelId == 0">
+                and (distributor_level_id is null or distributor_level_id = 0)
+            </when>
+            <when test="distributorLevelId != null">
+                and distributor_level_id = #{distributorLevelId}
+            </when>
+        </choose>
         ORDER BY uid desc
 
     </select>

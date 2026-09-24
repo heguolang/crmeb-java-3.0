@@ -51,6 +51,8 @@ public class SysConfigConstants {
     public static final String CONFIG_KEY_REGISTER_DEFAULT_IS_PROMOTER = "register_default_is_promoter";
     /** 用户首次注册/登录默认会员等级ID，0表示不设置 */
     public static final String CONFIG_KEY_REGISTER_DEFAULT_USER_LEVEL = "register_default_user_level";
+    /** 用户首次注册/登录默认分销商等级ID（eb_distributor_level），0表示不设置 */
+    public static final String CONFIG_KEY_REGISTER_DEFAULT_DISTRIBUTOR_LEVEL = "register_default_distributor_level";
     /** 积分到账方式：1-支付订单到账，2-订单完成（收货）后到账 */
     public static final String CONFIG_KEY_INTEGRAL_CREDIT_TIMING = "integral_credit_timing";
     /** 分销佣金到账方式：1-支付订单到账，2-订单完成（收货）后到账 */

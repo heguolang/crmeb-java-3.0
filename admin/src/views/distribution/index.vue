@@ -13,6 +13,12 @@
           <el-form-item label="用户搜索">
             <UserSearchInput ref="userSearchInput" v-model="tableFrom" @searchList="seachList" />
           </el-form-item>
+          <el-form-item label="分销级别">
+            <el-select v-model="tableFrom.distributorLevelId" placeholder="全部级别" clearable class="selWidth" @change="seachList">
+              <el-option :value="0" label="未分级"></el-option>
+              <el-option v-for="item in levelOptions" :key="item.id" :label="item.name" :value="item.id"></el-option>
+            </el-select>
+          </el-form-item>
         </el-form>
         <div class="filter-actions">
           <el-button type="primary" icon="el-icon-search" @click="seachList">查询</el-button>
@@ -237,6 +243,7 @@
 
 <script>
 import { promoterListApi, spreadListApi, spreadOrderListApi, spreadClearApi } from '@/api/distribution';
+import { distributorLevelListApi } from '@/api/distributorLevel';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 export default {
   name: 'AccountsUser',
@@ -252,9 +259,11 @@ export default {
         dateLimit: '',
         content: '',
         searchType: 'all',
+        distributorLevelId: '',
         page: 1,
         limit: 20,
       },
+      levelOptions: [],
       dialogVisible: false,
       spreadData: {
         data: [],
@@ -277,9 +286,20 @@ export default {
   },
   mounted() {
     this.getList();
+    this.getLevelOptions();
   },
   methods: {
     checkPermi,
+    // 分销级别下拉（筛选用）：只留启用且未删除的等级
+    getLevelOptions() {
+      distributorLevelListApi()
+        .then((res) => {
+          this.levelOptions = (res || []).filter((l) => l.isShow && !l.isDel);
+        })
+        .catch(() => {
+          this.levelOptions = [];
+        });
+    },
     // 时间截到「分」：完整时间戳 186px 太占宽，秒对分销台账无决策价值
     fmtTime(t) {
       return t ? String(t).slice(0, 16) : '—';
@@ -337,6 +357,7 @@ export default {
       this.tableFrom.dateLimit = '';
       this.tableFrom.content = '';
       this.tableFrom.searchType = 'all';
+      this.tableFrom.distributorLevelId = '';
       this.timeVal = [];
       this.$refs.userSearchInput && this.$refs.userSearchInput.clearInput();
       this.getList();

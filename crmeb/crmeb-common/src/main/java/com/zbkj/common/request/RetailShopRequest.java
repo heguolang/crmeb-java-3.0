@@ -85,6 +85,10 @@ public class RetailShopRequest {
     @Min(value = 0, message = "注册默认会员等级不能小于0")
     private Integer registerDefaultUserLevel;
 
+    @ApiModelProperty(value = "用户首次注册默认分销商等级ID（eb_distributor_level），0表示不设置")
+    @Min(value = 0, message = "注册默认分销商等级不能小于0")
+    private Integer registerDefaultDistributorLevel;
+
     @ApiModelProperty(value = "分销佣金到账方式：1-支付订单到账，2-订单完成到账")
     @Range(min = 1, max = 2, message = "分销佣金到账方式只能为1或2")
     private Integer brokerageCreditTiming;

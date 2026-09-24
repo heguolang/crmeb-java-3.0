@@ -21,4 +21,7 @@ public class RetailShopSearchRequest extends UserCommonSearchRequest implements 
     @ApiModelProperty(value = "today,yesterday,lately7,lately30,month,year,/yyyy-MM-dd hh:mm:ss,yyyy-MM-dd hh:mm:ss/")
     private String dateLimit;
 
+    @ApiModelProperty(value = "分销商等级 id；0-未分级，null-全部")
+    private Integer distributorLevelId;
+
 }

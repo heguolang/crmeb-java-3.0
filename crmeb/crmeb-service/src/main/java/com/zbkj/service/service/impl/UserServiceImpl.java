@@ -22,6 +22,7 @@ import com.zbkj.common.model.coupon.StoreCoupon;
 import com.zbkj.common.model.coupon.StoreCouponUser;
 import com.zbkj.common.model.order.StoreOrder;
 import com.zbkj.common.model.record.UserVisitRecord;
+import com.zbkj.common.model.system.DistributorLevel;
 import com.zbkj.common.model.system.SystemUserLevel;
 import com.zbkj.common.model.user.*;
 import com.zbkj.common.page.CommonPage;
@@ -83,6 +84,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
     @Autowired
     private SystemUserLevelService systemUserLevelService;
+
+    @Autowired
+    private DistributorLevelService distributorLevelService;
 
     @Autowired
     private UserLevelService userLevelService;
@@ -911,7 +915,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     /**
-     * 应用注册默认配置（是否默认推广员、默认会员等级）
+     * 应用注册默认配置（是否默认推广员、默认分销商等级）
      */
     @Override
     public void applyRegisterDefaults(User user) {
@@ -925,7 +929,8 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
                 user.setPromoterTime(CrmebDateUtil.nowDateTime());
             }
         }
-        String levelCfg = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_USER_LEVEL);
+        // 注册默认分销商等级（原为会员等级，2026-09-24 用户确认改为分销商等级口径）
+        String levelCfg = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_REGISTER_DEFAULT_DISTRIBUTOR_LEVEL);
         if (StrUtil.isBlank(levelCfg)) {
             return;
         }
@@ -938,12 +943,12 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         if (ObjectUtil.isNull(levelId) || levelId <= 0) {
             return;
         }
-        SystemUserLevel systemUserLevel = systemUserLevelService.getByLevelId(levelId);
-        if (ObjectUtil.isNull(systemUserLevel) || Boolean.TRUE.equals(systemUserLevel.getIsDel())
-                || Boolean.FALSE.equals(systemUserLevel.getIsShow())) {
+        DistributorLevel distributorLevel = distributorLevelService.getById(levelId);
+        if (ObjectUtil.isNull(distributorLevel) || Boolean.TRUE.equals(distributorLevel.getIsDel())
+                || Boolean.FALSE.equals(distributorLevel.getIsShow())) {
             return;
         }
-        user.setLevel(systemUserLevel.getId());
+        user.setDistributorLevelId(distributorLevel.getId());
     }
 
     /**
@@ -1095,6 +1100,10 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
                 map.put("startTime", dateLimit.getStartTime());
                 map.put("endTime", dateLimit.getEndTime());
             }
+        }
+        //分销商等级过滤：null-全部；0-未分级（库中为 null 或 0，SQL 里用 choose 处理）；>0-指定等级
+        if (request.getDistributorLevelId() != null) {
+            map.put("distributorLevelId", request.getDistributorLevelId());
         }
         Page<User> pageUser = PageHelper.startPage(request.getPage(), request.getLimit());
         List<User> userList = userDao.findRetailPeopleList(map);
