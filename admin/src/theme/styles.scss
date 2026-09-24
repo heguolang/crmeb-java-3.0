@@ -1141,10 +1141,41 @@ body {
 
 .info-line {
   font-size: 13px;
-  /* 2026-09-25 用户要求：手机/时间等正文加深，与 .kv-v 同色（#303133）；
-     「无上级」.hq 仍保持更浅的 #c0c4cc 作占位弱化 */
-  color: #303133;
+  /* 2026-09-25 二次修正：只有**值**加深（.info-v = #303133，与 .kv-v 同色），
+     「ID：/手机：/上级：/成为：」等标签保持灰 #909399；「无上级」.hq 仍更浅作占位弱化 */
+  color: #909399;
   line-height: 24px;
+}
+
+/* 信息列的值：与 .kv-v 同一档深色，标签与值形成灰/黑对比 */
+.info-v {
+  color: #303133;
+}
+
+/* ID 色块 + 复制图标（2026-09-24 用户定稿范式，2026-09-25 从分销商页 scoped 提升为全局）：
+   业务主键 ID 一律做成浅蓝 chip，不裸文本；关联实体（上级等）同款。
+   ⚠️ 列表单元格里 scoped 样式压不到 v-deep 边界时仍可用，但多页复用必须走这里。 */
+.id-chip {
+  display: inline-block;
+  margin-left: 2px;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: #ecf5ff;
+  color: #409eff;
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.copy-btn {
+  margin-left: 2px;
+  color: #c0c4cc;
+  cursor: pointer;
+  font-size: 14px;
+  transition: color 0.15s;
+}
+.copy-btn:hover {
+  color: #409eff;
 }
 
 .hq {

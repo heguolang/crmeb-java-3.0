@@ -52,9 +52,9 @@
               ID：<span class="id-chip">{{ scope.row.uid }}</span>
               <i class="el-icon-document-copy copy-btn" title="复制 ID" @click="copyText(scope.row.uid)"></i>
             </div>
-            <div class="info-line" v-if="scope.row.phone">手机：{{ scope.row.phone }}</div>
+            <div class="info-line" v-if="scope.row.phone">手机：<span class="info-v">{{ scope.row.phone }}</span></div>
             <div class="info-line">
-              上级：<span :class="{ hq: !hasParent(scope.row) }">{{ spreadNick(scope.row) }}</span>
+              上级：<span class="info-v" :class="{ hq: !hasParent(scope.row) }">{{ spreadNick(scope.row) }}</span>
               <span v-if="hasParent(scope.row) && scope.row.spreadUid" class="id-chip">ID:{{ scope.row.spreadUid }}</span>
               <i
                 v-if="hasParent(scope.row) && scope.row.spreadUid"
@@ -63,7 +63,7 @@
                 @click="copyText(scope.row.spreadUid)"
               ></i>
             </div>
-            <div class="info-line">成为：{{ fmtTime(scope.row.promoterTime) }}</div>
+            <div class="info-line">成为：<span class="info-v">{{ fmtTime(scope.row.promoterTime) }}</span></div>
           </template>
         </el-table-column>
         <!-- 分销等级：着色 chip，与代理管理的「级别」列同款。
@@ -192,7 +192,7 @@
         <el-table-column label="用户信息" min-width="160">
           <template slot-scope="scope">
             <div class="info-name">{{ scope.row.nickname || '—' }}</div>
-            <div class="info-line">{{ scope.row.phone || '—' }}</div>
+            <div class="info-line"><span class="info-v">{{ scope.row.phone || '—' }}</span></div>
           </template>
         </el-table-column>
         <el-table-column label="是否推广员" width="110">
@@ -486,34 +486,11 @@ export default {
 </script>
 
 <style scoped>
-/* 列表范式（summary-bar / filter-panel / table-lg / op-grid / avatar / info-line / lv-chip / kv）
-   已统一提升到 theme/styles.scss 全局定义，本页不再写 scoped 副本 */
+/* 列表范式（summary-bar / filter-panel / table-lg / op-grid / avatar / info-line / lv-chip / kv
+   / id-chip / copy-btn）已统一提升到 theme/styles.scss 全局定义，本页不再写 scoped 副本 */
 ::v-deep .op-cell .op-tag {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-/* ID 复制小图标：默认弱色，悬停亮主色，命中区放大到 20px 便于点中 */
-.copy-btn {
-  margin-left: 2px;
-  color: #c0c4cc;
-  cursor: pointer;
-  font-size: 14px;
-  transition: color 0.15s;
-}
-.copy-btn:hover {
-  color: #409eff;
-}
-/* ID 色块：浅蓝底 chip，让 ID 从一列灰色文字里跳出来（与「健康大使」等级 chip 同一视觉语言） */
-.id-chip {
-  display: inline-block;
-  margin-left: 2px;
-  padding: 0 6px;
-  border-radius: 3px;
-  background: #ecf5ff;
-  color: #409eff;
-  font-size: 12px;
-  line-height: 18px;
-  font-variant-numeric: tabular-nums;
 }
 </style>

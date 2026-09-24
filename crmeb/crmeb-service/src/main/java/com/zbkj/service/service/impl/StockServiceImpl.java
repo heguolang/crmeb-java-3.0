@@ -1683,10 +1683,12 @@ public class StockServiceImpl implements StockService {
             userMap.put(u.getUid(), u);
         }
         Map<Integer, String> parentNameMap = new HashMap<>();
+        Map<Integer, Integer> parentUidMap = new HashMap<>();
         if (!parentIds.isEmpty()) {
             for (StockAgent p : stockAgentDao.selectBatchIds(parentIds)) {
                 User pu = userService.getById(p.getUid());
                 parentNameMap.put(p.getId(), pu == null ? "" : pu.getNickname());
+                parentUidMap.put(p.getId(), p.getUid());
             }
         }
         for (StockAgent a : list) {
@@ -1698,6 +1700,7 @@ public class StockServiceImpl implements StockService {
             a.setPhone(u == null ? "" : u.getPhone());
             a.setAvatar(u == null ? "" : u.getAvatar());
             a.setParentName(parentNameMap.get(a.getParentId()) == null ? "总部" : parentNameMap.get(a.getParentId()));
+            a.setParentUid(parentUidMap.get(a.getParentId()));
         }
     }
 

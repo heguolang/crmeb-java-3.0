@@ -34,6 +34,8 @@
       </div>
 
       <el-table class="admin-table table-lg" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
+        <!-- 头部留白 30：定稿版式 v2 规则，左侧呼吸空间（fixed width，不参与弹性分配） -->
+        <el-table-column width="30" />
         <!-- 头像：44px 头像 + 单元格左右内边距，70 是不裁切的最小宽度 -->
         <el-table-column label="头像" width="70" align="center">
           <template slot-scope="scope">
@@ -41,13 +43,28 @@
             <span v-else class="avatar-text">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
           </template>
         </el-table-column>
-        <!-- 订货商信息：昵称/手机/ID/上级 多行（弹性列，吸收剩余空间） -->
-        <el-table-column label="订货商信息" min-width="170">
+        <!-- 订货商信息：照分销商管理定稿版式 v2（2026-09-25 复用）——
+             行序与分销商一致：昵称 / ID（色块可复制）/ 手机 / 上级（昵称 + ID 色块可复制）；
+             标签灰 .info-line、值黑 .info-v、ID 色块 .id-chip（全局样式）。
+             min-width 208：与分销商信息列同一弹性权重角色。 -->
+        <el-table-column label="订货商信息" min-width="208">
           <template slot-scope="scope">
             <div class="info-name">{{ scope.row.nickname }}</div>
-            <div class="info-line">{{ scope.row.phone || '—' }}</div>
-            <div class="info-line">ID：{{ scope.row.uid }}</div>
-            <div class="info-line">上级：<span :class="{ hq: !(scope.row.parentId > 0) }">{{ scope.row.parentId > 0 ? scope.row.parentName : '总部' }}</span></div>
+            <div class="info-line">
+              ID：<span class="id-chip">{{ scope.row.uid }}</span>
+              <i class="el-icon-document-copy copy-btn" title="复制 ID" @click="copyText(scope.row.uid)"></i>
+            </div>
+            <div class="info-line" v-if="scope.row.phone">手机：<span class="info-v">{{ scope.row.phone }}</span></div>
+            <div class="info-line">
+              上级：<span class="info-v" :class="{ hq: !(scope.row.parentId > 0) }">{{ scope.row.parentId > 0 ? scope.row.parentName : '总部' }}</span>
+              <span v-if="scope.row.parentId > 0 && scope.row.parentUid" class="id-chip">ID:{{ scope.row.parentUid }}</span>
+              <i
+                v-if="scope.row.parentId > 0 && scope.row.parentUid"
+                class="el-icon-document-copy copy-btn"
+                title="复制上级ID"
+                @click="copyText(scope.row.parentUid)"
+              ></i>
+            </div>
           </template>
         </el-table-column>
         <!-- 等级/状态/备注：三列弹性均分剩余空间，避免备注单列独吞出现大片空白 -->
@@ -73,10 +90,10 @@
         <el-table-column label="创建时间" width="142" class-name="time-cell">
           <template slot-scope="scope">{{ fmtTime(scope.row.createTime) }}</template>
         </el-table-column>
-        <!-- 操作：着色小按钮网格（左留间距拉开时间列，右留白使整组按钮左移）
-             200px = 单元格左右内边距 30 + 3 格等宽按钮（含 6px 间隙）；「库存记录」4 字是
-             最宽按钮，格子按 (200-30-12)/3 ≈ 52px 算刚好不截断，再窄就会挤字换行。 -->
-        <el-table-column label="操作" width="200" fixed="right" class-name="op-cell" label-class-name="op-cell">
+        <!-- 操作：照定稿 v2 加宽到 246（= 30 内边距 + 3×68 格 + 2×6 间隙），
+             「库存记录」四字不再拥挤；取消 fixed="right"——加了尾部留白列后固定层
+             会在表格横向滚动时错位（定稿代价声明：1920 视口不滚动） -->
+        <el-table-column label="操作" width="246" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
             <div class="op-stack">
               <!-- 上排：写操作（修改 / 状态切换 / 删除）。删除固定第 3 格，位置稳定好记，
@@ -96,6 +113,8 @@
             </div>
           </template>
         </el-table-column>
+        <!-- 尾部留白 150：定稿 v2 规则，按钮与表格右缘之间留白，别顶满（fixed width 空列） -->
+        <el-table-column width="150" />
       </el-table>
       <div class="pager">
         <el-pagination background :page-size="tableFrom.limit" :current-page="tableFrom.page" layout="total, prev, pager, next, jumper" :total="total" @current-change="pageChange" />
@@ -430,6 +449,32 @@ export default {
   },
   methods: {
     checkPermi,
+    // 复制到剪贴板：与分销商管理/用户列表页同款（中文提示 + execCommand 兜底）
+    copyText(text) {
+      const value = String(text);
+      const done = () => this.$message.success('已复制：' + value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(() => this.fallbackCopy(value, done));
+      } else {
+        this.fallbackCopy(value, done);
+      }
+    },
+    fallbackCopy(value, done) {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.top = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
+    },
     fmtTime(t) {
       return t ? String(t).slice(0, 16) : '—';
     },

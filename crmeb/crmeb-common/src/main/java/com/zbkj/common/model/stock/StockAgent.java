@@ -83,4 +83,9 @@ public class StockAgent implements Serializable {
     @ApiModelProperty(value = "上级昵称")
     @TableField(exist = false)
     private String parentName;
+
+    /** 上级的用户 UID（列表展示用，与前端 ID 色块范式配套；parentId 是本表主键，别混用） */
+    @ApiModelProperty(value = "上级用户UID")
+    @TableField(exist = false)
+    private Integer parentUid;
 }
