@@ -96,6 +96,10 @@
             </div>
           </template>
         </el-table-column>
+        <!-- 尾部留白列（用户标注稿要求：按钮与表格右缘之间留白，别顶满）。
+             定宽 150 而非 min-width：min-width 会参与弹性分配、按比例稀释上面
+             刚定稿的四个内容列宽度；定宽则内容列比例原样保留，右侧固定空一段。 -->
+        <el-table-column width="150" />
       </el-table>
       <div class="pager">
         <el-pagination
