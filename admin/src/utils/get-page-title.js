@@ -7,7 +7,7 @@
 // +----------------------------------------------------------------------
 // | Author: CRMEB Team <admin@crmeb.com>
 // +----------------------------------------------------------------------
-const title = localStorage.getItem('singleAdminSiteName') || 'CRMEB Java';
+const title = localStorage.getItem('singleAdminSiteName') || '黔序商城';
 
 export default function getPageTitle(pageTitle) {
   if (pageTitle) {
