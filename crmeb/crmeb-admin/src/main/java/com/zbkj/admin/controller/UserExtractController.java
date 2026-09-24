@@ -51,6 +51,29 @@ public class UserExtractController {
     @Autowired
     private SystemConfigService systemConfigService;
 
+    private static final String[] SETTING_KEYS = new String[]{
+            // 佣金提现
+            SysConfigConstants.CONFIG_EXTRACT_SWITCH,
+            SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE,
+            SysConfigConstants.CONFIG_EXTRACT_MULTIPLE,
+            SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE,
+            SysConfigConstants.CONFIG_EXTRACT_FEE,
+            SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS,
+            SysConfigConstants.CONFIG_EXTRACT_TIME_START,
+            SysConfigConstants.CONFIG_EXTRACT_TIME_END,
+            // 余额提现
+            SysConfigConstants.CONFIG_BALANCE_EXTRACT_SWITCH,
+            SysConfigConstants.CONFIG_BALANCE_EXTRACT_MIN_PRICE,
+            SysConfigConstants.CONFIG_BALANCE_EXTRACT_MULTIPLE,
+            SysConfigConstants.CONFIG_BALANCE_EXTRACT_FEE_TYPE,
+            SysConfigConstants.CONFIG_BALANCE_EXTRACT_FEE,
+            SysConfigConstants.CONFIG_BALANCE_EXTRACT_WEEKDAYS,
+            SysConfigConstants.CONFIG_BALANCE_EXTRACT_TIME_START,
+            SysConfigConstants.CONFIG_BALANCE_EXTRACT_TIME_END,
+            // 支持银行
+            SysConfigConstants.CONFIG_EXTRACT_BANK
+    };
+
     /**
      * 分页显示用户提现表
      * @param request 搜索条件
@@ -120,41 +143,35 @@ public class UserExtractController {
     @RequestMapping(value = "/setting/get", method = RequestMethod.GET)
     public CommonResult<Map<String, String>> getSetting() {
         Map<String, String> map = new LinkedHashMap<>();
-        String[] keys = new String[]{
-                SysConfigConstants.CONFIG_EXTRACT_SWITCH,
-                SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE,
-                SysConfigConstants.CONFIG_EXTRACT_MULTIPLE,
-                SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE,
-                SysConfigConstants.CONFIG_EXTRACT_FEE,
-                SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS,
-                SysConfigConstants.CONFIG_EXTRACT_TIME_START,
-                SysConfigConstants.CONFIG_EXTRACT_TIME_END,
-                SysConfigConstants.CONFIG_EXTRACT_BANK
-        };
-        for (String key : keys) {
+        for (String key : SETTING_KEYS) {
             String val = systemConfigService.getValueByKey(key);
             map.put(key, val == null ? "" : val);
         }
-        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_SWITCH))) {
-            map.put(SysConfigConstants.CONFIG_EXTRACT_SWITCH, "1");
-        }
-        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_MULTIPLE))) {
-            map.put(SysConfigConstants.CONFIG_EXTRACT_MULTIPLE, "0");
-        }
-        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE))) {
-            map.put(SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE, "ratio");
-        }
-        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_FEE))) {
-            map.put(SysConfigConstants.CONFIG_EXTRACT_FEE, "0");
-        }
-        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS))) {
-            map.put(SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS, "1,2,3,4,5,6,7");
-        }
-        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_TIME_START))) {
-            map.put(SysConfigConstants.CONFIG_EXTRACT_TIME_START, "0");
-        }
-        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_TIME_END))) {
-            map.put(SysConfigConstants.CONFIG_EXTRACT_TIME_END, "24");
+        // 佣金提现默认值
+        putDefault(map, SysConfigConstants.CONFIG_EXTRACT_SWITCH, "1");
+        putDefault(map, SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE, "1");
+        putDefault(map, SysConfigConstants.CONFIG_EXTRACT_MULTIPLE, "0");
+        putDefault(map, SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE, "ratio");
+        putDefault(map, SysConfigConstants.CONFIG_EXTRACT_FEE, "0");
+        putDefault(map, SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS, "1,2,3,4,5,6,7");
+        putDefault(map, SysConfigConstants.CONFIG_EXTRACT_TIME_START, "0");
+        putDefault(map, SysConfigConstants.CONFIG_EXTRACT_TIME_END, "24");
+        // 余额提现默认值
+        putDefault(map, SysConfigConstants.CONFIG_BALANCE_EXTRACT_SWITCH, "0");
+        putDefault(map, SysConfigConstants.CONFIG_BALANCE_EXTRACT_MIN_PRICE, "1");
+        putDefault(map, SysConfigConstants.CONFIG_BALANCE_EXTRACT_MULTIPLE, "0");
+        putDefault(map, SysConfigConstants.CONFIG_BALANCE_EXTRACT_FEE_TYPE, "ratio");
+        putDefault(map, SysConfigConstants.CONFIG_BALANCE_EXTRACT_FEE, "0");
+        putDefault(map, SysConfigConstants.CONFIG_BALANCE_EXTRACT_WEEKDAYS, "1,2,3,4,5,6,7");
+        putDefault(map, SysConfigConstants.CONFIG_BALANCE_EXTRACT_TIME_START, "0");
+        putDefault(map, SysConfigConstants.CONFIG_BALANCE_EXTRACT_TIME_END, "24");
+        // 支持银行默认值
+        if (StrUtil.isBlank(map.get(SysConfigConstants.CONFIG_EXTRACT_BANK))) {
+            map.put(SysConfigConstants.CONFIG_EXTRACT_BANK,
+                    "中国工商银行\n中国建设银行\n中国农业银行\n中国银行\n交通银行\n招商银行\n中国邮政储蓄银行\n中信银行\n中国光大银行\n兴业银行\n浦发银行\n民生银行");
+        } else {
+            map.put(SysConfigConstants.CONFIG_EXTRACT_BANK,
+                    map.get(SysConfigConstants.CONFIG_EXTRACT_BANK).replace("\\n", "\n"));
         }
         return CommonResult.success(map);
     }
@@ -169,23 +186,18 @@ public class UserExtractController {
         if (body == null || body.isEmpty()) {
             return CommonResult.failed("参数不能为空");
         }
-        String[] keys = new String[]{
-                SysConfigConstants.CONFIG_EXTRACT_SWITCH,
-                SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE,
-                SysConfigConstants.CONFIG_EXTRACT_MULTIPLE,
-                SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE,
-                SysConfigConstants.CONFIG_EXTRACT_FEE,
-                SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS,
-                SysConfigConstants.CONFIG_EXTRACT_TIME_START,
-                SysConfigConstants.CONFIG_EXTRACT_TIME_END,
-                SysConfigConstants.CONFIG_EXTRACT_BANK
-        };
-        for (String key : keys) {
+        for (String key : SETTING_KEYS) {
             if (body.containsKey(key)) {
                 Object v = body.get(key);
                 systemConfigService.updateOrSaveValueByName(key, v == null ? "" : String.valueOf(v));
             }
         }
         return CommonResult.success();
+    }
+
+    private void putDefault(Map<String, String> map, String key, String defaultVal) {
+        if (StrUtil.isBlank(map.get(key))) {
+            map.put(key, defaultVal);
+        }
     }
 }

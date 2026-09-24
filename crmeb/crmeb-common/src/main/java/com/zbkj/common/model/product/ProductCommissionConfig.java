@@ -107,11 +107,38 @@ public class ProductCommissionConfig implements Serializable {
     @Data
     public static class Store implements Serializable {
         private static final long serialVersionUID = 1L;
+        /** @deprecated 历史「门店佣金」字段，仅兼容旧 JSON，不再参与结算与后台录入 */
         private Boolean brokerageEnabled;
+        /** @deprecated 见 brokerageEnabled */
         private BigDecimal brokerageAmount;
+        /** @deprecated 见 brokerageEnabled */
         private BigDecimal brokerageRate;
+        /** @deprecated 历史「奖励金」字段，仅兼容旧 JSON */
         private Boolean bonusEnabled;
+        /** @deprecated 见 bonusEnabled */
         private BigDecimal bonusAmount;
+        /** @deprecated 见 bonusEnabled */
         private BigDecimal bonusRate;
+
+        @ApiModelProperty(value = "自提服务费（商品级覆盖门店默认）")
+        private FeeItem pickup = new FeeItem();
+
+        @ApiModelProperty(value = "核销服务费（商品级覆盖门店默认）")
+        private FeeItem verify = new FeeItem();
+
+        @ApiModelProperty(value = "配送服务费（商品级覆盖门店默认）")
+        private FeeItem delivery = new FeeItem();
+    }
+
+    /**
+     * 门店服务费单项：enabled null=跟随门店默认；true=启用商品覆盖；false=停用（0）。
+     * amount / rate 留空时跟随门店默认；同时填写时金额优先。
+     */
+    @Data
+    public static class FeeItem implements Serializable {
+        private static final long serialVersionUID = 1L;
+        private Boolean enabled;
+        private BigDecimal amount;
+        private BigDecimal rate;
     }
 }

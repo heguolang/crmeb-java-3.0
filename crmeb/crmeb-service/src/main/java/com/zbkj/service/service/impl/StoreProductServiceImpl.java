@@ -358,6 +358,15 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         if (ObjectUtil.isNull(request.getGiveIntegral())) {
             storeProduct.setGiveIntegral(0);
         }
+        if (ObjectUtil.isNull(request.getIsGiveIntegral())) {
+            storeProduct.setIsGiveIntegral(true);
+        }
+        if (ObjectUtil.isNull(request.getIntegralDeduct())) {
+            storeProduct.setIntegralDeduct(0);
+        }
+        if (ObjectUtil.isNull(request.getIsIntegralDeductBrokerage())) {
+            storeProduct.setIsIntegralDeductBrokerage(true);
+        }
         if (ObjectUtil.isNull(request.getFicti())) {
             storeProduct.setFicti(0);
         }
@@ -536,6 +545,18 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         BeanUtils.copyProperties(storeProductRequest, storeProduct);
         // 请求对象已移除 storeInfo 字段，实体默认值是 ""，不兜底会把原简介清空
         storeProduct.setStoreInfo(tempProduct.getStoreInfo() == null ? "" : tempProduct.getStoreInfo());
+        if (ObjectUtil.isNull(storeProduct.getIsGiveIntegral())) {
+            storeProduct.setIsGiveIntegral(true);
+        }
+        if (ObjectUtil.isNull(storeProduct.getGiveIntegral())) {
+            storeProduct.setGiveIntegral(0);
+        }
+        if (ObjectUtil.isNull(storeProduct.getIntegralDeduct())) {
+            storeProduct.setIntegralDeduct(0);
+        }
+        if (ObjectUtil.isNull(storeProduct.getIsIntegralDeductBrokerage())) {
+            storeProduct.setIsIntegralDeductBrokerage(true);
+        }
         ProductCommissionConfig syncedCfg = syncLegacyBrokerageIntoCommission(
                 storeProductRequest.getCommissionConfig(), storeProductRequest.getIsSub(), storeProductRequest.getAttrValue());
         storeProduct.setCommissionConfig(ProductCommissionUtil.toJson(syncedCfg));

@@ -26,6 +26,8 @@ import com.zbkj.common.model.user.User;
 import com.zbkj.common.model.user.UserBill;
 import com.zbkj.common.utils.ValidateFormUtil;
 import com.zbkj.common.vo.DateLimitUtilVo;
+import com.zbkj.common.model.order.StoreOrder;
+import com.zbkj.service.dao.StoreOrderDao;
 import com.zbkj.service.dao.UserBillDao;
 import com.zbkj.service.service.UserBillService;
 import org.apache.commons.lang3.StringUtils;
@@ -36,8 +38,10 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -57,6 +61,9 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
 
     @Resource
     private UserBillDao dao;
+
+    @Resource
+    private StoreOrderDao storeOrderDao;
 
     /**
     * 列表
@@ -199,7 +206,15 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
         userBill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
         userBill.setType(Constants.USER_BILL_TYPE_PAY_PRODUCT_REFUND);
         userBill.setNumber(request.getAmount());
-        userBill.setLinkId(request.getOrderId().toString());
+        // 关联真实订单号（兼容历史把主键 id 写入 link_id 的数据）
+        String linkId = request.getOrderId() == null ? "0" : String.valueOf(request.getOrderId());
+        if (request.getOrderId() != null) {
+            StoreOrder storeOrder = storeOrderDao.selectById(request.getOrderId());
+            if (storeOrder != null && StrUtil.isNotBlank(storeOrder.getOrderId())) {
+                linkId = storeOrder.getOrderId();
+            }
+        }
+        userBill.setLinkId(linkId);
         userBill.setBalance(user.getNowMoney().add(request.getAmount()));
         userBill.setMark("订单退款到余额" + request.getAmount() + "元");
         userBill.setPm(1);
@@ -290,6 +305,7 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
             monitorResponse.setSourceTable("bill");
             return monitorResponse;
         }).collect(Collectors.toList());
+        fillRealOrderNo(responseList);
         return CommonPage.copyPageInfo(billPage, responseList);
     }
 
@@ -307,6 +323,7 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
             // sourceTable 由 SQL 返回（bill / integral / brokerage），勿覆盖
             return monitorResponse;
         }).collect(Collectors.toList());
+        fillRealOrderNo(responseList);
         return CommonPage.copyPageInfo(billPage, responseList);
     }
 
@@ -452,6 +469,7 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
             monitorResponse.setSourceTable("integral");
             return monitorResponse;
         }).collect(Collectors.toList());
+        fillRealOrderNo(responseList);
         return CommonPage.copyPageInfo(billPage, responseList);
     }
 
@@ -520,7 +538,54 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
             monitorResponse.setSourceTable("brokerage");
             return monitorResponse;
         }).collect(Collectors.toList());
+        fillRealOrderNo(responseList);
         return CommonPage.copyPageInfo(billPage, responseList);
+    }
+
+    /**
+     * 资金监控：若 linkId 是订单表主键数字，则替换为真实订单号 order_id。
+     * 已是订单号 / 其它业务单号的保持不变。
+     */
+    private void fillRealOrderNo(List<MonitorResponse> list) {
+        if (CollUtil.isEmpty(list)) {
+            return;
+        }
+        Set<Integer> orderPkIds = new HashSet<>();
+        for (MonitorResponse item : list) {
+            if (item == null || StrUtil.isBlank(item.getLinkId()) || "0".equals(item.getLinkId())) {
+                continue;
+            }
+            if (item.getLinkId().matches("^\\d+$")) {
+                try {
+                    orderPkIds.add(Integer.valueOf(item.getLinkId()));
+                } catch (NumberFormatException ignore) {
+                    // ignore
+                }
+            }
+        }
+        if (orderPkIds.isEmpty()) {
+            return;
+        }
+        List<StoreOrder> orders = storeOrderDao.selectBatchIds(orderPkIds);
+        if (CollUtil.isEmpty(orders)) {
+            return;
+        }
+        Map<Integer, String> idToOrderNo = orders.stream()
+                .filter(o -> o != null && o.getId() != null && StrUtil.isNotBlank(o.getOrderId()))
+                .collect(Collectors.toMap(StoreOrder::getId, StoreOrder::getOrderId, (a, b) -> a));
+        for (MonitorResponse item : list) {
+            if (item == null || StrUtil.isBlank(item.getLinkId()) || !item.getLinkId().matches("^\\d+$")) {
+                continue;
+            }
+            try {
+                String orderNo = idToOrderNo.get(Integer.valueOf(item.getLinkId()));
+                if (StrUtil.isNotBlank(orderNo)) {
+                    item.setLinkId(orderNo);
+                }
+            } catch (NumberFormatException ignore) {
+                // ignore
+            }
+        }
     }
 
     /**

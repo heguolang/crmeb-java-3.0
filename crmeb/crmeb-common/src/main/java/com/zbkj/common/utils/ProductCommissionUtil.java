@@ -176,4 +176,70 @@ public final class ProductCommissionUtil {
         }
         return null;
     }
+
+    /**
+     * 是否对门店服务费做了商品级配置（开关非跟随，或填写了金额/比例）。
+     */
+    public static boolean isStoreFeeConfigured(ProductCommissionConfig.FeeItem item) {
+        if (item == null) {
+            return false;
+        }
+        if (item.getEnabled() != null) {
+            return true;
+        }
+        return hasOverride(item.getAmount(), item.getRate());
+    }
+
+    /**
+     * 解析商品级门店服务费。
+     * <ul>
+     *   <li>enabled=false → 0</li>
+     *   <li>填写了金额/比例 → 按金额优先计算（与佣金 calcOverride 一致）</li>
+     *   <li>其余（跟随门店默认）→ storeDefaultFee</li>
+     * </ul>
+     *
+     * @param unitPrice 单价（比例计费用）；可为 null
+     * @param payNum    数量
+     */
+    public static BigDecimal resolveStoreServiceFee(ProductCommissionConfig.FeeItem item,
+                                                    BigDecimal storeDefaultFee,
+                                                    BigDecimal unitPrice,
+                                                    int payNum) {
+        BigDecimal storeFee = ObjectUtil.defaultIfNull(storeDefaultFee, BigDecimal.ZERO);
+        if (item == null) {
+            return storeFee;
+        }
+        if (Boolean.FALSE.equals(item.getEnabled())) {
+            return BigDecimal.ZERO;
+        }
+        if (hasOverride(item.getAmount(), item.getRate())) {
+            BigDecimal override = calcOverride(item.getAmount(), item.getRate(), unitPrice, payNum);
+            return override == null ? BigDecimal.ZERO : override;
+        }
+        return storeFee;
+    }
+
+    /**
+     * 分佣用单价：若商品配置「积分抵扣金额不参与分佣」，则从单价中扣减本行积分抵扣均摊金额。
+     */
+    public static BigDecimal brokerageUnitPrice(com.zbkj.common.vo.OrderInfoDetailVo info) {
+        if (info == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal unit = ObjectUtil.defaultIfNull(info.getVipPrice(), info.getPrice());
+        if (unit == null) {
+            return BigDecimal.ZERO;
+        }
+        if (!Boolean.FALSE.equals(info.getIsIntegralDeductBrokerage())) {
+            return unit;
+        }
+        BigDecimal lineDeduct = ObjectUtil.defaultIfNull(info.getLineDeductionPrice(), BigDecimal.ZERO);
+        if (lineDeduct.compareTo(BigDecimal.ZERO) <= 0) {
+            return unit;
+        }
+        int payNum = Math.max(ObjectUtil.defaultIfNull(info.getPayNum(), 1), 1);
+        BigDecimal perUnit = lineDeduct.divide(new BigDecimal(payNum), 2, RoundingMode.HALF_UP);
+        BigDecimal effective = unit.subtract(perUnit);
+        return effective.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : effective;
+    }
 }

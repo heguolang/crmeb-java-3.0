@@ -12,6 +12,7 @@ import com.zbkj.common.constants.TaskConstants;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.merchant.MerchantStoreVerifyRecord;
 import com.zbkj.common.model.order.StoreOrder;
+import com.zbkj.common.model.product.ProductCommissionConfig;
 import com.zbkj.common.model.product.StoreProduct;
 import com.zbkj.common.model.system.SystemStore;
 import com.zbkj.common.model.user.User;
@@ -20,6 +21,7 @@ import com.zbkj.common.request.MerchantStoreRequest;
 import com.zbkj.common.request.PageParamRequest;
 import com.zbkj.common.response.MerchantStoreNearVo;
 import com.zbkj.common.response.StoreOrderVerificationConfirmResponse;
+import com.zbkj.common.utils.ProductCommissionUtil;
 import com.zbkj.common.utils.RedisUtil;
 import com.zbkj.common.vo.OrderInfoDetailVo;
 import com.zbkj.common.vo.StoreOrderInfoOldVo;
@@ -237,11 +239,17 @@ public class MerchantStoreServiceImpl implements MerchantStoreService {
         // 产品门店服务权限过滤：产品开启门店服务时，按产品支持的自提/配送能力过滤
         Boolean needPickup = null;
         Boolean needDelivery = null;
+        StoreProduct product = null;
+        ProductCommissionConfig.Store storeFeeCfg = null;
         if (productId != null && productId > 0) {
-            StoreProduct product = storeProductService.getById(productId);
+            product = storeProductService.getById(productId);
             if (product != null && Boolean.TRUE.equals(product.getIsStore())) {
                 needPickup = Boolean.TRUE.equals(product.getStoreSelfPickup());
                 needDelivery = Boolean.TRUE.equals(product.getStoreDelivery());
+            }
+            if (product != null) {
+                ProductCommissionConfig cfg = ProductCommissionUtil.parse(product.getCommissionConfig());
+                storeFeeCfg = cfg == null ? null : cfg.getStore();
             }
         }
 
@@ -251,6 +259,7 @@ public class MerchantStoreServiceImpl implements MerchantStoreService {
         for (SystemStore store : stores) {
             MerchantStoreNearVo vo = new MerchantStoreNearVo();
             BeanUtils.copyProperties(store, vo);
+            applyProductStoreFees(vo, store, storeFeeCfg, product);
             double distance = -1;
             if (userLat > 0 && userLng > 0 && StrUtil.isNotBlank(store.getLatitude()) && StrUtil.isNotBlank(store.getLongitude())) {
                 distance = distanceKm(userLat, userLng, parseDouble(store.getLatitude()), parseDouble(store.getLongitude()));
@@ -332,16 +341,12 @@ public class MerchantStoreServiceImpl implements MerchantStoreService {
     public void writeVerifyRecord(StoreOrder order, Integer verifyUid, String verifyName, int source) {
         MerchantStoreVerifyRecord record = new MerchantStoreVerifyRecord();
         record.setStoreId(order.getStoreId() == null ? 0 : order.getStoreId());
+        SystemStore store = null;
         if (record.getStoreId() > 0) {
-            SystemStore store = systemStoreDao.selectById(record.getStoreId());
+            store = systemStoreDao.selectById(record.getStoreId());
             record.setStoreName(store == null ? "" : store.getName());
-            if (store != null && store.getVerifyFee() != null) {
-                record.setServiceFee(store.getVerifyFee());
-            }
         }
-        if (record.getServiceFee() == null) {
-            record.setServiceFee(BigDecimal.ZERO);
-        }
+        record.setServiceFee(resolveOrderVerifyFee(order, store));
         record.setOrderId(order.getId());
         record.setOrderNo(order.getOrderId());
         record.setVerifyCode(order.getVerifyCode());
@@ -433,6 +438,59 @@ public class MerchantStoreServiceImpl implements MerchantStoreService {
             }
             return StrUtil.nullToEmpty(info.getProductName()) + "x" + (info.getPayNum() == null ? 0 : info.getPayNum());
         }).filter(StrUtil::isNotBlank).collect(Collectors.joining("；"));
+    }
+
+    /**
+     * 附近门店列表：按商品佣金配置覆盖三类服务费（留空则跟随门店默认）。
+     */
+    private void applyProductStoreFees(MerchantStoreNearVo vo, SystemStore store,
+                                       ProductCommissionConfig.Store storeFeeCfg, StoreProduct product) {
+        if (storeFeeCfg == null || store == null) {
+            return;
+        }
+        BigDecimal unitPrice = product == null ? BigDecimal.ZERO : product.getPrice();
+        vo.setPickupFee(ProductCommissionUtil.resolveStoreServiceFee(
+                storeFeeCfg.getPickup(), store.getPickupFee(), unitPrice, 1));
+        vo.setVerifyFee(ProductCommissionUtil.resolveStoreServiceFee(
+                storeFeeCfg.getVerify(), store.getVerifyFee(), unitPrice, 1));
+        vo.setDeliveryFee(ProductCommissionUtil.resolveStoreServiceFee(
+                storeFeeCfg.getDelivery(), store.getDeliveryFee(), unitPrice, 1));
+    }
+
+    /**
+     * 核销服务费：若订单商品配置了核销服务费覆盖，则按行汇总；否则取门店默认核销服务费（一次）。
+     */
+    private BigDecimal resolveOrderVerifyFee(StoreOrder order, SystemStore store) {
+        BigDecimal storeFee = store == null || store.getVerifyFee() == null ? BigDecimal.ZERO : store.getVerifyFee();
+        if (order == null || order.getId() == null) {
+            return storeFee;
+        }
+        List<StoreOrderInfoOldVo> infos = storeOrderInfoService.getOrderListByOrderId(order.getId());
+        if (infos == null || infos.isEmpty()) {
+            return storeFee;
+        }
+        BigDecimal sum = BigDecimal.ZERO;
+        boolean anyConfigured = false;
+        for (StoreOrderInfoOldVo line : infos) {
+            OrderInfoDetailVo detail = line == null ? null : line.getInfo();
+            if (detail == null || detail.getProductId() == null) {
+                continue;
+            }
+            StoreProduct product = storeProductService.getById(detail.getProductId());
+            if (product == null) {
+                continue;
+            }
+            ProductCommissionConfig cfg = ProductCommissionUtil.parse(product.getCommissionConfig());
+            ProductCommissionConfig.FeeItem feeItem = cfg.getStore() == null ? null : cfg.getStore().getVerify();
+            if (!ProductCommissionUtil.isStoreFeeConfigured(feeItem)) {
+                continue;
+            }
+            anyConfigured = true;
+            BigDecimal unitPrice = detail.getVipPrice() != null ? detail.getVipPrice() : detail.getPrice();
+            int payNum = detail.getPayNum() == null ? 1 : detail.getPayNum();
+            sum = sum.add(ProductCommissionUtil.resolveStoreServiceFee(feeItem, storeFee, unitPrice, payNum));
+        }
+        return anyConfigured ? sum : storeFee;
     }
 
     private double parseDouble(String v) {

@@ -100,7 +100,7 @@ public class SysConfigConstants {
     public static final String CONFIG_EXTRACT_MIN_PRICE = "user_extract_min_price";
     /** 提现冻结时间 */
     public static final String CONFIG_EXTRACT_FREEZING_TIME = "extract_time";
-    /** 提现银行卡 */
+    /** 提现银行卡（支持银行，换行分隔） */
     public static final String CONFIG_EXTRACT_BANK = "user_extract_bank";
     /** 佣金提现功能开关 1开 0关 */
     public static final String CONFIG_EXTRACT_SWITCH = "user_extract_switch";
@@ -116,6 +116,28 @@ public class SysConfigConstants {
     public static final String CONFIG_EXTRACT_TIME_START = "user_extract_time_start";
     /** 可提现结束小时 1-24（不含，24表示到当天结束） */
     public static final String CONFIG_EXTRACT_TIME_END = "user_extract_time_end";
+
+    /** 余额提现功能开关 1开 0关 */
+    public static final String CONFIG_BALANCE_EXTRACT_SWITCH = "user_balance_extract_switch";
+    /** 余额最低提现金额 */
+    public static final String CONFIG_BALANCE_EXTRACT_MIN_PRICE = "user_balance_extract_min_price";
+    /** 余额提现倍数，0不限制 */
+    public static final String CONFIG_BALANCE_EXTRACT_MULTIPLE = "user_balance_extract_multiple";
+    /** 余额提现手续费类型：fixed固定金额 ratio比例 */
+    public static final String CONFIG_BALANCE_EXTRACT_FEE_TYPE = "user_balance_extract_fee_type";
+    /** 余额提现手续费值（金额或百分比） */
+    public static final String CONFIG_BALANCE_EXTRACT_FEE = "user_balance_extract_fee";
+    /** 余额可提现星期，1-7逗号分隔，空为全部 */
+    public static final String CONFIG_BALANCE_EXTRACT_WEEKDAYS = "user_balance_extract_weekdays";
+    /** 余额可提现开始小时 0-23 */
+    public static final String CONFIG_BALANCE_EXTRACT_TIME_START = "user_balance_extract_time_start";
+    /** 余额可提现结束小时 1-24（不含，24表示到当天结束） */
+    public static final String CONFIG_BALANCE_EXTRACT_TIME_END = "user_balance_extract_time_end";
+
+    /** 提现类别：佣金 */
+    public static final String EXTRACT_CATEGORY_BROKERAGE = "brokerage";
+    /** 提现类别：余额 */
+    public static final String EXTRACT_CATEGORY_BALANCE = "balance";
 
 
 

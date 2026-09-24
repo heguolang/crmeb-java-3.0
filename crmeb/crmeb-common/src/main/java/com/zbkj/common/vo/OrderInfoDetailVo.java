@@ -53,6 +53,21 @@ public class OrderInfoDetailVo {
     /** 获得积分 */
     private Integer giveIntegral;
 
+    /** 是否支持赠送积分（false 则本商品不赠送） */
+    private Boolean isGiveIntegral;
+
+    /** 单品最多可用积分抵扣数（每件），0表示不支持积分抵扣 */
+    private Integer integralDeduct;
+
+    /** 积分抵扣金额是否参与分佣：true参与 false不参与 */
+    private Boolean isIntegralDeductBrokerage;
+
+    /** 本行实际使用的抵扣积分数 */
+    private Integer lineUseIntegral;
+
+    /** 本行积分抵扣金额（元） */
+    private BigDecimal lineDeductionPrice;
+
     /** 是否评价 */
     private Integer isReply;
 

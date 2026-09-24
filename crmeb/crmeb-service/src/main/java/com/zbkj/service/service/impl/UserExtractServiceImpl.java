@@ -18,6 +18,7 @@ import com.zbkj.common.constants.SysConfigConstants;
 import com.zbkj.common.exception.CrmebException;
 import com.zbkj.common.model.finance.UserExtract;
 import com.zbkj.common.model.user.User;
+import com.zbkj.common.model.user.UserBill;
 import com.zbkj.common.model.user.UserBrokerageRecord;
 import com.zbkj.common.page.CommonPage;
 import com.zbkj.common.request.PageParamRequest;
@@ -84,6 +85,9 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
     @Autowired
     private UserBrokerageRecordService userBrokerageRecordService;
 
+    @Autowired
+    private UserBillService userBillService;
+
 
     /**
      * 列表
@@ -121,6 +125,17 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
             lambdaQueryWrapper.eq(UserExtract::getExtractType, request.getExtractType());
         }
 
+        //提现类别
+        if (!StringUtils.isBlank(request.getExtractCategory())) {
+            if (SysConfigConstants.EXTRACT_CATEGORY_BROKERAGE.equals(request.getExtractCategory())) {
+                lambdaQueryWrapper.and(w -> w.eq(UserExtract::getExtractCategory, SysConfigConstants.EXTRACT_CATEGORY_BROKERAGE)
+                        .or().isNull(UserExtract::getExtractCategory)
+                        .or().eq(UserExtract::getExtractCategory, ""));
+            } else {
+                lambdaQueryWrapper.eq(UserExtract::getExtractCategory, request.getExtractCategory());
+            }
+        }
+
         //时间范围
         if (StringUtils.isNotBlank(request.getDateLimit())) {
             DateLimitUtilVo dateLimit = CrmebDateUtil.getDateLimit(request.getDateLimit());
@@ -140,6 +155,9 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
             User user = userMap.get(userExtract.getUid());
             String nickName = user != null ? Optional.ofNullable(user.getNickname()).orElse("") : "";
             userExtract.setNickName(nickName);
+            if (StrUtil.isBlank(userExtract.getExtractCategory())) {
+                userExtract.setExtractCategory(SysConfigConstants.EXTRACT_CATEGORY_BROKERAGE);
+            }
         }
         return extractList;
     }
@@ -278,50 +296,79 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
             throw new CrmebException("提现用户数据异常");
         }
 
+        boolean isBalance = SysConfigConstants.EXTRACT_CATEGORY_BALANCE.equals(userExtract.getExtractCategory());
         Boolean execute = false;
 
         userExtract.setUpdateTime(cn.hutool.core.date.DateUtil.date());
         // 拒绝
-        if (status == -1) {//未通过时恢复用户总金额
+        if (status == -1) {
             userExtract.setFailMsg(backMessage);
-            // 添加提现申请拒绝佣金记录
-            UserBrokerageRecord brokerageRecord = new UserBrokerageRecord();
-            brokerageRecord.setUid(user.getUid());
-            brokerageRecord.setLinkId(userExtract.getId().toString());
-            brokerageRecord.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_WITHDRAW);
-            brokerageRecord.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
-            brokerageRecord.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_WITHDRAW_FAIL);
-            brokerageRecord.setPrice(userExtract.getExtractPrice());
-            brokerageRecord.setBalance(user.getBrokeragePrice().add(userExtract.getExtractPrice()));
-            brokerageRecord.setMark(StrUtil.format("提现申请拒绝返还佣金{}", userExtract.getExtractPrice()));
-            brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
-            brokerageRecord.setCreateTime(CrmebDateUtil.nowDateTime());
+            if (isBalance) {
+                UserBill userBill = new UserBill();
+                userBill.setUid(user.getUid());
+                userBill.setLinkId(userExtract.getId().toString());
+                userBill.setPm(1);
+                userBill.setTitle("余额提现退回");
+                userBill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
+                userBill.setType(Constants.USER_BILL_TYPE_SYSTEM_ADD);
+                userBill.setNumber(userExtract.getExtractPrice());
+                userBill.setBalance(user.getNowMoney().add(userExtract.getExtractPrice()));
+                userBill.setMark(StrUtil.format("余额提现申请拒绝返还{}元", userExtract.getExtractPrice()));
+                userBill.setStatus(1);
+                userBill.setCreateTime(CrmebDateUtil.nowDateTime());
 
-            execute = transactionTemplate.execute(e -> {
-                // 返还佣金
-                userService.operationBrokerage(userExtract.getUid(), userExtract.getExtractPrice(), user.getBrokeragePrice(), "add");
-                userExtract.setUpdateTime(DateUtil.date());
-                updateById(userExtract);
-                userBrokerageRecordService.save(brokerageRecord);
-                return Boolean.TRUE;
-            });
+                execute = transactionTemplate.execute(e -> {
+                    userService.operationNowMoney(userExtract.getUid(), userExtract.getExtractPrice(), user.getNowMoney(), "add");
+                    userExtract.setUpdateTime(DateUtil.date());
+                    updateById(userExtract);
+                    userBillService.save(userBill);
+                    return Boolean.TRUE;
+                });
+            } else {
+                UserBrokerageRecord brokerageRecord = new UserBrokerageRecord();
+                brokerageRecord.setUid(user.getUid());
+                brokerageRecord.setLinkId(userExtract.getId().toString());
+                brokerageRecord.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_WITHDRAW);
+                brokerageRecord.setType(BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD);
+                brokerageRecord.setTitle(BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_WITHDRAW_FAIL);
+                brokerageRecord.setPrice(userExtract.getExtractPrice());
+                brokerageRecord.setBalance(user.getBrokeragePrice().add(userExtract.getExtractPrice()));
+                brokerageRecord.setMark(StrUtil.format("提现申请拒绝返还佣金{}", userExtract.getExtractPrice()));
+                brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+                brokerageRecord.setCreateTime(CrmebDateUtil.nowDateTime());
+
+                execute = transactionTemplate.execute(e -> {
+                    userService.operationBrokerage(userExtract.getUid(), userExtract.getExtractPrice(), user.getBrokeragePrice(), "add");
+                    userExtract.setUpdateTime(DateUtil.date());
+                    updateById(userExtract);
+                    userBrokerageRecordService.save(brokerageRecord);
+                    return Boolean.TRUE;
+                });
+            }
         }
 
         // 同意
         if (status == 1) {
-            // 获取佣金提现记录
-            UserBrokerageRecord brokerageRecord = userBrokerageRecordService.getByLinkIdAndLinkType(userExtract.getId().toString(), BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_WITHDRAW);
-            if (ObjectUtil.isNull(brokerageRecord)) {
-                throw new CrmebException("对应的佣金记录不存在");
+            if (isBalance) {
+                execute = transactionTemplate.execute(e -> {
+                    userExtract.setUpdateTime(DateUtil.date());
+                    updateById(userExtract);
+                    return Boolean.TRUE;
+                });
+            } else {
+                UserBrokerageRecord brokerageRecord = userBrokerageRecordService.getByLinkIdAndLinkType(userExtract.getId().toString(), BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_WITHDRAW);
+                if (ObjectUtil.isNull(brokerageRecord)) {
+                    throw new CrmebException("对应的佣金记录不存在");
+                }
+                execute = transactionTemplate.execute(e -> {
+                    userExtract.setUpdateTime(DateUtil.date());
+                    updateById(userExtract);
+                    brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+                    brokerageRecord.setUpdateTime(DateUtil.date());
+                    userBrokerageRecordService.updateById(brokerageRecord);
+                    return Boolean.TRUE;
+                });
             }
-            execute = transactionTemplate.execute(e -> {
-                userExtract.setUpdateTime(DateUtil.date());
-                updateById(userExtract);
-                brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
-                brokerageRecord.setUpdateTime(DateUtil.date());
-                userBrokerageRecordService.updateById(brokerageRecord);
-                return Boolean.TRUE;
-            });
         }
         return execute;
     }
@@ -382,23 +429,32 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
      */
     @Override
     public Boolean extractApply(UserExtractRequest request) {
+        String category = StrUtil.blankToDefault(request.getExtractCategory(), SysConfigConstants.EXTRACT_CATEGORY_BROKERAGE);
+        boolean isBalance = SysConfigConstants.EXTRACT_CATEGORY_BALANCE.equals(category);
+
         // 功能开关
-        String extractSwitch = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_SWITCH);
+        String switchKey = isBalance ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_SWITCH : SysConfigConstants.CONFIG_EXTRACT_SWITCH;
+        String extractSwitch = systemConfigService.getValueByKey(switchKey);
         if (StrUtil.isNotBlank(extractSwitch) && !"1".equals(extractSwitch)) {
-            throw new CrmebException("佣金提现功能已关闭");
+            throw new CrmebException(isBalance ? "余额提现功能已关闭" : "佣金提现功能已关闭");
         }
         // 可提现时间校验
-        checkExtractTimeAllowed(true);
+        checkExtractTimeAllowed(true, category);
 
-        //添加判断，提现金额不能后台配置金额
-        String value = systemConfigService.getValueByKeyException(Constants.CONFIG_EXTRACT_MIN_PRICE);
+        // 最低提现金额
+        String minKey = isBalance ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_MIN_PRICE : Constants.CONFIG_EXTRACT_MIN_PRICE;
+        String value = systemConfigService.getValueByKey(minKey);
+        if (StrUtil.isBlank(value)) {
+            value = "1";
+        }
         BigDecimal ten = new BigDecimal(value);
         if (request.getExtractPrice().compareTo(ten) < 0) {
             throw new CrmebException(StrUtil.format("最低提现金额{}元", ten));
         }
 
         // 提现倍数校验，0不限制
-        String multipleStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_MULTIPLE);
+        String multipleKey = isBalance ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_MULTIPLE : SysConfigConstants.CONFIG_EXTRACT_MULTIPLE;
+        String multipleStr = systemConfigService.getValueByKey(multipleKey);
         if (StrUtil.isNotBlank(multipleStr)) {
             BigDecimal multiple = new BigDecimal(multipleStr);
             if (multiple.compareTo(ZERO) > 0) {
@@ -409,21 +465,28 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
             }
         }
 
+        // 银行卡时校验银行是否在支持列表中
+        if ("bank".equals(request.getExtractType()) && StrUtil.isNotBlank(request.getBankName())) {
+            List<String> banks = getSupportBankList();
+            if (CollUtil.isNotEmpty(banks) && !banks.contains(request.getBankName().trim())) {
+                throw new CrmebException("不支持的提现银行：" + request.getBankName());
+            }
+        }
+
         User user = userService.getInfo();
         if (ObjectUtil.isNull(user)) {
             throw new CrmebException("提现用户信息异常");
         }
-        BigDecimal money = user.getBrokeragePrice();//可提现总金额
+
+        BigDecimal money = isBalance ? user.getNowMoney() : user.getBrokeragePrice();
         if (money.compareTo(ZERO) < 1) {
             throw new CrmebException("您当前没有金额可以提现");
         }
-
         if (money.compareTo(request.getExtractPrice()) < 0) {
             throw new CrmebException("你当前最多可提现 " + money + "元");
         }
 
-        // 计算手续费（仅备注展示，扣减仍按申请金额）
-        BigDecimal fee = calcExtractFee(request.getExtractPrice());
+        BigDecimal fee = calcExtractFee(request.getExtractPrice(), category);
         BigDecimal arrivePrice = request.getExtractPrice().subtract(fee);
         if (arrivePrice.compareTo(ZERO) < 0) {
             arrivePrice = ZERO;
@@ -433,7 +496,7 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
         BeanUtils.copyProperties(request, userExtract);
         userExtract.setUid(user.getUid());
         userExtract.setBalance(money.subtract(request.getExtractPrice()));
-        //存入银行名称
+        userExtract.setExtractCategory(category);
         if (StrUtil.isNotBlank(userExtract.getQrcodeUrl())) {
             userExtract.setQrcodeUrl(systemAttachmentService.clearPrefix(userExtract.getQrcodeUrl()));
         }
@@ -442,7 +505,28 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
             userExtract.setMark(StrUtil.isBlank(userExtract.getMark()) ? feeMark : userExtract.getMark() + "；" + feeMark);
         }
 
-        // 添加佣金记录
+        if (isBalance) {
+            UserBill userBill = new UserBill();
+            userBill.setUid(user.getUid());
+            userBill.setPm(0);
+            userBill.setTitle("余额提现");
+            userBill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
+            userBill.setType(Constants.USER_BILL_TYPE_EXTRACT);
+            userBill.setNumber(userExtract.getExtractPrice());
+            userBill.setBalance(money.subtract(userExtract.getExtractPrice()));
+            userBill.setMark(StrUtil.format("余额提现申请扣除{}元", userExtract.getExtractPrice()));
+            userBill.setStatus(1);
+            userBill.setCreateTime(CrmebDateUtil.nowDateTime());
+
+            return transactionTemplate.execute(e -> {
+                save(userExtract);
+                userService.operationNowMoney(user.getUid(), userExtract.getExtractPrice(), money, "sub");
+                userBill.setLinkId(userExtract.getId().toString());
+                userBillService.save(userBill);
+                return Boolean.TRUE;
+            });
+        }
+
         UserBrokerageRecord brokerageRecord = new UserBrokerageRecord();
         brokerageRecord.setUid(user.getUid());
         brokerageRecord.setLinkType(BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_WITHDRAW);
@@ -454,27 +538,30 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
         brokerageRecord.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_WITHDRAW);
         brokerageRecord.setCreateTime(CrmebDateUtil.nowDateTime());
 
-        Boolean execute = transactionTemplate.execute(e -> {
-            // 保存提现记录
+        return transactionTemplate.execute(e -> {
             save(userExtract);
-            // 修改用户佣金
             userService.operationBrokerage(user.getUid(), userExtract.getExtractPrice(), money, "sub");
-            // 添加佣金记录
             brokerageRecord.setLinkId(userExtract.getId().toString());
             userBrokerageRecordService.save(brokerageRecord);
             return Boolean.TRUE;
         });
-        // 此处可添加提现申请通知
-
-        return execute;
     }
 
     /**
      * 计算提现手续费
      */
     public BigDecimal calcExtractFee(BigDecimal extractPrice) {
-        String feeType = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE);
-        String feeVal = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_FEE);
+        return calcExtractFee(extractPrice, SysConfigConstants.EXTRACT_CATEGORY_BROKERAGE);
+    }
+
+    public BigDecimal calcExtractFee(BigDecimal extractPrice, String category) {
+        boolean isBalance = SysConfigConstants.EXTRACT_CATEGORY_BALANCE.equals(category);
+        String feeType = systemConfigService.getValueByKey(isBalance
+                ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_FEE_TYPE
+                : SysConfigConstants.CONFIG_EXTRACT_FEE_TYPE);
+        String feeVal = systemConfigService.getValueByKey(isBalance
+                ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_FEE
+                : SysConfigConstants.CONFIG_EXTRACT_FEE);
         if (StrUtil.isBlank(feeVal)) {
             return ZERO;
         }
@@ -485,7 +572,6 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
         if ("fixed".equals(feeType)) {
             return feeConfig.setScale(2, RoundingMode.HALF_UP);
         }
-        // 默认按比例
         return extractPrice.multiply(feeConfig).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
     }
 
@@ -493,10 +579,23 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
      * 校验当前是否在可提现时间；返回是否允许
      * @param throwEx true时不在窗口直接抛异常
      */
+    @Override
     public boolean checkExtractTimeAllowed(boolean throwEx) {
-        String weekdays = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS);
-        String startStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_TIME_START);
-        String endStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_TIME_END);
+        return checkExtractTimeAllowed(throwEx, SysConfigConstants.EXTRACT_CATEGORY_BROKERAGE);
+    }
+
+    @Override
+    public boolean checkExtractTimeAllowed(boolean throwEx, String category) {
+        boolean isBalance = SysConfigConstants.EXTRACT_CATEGORY_BALANCE.equals(category);
+        String weekdays = systemConfigService.getValueByKey(isBalance
+                ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_WEEKDAYS
+                : SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS);
+        String startStr = systemConfigService.getValueByKey(isBalance
+                ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_TIME_START
+                : SysConfigConstants.CONFIG_EXTRACT_TIME_START);
+        String endStr = systemConfigService.getValueByKey(isBalance
+                ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_TIME_END
+                : SysConfigConstants.CONFIG_EXTRACT_TIME_END);
 
         LocalDateTime now = LocalDateTime.now();
         int day = now.getDayOfWeek().getValue(); // 1=周一 ... 7=周日
@@ -515,11 +614,9 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
         if (startHour < 0) startHour = 0;
         if (endHour > 24) endHour = 24;
         if (startHour >= endHour) {
-            // 配置异常时不拦截
             return true;
         }
         int hour = now.getHour();
-        // [startHour, endHour)，endHour=24 表示到当天结束
         boolean inRange = hour >= startHour && (endHour == 24 || hour < endHour);
         if (!inRange) {
             if (throwEx) {
@@ -528,6 +625,25 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
             return false;
         }
         return true;
+    }
+
+    /**
+     * 支持银行列表（换行分隔配置）
+     */
+    public List<String> getSupportBankList() {
+        String bank = systemConfigService.getValueByKey(Constants.CONFIG_BANK_LIST);
+        if (StrUtil.isBlank(bank)) {
+            return new ArrayList<>();
+        }
+        bank = bank.replace("\\n", "\n").replace("\r\n", "\n");
+        List<String> bankArr = new ArrayList<>();
+        for (String line : bank.split("\n")) {
+            String t = line.trim();
+            if (StrUtil.isNotBlank(t)) {
+                bankArr.add(t);
+            }
+        }
+        return bankArr;
     }
 
     public String formatWeekdaysTip(String weekdays) {

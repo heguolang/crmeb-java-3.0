@@ -2,7 +2,7 @@
 	<view :data-theme="theme">
 		<view class='cash-withdrawal'>
 			<view class='nav acea-row'>
-				<view v-for="(item,index) in navList" :key="index" class='item font-color' @click="swichNav(index)">
+				<view v-for="(item,index) in showNavList" :key="index" class='item font-color' @click="swichNav(index)">
 					<view class='line bg_color' :class='currentTab==index ? "on":""'></view>
 					<view class='iconfont' :class='item.icon+" "+(currentTab==index ? "on":"")'></view>
 					<view class="tab_text">{{item.name}}</view>
@@ -39,10 +39,14 @@
 									type='digit'></input></view>
 						</view>
 						<view class='tip'>
-							当前可提现金额: <text class="price">￥{{commission.commissionCount}},</text>冻结佣金：￥{{commission.brokenCommission}}
+							当前可提现金额: <text class="price">￥{{availableAmount}},</text>
+							<template v-if="extractCategory !== 'balance'">冻结佣金：￥{{commission.brokenCommission}}</template>
 						</view>
-						<view class='tip'>
+						<view class='tip' v-if="extractCategory !== 'balance'">
 							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现
+						</view>
+						<view class='tip' v-else>
+							说明: 从账户余额发起提现申请，审核通过后到账
 						</view>
 						<view class='tip' v-if="commission.extractWeekdaysTip || commission.extractTimeTip">
 							可提现时间：{{commission.extractWeekdaysTip}} {{commission.extractTimeTip}}
@@ -79,10 +83,14 @@
 							</view>
 						</view>
 						<view class='tip'>
-							当前可提现金额: <text class="price">￥{{commission.commissionCount}},</text>冻结佣金：￥{{commission.brokenCommission}}
+							当前可提现金额: <text class="price">￥{{availableAmount}},</text>
+							<template v-if="extractCategory !== 'balance'">冻结佣金：￥{{commission.brokenCommission}}</template>
 						</view>
-						<view class='tip'>
+						<view class='tip' v-if="extractCategory !== 'balance'">
 							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现
+						</view>
+						<view class='tip' v-else>
+							说明: 从账户余额发起提现申请，审核通过后到账
 						</view>
 						<view class='tip' v-if="commission.extractWeekdaysTip || commission.extractTimeTip">
 							可提现时间：{{commission.extractWeekdaysTip}} {{commission.extractTimeTip}}
@@ -146,10 +154,14 @@
 							</view>
 						</view>
 						<view class='tip'>
-							当前可提现金额: <text class="price">￥{{commission.commissionCount}},</text>冻结佣金：￥{{commission.brokenCommission}}
+							当前可提现金额: <text class="price">￥{{availableAmount}},</text>
+							<template v-if="extractCategory !== 'balance'">冻结佣金：￥{{commission.brokenCommission}}</template>
 						</view>
-						<view class='tip'>
+						<view class='tip' v-if="extractCategory !== 'balance'">
 							说明: 每笔佣金的冻结期为{{commission.brokenDay}}天，到期后可提现
+						</view>
+						<view class='tip' v-else>
+							说明: 从账户余额发起提现申请，审核通过后到账
 						</view>
 						<view class='tip' v-if="commission.extractWeekdaysTip || commission.extractTimeTip">
 							可提现时间：{{commission.extractWeekdaysTip}} {{commission.extractTimeTip}}
@@ -210,9 +222,24 @@
 				qrcodeUrlZ: "",
 				isCommitted: false, //防止多次提交
 				theme: app.globalData.theme,
+				extractCategory: 'brokerage',
 			};
 		},
-		computed: mapGetters(['isLogin', 'userInfo']),
+		computed: {
+			...mapGetters(['isLogin', 'userInfo']),
+			availableAmount() {
+				if (this.extractCategory === 'balance') {
+					return this.commission.balanceCount || 0;
+				}
+				return this.commission.commissionCount || 0;
+			},
+			showNavList() {
+				if (this.extractCategory === 'balance') {
+					return this.navList.slice(0, 3);
+				}
+				return this.navList;
+			},
+		},
 		watch: {
 			isLogin: {
 				handler: function(newV, oldV) {
@@ -224,7 +251,11 @@
 				deep: true
 			}
 		},
-		onLoad() {
+		onLoad(options) {
+			if (options && options.category === 'balance') {
+				this.extractCategory = 'balance';
+				uni.setNavigationBarTitle({ title: '余额提现' });
+			}
 			if (this.isLogin) {
 				this.getUserExtractBank();
 				this.getExtractUser();
@@ -259,7 +290,7 @@
 				this.qrcodeUrlZ = "";
 			},
 			getExtractUser() {
-				extractUser().then(res => {
+				extractUser(this.extractCategory).then(res => {
 					this.commission = res.data;
 					this.minPrice = res.data.minPrice;
 				})
@@ -333,7 +364,7 @@
 				}
 				if (this.isCommitted == false) {
 					this.isCommitted = true;
-					if (that.currentTab == 3) {
+					if (that.currentTab == 3 && that.extractCategory !== 'balance') {
 						transferIn({
 							price: parseFloat(value.money)
 						}).then(res => {
@@ -349,20 +380,23 @@
 								url: '/pages/promoter/user_spread_user/index'
 							});
 						}).catch(err => {
+							that.isCommitted = false;
 							return that.$util.Tips({
 								title: err
 							});
 						})
 					} else {
+						value.extractCategory = that.extractCategory;
 						extractCash(value).then(res => {
 							return this.$util.Tips({
 								title: "提现成功",
 								icon: 'success'
 							}, {
 								tab: 2,
-								url: '/pages/promoter/user_spread_user/index'
+								url: that.extractCategory === 'balance'
+									? '/pages/users/user_money/index'
+									: '/pages/promoter/user_spread_user/index'
 							});
-							this.isCommitted = false;
 						}).catch(err => {
 							this.isCommitted = false;
 							return this.$util.Tips({

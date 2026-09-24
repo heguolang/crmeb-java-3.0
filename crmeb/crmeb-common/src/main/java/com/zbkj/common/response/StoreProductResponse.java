@@ -124,6 +124,15 @@ public class StoreProductResponse implements Serializable {
     @ApiModelProperty(value = "获得积分")
     private Integer giveIntegral;
 
+    @ApiModelProperty(value = "是否支持赠送积分")
+    private Boolean isGiveIntegral;
+
+    @ApiModelProperty(value = "单品最多可用积分抵扣数，0表示不支持")
+    private Integer integralDeduct;
+
+    @ApiModelProperty(value = "积分抵扣金额是否参与分佣")
+    private Boolean isIntegralDeductBrokerage;
+
     @ApiModelProperty(value = "成本价")
     private BigDecimal cost;
 

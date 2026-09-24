@@ -3,54 +3,57 @@
     <el-card :bordered="false" shadow="never">
       <el-tabs v-model="activeTab">
         <el-tab-pane label="佣金提现" name="commission">
+          <extract-form
+            v-model="commissionForm"
+            :weekday-list.sync="commissionWeekdays"
+            :saving="savingCommission"
+            @save="onSaveCommission"
+          />
+        </el-tab-pane>
+        <el-tab-pane label="余额提现" name="balance">
+          <extract-form
+            v-model="balanceForm"
+            :weekday-list.sync="balanceWeekdays"
+            :saving="savingBalance"
+            prefix="user_balance_extract"
+            @save="onSaveBalance"
+          />
+        </el-tab-pane>
+        <el-tab-pane label="支持银行" name="bank">
           <el-form label-width="140px" size="small" style="max-width: 720px; margin-top: 10px">
-            <el-form-item label="功能开关">
-              <el-switch v-model="form.user_extract_switch" active-value="1" inactive-value="0" />
-            </el-form-item>
-            <el-form-item label="最低提现金额">
-              <el-input-number v-model="minPriceNum" :min="0" :precision="2" style="width: 200px" />
-              <span class="form-tip">元</span>
-            </el-form-item>
-            <el-form-item label="提现倍数">
-              <el-input-number v-model="multipleNum" :min="0" :precision="2" style="width: 200px" />
-              <span class="form-tip">元，0 表示不限制</span>
-            </el-form-item>
-            <el-form-item label="手续费类型">
-              <el-radio-group v-model="form.user_extract_fee_type">
-                <el-radio label="fixed">固定金额</el-radio>
-                <el-radio label="ratio">比例</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item :label="form.user_extract_fee_type === 'fixed' ? '手续费金额' : '手续费率'">
-              <el-input-number v-model="feeNum" :min="0" :precision="2" style="width: 200px" />
-              <span class="form-tip">{{ form.user_extract_fee_type === 'fixed' ? '元' : '%' }}</span>
-            </el-form-item>
-            <el-alert
-              type="info"
-              :closable="false"
-              show-icon
-              title="实际到账金额 = 提现金额 - 手续费"
-              style="margin: 0 0 18px 140px; max-width: 420px"
-            />
-            <el-form-item label="可提现时间">
+            <el-form-item label="支持银行">
               <div>
-                <el-checkbox-group v-model="weekdayList">
-                  <el-checkbox v-for="d in weekdayOptions" :key="d.value" :label="d.value">{{ d.label }}</el-checkbox>
-                </el-checkbox-group>
-                <div style="margin-top: 12px">
-                  <el-select v-model="form.user_extract_time_start" style="width: 110px">
-                    <el-option v-for="h in hourOptionsStart" :key="'s' + h" :label="padHour(h)" :value="String(h)" />
-                  </el-select>
-                  <span style="margin: 0 8px">至</span>
-                  <el-select v-model="form.user_extract_time_end" style="width: 110px">
-                    <el-option v-for="h in hourOptionsEnd" :key="'e' + h" :label="padHour(h)" :value="String(h)" />
-                  </el-select>
-                  <span class="form-tip">（按服务器时间，结束时刻不含）</span>
+                <div class="bank-tags">
+                  <el-tag
+                    v-for="(bank, idx) in bankList"
+                    :key="bank + idx"
+                    closable
+                    size="medium"
+                    style="margin: 0 8px 8px 0"
+                    @close="removeBank(idx)"
+                  >{{ bank }}</el-tag>
                 </div>
+                <div class="bank-add">
+                  <el-input
+                    v-model="bankInput"
+                    placeholder="输入银行名称后回车或点击添加"
+                    style="width: 280px"
+                    maxlength="32"
+                    @keyup.enter.native="addBank"
+                  />
+                  <el-button type="primary" plain style="margin-left: 8px" @click="addBank">添加</el-button>
+                </div>
+                <el-alert
+                  type="info"
+                  :closable="false"
+                  show-icon
+                  title="用户添加提现银行卡时，仅可从上述银行中选择"
+                  style="margin-top: 14px; max-width: 480px"
+                />
               </div>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" :loading="saving" @click="onSave">保存</el-button>
+              <el-button type="primary" :loading="savingBank" @click="onSaveBank">保存</el-button>
             </el-form-item>
           </el-form>
         </el-tab-pane>
@@ -61,120 +64,154 @@
 
 <script>
 import { extractSettingGetApi, extractSettingSaveApi } from '@/api/financial';
+import ExtractForm from './ExtractForm.vue';
+
+const defaultCommission = () => ({
+  user_extract_switch: '1',
+  user_extract_min_price: '1',
+  user_extract_multiple: '0',
+  user_extract_fee_type: 'ratio',
+  user_extract_fee: '0',
+  user_extract_weekdays: '1,2,3,4,5,6,7',
+  user_extract_time_start: '0',
+  user_extract_time_end: '24',
+});
+
+const defaultBalance = () => ({
+  user_balance_extract_switch: '0',
+  user_balance_extract_min_price: '1',
+  user_balance_extract_multiple: '0',
+  user_balance_extract_fee_type: 'ratio',
+  user_balance_extract_fee: '0',
+  user_balance_extract_weekdays: '1,2,3,4,5,6,7',
+  user_balance_extract_time_start: '0',
+  user_balance_extract_time_end: '24',
+});
 
 export default {
   name: 'ExtractSetting',
+  components: { ExtractForm },
   data() {
     return {
       activeTab: 'commission',
-      saving: false,
-      form: {
-        user_extract_switch: '1',
-        user_extract_min_price: '100',
-        user_extract_multiple: '0',
-        user_extract_fee_type: 'ratio',
-        user_extract_fee: '0',
-        user_extract_weekdays: '1,2,3,4,5,6,7',
-        user_extract_time_start: '0',
-        user_extract_time_end: '24',
-      },
-      weekdayList: ['1', '2', '3', '4', '5', '6', '7'],
-      weekdayOptions: [
-        { value: '1', label: '周一' },
-        { value: '2', label: '周二' },
-        { value: '3', label: '周三' },
-        { value: '4', label: '周四' },
-        { value: '5', label: '周五' },
-        { value: '6', label: '周六' },
-        { value: '7', label: '周日' },
-      ],
+      savingCommission: false,
+      savingBalance: false,
+      savingBank: false,
+      commissionForm: defaultCommission(),
+      balanceForm: defaultBalance(),
+      commissionWeekdays: ['1', '2', '3', '4', '5', '6', '7'],
+      balanceWeekdays: ['1', '2', '3', '4', '5', '6', '7'],
+      bankList: [],
+      bankInput: '',
     };
-  },
-  computed: {
-    minPriceNum: {
-      get() {
-        return Number(this.form.user_extract_min_price) || 0;
-      },
-      set(v) {
-        this.form.user_extract_min_price = String(v);
-      },
-    },
-    multipleNum: {
-      get() {
-        return Number(this.form.user_extract_multiple) || 0;
-      },
-      set(v) {
-        this.form.user_extract_multiple = String(v);
-      },
-    },
-    feeNum: {
-      get() {
-        return Number(this.form.user_extract_fee) || 0;
-      },
-      set(v) {
-        this.form.user_extract_fee = String(v);
-      },
-    },
-    hourOptionsStart() {
-      const list = [];
-      for (let i = 0; i <= 23; i++) list.push(i);
-      return list;
-    },
-    hourOptionsEnd() {
-      const list = [];
-      for (let i = 1; i <= 24; i++) list.push(i);
-      return list;
-    },
   },
   mounted() {
     this.load();
   },
   methods: {
-    padHour(h) {
-      return String(h).padStart(2, '0') + ':00';
+    parseWeekdays(str) {
+      const list = (str || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return list.length ? list : ['1', '2', '3', '4', '5', '6', '7'];
     },
     load() {
       extractSettingGetApi()
         .then((res) => {
-          Object.keys(this.form).forEach((k) => {
+          Object.keys(this.commissionForm).forEach((k) => {
             if (res && res[k] !== undefined && res[k] !== null && res[k] !== '') {
-              this.form[k] = String(res[k]);
+              this.commissionForm[k] = String(res[k]);
             }
           });
-          this.weekdayList = (this.form.user_extract_weekdays || '')
-            .split(',')
+          Object.keys(this.balanceForm).forEach((k) => {
+            if (res && res[k] !== undefined && res[k] !== null && res[k] !== '') {
+              this.balanceForm[k] = String(res[k]);
+            }
+          });
+          this.commissionWeekdays = this.parseWeekdays(this.commissionForm.user_extract_weekdays);
+          this.balanceWeekdays = this.parseWeekdays(this.balanceForm.user_balance_extract_weekdays);
+          const bankStr = (res && res.user_extract_bank) || '';
+          this.bankList = bankStr
+            .replace(/\\n/g, '\n')
+            .split(/\r?\n/)
             .map((s) => s.trim())
             .filter(Boolean);
-          if (!this.weekdayList.length) {
-            this.weekdayList = ['1', '2', '3', '4', '5', '6', '7'];
-          }
         })
         .catch(() => {
           this.$message.error('提现设置加载失败');
         });
     },
-    onSave() {
-      if (!this.weekdayList.length) {
+    validateTime(weekdays, start, end) {
+      if (!weekdays.length) {
         this.$message.warning('请至少选择一个可提现日');
-        return;
+        return false;
       }
-      const start = Number(this.form.user_extract_time_start);
-      const end = Number(this.form.user_extract_time_end);
-      if (!(end > start)) {
+      if (!(Number(end) > Number(start))) {
         this.$message.warning('结束时间须大于开始时间');
+        return false;
+      }
+      return true;
+    },
+    onSaveCommission() {
+      if (!this.validateTime(this.commissionWeekdays, this.commissionForm.user_extract_time_start, this.commissionForm.user_extract_time_end)) {
         return;
       }
-      this.form.user_extract_weekdays = this.weekdayList.slice().sort((a, b) => Number(a) - Number(b)).join(',');
-      this.saving = true;
-      extractSettingSaveApi({ ...this.form })
-        .then(() => {
-          this.$message.success('保存成功');
-        })
-        .catch(() => {
-          this.$message.error('保存失败');
-        })
+      this.commissionForm.user_extract_weekdays = this.commissionWeekdays
+        .slice()
+        .sort((a, b) => Number(a) - Number(b))
+        .join(',');
+      this.savingCommission = true;
+      extractSettingSaveApi({ ...this.commissionForm })
+        .then(() => this.$message.success('保存成功'))
+        .catch(() => this.$message.error('保存失败'))
         .finally(() => {
-          this.saving = false;
+          this.savingCommission = false;
+        });
+    },
+    onSaveBalance() {
+      if (!this.validateTime(this.balanceWeekdays, this.balanceForm.user_balance_extract_time_start, this.balanceForm.user_balance_extract_time_end)) {
+        return;
+      }
+      this.balanceForm.user_balance_extract_weekdays = this.balanceWeekdays
+        .slice()
+        .sort((a, b) => Number(a) - Number(b))
+        .join(',');
+      this.savingBalance = true;
+      extractSettingSaveApi({ ...this.balanceForm })
+        .then(() => this.$message.success('保存成功'))
+        .catch(() => this.$message.error('保存失败'))
+        .finally(() => {
+          this.savingBalance = false;
+        });
+    },
+    addBank() {
+      const name = (this.bankInput || '').trim();
+      if (!name) {
+        this.$message.warning('请输入银行名称');
+        return;
+      }
+      if (this.bankList.includes(name)) {
+        this.$message.warning('该银行已存在');
+        return;
+      }
+      this.bankList.push(name);
+      this.bankInput = '';
+    },
+    removeBank(idx) {
+      this.bankList.splice(idx, 1);
+    },
+    onSaveBank() {
+      if (!this.bankList.length) {
+        this.$message.warning('请至少添加一个支持银行');
+        return;
+      }
+      this.savingBank = true;
+      extractSettingSaveApi({ user_extract_bank: this.bankList.join('\n') })
+        .then(() => this.$message.success('保存成功'))
+        .catch(() => this.$message.error('保存失败'))
+        .finally(() => {
+          this.savingBank = false;
         });
     },
   },
@@ -182,9 +219,10 @@ export default {
 </script>
 
 <style scoped>
-.form-tip {
-  margin-left: 8px;
-  color: #909399;
-  font-size: 12px;
+.bank-tags {
+  min-height: 32px;
+}
+.bank-add {
+  margin-top: 8px;
 }
 </style>

@@ -48,6 +48,9 @@ public class UserExtract implements Serializable {
     @ApiModelProperty(value = "bank = 银行卡 alipay = 支付宝 weixin=微信")
     private String extractType;
 
+    @ApiModelProperty(value = "提现类别：brokerage=佣金 balance=余额")
+    private String extractCategory;
+
     @ApiModelProperty(value = "银行卡")
     private String bankCode;
 

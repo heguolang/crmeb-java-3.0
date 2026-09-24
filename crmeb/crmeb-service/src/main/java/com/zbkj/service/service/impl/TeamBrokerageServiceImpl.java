@@ -109,9 +109,8 @@ public class TeamBrokerageServiceImpl implements TeamBrokerageService {
             if (Boolean.FALSE.equals(teamCfg.getEnabled())) {
                 continue;
             }
-            BigDecimal unitPrice = ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())
-                    ? orderInfoVo.getInfo().getVipPrice() : orderInfoVo.getInfo().getPrice();
-            if (ObjectUtil.isNull(unitPrice)) {
+            BigDecimal unitPrice = ProductCommissionUtil.brokerageUnitPrice(orderInfoVo.getInfo());
+            if (ObjectUtil.isNull(unitPrice) || unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
             }
             int payNum = Math.max(ObjectUtil.defaultIfNull(orderInfoVo.getInfo().getPayNum(), 1), 1);

@@ -43,7 +43,7 @@
             <el-form-item label="用户搜索">
               <UserSearchInput ref="userSearchInput" v-model="tableFrom" />
             </el-form-item>
-            <el-form-item label="关联单号">
+            <el-form-item label="订单号">
               <el-input
                 v-model="tableFrom.linkId"
                 size="small"
@@ -125,7 +125,7 @@
             <!-- 订单 -->
             <div class="list-cell">
               <div class="kv">
-                <span class="kv__k">单号：</span>
+                <span class="kv__k">订单号：</span>
                 <span class="kv__v kv__v--num">{{ row.linkId && row.linkId !== '0' ? row.linkId : '—' }}</span>
                 <span v-if="row.linkId && row.linkId !== '0'" class="kv__copy" @click="copyText(row.linkId)">
                   <i class="el-icon-document-copy"></i>

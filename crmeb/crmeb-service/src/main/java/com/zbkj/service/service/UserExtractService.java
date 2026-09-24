@@ -70,10 +70,22 @@ public interface UserExtractService extends IService<UserExtract> {
     Boolean extractApply(UserExtractRequest request);
 
     /**
-     * 当前是否在可提现时间窗口
+     * 当前是否在可提现时间窗口（佣金）
      * @param throwEx true 时不在窗口抛异常
      */
     boolean checkExtractTimeAllowed(boolean throwEx);
+
+    /**
+     * 当前是否在可提现时间窗口
+     * @param throwEx true 时不在窗口抛异常
+     * @param category brokerage / balance
+     */
+    boolean checkExtractTimeAllowed(boolean throwEx, String category);
+
+    /**
+     * 支持银行列表
+     */
+    List<String> getSupportBankList();
 
     /**
      * 可提现星期文案

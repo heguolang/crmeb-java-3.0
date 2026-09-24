@@ -248,14 +248,56 @@
               </el-form-item>
             </el-col>
             <el-col v-bind="grid">
+              <el-form-item label="送积分：">
+                <el-switch
+                  v-model="formValidate.isGiveIntegral"
+                  :disabled="isDisabled"
+                  active-text="开启"
+                  inactive-text="关闭"
+                />
+                <span class="form-tip" style="margin-left: 8px">关闭后本商品不赠送积分</span>
+              </el-form-item>
+            </el-col>
+            <el-col v-bind="grid">
               <el-form-item label="积分：">
                 <el-input-number
                   controls-position="right"
                   v-model="formValidate.giveIntegral"
                   :min="0"
-                  placeholder="请输入排序"
+                  placeholder="请输入赠送积分"
+                  :disabled="isDisabled || !formValidate.isGiveIntegral"
+                />
+                <div class="form-tip" style="line-height: 1.5; margin-top: 4px">
+                  大于 0 时按商品积分赠送，不再叠加公共「消费送积分」；为 0 时走公共设置
+                </div>
+              </el-form-item>
+            </el-col>
+            <el-col v-bind="grid">
+              <el-form-item label="积分抵扣：">
+                <el-input-number
+                  controls-position="right"
+                  v-model="formValidate.integralDeduct"
+                  :min="0"
+                  :precision="0"
+                  placeholder="最多可用积分数"
                   :disabled="isDisabled"
                 />
+                <div class="form-tip" style="line-height: 1.5; margin-top: 4px">
+                  每件最多可用积分数。填正数开启上限；填 0 表示：若其它商品已设上限则本商品不可抵扣，若全部为 0 则按整单旧逻辑抵扣
+                </div>
+              </el-form-item>
+            </el-col>
+            <el-col v-bind="grid">
+              <el-form-item label="抵扣参与分佣：">
+                <el-switch
+                  v-model="formValidate.isIntegralDeductBrokerage"
+                  :disabled="isDisabled"
+                  active-text="参与"
+                  inactive-text="不参与"
+                />
+                <div class="form-tip" style="line-height: 1.5; margin-top: 4px">
+                  关闭后，本商品积分抵扣掉的金额不计入分销/代理/团队等分佣基数
+                </div>
               </el-form-item>
             </el-col>
             <el-col v-bind="grid">
@@ -339,8 +381,8 @@
           <!-- 规则速览 + 分组状态 -->
           <div class="cm-brief">
             <ul class="cm-brief__rules">
-              <li><span class="cm-brief__k">留空</span>跟随全局 / 等级配置</li>
-              <li><span class="cm-brief__k">填 0</span>该商品无此项奖励</li>
+              <li><span class="cm-brief__k">留空</span>跟随全局 / 等级配置（门店服务费留空则跟随门店默认）</li>
+              <li><span class="cm-brief__k">填 0</span>该商品无此项奖励 / 服务费</li>
               <li><span class="cm-brief__k">金额 + 比例</span>同时填写时金额优先</li>
             </ul>
             <div class="cm-brief__stats">
@@ -834,115 +876,82 @@
             </div>
           </section>
 
-          <!-- ==================== 4. 门店 ==================== -->
+          <!-- ==================== 4. 门店服务费 ==================== -->
           <section class="cm-sec cm-sec--store">
             <header class="cm-sec__hd">
               <div class="cm-sec__title">
                 <span class="cm-sec__dot"></span>
-                <h4>门店佣金 / 奖励金</h4>
-                <span class="cm-tag" :class="enabledClass(formValidate.commissionConfig.store.brokerageEnabled)">{{
-                  enabledText(formValidate.commissionConfig.store.brokerageEnabled)
+                <h4>门店服务费</h4>
+                <span class="cm-tag" :class="enabledClass(storeFeeEnabledSummary)">{{
+                  storeFeeEnabledText(storeFeeEnabledSummary)
                 }}</span>
                 <span class="cm-sec__count">已配置 {{ storeValueCount }} 项</span>
               </div>
             </header>
             <div class="cm-sec__bd">
-              <p class="cm-notice cm-notice--warn">
-                <i class="el-icon-warning-outline"></i>门店佣金 / 奖励金当前仅保存配置，结算链路待门店佣金模型上线后生效
+              <p class="cm-notice">
+                <i class="el-icon-info"></i>
+                接入门店系统的自提 / 核销 / 配送服务费。留空金额与比例表示跟随门店默认；同时填写时金额优先。停用后该项服务费为 0。
               </p>
-              <div class="cm-hero">
-                <div class="cm-hero__label">
-                  门店佣金
-                  <span class="cm-hero__sub">开关</span>
-                </div>
-                <div class="cm-hero__ctrl">
-                  <el-radio-group
-                    v-model="formValidate.commissionConfig.store.brokerageEnabled"
-                    :disabled="isDisabled"
-                    class="cm-radios"
-                  >
-                    <el-radio :label="null">跟随全局</el-radio>
-                    <el-radio :label="true">启用</el-radio>
-                    <el-radio :label="false">停用</el-radio>
-                  </el-radio-group>
-                </div>
-              </div>
-              <div class="cm-grid">
-                <div class="cm-field">
-                  <div class="cm-field__label">佣金</div>
-                  <div class="cm-field__pair">
-                    <el-input
-                      v-model="formValidate.commissionConfig.store.brokerageAmount"
-                      placeholder="跟随全局"
-                      clearable
-                      :disabled="isDisabled"
-                      :class="{ 'is-bad': issueLevel('store.brokerageAmount') === 'error' }"
-                    >
-                      <template slot="append">元</template>
-                    </el-input>
-                    <span class="cm-field__or">或</span>
-                    <el-input
-                      v-model="formValidate.commissionConfig.store.brokerageRate"
-                      placeholder="跟随全局"
-                      clearable
-                      :disabled="isDisabled"
-                      :class="{ 'is-bad': issueLevel('store.brokerageRate') === 'error' }"
-                    >
-                      <template slot="append">%</template>
-                    </el-input>
+
+              <div
+                v-for="fee in storeFeeFields"
+                :key="fee.key"
+                class="cm-fee-block"
+              >
+                <div class="cm-hero">
+                  <div class="cm-hero__label">
+                    {{ fee.label }}
+                    <span class="cm-hero__sub">开关</span>
                   </div>
-                  <p v-if="fieldMsg('store.brokerageAmount').text" class="cm-field__msg" :class="fieldMsg('store.brokerageAmount').cls">
-                    <i v-if="fieldMsg('store.brokerageAmount').icon" :class="fieldMsg('store.brokerageAmount').icon"></i>
-                    {{ fieldMsg('store.brokerageAmount').text }}
-                  </p>
-                </div>
-                <div class="cm-field">
-                  <div class="cm-field__label">
-                    奖励金
-                    <span class="cm-field__sub">独立开关</span>
-                  </div>
-                  <div class="cm-field__pair">
-                    <el-input
-                      v-model="formValidate.commissionConfig.store.bonusAmount"
-                      placeholder="跟随全局"
-                      clearable
+                  <div class="cm-hero__ctrl">
+                    <el-radio-group
+                      v-model="formValidate.commissionConfig.store[fee.key].enabled"
                       :disabled="isDisabled"
-                      :class="{ 'is-bad': issueLevel('store.bonusAmount') === 'error' }"
+                      class="cm-radios"
                     >
-                      <template slot="append">元</template>
-                    </el-input>
-                    <span class="cm-field__or">或</span>
-                    <el-input
-                      v-model="formValidate.commissionConfig.store.bonusRate"
-                      placeholder="跟随全局"
-                      clearable
-                      :disabled="isDisabled"
-                      :class="{ 'is-bad': issueLevel('store.bonusRate') === 'error' }"
-                    >
-                      <template slot="append">%</template>
-                    </el-input>
+                      <el-radio :label="null">跟随门店默认</el-radio>
+                      <el-radio :label="true">启用</el-radio>
+                      <el-radio :label="false">停用</el-radio>
+                    </el-radio-group>
                   </div>
-                  <p v-if="fieldMsg('store.bonusAmount').text" class="cm-field__msg" :class="fieldMsg('store.bonusAmount').cls">
-                    <i v-if="fieldMsg('store.bonusAmount').icon" :class="fieldMsg('store.bonusAmount').icon"></i>
-                    {{ fieldMsg('store.bonusAmount').text }}
-                  </p>
                 </div>
-              </div>
-              <div class="cm-hero cm-hero--sub">
-                <div class="cm-hero__label">
-                  奖励金发放
-                  <span class="cm-hero__sub">开关</span>
-                </div>
-                <div class="cm-hero__ctrl">
-                  <el-radio-group
-                    v-model="formValidate.commissionConfig.store.bonusEnabled"
-                    :disabled="isDisabled"
-                    class="cm-radios"
-                  >
-                    <el-radio :label="null">跟随全局</el-radio>
-                    <el-radio :label="true">启用</el-radio>
-                    <el-radio :label="false">停用</el-radio>
-                  </el-radio-group>
+                <div class="cm-grid">
+                  <div class="cm-field">
+                    <div class="cm-field__label">服务费</div>
+                    <div class="cm-field__pair">
+                      <el-input
+                        v-model="formValidate.commissionConfig.store[fee.key].amount"
+                        placeholder="跟随门店默认"
+                        clearable
+                        :disabled="isDisabled || formValidate.commissionConfig.store[fee.key].enabled === false"
+                        :class="{ 'is-bad': issueLevel('store.' + fee.key + '.amount') === 'error' }"
+                      >
+                        <template slot="append">元</template>
+                      </el-input>
+                      <span class="cm-field__or">或</span>
+                      <el-input
+                        v-model="formValidate.commissionConfig.store[fee.key].rate"
+                        placeholder="跟随门店默认"
+                        clearable
+                        :disabled="isDisabled || formValidate.commissionConfig.store[fee.key].enabled === false"
+                        :class="{ 'is-bad': issueLevel('store.' + fee.key + '.rate') === 'error' }"
+                      >
+                        <template slot="append">%</template>
+                      </el-input>
+                    </div>
+                    <p
+                      v-if="fieldMsg('store.' + fee.key + '.amount').text"
+                      class="cm-field__msg"
+                      :class="fieldMsg('store.' + fee.key + '.amount').cls"
+                    >
+                      <i
+                        v-if="fieldMsg('store.' + fee.key + '.amount').icon"
+                        :class="fieldMsg('store.' + fee.key + '.amount').icon"
+                      ></i>
+                      {{ fieldMsg('store.' + fee.key + '.amount').text }}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1017,6 +1026,9 @@ const defaultObj = {
   unitName: '',
   sort: 0,
   giveIntegral: 0,
+  isGiveIntegral: true,
+  integralDeduct: 0,
+  isIntegralDeductBrokerage: true,
   ficti: 0,
   isShow: false,
   isBenefit: false,
@@ -1076,12 +1088,9 @@ function createDefaultCommissionConfig() {
       districtRate: null,
     },
     store: {
-      brokerageEnabled: null,
-      brokerageAmount: null,
-      brokerageRate: null,
-      bonusEnabled: null,
-      bonusAmount: null,
-      bonusRate: null,
+      pickup: { enabled: null, amount: null, rate: null },
+      verify: { enabled: null, amount: null, rate: null },
+      delivery: { enabled: null, amount: null, rate: null },
     },
     team: {
       enabled: null,
@@ -1118,6 +1127,22 @@ function toNullableNumber(val) {
   return Number.isFinite(n) ? n : null;
 }
 
+function createDefaultFeeItem() {
+  return { enabled: null, amount: null, rate: null };
+}
+
+function mergeFeeItem(src) {
+  const base = createDefaultFeeItem();
+  if (!src || typeof src !== 'object') {
+    return base;
+  }
+  const v = src.enabled;
+  base.enabled = v === null || v === undefined || v === '' ? null : !!v;
+  base.amount = toNullableNumber(src.amount);
+  base.rate = toNullableNumber(src.rate);
+  return base;
+}
+
 function mergeCommissionConfig(src) {
   const base = createDefaultCommissionConfig();
   if (!src || typeof src !== 'object') {
@@ -1135,6 +1160,10 @@ function mergeCommissionConfig(src) {
       if (key === 'levels') {
         return; // 等级数组单独处理
       }
+      if (section === 'store' && (key === 'pickup' || key === 'verify' || key === 'delivery')) {
+        base[section][key] = mergeFeeItem(v);
+        return;
+      }
       if (key === 'enabled' || key === 'diffEnabled' || key === 'brokerageEnabled' || key === 'bonusEnabled'
         || key === 'syncMode' || key === 'superiorClaim') {
         base[section][key] = v === null || v === undefined || v === '' ? null : !!v;
@@ -1143,8 +1172,8 @@ function mergeCommissionConfig(src) {
       }
     });
   });
-  base.distributor.levels = sanitizeLevelRows(src.distributor.levels, DISTRIBUTOR_LEVEL_KEYS);
-  base.team.levels = sanitizeLevelRows(src.team.levels, TEAM_LEVEL_KEYS);
+  base.distributor.levels = sanitizeLevelRows(src.distributor && src.distributor.levels, DISTRIBUTOR_LEVEL_KEYS);
+  base.team.levels = sanitizeLevelRows(src.team && src.team.levels, TEAM_LEVEL_KEYS);
   return base;
 }
 
@@ -1170,10 +1199,12 @@ const COMMISSION_FIELDS = [
   { path: 'agent.cityRate', type: 'rate', pair: 'agent.cityAmount' },
   { path: 'agent.districtAmount', type: 'amount', pair: 'agent.districtRate' },
   { path: 'agent.districtRate', type: 'rate', pair: 'agent.districtAmount' },
-  { path: 'store.brokerageAmount', type: 'amount', pair: 'store.brokerageRate' },
-  { path: 'store.brokerageRate', type: 'rate', pair: 'store.brokerageAmount' },
-  { path: 'store.bonusAmount', type: 'amount', pair: 'store.bonusRate' },
-  { path: 'store.bonusRate', type: 'rate', pair: 'store.bonusAmount' },
+  { path: 'store.pickup.amount', type: 'amount', pair: 'store.pickup.rate' },
+  { path: 'store.pickup.rate', type: 'rate', pair: 'store.pickup.amount' },
+  { path: 'store.verify.amount', type: 'amount', pair: 'store.verify.rate' },
+  { path: 'store.verify.rate', type: 'rate', pair: 'store.verify.amount' },
+  { path: 'store.delivery.amount', type: 'amount', pair: 'store.delivery.rate' },
+  { path: 'store.delivery.rate', type: 'rate', pair: 'store.delivery.amount' },
 ];
 
 /** 等级覆盖行中的「金额/比例」成对字段，用于同列互斥提醒 */
@@ -1308,6 +1339,11 @@ export default {
       teamLevelOptions: [], // 团队等级选项
       levelPanel: { distributor: false, team: false }, // 等级表格展开/收起
       commissionSnapshot: '', // 佣金配置基线快照（用于判断是否有未保存改动）
+      storeFeeFields: [
+        { key: 'pickup', label: '自提服务费' },
+        { key: 'verify', label: '核销服务费' },
+        { key: 'delivery', label: '配送服务费' },
+      ],
       // 批量添加数据
       oneFormBatch: [Object.assign({}, defaultObj.attrValue[0])],
     };
@@ -1397,7 +1433,21 @@ export default {
       return this.countCommissionValues('agent');
     },
     storeValueCount() {
-      return this.countCommissionValues('store');
+      const store = (this.formValidate.commissionConfig || {}).store || {};
+      let n = this.countCommissionValues('store');
+      ['pickup', 'verify', 'delivery'].forEach((k) => {
+        const item = store[k];
+        if (item && item.enabled !== null && item.enabled !== undefined) n += 1;
+      });
+      return n;
+    },
+    /** 门店服务费总览开关态：任一启用→on；全部停用→off；否则跟随门店 */
+    storeFeeEnabledSummary() {
+      const store = (this.formValidate.commissionConfig || {}).store || {};
+      const flags = ['pickup', 'verify', 'delivery'].map((k) => (store[k] ? store[k].enabled : null));
+      if (flags.every((e) => e === false)) return false;
+      if (flags.some((e) => e === true)) return true;
+      return null;
     },
     /** 顶部状态卡数据（仅展示用途，不改变提交内容） */
     commissionSummary() {
@@ -1422,14 +1472,14 @@ export default {
         },
         {
           key: 'store',
-          name: '门店',
-          enabled: this.formValidate.commissionConfig.store.brokerageEnabled,
+          name: '门店服务费',
+          enabled: this.storeFeeEnabledSummary,
           count: this.storeValueCount,
         },
       ].map((item) => ({
         ...item,
         state: item.enabled === true ? 'on' : item.enabled === false ? 'off' : 'global',
-        stateText: this.enabledText(item.enabled),
+        stateText: item.key === 'store' ? this.storeFeeEnabledText(item.enabled) : this.enabledText(item.enabled),
       }));
     },
     /** 佣金段（不含等级行）是否有未保存改动 */
@@ -1509,6 +1559,9 @@ export default {
                   specType: info.attr.length ? true : false,
                   id: info.id,
                   giveIntegral: info.giveIntegral,
+                  isGiveIntegral: info.isGiveIntegral !== false && info.isGiveIntegral !== 0,
+                  integralDeduct: info.integralDeduct != null ? Number(info.integralDeduct) : 0,
+                  isIntegralDeductBrokerage: info.isIntegralDeductBrokerage !== false && info.isIntegralDeductBrokerage !== 0,
                   ficti: info.ficti,
                   activity: ['默认', '秒杀', '砍价', '拼团'],
                 };
@@ -1568,6 +1621,9 @@ export default {
                   specType: res.attr.length ? true : false,
                   id: res.id,
                   giveIntegral: res.giveIntegral,
+                  isGiveIntegral: res.isGiveIntegral !== false && res.isGiveIntegral !== 0,
+                  integralDeduct: res.integralDeduct != null ? Number(res.integralDeduct) : 0,
+                  isIntegralDeductBrokerage: res.isIntegralDeductBrokerage !== false && res.isIntegralDeductBrokerage !== 0,
                   ficti: res.ficti,
                   activity: ['默认', '秒杀', '砍价', '拼团'],
                 };
@@ -1755,6 +1811,9 @@ export default {
             specType: info.specType,
             id: info.id,
             giveIntegral: info.giveIntegral,
+            isGiveIntegral: info.isGiveIntegral !== false && info.isGiveIntegral !== 0,
+            integralDeduct: info.integralDeduct != null ? Number(info.integralDeduct) : 0,
+            isIntegralDeductBrokerage: info.isIntegralDeductBrokerage !== false && info.isIntegralDeductBrokerage !== 0,
             ficti: info.ficti,
             coupons: info.coupons,
             couponIds: info.couponIds,
@@ -2265,6 +2324,9 @@ export default {
     enabledText(val) {
       return val === true ? '已启用' : val === false ? '已停用' : '跟随全局';
     },
+    storeFeeEnabledText(val) {
+      return val === true ? '已启用' : val === false ? '已停用' : '跟随门店默认';
+    },
     isSectionOff(section) {
       const cfg = this.formValidate.commissionConfig || {};
       const part = cfg[section];
@@ -2654,6 +2716,10 @@ export default {
   font-size: 12px;
   color: #999;
 }
+.form-tip {
+  font-size: 12px;
+  color: #999;
+}
 /* ==================== 佣金设置（重构：卡片分组 + 统一栅格 + 校验反馈） ==================== */
 /* 约定：仅做视觉/布局，不触碰任何字段绑定与提交逻辑 */
 @keyframes cm-rise {
@@ -2849,6 +2915,14 @@ export default {
     &.cm-sec--store {
       --cm-accent: #6c4cf1;
       --cm-accent-soft: rgba(108, 76, 241, 0.08);
+    }
+
+    .cm-fee-block {
+      & + .cm-fee-block {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px dashed #eef0f4;
+      }
     }
 
     &__hd {

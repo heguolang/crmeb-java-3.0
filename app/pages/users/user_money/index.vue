@@ -9,7 +9,10 @@
 								<view>总资产(元)</view>
 								<view class='money'>{{statistics.nowMoney || 0}}</view>
 							</view>
-							<view v-if="showRecharge"  @click="openSubscribe('/pages/users/user_payment/index')" class='recharge font_color'>充值</view>
+							<view class='acea-row'>
+								<view v-if="showBalanceExtract" @click="openSubscribe('/pages/users/user_cash/index?category=balance')" class='recharge font_color' style="margin-right: 20rpx;">提现</view>
+								<view v-if="showRecharge"  @click="openSubscribe('/pages/users/user_payment/index')" class='recharge font_color'>充值</view>
+							</view>
 					    </view>
 						<view class='cumulative acea-row row-top'>
 							<view class='item' v-if="showRecharge">
@@ -81,7 +84,7 @@
 </template>
 
 <script>
-	import {userActivity,getuserDalance} from '@/api/user.js';
+	import {userActivity,getuserDalance,extractUser} from '@/api/user.js';
 	import {toLogin} from '@/libs/login.js';
 	import {mapGetters} from "vuex";
 	import { alipayQueryPayResult } from '@/api/order.js';
@@ -99,7 +102,8 @@
 				activity: {},
 				statistics:{},
 				theme:app.globalData.theme,
-				isNoCommodity: false // 是否显示缺省图
+				isNoCommodity: false, // 是否显示缺省图
+				showBalanceExtract: false,
 			};
 		},
 		computed: {
@@ -119,6 +123,7 @@
 					if(newV){
 						this.get_activity();
 						this.userDalance();
+						this.loadBalanceExtractSwitch();
 					}
 				},
 				deep:true
@@ -143,11 +148,19 @@
 				// #endif
 				this.get_activity();
 				this.userDalance();
+				this.loadBalanceExtractSwitch();
 			} else {
 				toLogin();
 			}
 		},
 		methods: {
+			loadBalanceExtractSwitch() {
+				extractUser('balance').then(res => {
+					this.showBalanceExtract = !!(res.data && res.data.extractSwitch);
+				}).catch(() => {
+					this.showBalanceExtract = false;
+				});
+			},
 			getRecommendLength(e) {
 				this.isNoCommodity = e == 0 ? true : false;
 			},

@@ -20,6 +20,13 @@
                 end-placeholder="结束时间"
               /> -->
             </el-form-item>
+            <el-form-item label="提现类别：">
+              <el-select class="selWidth" @change="getList(1)" v-model="tableFrom.extractCategory" placeholder="请选择">
+                <el-option label="全部" value=""></el-option>
+                <el-option label="佣金提现" value="brokerage"></el-option>
+                <el-option label="余额提现" value="balance"></el-option>
+              </el-select>
+            </el-form-item>
             <el-form-item label="提现状态：">
               <el-select class="selWidth" @change="getList(1)" v-model="tableFrom.status" placeholder="请选择">
                 <el-option label="全部" value=""></el-option>
@@ -67,6 +74,11 @@
         highlight-current-row
       >
         <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column label="提现类别" min-width="90">
+          <template slot-scope="scope">
+            <span>{{ scope.row.extractCategory === 'balance' ? '余额' : '佣金' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="用户信息" min-width="180">
           <template slot-scope="scope">
             <p>用户昵称：{{ scope.row.nickName }}</p>
@@ -231,6 +243,7 @@ export default {
       listLoading: true,
       tableFrom: {
         extractType: '',
+        extractCategory: '',
         status: '',
         dateLimit: '',
         keywords: '',
@@ -252,6 +265,7 @@ export default {
     //重置
     handleReset() {
       this.tableFrom.extractType = '';
+      this.tableFrom.extractCategory = '';
       this.tableFrom.status = '';
       this.tableFrom.dateLimit = '';
       this.tableFrom.keywords = '';

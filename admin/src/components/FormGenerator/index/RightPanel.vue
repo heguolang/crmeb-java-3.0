@@ -205,12 +205,6 @@
           <el-form-item v-if="activeData.__config__.tips" label="描述内容">
             <el-input v-model="activeData.__config__.tipsDesc" placeholder="请输入描述" />
           </el-form-item>
-          <el-form-item v-if="activeData.__config__.tips" label="描述链接">
-            <el-switch v-model="activeData.__config__.tipsIsLink" />
-          </el-form-item>
-          <el-form-item v-if="activeData.__config__.tipsIsLink" label="链接地址">
-            <el-input v-model="activeData.__config__.tipsLink" placeholder="请输入链接地址" />
-          </el-form-item>
           <el-form-item v-if="activeData.__config__.tag === 'el-checkbox-group'" label="至少应选">
             <el-input-number
               controls-position="right"

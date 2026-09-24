@@ -266,25 +266,48 @@ public class OrderPayServiceImpl implements OrderPayService {
             user.setPayCount(ObjectUtil.defaultIfNull(user.getPayCount(), 0) + 1);
         }
 
-        // 积分处理：商品配置优先；商品积分为0时再用默认下单赠送比例；另加会员等级赠送
+        // 积分处理：是否送积分看商品开关；商品积分>0用商品配置，=0用公共比例；二者不叠加；另加会员等级赠送
         List<StoreOrderInfo> orderInfoList = storeOrderInfoService.getListByOrderNo(storeOrder.getOrderId());
         int sumProductIntegral = 0;
+        BigDecimal globalPayBase = BigDecimal.ZERO;
         if (CollUtil.isNotEmpty(orderInfoList) && ObjectUtil.defaultIfNull(orderInfoList.get(0).getProductType(), 0).equals(0)) {
             for (StoreOrderInfo orderInfo : orderInfoList) {
                 StoreProduct product = storeProductService.getById(orderInfo.getProductId());
-                if (ObjectUtil.isNotNull(product) && ObjectUtil.isNotNull(product.getGiveIntegral()) && product.getGiveIntegral() > 0) {
+                if (ObjectUtil.isNull(product)) {
+                    continue;
+                }
+                // 关闭送积分：本商品不计
+                if (Boolean.FALSE.equals(product.getIsGiveIntegral())) {
+                    continue;
+                }
+                if (ObjectUtil.isNotNull(product.getGiveIntegral()) && product.getGiveIntegral() > 0) {
                     sumProductIntegral += product.getGiveIntegral() * orderInfo.getPayNum();
+                } else {
+                    BigDecimal linePrice = ObjectUtil.defaultIfNull(orderInfo.getVipPrice(), orderInfo.getPrice());
+                    if (linePrice == null) {
+                        linePrice = orderInfo.getPrice();
+                    }
+                    if (linePrice != null && orderInfo.getPayNum() != null) {
+                        globalPayBase = globalPayBase.add(linePrice.multiply(new BigDecimal(orderInfo.getPayNum())));
+                    }
                 }
             }
         }
         if (sumProductIntegral > 0) {
             UserIntegralRecord integralRecord = integralRecordInit(storeOrder, user.getIntegral(), sumProductIntegral, "product");
             integralList.add(integralRecord);
-        } else {
+        }
+        // 未配置商品积分的部分走公共「消费送积分」（有商品积分时也不再对整单叠加，只对未配置商品金额计算）
+        if (globalPayBase.compareTo(BigDecimal.ZERO) > 0) {
             String integralStr = systemConfigService.getValueByKey(Constants.CONFIG_KEY_INTEGRAL_RATE_ORDER_GIVE);
-            if (StrUtil.isNotBlank(integralStr) && storeOrder.getPayPrice().compareTo(BigDecimal.ZERO) > 0) {
+            if (StrUtil.isNotBlank(integralStr)) {
+                BigDecimal base = globalPayBase;
+                // 整单都走公共时，用实付更准确
+                if (sumProductIntegral == 0 && storeOrder.getPayPrice() != null && storeOrder.getPayPrice().compareTo(BigDecimal.ZERO) > 0) {
+                    base = storeOrder.getPayPrice();
+                }
                 BigDecimal integralBig = new BigDecimal(integralStr);
-                int integral = integralBig.multiply(storeOrder.getPayPrice()).setScale(0, BigDecimal.ROUND_DOWN).intValue();
+                int integral = integralBig.multiply(base).setScale(0, BigDecimal.ROUND_DOWN).intValue();
                 if (integral > 0) {
                     UserIntegralRecord integralRecord = integralRecordInit(storeOrder, user.getIntegral(), integral, "order");
                     integralList.add(integralRecord);
@@ -742,8 +765,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             if (!ProductCommissionUtil.resolveEnabled(distributor.getEnabled(), true)) {
                 continue;
             }
-            BigDecimal unitPrice = ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())
-                    ? orderInfoVo.getInfo().getVipPrice() : orderInfoVo.getInfo().getPrice();
+            BigDecimal unitPrice = ProductCommissionUtil.brokerageUnitPrice(orderInfoVo.getInfo());
             int payNum = ObjectUtil.defaultIfNull(orderInfoVo.getInfo().getPayNum(), 1);
             // 取值优先级：按分销商等级的覆盖 → 一刀切覆盖 → 全局等级比例
             BigDecimal[] levelArr = ProductCommissionUtil.distributorLevelAmountRate(
@@ -790,8 +812,7 @@ public class OrderPayServiceImpl implements OrderPayService {
             if (!ProductCommissionUtil.resolveEnabled(distributor.getEnabled(), true)) {
                 continue;
             }
-            BigDecimal unitPrice = ObjectUtil.isNotNull(orderInfoVo.getInfo().getVipPrice())
-                    ? orderInfoVo.getInfo().getVipPrice() : orderInfoVo.getInfo().getPrice();
+            BigDecimal unitPrice = ProductCommissionUtil.brokerageUnitPrice(orderInfoVo.getInfo());
             int payNum = ObjectUtil.defaultIfNull(orderInfoVo.getInfo().getPayNum(), 1);
             BigDecimal[] levelArr = ProductCommissionUtil.distributorLevelAmountRate(
                     distributor, buyer.getDistributorLevelId(), BrokerageRecordConstants.BROKERAGE_LEVEL_SELF);
@@ -1465,7 +1486,8 @@ public class OrderPayServiceImpl implements OrderPayService {
         UserBill userBill = new UserBill();
         userBill.setPm(0);
         userBill.setUid(order.getUid());
-        userBill.setLinkId(order.getId().toString());
+        // 资金监控「订单号」展示真实 orderId，勿写主键 id
+        userBill.setLinkId(order.getOrderId());
         userBill.setTitle("购买商品");
         userBill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
         userBill.setType(Constants.USER_BILL_TYPE_PAY_ORDER);

@@ -218,13 +218,12 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
      */
     @Override
     public List<String> getExtractBank() {
-        // 获取提现银行
-        String bank = systemConfigService.getValueByKeyException(Constants.CONFIG_BANK_LIST).replace("\r\n", "\n");
-        List<String> bankArr = new ArrayList<>();
-        if (bank.indexOf("\n") > 0) {
-            bankArr.addAll(Arrays.asList(bank.split("\n")));
-        } else {
-            bankArr.add(bank);
+        List<String> bankArr = userExtractService.getSupportBankList();
+        if (CollUtil.isEmpty(bankArr)) {
+            bankArr = Arrays.asList(
+                    "中国工商银行", "中国建设银行", "中国农业银行", "中国银行",
+                    "交通银行", "招商银行", "中国邮政储蓄银行", "中信银行",
+                    "中国光大银行", "兴业银行", "浦发银行", "民生银行");
         }
         return bankArr;
     }
@@ -1043,20 +1042,40 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
      */
     @Override
     public UserExtractCashResponse getExtractUser() {
+        return getExtractUser(SysConfigConstants.EXTRACT_CATEGORY_BROKERAGE);
+    }
+
+    @Override
+    public UserExtractCashResponse getExtractUser(String category) {
+        String cat = StrUtil.blankToDefault(category, SysConfigConstants.EXTRACT_CATEGORY_BROKERAGE);
+        boolean isBalance = SysConfigConstants.EXTRACT_CATEGORY_BALANCE.equals(cat);
         User user = userService.getInfoException();
-        // 提现最低金额
-        String minPrice = systemConfigService.getValueByKeyException(SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE);
-        // 冻结天数
+
+        String minKey = isBalance ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_MIN_PRICE : SysConfigConstants.CONFIG_EXTRACT_MIN_PRICE;
+        String minPrice = systemConfigService.getValueByKey(minKey);
+        if (StrUtil.isBlank(minPrice)) {
+            minPrice = "1";
+        }
         String extractTime = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_FREEZING_TIME);
-        // 可提现佣金
         BigDecimal brokeragePrice = user.getBrokeragePrice();
-        // 冻结佣金
         BigDecimal freeze = userBrokerageRecordService.getFreezePrice(user.getUid());
         UserExtractCashResponse response = new UserExtractCashResponse(minPrice, brokeragePrice, freeze, extractTime);
+        response.setExtractCategory(cat);
+        response.setBalanceCount(user.getNowMoney());
 
-        String weekdays = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS);
-        String startStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_TIME_START);
-        String endStr = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_EXTRACT_TIME_END);
+        String switchKey = isBalance ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_SWITCH : SysConfigConstants.CONFIG_EXTRACT_SWITCH;
+        String switchVal = systemConfigService.getValueByKey(switchKey);
+        response.setExtractSwitch(!"0".equals(switchVal));
+
+        String weekdays = systemConfigService.getValueByKey(isBalance
+                ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_WEEKDAYS
+                : SysConfigConstants.CONFIG_EXTRACT_WEEKDAYS);
+        String startStr = systemConfigService.getValueByKey(isBalance
+                ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_TIME_START
+                : SysConfigConstants.CONFIG_EXTRACT_TIME_START);
+        String endStr = systemConfigService.getValueByKey(isBalance
+                ? SysConfigConstants.CONFIG_BALANCE_EXTRACT_TIME_END
+                : SysConfigConstants.CONFIG_EXTRACT_TIME_END);
         int startHour = 0;
         int endHour = 24;
         try {
@@ -1070,7 +1089,7 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         }
         response.setExtractWeekdaysTip(userExtractService.formatWeekdaysTip(weekdays));
         response.setExtractTimeTip(userExtractService.formatTimeTip(startHour, endHour));
-        response.setExtractTimeAllowed(userExtractService.checkExtractTimeAllowed(false));
+        response.setExtractTimeAllowed(userExtractService.checkExtractTimeAllowed(false, cat));
         return response;
     }
 

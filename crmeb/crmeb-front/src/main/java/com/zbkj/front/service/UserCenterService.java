@@ -219,6 +219,13 @@ public interface UserCenterService extends IService<User> {
     UserExtractCashResponse getExtractUser();
 
     /**
+     * 提现用户信息
+     * @param category brokerage / balance
+     * @return UserExtractCashResponse
+     */
+    UserExtractCashResponse getExtractUser(String category);
+
+    /**
      * 推广人列表统计
      * @return UserSpreadPeopleResponse
      */

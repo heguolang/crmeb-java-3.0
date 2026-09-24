@@ -558,8 +558,7 @@ public class AgentServiceImpl implements AgentService {
             }
             boolean sync = Boolean.TRUE.equals(agentCfg.getSyncMode());
             boolean claim = Boolean.TRUE.equals(agentCfg.getSuperiorClaim());
-            BigDecimal unitPrice = ObjectUtil.isNotNull(line.getInfo().getVipPrice())
-                    ? line.getInfo().getVipPrice() : line.getInfo().getPrice();
+            BigDecimal unitPrice = ProductCommissionUtil.brokerageUnitPrice(line.getInfo());
             int payNum = ObjectUtil.defaultIfNull(line.getInfo().getPayNum(), 1);
             BigDecimal rawP = calcLevelRaw(agentCfg, Agent.LEVEL_PROVINCE, byLevel.get(Agent.LEVEL_PROVINCE), unitPrice, payNum);
             BigDecimal rawC = calcLevelRaw(agentCfg, Agent.LEVEL_CITY, byLevel.get(Agent.LEVEL_CITY), unitPrice, payNum);
@@ -670,9 +669,14 @@ public class AgentServiceImpl implements AgentService {
                 ProductCommissionConfig.Agent agentCfg = ProductCommissionUtil.parse(
                         product != null ? product.getCommissionConfig() : null).getAgent();
                 BigDecimal[] ar = ProductCommissionUtil.agentAmountRate(agentCfg, matched.getLevel());
+                boolean excludeIntegralDeduct = line.getInfo() != null
+                        && Boolean.FALSE.equals(line.getInfo().getIsIntegralDeductBrokerage())
+                        && line.getInfo().getLineDeductionPrice() != null
+                        && line.getInfo().getLineDeductionPrice().compareTo(BigDecimal.ZERO) > 0;
                 if (Boolean.FALSE.equals(agentCfg.getEnabled())
                         || ProductCommissionUtil.hasOverride(ar[0], ar[1])
-                        || Boolean.TRUE.equals(agentCfg.getSyncMode())) {
+                        || Boolean.TRUE.equals(agentCfg.getSyncMode())
+                        || excludeIntegralDeduct) {
                     needLineCalc = true;
                     break;
                 }
@@ -700,8 +704,7 @@ public class AgentServiceImpl implements AgentService {
             if (!ProductCommissionUtil.resolveEnabled(agentCfg.getEnabled(), true)) {
                 continue;
             }
-            BigDecimal unitPrice = ObjectUtil.isNotNull(line.getInfo().getVipPrice())
-                    ? line.getInfo().getVipPrice() : line.getInfo().getPrice();
+            BigDecimal unitPrice = ProductCommissionUtil.brokerageUnitPrice(line.getInfo());
             int payNum = ObjectUtil.defaultIfNull(line.getInfo().getPayNum(), 1);
             BigDecimal[] ar = ProductCommissionUtil.agentAmountRate(agentCfg, matched.getLevel());
             BigDecimal override = ProductCommissionUtil.calcOverride(ar[0], ar[1], unitPrice, payNum);
