@@ -17,17 +17,24 @@ import 'normalize.css/normalize.css'; // a modern alternative to CSS resets
 import Element from 'element-ui';
 import './theme/element-variables.scss';
 
-import '@/theme/index.scss'; // global css
-import '@/assets/fonts/font.css'; // font css
-import '@/assets/iconfont/iconfont';
-import '@/assets/iconfont/iconfont.css';
-// import '@/assets/iconfont/iconfont copy.css';
-import '@/assets/iconfont/iconfont-weapp-icon.css';
+/* ⚠️ 顺序敏感：第三方基础样式（normalize / swiper / ydui / viewer）必须排在
+   项目主题之前。vue-ydui 的 base.css 里有 `body{font-size:12px;font-family:arial,sans-serif}`，
+   它一排在 @/theme/index.scss 后面，就会把全站的字体族和基准字号顶掉
+   （2026-09-24：导致 body 恒为 12px / Arial）。
+   所以下面这组「项目主题 + 字体 + 图标字体」的 import 一律靠后放，别往上挪。 */
 import VueAwesomeSwiper from 'vue-awesome-swiper';
 import 'swiper/dist/css/swiper.css';
 import 'vue-ydui/dist/ydui.base.css';
 import Viewer from 'v-viewer';
 import 'viewerjs/dist/viewer.css';
+
+import '@/theme/index.scss'; // global css —— 必须排在所有第三方 css 之后
+import '@/assets/fonts/font.css'; // font css
+import '@/assets/iconfont/iconfont';
+import '@/assets/iconfont/iconfont.css';
+// import '@/assets/iconfont/iconfont copy.css';
+import '@/assets/iconfont/iconfont-weapp-icon.css';
+
 import { parseTime, resetForm, addDateRange, selectDictLabel, selectDictLabels, handleTree } from '@/utils/parsing';
 // 懒加载
 import VueLazyload from 'vue-lazyload';

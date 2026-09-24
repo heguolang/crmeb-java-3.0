@@ -170,10 +170,32 @@
   justify-content: space-between;
 }
 
+/* ============================================================
+   全站排版基线（2026-09-24 定稿，唯一来源）
+   —— 字体族 + 基准字号，只在这里定义，别在页面 scoped 里重写
+   ============================================================ */
+
+/* 字体栈：Windows 上解析为「西文 Segoe UI + 中文 微软雅黑」，全机器一致。
+   ⚠️ 顺序不能把 Arial 放前面 —— 之前是 `Helvetica Neue, Helvetica, PingFang SC,
+   Hiragino Sans GB, Microsoft YaHei, Arial`，Windows 上前四个都不存在，西文落到 Arial、
+   中文走浏览器兜底字体，同一行里两种字形，这就是"字体不统一"的根。
+   注意：input / button / select / textarea 不继承父级字体，必须显式声明（见文件末尾
+   「排版基线」段落），否则会走浏览器 UA 默认的 Tahoma，跟旁边的 label 对不上。 */
+$wb-font-family:
+  -apple-system, BlinkMacSystemFont, 'Segoe UI',
+  'Microsoft YaHei', '微软雅黑',
+  'PingFang SC', 'Hiragino Sans GB',
+  'Helvetica Neue', Helvetica, Arial, sans-serif;
+
 /*表单公共样式*/
 html,
 body {
-  font-size: 12px;
+  font-size: 14px;
+  font-family: $wb-font-family;
+}
+
+body {
+  font-family: $wb-font-family;
 }
 
 .page {
@@ -1023,8 +1045,9 @@ body {
   /* el-form--small 的内置小字号会压过普通选择器，必须 !important */
   .el-form-item__label,
   .el-input__inner,
+  .el-range-input,
   .el-button {
-    font-size: 14px !important;
+    font-size: 15px !important;
   }
 }
 
@@ -1035,14 +1058,15 @@ body {
   border-top: 1px dashed #ebeef5;
 
   .el-button {
-    font-size: 14px !important;
+    font-size: 15px !important;
   }
 }
 
-/* 表格放大一档（与 .admin-table 组合使用）：表头/单元格 14px，单元格上下留白 10px */
+/* 表格放大一档（与 .admin-table 组合使用）：表头 15px / 单元格 14px，单元格上下留白 10px。
+   2026-09-24：表头跟全站表头基线一起提到 15px，不再自成一套。 */
 .table-lg {
   &.el-table th.el-table__cell .cell {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   &.el-table td.el-table__cell {
@@ -1222,3 +1246,108 @@ body {
   padding: 4px 0 !important;
   font-size: 12px !important;
 }
+
+/* ============================================================
+   全站排版基线（2026-09-24 定稿）
+   —— 本文件是 theme/index.scss 里**最后**被 import 的，所以放在这里的规则
+      能压过 element 的 .el-table--small / .el-table--mini / .el-form--small。
+      别把这套规则挪到 app.scss / variables.scss，会被 element 盖回去。
+
+   一、字体族：页面文字 + 表单控件 + Element 组件统一成一套栈
+       表单控件（input / button / select / textarea）**不继承**父级字体，
+       浏览器会用 UA 默认字体（本机实测是 Tahoma）。不显式声明，
+       就会出现「label 是 Arial、输入框和按钮是 Tahoma」的混排。
+
+   二、字号层级：
+       · 表头 15px —— 覆盖 element 给 small/mini 表格写死的 12px
+       · 表体 14px —— 与设计令牌 text-body 一致
+       · 顶部区（统计条 / 筛选区）15px
+   ============================================================ */
+
+/* ---------- 1. 字体族统一 ---------- */
+#app,
+button,
+input,
+select,
+textarea,
+.el-button,
+.el-input__inner,
+.el-input__icon,
+.el-textarea__inner,
+.el-range-input,
+.el-form-item__label,
+.el-form-item__error,
+.el-pagination,
+.el-table,
+.el-table th,
+.el-table td,
+.el-table__empty-text,
+.el-dialog__title,
+.el-dialog__body,
+.el-message-box__title,
+.el-message-box__message,
+.el-message,
+.el-notification,
+.el-notification__title,
+.el-notification__content,
+.el-dropdown-menu__item,
+.el-select-dropdown__item,
+.el-menu,
+.el-menu-item,
+.el-submenu__title,
+.el-tabs__item,
+.el-radio__label,
+.el-checkbox__label,
+.el-tag,
+.el-breadcrumb,
+.el-card,
+.el-card__header,
+.el-collapse-item__header,
+.el-popper,
+.el-tooltip__popper {
+  font-family: $wb-font-family !important;
+}
+
+/* ---------- 2. 表头 15px / 表体 14px（全站所有 el-table） ----------
+   element 的 .el-table--small / .el-table--mini 把容器字号写死成 12px，
+   表头表体一起继承变 12px，看起来比别的页小一号。这里统一钉死。
+   表头用 !important 是因为 .table-lg.el-table th.el-table__cell .cell
+   这类页面级选择器特异性更高（0,3,2），普通规则压不住。 */
+.el-table th.el-table__cell .cell,
+.el-table th .cell {
+  font-size: 15px !important;
+}
+
+.el-table td.el-table__cell .cell,
+.el-table td .cell {
+  font-size: 14px !important;
+}
+
+/* ---------- 3. 顶部区 15px ----------
+   列表页顶部筛选区有两套写法，都要覆盖：
+   · 新范式：.summary-bar + .filter-panel / .filter-actions（订货商管理、代理管理）
+   · 老写法：el-card 里直接放 el-form inline size="small"（团队各页、报表、商品与库存等）
+   老写法没有专属 class，只能靠「卡片里的行内表单」定位。 */
+.el-card .el-form--inline .el-form-item__label,
+.el-card .el-form--inline .el-input__inner,
+.el-card .el-form--inline .el-range-input,
+.el-card .el-form--inline .el-button,
+.padding-add .el-form-item__label,
+.padding-add .el-input__inner,
+.padding-add .el-range-input,
+.padding-add .el-button,
+.toolbar .el-form-item__label,
+.toolbar .el-input__inner,
+.toolbar .el-button,
+.filter-head,
+.filter-item,
+.list-head__cell,
+.el-card__header .card-title,
+.el-page-header__title {
+  font-size: 15px !important;
+}
+
+/* 注意：不要在这里再改 .el-table .cell 的左右内边距。
+   .admin-table .cell 已经用 !important 钉死 8px（见上文「列表页统一规范」），
+   加宽会直接吃掉列宽、把窄窗口下的表格重新推出横向滚动条，
+   连带 fixed="right" 操作列再次错位（2026-09-24 教训）。 */
