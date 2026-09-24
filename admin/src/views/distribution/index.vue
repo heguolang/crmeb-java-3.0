@@ -32,10 +32,10 @@
             <span v-else class="avatar-text">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
           </template>
         </el-table-column>
-        <!-- 分销商信息：昵称 / ID+手机 / 上级 / 成为时间 四行，弹性列吸收剩余空间。
-             ID 与手机同行省一行高度（两者都是"识别身份"的同类信息）；
-             上级是「清除上级」操作的判断依据，必须与昵称同格可见，不能折叠进弹窗。
-             min-width 160 = 最长行「成为：2026-09-24 19:00」实测 140px（13px 字号）+ 左右内边距 16px。 -->
+        <!-- 分销商信息：昵称 / ID+手机 / 上级 / 成为时间 四行。
+             本页唯一的弹性列（min-width）：整表多余宽度全部收进这里，
+             换来「分销等级 → 推广业绩 → 佣金 → 操作」四列紧密相接不留空隙——
+             这是 2026-09-24 用户标注「佣金/操作移到指定位置」的落地方案。 -->
         <el-table-column label="分销商信息" min-width="160">
           <template slot-scope="scope">
             <div class="info-name">{{ scope.row.nickname || '—' }}</div>
@@ -46,26 +46,28 @@
             <div class="info-line">成为：{{ fmtTime(scope.row.promoterTime) }}</div>
           </template>
         </el-table-column>
-        <!-- 分销等级：着色 chip，与代理管理的「级别」列同款 -->
-        <el-table-column label="分销等级" min-width="84">
+        <!-- 分销等级：着色 chip，与代理管理的「级别」列同款。定宽，不做弹性列 -->
+        <el-table-column label="分销等级" width="88">
           <template slot-scope="scope">
             <span v-if="scope.row.distributorLevelId > 0" class="lv-chip">{{ scope.row.distributorLevelName }}</span>
             <span v-else class="hq">未分级</span>
           </template>
         </el-table-column>
         <!-- 推广业绩：三行小台账（人数 / 单数 / 金额），比横排三列省 2 个列宽；
-             三个标签统一 4 字，正好填满 .kv-k 的 52px 定宽，数值左缘对齐 -->
-        <el-table-column label="推广业绩" min-width="150">
+             三个标签统一 4 字，正好填满 .kv-k 的 52px 定宽，数值左缘对齐。
+             定宽 150：最宽行「订单金额 1,635,000.00 元」实测 127px（13px）+ 内边距。 -->
+        <el-table-column label="推广业绩" width="150">
           <template slot-scope="scope">
             <div class="kv"><span class="kv-k">一级用户</span><span class="kv-v">{{ scope.row.spreadCount || 0 }} 人</span></div>
             <div class="kv"><span class="kv-k">推广订单</span><span class="kv-v">{{ scope.row.spreadOrderNum || 0 }} 单</span></div>
             <div class="kv"><span class="kv-k">订单金额</span><span class="kv-v">{{ money(scope.row.spreadOrderTotalPrice) }} 元</span></div>
           </template>
         </el-table-column>
-        <!-- 佣金：四行小台账，标签左定宽 + 数值右对齐，纵向可直接比对；
+        <!-- 佣金：四行小台账，标签左定宽 + 数值紧随，纵向可直接比对；
              可提现是唯一需要"一眼看到"的金额，加粗着主色，其余用中性色弱化。
-             140 是实测下限：「已提现 0.00 · 0次」这行最宽（标签 39 + 数值 29 + 后缀 32 + 内边距 16）。 -->
-        <el-table-column label="佣金（元）" min-width="140">
+             定宽 150：「已提现 0.00 · 0次」最宽（标签 39 + 数值 29 + 后缀 32 + 内边距 16）。
+             位置按用户标注：紧跟「推广业绩」，中间不留弹性空隙。 -->
+        <el-table-column label="佣金（元）" width="150">
           <template slot-scope="scope">
             <div class="kv"><span class="kv-k">可提现</span><span class="kv-v kv-v--strong">{{ money(scope.row.brokeragePrice) }}</span></div>
             <div class="kv"><span class="kv-k">总额</span><span class="kv-v">{{ money(scope.row.totalBrokeragePrice) }}</span></div>
@@ -81,8 +83,10 @@
              和代理管理把「删除」放最后一格同一个思路，减少误触。
              「清除上级」只在有上级推广人的行渲染，--auto 会让剩余按钮自动铺满，不留空洞。
              208px = 单元格左右内边距 30 + 3 格等宽按钮（含 6px 间隙），每格 ≈55px，
-             「推广订单」4 字（13px）需 54px 刚好不截断，再窄就会挤字换行。 -->
-        <el-table-column label="操作" width="208" fixed="right" class-name="op-cell" label-class-name="op-cell">
+             「推广订单」4 字（13px）需 54px 刚好不截断，再窄就会挤字换行。
+             位置按用户标注：紧跟「佣金」，不再 fixed="right" 钉死最右——
+             各列最小宽合计 816 ≤ 826（1100 视口容器），永不溢出，固定列已无必要。 -->
+        <el-table-column label="操作" width="208" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
             <div class="op-grid op-grid--auto">
               <el-button v-if="checkPermi(['admin:retail:spread:list'])" size="mini" plain class="op-tag tint-neutral" @click="onSpread(scope.row.uid, 'man', '推广人')">推广人</el-button>
