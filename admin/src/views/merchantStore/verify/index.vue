@@ -17,7 +17,6 @@
         </el-form>
       </div>
       <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
-        <el-table-column prop="id" label="ID" width="38" />
         <el-table-column prop="storeName" label="门店" min-width="110" show-overflow-tooltip />
         <el-table-column prop="orderNo" label="核销订单" min-width="140" show-overflow-tooltip />
         <el-table-column prop="productInfo" label="核销产品" min-width="130" show-overflow-tooltip />

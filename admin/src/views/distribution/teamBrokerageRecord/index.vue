@@ -49,7 +49,6 @@
     </el-card>
     <el-card class="box-card mt14">
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" highlight-current-row>
-        <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="用户信息" min-width="150">
           <template slot-scope="scope">
             <div>{{ scope.row.userName || '-' }}</div>

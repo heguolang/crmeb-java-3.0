@@ -1013,8 +1013,10 @@ public class StockRewardServiceImpl implements StockRewardService {
         for (StockReward r : list) {
             User u = r.getUid() == null ? null : userMap.get(r.getUid());
             r.setNickname(u == null ? "" : u.getNickname());
+            r.setAvatar(u == null ? "" : (u.getAvatar() == null ? "" : u.getAvatar()));
             User lu = r.getLinkUid() == null ? null : userMap.get(r.getLinkUid());
             r.setLinkNickname(lu == null ? "" : lu.getNickname());
+            r.setLinkAvatar(lu == null ? "" : (lu.getAvatar() == null ? "" : lu.getAvatar()));
             r.setLinkPhone(lu == null ? "" : lu.getPhone());
             r.setProductNames(productNameMap.getOrDefault(r.getOrderNo(), ""));
         }

@@ -87,4 +87,8 @@ public class Agent implements Serializable {
     @ApiModelProperty(value = "用户账号")
     @TableField(exist = false)
     private String account;
+
+    @ApiModelProperty(value = "用户头像（列表展示用，2026-09-25 版式复用）")
+    @TableField(exist = false)
+    private String avatar;
 }

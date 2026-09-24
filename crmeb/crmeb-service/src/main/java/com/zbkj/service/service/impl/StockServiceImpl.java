@@ -491,6 +491,7 @@ public class StockServiceImpl implements StockService {
                 User u = userMap.get(log.getUid());
                 log.setNickname(u == null ? "" : u.getNickname());
                 log.setPhone(u == null ? "" : u.getPhone());
+                log.setAvatar(u == null ? "" : (u.getAvatar() == null ? "" : u.getAvatar()));
             }
         }
         return CommonPage.restPage(new PageInfo<>(list));
@@ -956,6 +957,7 @@ public class StockServiceImpl implements StockService {
             log.setUid(uid);
             log.setNickName(u == null ? "" : u.getNickname());
             log.setPhone(u == null ? "" : u.getPhone());
+            log.setAvatar(u == null ? "" : (u.getAvatar() == null ? "" : u.getAvatar()));
         }
     }
 

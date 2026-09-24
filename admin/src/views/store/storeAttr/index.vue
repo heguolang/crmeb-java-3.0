@@ -32,7 +32,6 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="id" label="ID" min-width="60" />
         <el-table-column prop="ruleName" label="规格名称" min-width="150" />
         <el-table-column label="商品规格" min-width="150">
           <template slot-scope="scope">

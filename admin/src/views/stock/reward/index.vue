@@ -19,33 +19,68 @@
           <el-button type="primary" @click="getList">查询</el-button>
         </el-form-item>
       </el-form>
-      <el-table v-loading="loading" :data="tableData" size="small" highlight-current-row>
-        <el-table-column prop="id" label="ID" width="64" />
-        <el-table-column label="得奖代理" min-width="110">
-          <template slot-scope="scope">{{ scope.row.nickname }}（UID {{ scope.row.uid }}）</template>
+      <!-- 定稿版式 v2 复用（2026-09-25）：人员列内嵌圆头像（得奖人/业绩来源）；
+           记录 ID 不单独设列；计算基数+比例合并 kv 台账；时间定宽防弹性拉伸 -->
+      <el-table v-loading="loading" :data="tableData" size="small" class="admin-table table-lg" stripe highlight-current-row>
+        <!-- 头部留白：定宽，不参与弹性分配 -->
+        <el-table-column width="30" />
+        <!-- 得奖订货商：内嵌圆头像 + 昵称 / ID 色块+复制 -->
+        <el-table-column label="得奖订货商" min-width="216">
+          <template slot-scope="scope">
+            <div class="person-cell">
+              <img v-if="scope.row.avatar" class="person-avatar" :src="scope.row.avatar" @error="scope.row.avatar = ''" />
+              <span v-else class="person-avatar person-avatar--empty">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
+              <div class="person-info">
+                <div class="info-name">{{ scope.row.nickname || '—' }}</div>
+                <div class="info-line">
+                  ID：<span class="id-chip">{{ scope.row.uid }}</span>
+                  <i class="el-icon-document-copy copy-btn" title="复制 ID" @click="copyText(scope.row.uid)"></i>
+                </div>
+              </div>
+            </div>
+          </template>
         </el-table-column>
-        <el-table-column label="类型" width="100">
+        <el-table-column label="类型" width="90">
           <template slot-scope="scope">
             <el-tag size="mini" :type="['', 'success', 'primary', 'warning'][scope.row.type]">{{ typeName(scope.row.type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="orderNo" label="关联单号" width="170" />
-        <el-table-column label="业绩来源" width="140">
+        <el-table-column prop="orderNo" label="关联单号" width="160" />
+        <!-- 业绩来源：内嵌圆头像 + 昵称 + ID 色块（关联人 ID 同样可复制） -->
+        <el-table-column label="业绩来源" min-width="192">
           <template slot-scope="scope">
             <template v-if="scope.row.linkUid">
-              <div class="cell-main">{{ scope.row.linkNickname || '—' }}</div>
-              <div class="cell-sub">UID {{ scope.row.linkUid }}</div>
+              <div class="person-cell">
+                <img v-if="scope.row.linkAvatar" class="person-avatar" :src="scope.row.linkAvatar" @error="scope.row.linkAvatar = ''" />
+                <span v-else class="person-avatar person-avatar--empty">{{ (scope.row.linkNickname || '?').slice(0, 1).toUpperCase() }}</span>
+                <div class="person-info">
+                  <div class="info-name">{{ scope.row.linkNickname || '—' }}</div>
+                  <div class="info-line">
+                    ID：<span class="id-chip">{{ scope.row.linkUid }}</span>
+                    <i class="el-icon-document-copy copy-btn" title="复制 ID" @click="copyText(scope.row.linkUid)"></i>
+                  </div>
+                </div>
+              </div>
             </template>
-            <span v-else>—</span>
+            <span v-else class="hq">—</span>
           </template>
         </el-table-column>
-        <el-table-column prop="basePrice" label="计算基数" width="100" />
-        <el-table-column prop="rate" label="比例%" width="80" />
-        <el-table-column prop="rewardPrice" label="奖励金额" width="100">
-          <template slot-scope="scope"><b class="green">¥{{ scope.row.rewardPrice }}</b></template>
+        <!-- 计算：基数 / 比例 两行小台账，比横排两列省 1 个列宽 -->
+        <el-table-column label="计算" min-width="130">
+          <template slot-scope="scope">
+            <div class="kv"><span class="kv-k">基数</span><span class="kv-v">¥{{ scope.row.basePrice }}</span></div>
+            <div class="kv"><span class="kv-k">比例</span><span class="kv-v">{{ scope.row.rate }}%</span></div>
+          </template>
         </el-table-column>
-        <el-table-column prop="mark" label="说明" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="createTime" label="时间" width="150" />
+        <el-table-column label="奖励金额" min-width="130">
+          <template slot-scope="scope"><b class="reward-strong">¥{{ scope.row.rewardPrice }}</b></template>
+        </el-table-column>
+        <el-table-column prop="mark" label="说明" min-width="140" show-overflow-tooltip />
+        <el-table-column label="时间" width="170">
+          <template slot-scope="scope"><span class="info-v">{{ scope.row.createTime }}</span></template>
+        </el-table-column>
+        <!-- 尾部留白：按钮区/表格右缘呼吸空间，定宽 -->
+        <el-table-column width="150" />
       </el-table>
       <div class="block">
         <el-pagination background :page-size="tableFrom.limit" :current-page="tableFrom.page" layout="total, prev, pager, next, jumper" :total="total" @current-change="pageChange" />
@@ -82,6 +117,31 @@ export default {
     },
     typeName(t) {
       return { 1: '差价奖励', 2: '阶梯奖励', 3: '平级奖励', 4: '货款成本' }[t] || t;
+    },
+    copyText(text) {
+      const value = String(text);
+      const done = () => this.$message.success('已复制：' + value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(() => this.fallbackCopy(value, done));
+      } else {
+        this.fallbackCopy(value, done);
+      }
+    },
+    fallbackCopy(value, done) {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.top = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
     }
   },
   mounted() {
@@ -91,7 +151,10 @@ export default {
 </script>
 
 <style scoped>
-.green { color: #67c23a; }
-.cell-main { font-size: 13px; color: #303133; }
-.cell-sub { font-size: 12px; color: #909399; }
+/* 台账/信息列/ID 色块样式全部走 theme/styles.scss 全局定义；
+   奖励是收入语义，用绿色加粗（与数据报表页奖励合计同款），不用版式主色蓝 */
+.reward-strong {
+  color: #19be6b;
+  font-variant-numeric: tabular-nums;
+}
 </style>

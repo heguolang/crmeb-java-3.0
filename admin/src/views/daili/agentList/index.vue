@@ -38,49 +38,61 @@
         </div>
       </div>
 
-      <!-- 列宽按 Edge 实测内容宽度重排（2026-09-24）：
-           总 min 宽 812px，1100 视口下容器 826px → 不再横向溢出。
-           横向溢出是操作列错位的真凶：el-table 一旦出现横向滚动，
-           fixed 层内部 table 会被算成整表宽度（1646）而不是 178，
-           导致表头行与数据行的「操作」列错开整个溢出量（实测 116px）。
-           时间列改用固定 width（原来 min-width 会被拉到 382px，撑出一片空白）。 -->
+      <!-- 列结构照分销商管理定稿版式 v2 复用（2026-09-25）：头部留白 30 / 头像 60 /
+           代理用户信息列（昵称/ID色块可复制/手机）min 200 / 级别 80 / 代理区域 110 /
+           奖励比例 80 / 状态 80 / 备注 90 / 时间 180（定宽，勿用 min-width）/
+           操作 246（3格×68，不 fixed）/ 尾部留白 150。
+           ⚠️ 留白列与操作列均无 fixed：横向滚动时 fixed 层必错位（分销商页同款代价声明）。 -->
       <el-table class="admin-table table-lg" v-loading="listLoading" :data="tableData.data" size="small" stripe highlight-current-row>
-        <!-- 代理用户：昵称 + UID 两行（弹性列，吸收剩余空间） -->
-        <el-table-column label="代理用户" min-width="118">
+        <!-- 头部留白列：定宽，min-width 会参与弹性分配稀释比例 -->
+        <el-table-column width="30" />
+        <!-- 头像：44px 头像 + 单元格内边距，60 是不裁切最小宽度；无头像兜底昵称首字 -->
+        <el-table-column label="头像" width="60" align="center">
           <template slot-scope="scope">
-            <div class="info-name">{{ scope.row.nickname || '-' }}</div>
-            <div class="info-line">UID：{{ scope.row.uid }}</div>
+            <img v-if="scope.row.avatar" :src="scope.row.avatar" class="avatar-img" />
+            <span v-else class="avatar-text">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="级别" width="62">
+        <!-- 代理用户：昵称 / ID 色块可复制 / 手机（标签灰、值黑，与分销商页同款分层） -->
+        <el-table-column label="代理用户" min-width="200">
+          <template slot-scope="scope">
+            <div class="info-name">{{ scope.row.nickname || '—' }}</div>
+            <div class="info-line">
+              ID：<span class="id-chip">{{ scope.row.uid }}</span>
+              <i class="el-icon-document-copy copy-btn" title="复制 ID" @click="copyText(scope.row.uid)"></i>
+            </div>
+            <div class="info-line" v-if="scope.row.account && scope.row.account !== '-'">手机：<span class="info-v">{{ scope.row.account }}</span></div>
+          </template>
+        </el-table-column>
+        <el-table-column label="级别" min-width="80">
           <template slot-scope="scope">
             <span class="lv-chip">{{ levelLabel(scope.row.level) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="regionName" label="代理区域" min-width="84" show-overflow-tooltip />
-        <el-table-column label="奖励比例" width="76">
-          <template slot-scope="scope">{{ scope.row.ratio }}%</template>
+        <el-table-column prop="regionName" label="代理区域" min-width="110" show-overflow-tooltip />
+        <el-table-column label="奖励比例" min-width="80">
+          <template slot-scope="scope"><span class="info-v">{{ scope.row.ratio }}%</span></template>
         </el-table-column>
-        <el-table-column label="状态" min-width="66">
+        <el-table-column label="状态" min-width="80">
           <template slot-scope="scope">
             <span class="st-dot st-dot-lg" :class="{ on: scope.row.status === 1, warn: scope.row.status === 0, danger: scope.row.status === 2 }">
               <i></i>{{ statusLabel(scope.row.status) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="applyMark" label="备注" min-width="76" show-overflow-tooltip>
+        <el-table-column prop="applyMark" label="备注" min-width="90" show-overflow-tooltip>
           <template slot-scope="scope">{{ scope.row.applyMark || '—' }}</template>
         </el-table-column>
-        <!-- 时间：两行完整时间戳，实测文本 151px + 内边距 20px = 171px，取 180 固定宽 -->
+        <!-- 时间：完整时间戳两行，定宽 180（min-width 会被弹性拉到 300+，见技能坑 6） -->
         <el-table-column label="时间" width="180" class-name="time-cell">
           <template slot-scope="scope">
-            <div class="info-line">创建 {{ scope.row.createTime || '-' }}</div>
-            <div class="info-line">审核 {{ scope.row.checkTime || '—' }}</div>
+            <div class="info-line">创建：<span class="info-v">{{ scope.row.createTime || '—' }}</span></div>
+            <div class="info-line">审核：<span class="info-v">{{ scope.row.checkTime || '—' }}</span></div>
           </template>
         </el-table-column>
-        <!-- 操作：待审核「通过/拒绝/修改」3 个，已审核「修改/删除」2 个，等宽单行铺满
-             顺序按操作主次：审核动作前置，常规修改居中，破坏性删除收尾 -->
-        <el-table-column label="操作" width="150" fixed="right" class-name="op-cell" label-class-name="op-cell">
+        <!-- 操作：待审核 3 个（通过/拒绝/修改）、已审核 2 个（修改/删除），
+             246 = 30 内边距 + 3格×68 + 6×2 间隙，四字按钮不挤；不 fixed（防错位） -->
+        <el-table-column label="操作" width="246" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
             <div class="op-grid op-grid--auto">
               <el-button v-if="canAudit(scope.row)" size="mini" plain class="op-tag tint-primary" @click="onAudit(scope.row, 1)">通过</el-button>
@@ -90,6 +102,8 @@
             </div>
           </template>
         </el-table-column>
+        <!-- 尾部留白列：按钮与表格右缘之间留白，别顶满 -->
+        <el-table-column width="150" />
       </el-table>
       <div class="pager">
         <el-pagination
@@ -279,6 +293,32 @@ export default {
   },
   methods: {
     checkPermi,
+    // 复制文本到剪贴板：与用户列表页/分销商页同款实现（中文提示 + execCommand 兜底）
+    copyText(text) {
+      const value = String(text);
+      const done = () => this.$message.success('已复制：' + value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(() => this.fallbackCopy(value, done));
+      } else {
+        this.fallbackCopy(value, done);
+      }
+    },
+    fallbackCopy(value, done) {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.top = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
+    },
     // 读取代理设置里的各级别默认奖励比例（无权限/失败时用内置默认：省5/市3/区2）
     loadDefaultRatios() {
       agentSettingApi()

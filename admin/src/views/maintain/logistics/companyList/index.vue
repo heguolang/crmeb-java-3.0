@@ -20,7 +20,6 @@
         >
       </div>
       <el-table v-loading="loading" :data="tableData.list" size="mini">
-        <el-table-column prop="id" label="ID" min-width="180" />
         <el-table-column label="物流公司名称" min-width="150" prop="name" />
         <el-table-column min-width="200" label="编码" prop="code" />
         <el-table-column min-width="100" label="排序" prop="sort" sortable />

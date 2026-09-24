@@ -14,7 +14,6 @@
         size="small"
         :highlight-current-row="true"
       >
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column prop="name" label="服务条款" min-width="150" />
         <el-table-column label="服务条款图标" min-width="120">
           <template slot-scope="scope">

@@ -12,9 +12,11 @@
     line-height: 32px;
   }
   // input
+  // 2026-09-25：12px → 14px（CRMEB 遗留 12px 与全站 14px 正文基线冲突，
+  // 造成「输入框文字比标签大」的错层；radio 因漏网是 14px 反而衬出 label 小）
   .el-input__inner,
   .el-textarea__inner {
-    font-size: 12px;
+    font-size: 14px;
   }
   .el-autocomplete-suggestion__wrap {
     max-height: 280px !important;
@@ -239,8 +241,9 @@
 
   /* el-radio 单选框
 ------------------------------- */
+  // 2026-09-25：12px → 14px，与 radio 正文（本就是 14px）对齐
   .el-checkbox__label {
-    font-size: 12px;
+    font-size: 14px;
   }
   .el-radio,
   .el-checkbox {

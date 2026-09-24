@@ -63,4 +63,8 @@ public class AgentChangeLog implements Serializable {
     @ApiModelProperty(value = "手机号")
     @com.baomidou.mybatisplus.annotation.TableField(exist = false)
     private String phone;
+
+    @ApiModelProperty(value = "会员头像")
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String avatar;
 }

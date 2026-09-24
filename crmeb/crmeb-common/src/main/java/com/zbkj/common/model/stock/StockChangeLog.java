@@ -64,4 +64,8 @@ public class StockChangeLog implements Serializable {
     @ApiModelProperty(value = "手机号（联查，非表字段）")
     @TableField(exist = false)
     private String phone;
+
+    @ApiModelProperty(value = "订货商头像（联查，非表字段）")
+    @TableField(exist = false)
+    private String avatar;
 }

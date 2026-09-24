@@ -30,7 +30,6 @@
         <el-button type="primary" @click="add" v-hasPermi="['admin:seckill:manger:save']">添加秒杀配置</el-button>
       </div>
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" ref="multipleTable">
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column label="秒杀名称" min-width="100">
           <template slot-scope="scope">
             <router-link :to="{ path: '/marketing/seckill/list/' + scope.row.id }">

@@ -220,7 +220,6 @@
     <!--记录-->
     <el-dialog title="操作记录" :visible.sync="dialogVisibleJI" width="700px">
       <el-table v-loading="LogLoading" border :data="tableDataLog.data" style="width: 100%">
-        <el-table-column prop="oid" label="ID" min-width="80" />
         <el-table-column prop="changeMessage" label="操作记录" min-width="280" />
         <el-table-column prop="createTime" label="操作时间" min-width="280" />
       </el-table>

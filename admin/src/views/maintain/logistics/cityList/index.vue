@@ -13,7 +13,6 @@
         :load="load"
         :tree-props="{ children: 'child', hasChildren: 'hasChildren' }"
       >
-        <el-table-column prop="cityId" label="编号" min-width="100" />
         <el-table-column prop="parentName" label="上级名称" min-width="100"> </el-table-column>
         <el-table-column prop="name" min-width="250" label="地区名称"> </el-table-column>
         <el-table-column fixed="right" width="80" label="操作">

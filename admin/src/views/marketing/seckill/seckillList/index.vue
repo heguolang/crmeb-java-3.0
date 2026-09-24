@@ -48,7 +48,6 @@
         </router-link>
       </div>
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" ref="multipleTable">
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column label="配置" min-width="160">
           <template slot-scope="scope">
             <div>{{ scope.row.storeSeckillManagerResponse ? scope.row.storeSeckillManagerResponse.name : '-' }}</div>

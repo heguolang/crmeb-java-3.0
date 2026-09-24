@@ -25,7 +25,6 @@
     </el-card>
     <el-card class="box-card mt14">
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" highlight-current-row>
-        <el-table-column prop="id" label="ID" width="70" />
         <el-table-column label="代理" min-width="130">
           <template slot-scope="scope">
             <div>{{ scope.row.nickname || '-' }}</div>

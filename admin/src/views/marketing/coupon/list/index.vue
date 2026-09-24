@@ -28,7 +28,6 @@
         </router-link>
       </div>
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini">
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column prop="name" label="名称" min-width="180" />
         <el-table-column label="类型" min-width="80">
           <template slot-scope="{ row }">

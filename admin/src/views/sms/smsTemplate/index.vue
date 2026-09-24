@@ -16,7 +16,6 @@
         </div>
       </div>
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" highlight-current-row>
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column prop="temp_id" label="模板ID" min-width="80" />
         <el-table-column prop="title" label="模板名称" min-width="120" />
         <el-table-column prop="content" label="模板内容" min-width="500" />

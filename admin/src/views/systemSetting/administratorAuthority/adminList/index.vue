@@ -37,7 +37,6 @@
         </el-form-item>
       </el-form>
       <el-table :data="listData.list" size="mini">
-        <el-table-column prop="id" label="ID" width="50" />
         <el-table-column label="姓名" prop="realName" min-width="120" />
         <el-table-column label="账号" prop="account" min-width="120" />
         <el-table-column label="手机号" prop="lastTime" min-width="120">

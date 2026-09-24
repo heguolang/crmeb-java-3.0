@@ -2,7 +2,9 @@
   <div class="divBox">
     <el-card :bordered="false" shadow="never" class="ivu-mt">
       <div slot="header" class="card-header"><span>代理设置</span></div>
-      <el-form :model="form" label-width="150px" style="max-width: 720px; font-size: 14px" v-loading="loading">
+      <el-form :model="form" label-width="140px" class="setting-form" style="max-width: 760px" v-loading="loading">
+        <!-- 分区一：功能开关（蓝色竖条小标题做扫读锚点） -->
+        <div class="section-title">功能开关</div>
         <el-form-item label="代理功能：">
           <el-radio-group v-model="form.agent_func_status">
             <el-radio label="1">开启</el-radio>
@@ -24,6 +26,8 @@
           </el-radio-group>
           <div class="tips">区域代理奖励自动进入代理账户佣金，可按佣金提现规则提现</div>
         </el-form-item>
+        <!-- 分区二：申请与奖励 -->
+        <div class="section-title section-title--gap">申请与奖励</div>
         <el-form-item label="可申请的代理区域：">
           <el-checkbox-group v-model="applyRegions">
             <el-checkbox :label="1">省级代理</el-checkbox>
@@ -129,23 +133,49 @@ export default {
 </script>
 
 <style scoped lang="scss">
+/* 字号三档锁定：卡片头/分区标题 15px、表单标签与控件 14px、说明文字 12px */
 .card-header {
+  font-size: 15px;
   font-weight: 600;
+  color: #303133;
 }
-.tips {
-  color: #999;
-  font-size: 12px;
-  line-height: 1.6;
-  margin-top: 4px;
+/* 分区小标题：蓝色竖条锚点，第二组与上一组拉开间距 */
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 18px;
+  padding-left: 10px;
+  border-left: 3px solid #409eff;
+  margin: 4px 0 20px;
+
+  &--gap {
+    margin-top: 36px;
+  }
 }
+.setting-form {
+  .tips {
+    color: #909399;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-top: 6px;
+  }
+  /* radio/checkbox 选项间距统一 */
+  ::v-deep .el-radio,
+  ::v-deep .el-checkbox {
+    margin-right: 28px;
+  }
+}
+/* 比例行：单一节奏（行距 12px），小标签与表单标签拉开视觉权重（不加粗、灰色降级） */
 .ratio-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 .ratio-row {
   display: flex;
   align-items: center;
+
   .ratio-label {
     width: 72px;
     flex-shrink: 0;
@@ -156,6 +186,7 @@ export default {
   .ratio-unit {
     margin-left: 8px;
     color: #606266;
+    font-size: 14px;
   }
 }
 </style>

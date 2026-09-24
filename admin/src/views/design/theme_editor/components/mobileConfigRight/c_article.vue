@@ -78,7 +78,6 @@
           @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="55"> </el-table-column>
-          <el-table-column label="ID" width="80" prop="id"> </el-table-column>
           <el-table-column label="文章图片" min-width="90">
             <template slot-scope="scope">
               <div class="tabBox_img" v-if="scope.row.image_input && scope.row.image_input.length">

@@ -14,7 +14,6 @@
         <el-button type="primary" size="small" @click="addExpress">同步物流公司</el-button>
       </div>
       <el-table v-loading="loading" :data="tableData.list" style="width: 100%">
-        <el-table-column prop="id" label="ID" min-width="180" />
         <el-table-column label="物流公司名称" min-width="150" prop="name" />
         <el-table-column min-width="200" label="编码" prop="code" />
         <el-table-column min-width="100" label="排序" prop="sort" sortable />

@@ -45,7 +45,6 @@
         ref="multipleTable"
         class="table"
       >
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column label="拼团图片" min-width="80">
           <template slot-scope="scope">
             <div class="demo-image__preview">

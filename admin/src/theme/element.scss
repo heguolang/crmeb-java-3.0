@@ -426,7 +426,10 @@ input::-webkit-outer-spin-button {
 
 .el-form-item__label {
   color: var(--prev-color-text-regular);
-  font-size: 12px !important;
+  /* 2026-09-25：12px → 14px。原 12px 是 CRMEB 遗留地雷：全后台表单标签比
+     radio/checkbox 正文（14px）小一档，用户在代理设置页点名（标签文字小、后面文字大）。
+     全站字号基线 = 表体/正文 14px，标签与之同级才是企业后台常规层级。 */
+  font-size: 14px !important;
   padding: 0 6px 0 0 !important;
 }
 

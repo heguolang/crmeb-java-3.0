@@ -50,38 +50,56 @@
         </div>
         <el-button size="small" icon="el-icon-download" @click="exportCsv">导出 CSV</el-button>
       </div>
-      <el-table v-loading="loading" :data="rows" size="small" class="admin-table" stripe highlight-current-row>
-        <el-table-column prop="uid" label="UID" width="60" />
-        <el-table-column label="代理商" min-width="130" show-overflow-tooltip>
+      <!-- 列结构照分销商管理定稿版式 v2 复用（2026-09-25）：
+           头部留白 30 / 头像 60 / 代理商信息 min 208（昵称/ID色块可复制/手机）/
+           层级 min 146 / 订货业绩 min 146（金额+单数 kv 台账）/ 个人业绩 146 /
+           团队业绩 146 / 奖励合计 160 / 尾部留白 150。
+           UID 列并入信息列（ID 色块范式），手机号并入信息列。 -->
+      <el-table class="admin-table table-lg" v-loading="loading" :data="rows" size="small" stripe highlight-current-row>
+        <!-- 头部留白列：定宽，min-width 会参与弹性分配稀释比例 -->
+        <el-table-column width="30" />
+        <!-- 头像：44px 头像 + 单元格内边距，60 是不裁切最小宽度；无头像兜底昵称首字 -->
+        <el-table-column label="头像" width="60" align="center">
           <template slot-scope="scope">
-            <div class="agent-cell">
-              <img v-if="scope.row.avatar" :src="scope.row.avatar" class="avatar avatar-img" alt="" @error="scope.row.avatar = ''" />
-              <span v-else class="avatar">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
-              <span class="agent-name">{{ scope.row.nickname }}</span>
-            </div>
+            <img v-if="scope.row.avatar" :src="scope.row.avatar" class="avatar-img" @error="scope.row.avatar = ''" />
+            <span v-else class="avatar-text">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="phone" label="手机号" width="110" />
-        <el-table-column label="层级" width="96">
+        <!-- 代理商信息：昵称 / ID 色块可复制 / 手机（标签灰、值黑，与分销商页同款分层） -->
+        <el-table-column label="代理商信息" min-width="208">
+          <template slot-scope="scope">
+            <div class="info-name">{{ scope.row.nickname || '—' }}</div>
+            <div class="info-line">
+              ID：<span class="id-chip">{{ scope.row.uid }}</span>
+              <i class="el-icon-document-copy copy-btn" title="复制 ID" @click="copyText(scope.row.uid)"></i>
+            </div>
+            <div class="info-line" v-if="scope.row.phone">手机：<span class="info-v">{{ scope.row.phone }}</span></div>
+          </template>
+        </el-table-column>
+        <el-table-column label="层级" min-width="146">
           <template slot-scope="scope">
             <span class="lv-chip">{{ scope.row.levelName || '—' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="订货金额" min-width="100" align="right">
-          <template slot-scope="scope">{{ fmtMoney(scope.row.orderAmount) }}</template>
+        <!-- 订货业绩：kv 台账（金额主数值 + 订单数） -->
+        <el-table-column label="订货业绩" min-width="146">
+          <template slot-scope="scope">
+            <div class="kv"><span class="kv-k">订货金额</span><span class="kv-v kv-v--strong">{{ fmtMoney(scope.row.orderAmount) }}</span></div>
+            <div class="kv"><span class="kv-k">订单数</span><span class="kv-v">{{ scope.row.orderCount || 0 }}<i class="kv-sub">单</i></span></div>
+          </template>
         </el-table-column>
-        <el-table-column label="订货单数" width="80" align="center">
-          <template slot-scope="scope">{{ scope.row.orderCount || 0 }}</template>
+        <el-table-column label="个人业绩" min-width="146">
+          <template slot-scope="scope"><span class="kv-v">{{ fmtMoney(scope.row.selfPerformance) }}</span></template>
         </el-table-column>
-        <el-table-column label="个人业绩" min-width="100" align="right">
-          <template slot-scope="scope">{{ fmtMoney(scope.row.selfPerformance) }}</template>
+        <el-table-column label="团队业绩" min-width="146">
+          <template slot-scope="scope"><span class="kv-v">{{ fmtMoney(scope.row.teamPerformance) }}</span></template>
         </el-table-column>
-        <el-table-column label="团队业绩" min-width="100" align="right">
-          <template slot-scope="scope">{{ fmtMoney(scope.row.teamPerformance) }}</template>
+        <!-- 奖励合计：绿色加粗（收入语义），区别于版式主色蓝 -->
+        <el-table-column label="奖励合计" min-width="160">
+          <template slot-scope="scope"><span class="reward-strong">¥{{ fmtMoney(scope.row.rewardSum) }}</span></template>
         </el-table-column>
-        <el-table-column label="奖励合计" min-width="100" align="right">
-          <template slot-scope="scope"><b class="green">¥{{ fmtMoney(scope.row.rewardSum) }}</b></template>
-        </el-table-column>
+        <!-- 尾部留白列：定宽，别顶满 -->
+        <el-table-column width="150" />
       </el-table>
       <div class="pager">
         <el-pagination background :page-size="tableFrom.limit" :current-page="tableFrom.page" layout="total, prev, pager, next, jumper" :total="total" @current-change="pageChange" />
@@ -130,6 +148,32 @@ export default {
     fmtMoney(v) {
       const n = Number(v || 0);
       return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    },
+    // 复制文本到剪贴板：与用户列表页/分销商页同款实现（中文提示 + execCommand 兜底）
+    copyText(text) {
+      const value = String(text);
+      const done = () => this.$message.success('已复制：' + value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(() => this.fallbackCopy(value, done));
+      } else {
+        this.fallbackCopy(value, done);
+      }
+    },
+    fallbackCopy(value, done) {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.top = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
     },
     getList() {
       this.loading = true;
@@ -230,48 +274,13 @@ export default {
   color: #909399;
 }
 
-/* 代理商列：头像字 + 名称 */
-.agent-cell {
-  display: flex;
-  align-items: center;
-}
-.avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #ecf5ff;
-  color: #409eff;
-  font-size: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-/* 使用会员真实头像时保留圆形裁切 */
-.avatar-img {
-  background: #f2f4f8;
-  object-fit: cover;
-}
-.agent-name {
-  font-size: 13px;
-  color: #303133;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-/* 层级彩签：不换行，保证 5 字级别名完整显示 */
-.lv-chip {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: 10px;
-  background: #ecf5ff;
-  color: #409eff;
-  font-size: 12px;
-  line-height: 18px;
-  white-space: nowrap;
-}
-.green {
+/* 代理商列范式（avatar/info/kv/id-chip/lv-chip）已全局定义于 theme/styles.scss */
+
+/* 奖励合计：绿色加粗（收入语义，区别于 kv-v--strong 版式主色蓝） */
+.reward-strong {
+  font-size: 14px;
+  font-weight: 600;
   color: #19be6b;
+  font-variant-numeric: tabular-nums;
 }
 </style>

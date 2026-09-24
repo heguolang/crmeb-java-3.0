@@ -36,7 +36,6 @@
       />
     </el-dialog>
     <el-table :data="dataList.list" style="width: 100%; margin-bottom: 20px">
-      <el-table-column label="编号" prop="id" />
       <el-table-column
         v-for="(item, index) in formConf.fields"
         :key="index"

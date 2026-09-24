@@ -13,7 +13,6 @@
         no-userFrom-text="暂无数据"
         no-filtered-userFrom-text="暂无筛选结果"
       >
-        <el-table-column label="编号" min-width="80" prop="id"></el-table-column>
         <el-table-column label="名称" min-width="150" prop="title"></el-table-column>
         <el-table-column label="添加时间" min-width="150" prop="addTime"></el-table-column>
         <el-table-column label="更新时间" min-width="150" prop="upTime"></el-table-column>

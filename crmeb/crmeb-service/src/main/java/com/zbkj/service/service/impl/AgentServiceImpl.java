@@ -250,6 +250,7 @@ public class AgentServiceImpl implements AgentService {
                 User user = userMap.get(e.getUid());
                 e.setNickname(ObjectUtil.isNotNull(user) ? user.getNickname() : "-");
                 e.setPhone(ObjectUtil.isNotNull(user) ? StrUtil.blankToDefault(user.getPhone(), user.getAccount()) : "-");
+                e.setAvatar(ObjectUtil.isNotNull(user) ? StrUtil.nullToEmpty(user.getAvatar()) : "");
             });
         }
         return CommonPage.restPage(new PageInfo<>(list));
@@ -953,6 +954,7 @@ public class AgentServiceImpl implements AgentService {
             if (ObjectUtil.isNotNull(user)) {
                 e.setNickname(user.getNickname());
                 e.setAccount(StrUtil.blankToDefault(user.getPhone(), user.getAccount()));
+                e.setAvatar(user.getAvatar());
             } else {
                 e.setNickname("-");
                 e.setAccount("-");

@@ -25,30 +25,44 @@
       </div>
     </el-card>
     <el-card class="box-card mt14">
-      <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" highlight-current-row>
-        <el-table-column prop="id" label="ID" min-width="70" />
-        <el-table-column prop="uid" label="UID" min-width="70" />
-        <el-table-column label="用户信息" min-width="180">
+      <!-- 定稿版式 v2 复用（2026-09-25）：记录 ID 不单独设列，UID 色块并入用户信息列 -->
+      <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="small" class="admin-table table-lg" stripe highlight-current-row>
+        <el-table-column width="30" />
+        <!-- 用户信息：内嵌圆头像 + 昵称 / ID 色块+复制 / 手机（标签灰、值黑） -->
+        <el-table-column label="用户信息" min-width="254">
           <template slot-scope="scope">
-            <div>{{ scope.row.nickname || '-' }}</div>
-            <div class="sub-text">{{ scope.row.phone || '-' }}</div>
+            <div class="person-cell">
+              <img v-if="scope.row.avatar" class="person-avatar" :src="scope.row.avatar" @error="scope.row.avatar = ''" />
+              <span v-else class="person-avatar person-avatar--empty">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
+              <div class="person-info">
+                <div class="info-name">{{ scope.row.nickname || '-' }}</div>
+                <div class="info-line">
+                  ID：<span class="id-chip">{{ scope.row.uid }}</span>
+                  <i class="el-icon-document-copy copy-btn" title="复制 ID" @click="copyText(scope.row.uid)"></i>
+                </div>
+                <div class="info-line" v-if="scope.row.phone">手机：<span class="info-v">{{ scope.row.phone }}</span></div>
+              </div>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="团队等级" min-width="140">
+        <el-table-column label="团队等级" min-width="146">
           <template slot-scope="scope">
-            {{ scope.row.teamLevelName || matchLevelName(scope.row.teamLevelId) }}
-            <span v-if="scope.row.grade">（Lv{{ scope.row.grade }}）</span>
+            <span class="lv-chip">{{ scope.row.teamLevelName || matchLevelName(scope.row.teamLevelId) }}</span>
+            <span v-if="scope.row.grade" class="kv-sub">Lv{{ scope.row.grade }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" min-width="80">
+        <el-table-column label="状态" width="90">
           <template slot-scope="scope">
             <el-tag size="mini" :type="scope.row.status === 1 ? 'success' : 'info'">
               {{ scope.row.status === 1 ? '正常' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="mark" label="变更备注" min-width="280" show-overflow-tooltip />
-        <el-table-column prop="createTime" label="变更时间" min-width="160" />
+        <el-table-column prop="mark" label="变更备注" min-width="220" show-overflow-tooltip />
+        <el-table-column label="变更时间" width="170">
+          <template slot-scope="scope"><span class="info-v">{{ scope.row.createTime }}</span></template>
+        </el-table-column>
+        <el-table-column width="150" />
       </el-table>
       <div class="block">
         <el-pagination
@@ -156,13 +170,35 @@ export default {
       this.tableFrom.page = val;
       this.getList();
     },
+    copyText(text) {
+      const value = String(text);
+      const done = () => this.$message.success('已复制：' + value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(() => this.fallbackCopy(value, done));
+      } else {
+        this.fallbackCopy(value, done);
+      }
+    },
+    fallbackCopy(value, done) {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.top = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.sub-text {
-  color: #909399;
-  font-size: 12px;
-}
+/* 信息列/ID 色块样式全部走 theme/styles.scss 全局定义 */
 </style>

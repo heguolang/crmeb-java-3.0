@@ -19,7 +19,6 @@
         show-icon
       />
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini">
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column label="图标" min-width="70">
           <template slot-scope="scope">
             <el-image

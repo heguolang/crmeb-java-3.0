@@ -34,7 +34,6 @@
         <el-button class="mr10" @click="exportList" v-hasPermi="['admin:export:excel:bargain']">导出</el-button>
       </div>
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" ref="multipleTable">
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column label="砍价图片" min-width="80">
           <template slot-scope="scope">
             <div class="demo-image__preview">

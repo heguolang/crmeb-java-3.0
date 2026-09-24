@@ -44,7 +44,6 @@
     </el-card>
     <el-card class="box-card mt14">
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" ref="multipleTable">
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column label="头像" min-width="80">
           <template slot-scope="scope">
             <div class="demo-image__preview">

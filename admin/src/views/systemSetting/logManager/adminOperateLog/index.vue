@@ -5,7 +5,6 @@
         <!-- 汪总要求（2026-09-18）：移除「清空日志」功能 -->
       </el-form>
       <el-table v-loading="listLoading" :data="listData.list" size="mini">
-        <el-table-column prop="id" label="ID" width="70" />
         <el-table-column label="管理员账号" prop="adminAccount" min-width="110">
           <template slot-scope="scope">
             <span>{{ scope.row.adminAccount | filterEmpty }}</span>

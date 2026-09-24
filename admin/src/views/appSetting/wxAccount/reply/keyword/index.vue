@@ -38,7 +38,6 @@
         </div>
       </div>
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="small" highlight-current-row>
-        <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="keywords" label="关键字" min-width="150" />
         <el-table-column label="回复类型" min-width="100">
           <template slot-scope="scope">

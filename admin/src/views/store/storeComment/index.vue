@@ -44,7 +44,6 @@
         <el-button type="primary" @click="handleAdd" v-hasPermi="['admin:product:reply:save']">添加虚拟评论</el-button>
       </div>
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%">
-        <el-table-column prop="id" label="ID" width="50" />
         <el-table-column label="商品信息" min-width="400" :show-overflow-tooltip="true">
           <template slot-scope="scope">
             <div class="demo-image__preview acea-row row-middle" v-if="scope.row.storeProduct">

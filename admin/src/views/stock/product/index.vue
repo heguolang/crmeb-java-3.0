@@ -15,35 +15,40 @@
         </div>
       </div>
       <el-alert type="info" :closable="false" style="margin-bottom: 12px" title="仅显示已加入订货模块的商品；点击右上角「添加商品」从商城商品中选择加入后才能设置拿货价与库存" />
-      <el-table class="admin-table" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
-        <el-table-column label="商品" min-width="160">
+      <!-- 定稿版式 v2 复用（2026-09-25）：留白30/商品信息 min208/价格列弹性/操作 246 胶囊（无 fixed）/尾留白150 -->
+      <el-table class="admin-table table-lg" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
+        <el-table-column width="30" />
+        <!-- 商品信息：缩略图 + 名称（单一主信息，无副行） -->
+        <el-table-column label="商品信息" min-width="208">
           <template slot-scope="scope">
-            <div style="display:flex;align-items:center">
-              <img :src="scope.row.image" style="width:36px;height:36px;margin-right:8px;border-radius:4px">
-              <span>{{ scope.row.storeName }}</span>
+            <div class="product-cell">
+              <img class="product-thumb" :src="scope.row.image" @error="scope.row.image = ''" />
+              <span class="info-name">{{ scope.row.storeName }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="price" label="零售价" width="78" />
-        <el-table-column label="云仓库存" width="88">
+        <el-table-column label="零售价" width="90">
+          <template slot-scope="scope"><span class="info-v">¥{{ scope.row.price }}</span></template>
+        </el-table-column>
+        <el-table-column label="云仓库存" width="100">
           <template slot-scope="scope">
-            <span :style="{ color: scope.row.stock <= 10 ? '#f56c6c' : '' }">{{ scope.row.stock }}</span>
+            <span class="info-v" :class="{ 'stock-low': scope.row.stock <= 10 }">{{ scope.row.stock }}</span>
           </template>
         </el-table-column>
-        <el-table-column v-for="lv in levels" :key="lv.id" :label="lv.name + '价'" width="88">
-          <template slot-scope="scope">{{ priceOf(scope.row, lv.id) || '按折扣' + lv.discount + '%' }}</template>
+        <el-table-column v-for="lv in levels" :key="lv.id" :label="lv.name + '价'" min-width="110">
+          <template slot-scope="scope"><span class="info-v">{{ priceOf(scope.row, lv.id) || '按折扣' + lv.discount + '%' }}</span></template>
         </el-table-column>
-        <el-table-column label="操作" width="196" fixed="right">
+        <!-- 操作：三格等宽胶囊（设置拿货价 5 字，格宽 68 不挤） -->
+        <el-table-column label="操作" width="246" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
-            <div class="op-links">
-              <a v-if="checkPermi(['admin:stock:price:save'])" class="op-link" @click="openPrice(scope.row)">设置拿货价</a>
-              <el-divider direction="vertical"></el-divider>
-              <a v-if="checkPermi(['admin:stock:log:adjust'])" class="op-link" @click="openAdjust(scope.row)">调整库存</a>
-              <el-divider direction="vertical"></el-divider>
-              <a v-if="checkPermi(['admin:stock:price:save'])" class="op-link" @click="onRemove(scope.row)">移除</a>
+            <div class="op-grid op-grid--auto">
+              <el-button v-if="checkPermi(['admin:stock:price:save'])" size="mini" plain class="op-tag tint-primary" @click="openPrice(scope.row)">设置拿货价</el-button>
+              <el-button v-if="checkPermi(['admin:stock:log:adjust'])" size="mini" plain class="op-tag tint-neutral" @click="openAdjust(scope.row)">调整库存</el-button>
+              <el-button v-if="checkPermi(['admin:stock:price:save'])" size="mini" plain class="op-tag tint-danger" @click="onRemove(scope.row)">移除</el-button>
             </div>
           </template>
         </el-table-column>
+        <el-table-column width="150" />
       </el-table>
       <div class="pager">
         <el-pagination background :page-size="tableFrom.limit" :current-page="tableFrom.page" layout="total, prev, pager, next, jumper" :total="total" @current-change="pageChange" />
@@ -52,40 +57,59 @@
 
     <el-card :bordered="false" shadow="never" class="mt16">
       <div slot="header"><b>库存变动日志</b></div>
-      <el-table class="admin-table" :data="logs" size="small">
-        <el-table-column prop="id" label="ID" width="60" />
+      <!-- 定稿版式 v2 复用：ID 色块并入会员信息列；变动/前/后合并 kv 台账 -->
+      <el-table class="admin-table table-lg" :data="logs" size="small" stripe>
+        <el-table-column width="30" />
         <el-table-column label="产品信息" min-width="180">
           <template slot-scope="scope">
             <div class="cell-product">
               <img v-if="scope.row.productImage" class="cell-thumb" :src="scope.row.productImage" @error="scope.row.productImage = ''" />
               <span v-else class="cell-thumb cell-thumb-empty">{{ (scope.row.productName || '?').slice(0, 1) }}</span>
               <div class="cell-product-info">
-                <div class="cell-main">{{ scope.row.productName || ('商品ID ' + scope.row.productId) }}</div>
-                <div class="cell-sub">{{ scope.row.skuKey || '整品' }}</div>
+                <div class="info-name">{{ scope.row.productName || ('商品ID ' + scope.row.productId) }}</div>
+                <div class="info-line">规格：<span class="info-v">{{ scope.row.skuKey || '整品' }}</span></div>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="会员信息" width="150">
+        <!-- 会员信息：内嵌圆头像 + 昵称 / ID 色块+复制 / 手机（系统操作时无会员，显示占位） -->
+        <el-table-column label="会员信息" min-width="216">
           <template slot-scope="scope">
             <template v-if="scope.row.uid">
-              <div class="cell-main">{{ scope.row.nickName || '-' }}</div>
-              <div class="cell-sub">{{ scope.row.phone }}（UID {{ scope.row.uid }}）</div>
+              <div class="person-cell">
+                <img v-if="scope.row.avatar" class="person-avatar" :src="scope.row.avatar" @error="scope.row.avatar = ''" />
+                <span v-else class="person-avatar person-avatar--empty">{{ (scope.row.nickName || '?').slice(0, 1).toUpperCase() }}</span>
+                <div class="person-info">
+                  <div class="info-name">{{ scope.row.nickName || '-' }}</div>
+                  <div class="info-line">
+                    ID：<span class="id-chip">{{ scope.row.uid }}</span>
+                    <i class="el-icon-document-copy copy-btn" title="复制 ID" @click="copyText(scope.row.uid)"></i>
+                  </div>
+                  <div class="info-line" v-if="scope.row.phone">手机：<span class="info-v">{{ scope.row.phone }}</span></div>
+                </div>
+              </div>
             </template>
-            <span v-else>—</span>
+            <span v-else class="hq">系统操作</span>
           </template>
         </el-table-column>
-        <el-table-column prop="linkNo" label="关联单号" width="170" />
-        <el-table-column label="类型" width="130">
-          <template slot-scope="scope">{{ typeName(scope.row.type) }}</template>
+        <el-table-column prop="linkNo" label="关联单号" width="160" />
+        <el-table-column label="类型" width="120">
+          <template slot-scope="scope">
+            <el-tag size="mini" :type="logTagType(scope.row)">{{ typeName(scope.row.type) }}</el-tag>
+          </template>
         </el-table-column>
-        <el-table-column prop="changeNum" label="变动" width="80">
-          <template slot-scope="scope"><span :style="{color: scope.row.changeNum<0?'#f56c6c':'#67c23a'}">{{ scope.row.changeNum }}</span></template>
+        <!-- 库存变化：变动数（红减绿加）+ 前 → 后，两行台账 -->
+        <el-table-column label="库存变化" min-width="130">
+          <template slot-scope="scope">
+            <div class="kv"><span class="kv-k">变动</span><span class="kv-v" :class="scope.row.changeNum < 0 ? 'num-down' : 'num-up'">{{ scope.row.changeNum > 0 ? '+' : '' }}{{ scope.row.changeNum }}</span></div>
+            <div class="kv"><span class="kv-k">前后</span><span class="kv-v">{{ scope.row.beforeStock }} → {{ scope.row.afterStock }}</span></div>
+          </template>
         </el-table-column>
-        <el-table-column prop="beforeStock" label="变动前" width="80" />
-        <el-table-column prop="afterStock" label="变动后" width="80" />
         <el-table-column prop="mark" label="备注" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="createTime" label="时间" width="150" />
+        <el-table-column label="时间" width="170">
+          <template slot-scope="scope"><span class="info-v">{{ scope.row.createTime }}</span></template>
+        </el-table-column>
+        <el-table-column width="150" />
       </el-table>
       <div class="pager">
         <el-pagination background layout="prev, pager, next" :page-size="logFrom.limit" :current-page="logFrom.page" :total="logTotal" @current-change="logPage" />
@@ -503,6 +527,36 @@ export default {
     },
     typeName(t) {
       return { 1: '审核通过扣库存', 2: '驳回回补', 3: '换货新品扣', 4: '换货旧品回补', 5: '手动调整' }[t] || t;
+    },
+    logTagType(row) {
+      // 扣减类（审核扣/换货新品扣/手动负数）= 橙色警示；回补类 = 绿色
+      if (row.changeNum < 0) return 'warning';
+      return { 2: 'success', 4: 'success' }[row.type] || 'info';
+    },
+    copyText(text) {
+      const value = String(text);
+      const done = () => this.$message.success('已复制：' + value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(() => this.fallbackCopy(value, done));
+      } else {
+        this.fallbackCopy(value, done);
+      }
+    },
+    fallbackCopy(value, done) {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.top = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
     }
   },
   mounted() {
@@ -543,6 +597,17 @@ export default {
 .sp-hint { font-size: 12px; color: #909399; line-height: 1.5; }
 .cell-main { font-size: 13px; color: #303133; }
 .cell-sub { font-size: 12px; color: #909399; }
+/* 商品信息列：缩略图 + 名称（替代原内联样式） */
+.product-cell { display: flex; align-items: center; }
+.product-thumb {
+  width: 40px; height: 40px; border-radius: 4px; object-fit: cover;
+  background: #f2f4f8; flex-shrink: 0; margin-right: 10px;
+}
+/* 低库存警示：红色加粗（数据语义色，非装饰） */
+.stock-low { color: #f56c6c; font-weight: 600; }
+/* 库存变动数字：红减绿加，tabular 保证纵向对齐 */
+.num-down { color: #f56c6c; }
+.num-up { color: #19be6b; }
 .cell-product { display: flex; align-items: center; }
 .cell-thumb {
   width: 36px; height: 36px; border-radius: 4px; object-fit: cover;

@@ -43,6 +43,7 @@
             utl.uid,
             u.nickname,
             u.phone,
+            u.avatar,
             utl.team_level_id AS teamLevelId,
             stl.name          AS teamLevelName,
             utl.grade,

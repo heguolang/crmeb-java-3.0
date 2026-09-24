@@ -75,6 +75,10 @@ public class StockLog implements Serializable {
     @TableField(exist = false)
     private String phone;
 
+    @ApiModelProperty(value = "关联会员头像")
+    @TableField(exist = false)
+    private String avatar;
+
     @ApiModelProperty(value = "关联会员UID")
     @TableField(exist = false)
     private Integer uid;

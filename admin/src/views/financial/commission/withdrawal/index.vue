@@ -73,7 +73,6 @@
         class="table"
         highlight-current-row
       >
-        <el-table-column prop="id" label="ID" width="60" />
         <el-table-column label="提现类别" min-width="90">
           <template slot-scope="scope">
             <span>{{ scope.row.extractCategory === 'balance' ? '余额' : '佣金' }}</span>

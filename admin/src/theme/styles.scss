@@ -1132,6 +1132,36 @@ body {
   box-shadow: inset 0 0 0 1px #cfe4ff;
 }
 
+/* 人员信息列内嵌头像（2026-09-25）：圆头像 36 + 信息块，
+   用于记录类页面（资金/变更/日志），不动列结构、不影响 v2 版式 */
+.person-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.person-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f5f7fa;
+  box-shadow: 0 0 0 1px #ebeef5;
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+.person-avatar--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8f3ff;
+  color: #1a73e8;
+  font-size: 14px;
+  box-shadow: inset 0 0 0 1px #cfe4ff;
+}
+.person-info {
+  min-width: 0;
+}
+
 /* 主信息两行结构：首行主信息 + 次行灰色补充 */
 .info-name {
   font-size: 14px;

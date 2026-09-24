@@ -69,7 +69,6 @@
         ref="multipleTable"
         highlight-current-row
       >
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column label="头像" min-width="80">
           <template slot-scope="scope">
             <div class="demo-image__preview">
@@ -125,7 +124,6 @@
         size="mini"
         ref="multipleTable"
       >
-        <el-table-column prop="id" label="ID" min-width="50" />
         <el-table-column label="头像" min-width="80">
           <template slot-scope="scope">
             <div class="demo-image__preview">

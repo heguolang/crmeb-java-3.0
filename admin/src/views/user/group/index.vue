@@ -7,7 +7,6 @@
         }}</el-button>
       </div>
       <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="small">
-        <el-table-column label="ID" min-width="80" prop="id" />
         <el-table-column :label="$route.path.indexOf('group') !== -1 ? '分组名称' : '标签名称'" min-width="180">
           <template slot-scope="{ row }">
             <span v-text="$route.path.indexOf('group') !== -1 ? row.groupName : row.name"></span>

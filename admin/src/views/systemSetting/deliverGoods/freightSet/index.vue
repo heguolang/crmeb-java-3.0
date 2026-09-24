@@ -18,7 +18,6 @@
         >
       </div>
       <el-table v-loading="loading" :data="tableData.list" style="width: 100%" size="mini">
-        <el-table-column prop="id" label="ID" min-width="60" />
         <el-table-column label="模板名称" min-width="180" prop="name" />
         <el-table-column min-width="100" label="计费方式" prop="type">
           <template slot-scope="{ row }">

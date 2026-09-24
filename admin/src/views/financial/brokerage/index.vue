@@ -28,7 +28,6 @@
         class="table"
         highlight-current-row
       >
-        <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="佣金变动" min-width="100">
           <template slot-scope="scope">
             <span :class="scope.row.type == 1 ? 'color_red' : 'color_green'"

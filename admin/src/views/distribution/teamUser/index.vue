@@ -25,32 +25,68 @@
       @confirm="onExportConfirm"
     />
     <el-card class="box-card mt14">
-      <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" highlight-current-row>
-        <el-table-column prop="uid" label="UID" min-width="70" />
-        <el-table-column label="用户信息" min-width="180">
+      <!-- 列结构照分销商管理定稿版式 v2 复用（2026-09-25）：
+           头部留白 30 / 头像 60 / 用户信息 min 208（昵称/ID色块可复制/手机）/
+           团队等级 min 146（chip+Lv）/ 自购·团队·直推 3 个 kv 台账列 min 146 /
+           更新时间 180（定宽）/ 尾部留白 150。10 列 → 8 列，6 个金额列按
+           「列内合并」收成 3 个台账列（已完成=主数值加粗主色，已支付为辅）。 -->
+      <el-table class="admin-table table-lg" v-loading="listLoading" :data="tableData.data" size="small" stripe highlight-current-row>
+        <!-- 头部留白列：定宽，min-width 会参与弹性分配稀释比例 -->
+        <el-table-column width="30" />
+        <!-- 头像：44px 头像 + 单元格内边距，60 是不裁切最小宽度；无头像兜底昵称首字 -->
+        <el-table-column label="头像" width="60" align="center">
           <template slot-scope="scope">
-            <div class="user-cell">
-              <el-image v-if="scope.row.avatar" :src="scope.row.avatar" :preview-src-list="[scope.row.avatar]" class="avatar" />
-              <div>
-                <div>{{ scope.row.nickname || '-' }}</div>
-                <div class="sub-text">{{ scope.row.phone || '-' }}</div>
-              </div>
+            <img v-if="scope.row.avatar" :src="scope.row.avatar" class="avatar-img" />
+            <span v-else class="avatar-text">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
+          </template>
+        </el-table-column>
+        <!-- 用户信息：昵称 / ID 色块可复制 / 手机（标签灰、值黑，与分销商页同款分层） -->
+        <el-table-column label="用户信息" min-width="208">
+          <template slot-scope="scope">
+            <div class="info-name">{{ scope.row.nickname || '—' }}</div>
+            <div class="info-line">
+              ID：<span class="id-chip">{{ scope.row.uid }}</span>
+              <i class="el-icon-document-copy copy-btn" title="复制 ID" @click="copyText(scope.row.uid)"></i>
             </div>
+            <div class="info-line" v-if="scope.row.phone">手机：<span class="info-v">{{ scope.row.phone }}</span></div>
           </template>
         </el-table-column>
-        <el-table-column label="团队等级" min-width="140">
+        <!-- 团队等级：chip + Lv 序号后缀（kv-sub 灰色小字） -->
+        <el-table-column label="团队等级" min-width="146">
           <template slot-scope="scope">
-            {{ scope.row.teamLevelName || matchLevelName(scope.row.teamLevelId) }}
-            <span v-if="scope.row.grade">（Lv{{ scope.row.grade }}）</span>
+            <span class="lv-chip">{{ scope.row.teamLevelName || matchLevelName(scope.row.teamLevelId) }}</span>
+            <i v-if="scope.row.grade" class="kv-sub">Lv.{{ scope.row.grade }}</i>
           </template>
         </el-table-column>
-        <el-table-column prop="selfPaidAmount" label="自购已支付(元)" min-width="120" />
-        <el-table-column prop="selfCompleteAmount" label="自购已完成(元)" min-width="120" />
-        <el-table-column prop="teamPaidAmount" label="团队已支付(元)" min-width="120" />
-        <el-table-column prop="teamCompleteAmount" label="团队已完成(元)" min-width="120" />
-        <el-table-column prop="directPaidAmount" label="直推已支付(元)" min-width="120" />
-        <el-table-column prop="directCompleteAmount" label="直推已完成(元)" min-width="120" />
-        <el-table-column prop="updateTime" label="更新时间" min-width="160" />
+        <!-- 自购业绩：kv 台账（已完成=主数值） -->
+        <el-table-column label="自购业绩" min-width="146">
+          <template slot-scope="scope">
+            <div class="kv"><span class="kv-k">已支付</span><span class="kv-v">{{ scope.row.selfPaidAmount || 0 }}</span></div>
+            <div class="kv"><span class="kv-k">已完成</span><span class="kv-v kv-v--strong">{{ scope.row.selfCompleteAmount || 0 }}</span></div>
+          </template>
+        </el-table-column>
+        <!-- 团队业绩：kv 台账 -->
+        <el-table-column label="团队业绩" min-width="146">
+          <template slot-scope="scope">
+            <div class="kv"><span class="kv-k">已支付</span><span class="kv-v">{{ scope.row.teamPaidAmount || 0 }}</span></div>
+            <div class="kv"><span class="kv-k">已完成</span><span class="kv-v kv-v--strong">{{ scope.row.teamCompleteAmount || 0 }}</span></div>
+          </template>
+        </el-table-column>
+        <!-- 直推业绩：kv 台账 -->
+        <el-table-column label="直推业绩" min-width="146">
+          <template slot-scope="scope">
+            <div class="kv"><span class="kv-k">已支付</span><span class="kv-v">{{ scope.row.directPaidAmount || 0 }}</span></div>
+            <div class="kv"><span class="kv-k">已完成</span><span class="kv-v kv-v--strong">{{ scope.row.directCompleteAmount || 0 }}</span></div>
+          </template>
+        </el-table-column>
+        <!-- 更新时间：定宽 180（min-width 会被弹性拉到 300+，见技能坑 6） -->
+        <el-table-column label="更新时间" width="180" class-name="time-cell">
+          <template slot-scope="scope">
+            <div class="info-line"><span class="info-v">{{ scope.row.updateTime || '—' }}</span></div>
+          </template>
+        </el-table-column>
+        <!-- 尾部留白列：定宽，别顶满 -->
+        <el-table-column width="150" />
       </el-table>
       <div class="block">
         <el-pagination
@@ -99,6 +135,32 @@ export default {
     this.getList();
   },
   methods: {
+    // 复制文本到剪贴板：与用户列表页/分销商页同款实现（中文提示 + execCommand 兜底）
+    copyText(text) {
+      const value = String(text);
+      const done = () => this.$message.success('已复制：' + value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(() => this.fallbackCopy(value, done));
+      } else {
+        this.fallbackCopy(value, done);
+      }
+    },
+    fallbackCopy(value, done) {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.top = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
+    },
     openExportDialog() {
       this.exportDialogVisible = true;
     },
@@ -225,17 +287,11 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.user-cell {
-  display: flex;
-  align-items: center;
-}
-.avatar {
-  width: 36px;
-  height: 36px;
-  margin-right: 8px;
-}
-.sub-text {
-  color: #909399;
-  font-size: 12px;
+/* 列表范式（summary-bar/table-lg/avatar/info/kv/id-chip 等）已全局定义于 theme/styles.scss，
+   本页不再写 scoped 副本。 */
+
+/* 时间列：右内边距收紧，180px 定宽刚好容纳完整时间戳 */
+::v-deep .table-lg td.time-cell .cell {
+  padding-right: 12px !important;
 }
 </style>

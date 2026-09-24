@@ -10,7 +10,6 @@
         </el-form>
       </div>
       <el-table v-loading="loading" :data="tableData" size="mini" class="table" highlight-current-row>
-        <el-table-column prop="cityId" label="编号" min-width="100" />
         <el-table-column label="上级名称" min-width="100">
           <div>{{ parentName }}</div>
         </el-table-column>

@@ -28,6 +28,9 @@ public class UserTeamLevelRecordResponse implements Serializable {
     @ApiModelProperty(value = "手机号")
     private String phone;
 
+    @ApiModelProperty(value = "头像")
+    private String avatar;
+
     @ApiModelProperty(value = "团队等级ID")
     private Integer teamLevelId;
 

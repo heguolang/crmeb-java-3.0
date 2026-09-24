@@ -39,7 +39,6 @@
     </el-card>
     <el-card class="box-card mt14">
       <el-table v-loading="listLoading" :data="tableData.data" size="mini" class="table" highlight-current-row>
-        <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="title" label="标题" min-width="130" />
         <el-table-column
           sortable

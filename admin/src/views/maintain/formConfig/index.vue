@@ -37,7 +37,6 @@
         class="table"
         @current-change="handleCurrentRowChange"
       >
-        <el-table-column label="ID" prop="id" width="80" />
         <el-table-column label="名称" prop="name" min-width="180" />
         <el-table-column label="描述" prop="info" min-width="220" />
         <el-table-column label="更新时间" prop="updateTime" min-width="200" />

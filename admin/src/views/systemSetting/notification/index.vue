@@ -37,7 +37,6 @@
           </p>
         </div>
         <el-table :data="levelLists" ref="table" class="mt25" size="small" v-loading="loadingList">
-          <el-table-column label="ID" prop="id" width="80"></el-table-column>
           <el-table-column label="通知类型" prop="type"></el-table-column>
           <el-table-column label="通知场景说明" prop="description"></el-table-column>
           <el-table-column label="标识" prop="mark"></el-table-column>
