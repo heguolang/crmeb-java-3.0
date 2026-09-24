@@ -1051,9 +1051,19 @@ body {
   }
 }
 
-/* 筛选按钮行：居中 + 上方虚线分隔 */
-.filter-actions {
-  text-align: center;
+/* 筛选按钮行：上方虚线分隔 + 按钮组靠右。
+   ⚠️ 作用域**必须**带 .filter-panel 前缀，不能写成裸 .filter-actions：
+   theme/list-page.scss 里另有一份顶层 `.filter-actions { display:flex; justify-content:flex-end }`，
+   那套是给 `.filter-form / .filter-group / .filter-grid`（用户管理页的 4 列表单式筛选）用的。
+   两者同名、同特异性 (0,1,0)，裸写时本文件只能赢 text-align / padding / border-top，
+   display 与 justify-content 会被 list-page.scss 抢走 —— 实测表现为
+   "text-align:center 完全不起作用、按钮被 flex-end 推到右侧"（2026-09-24 踩坑留档）。
+   本页范式统一为**靠右**（与 Ant Design 及订货商/代理管理现状一致），
+   所以这里显式声明 display/justify，把行为写死，不留"半居中半靠右"的模糊态。 */
+.filter-panel .filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
   padding: 12px 0 16px;
   border-top: 1px dashed #ebeef5;
 
@@ -1149,6 +1159,57 @@ body {
   font-size: 13px;
   line-height: 20px;
   white-space: nowrap;
+}
+
+/* 列内小台账：一行 = 左标签 + 右数值。
+   用途：一列里塞多个相关数值时用（如「佣金」列 = 可提现/总额/已提现/冻结），
+   比横排拆成多列省下 N-1 个列宽（窄窗口下这是消除横向溢出的关键手段）。
+
+   ⚠️ 这里**不能用 justify-content: space-between**（2026-09-24 实测踩坑）：
+   el-table 的弹性列在宽窗口下会被拉得很宽（1920 时「佣金」列实测 250px），
+   space-between 会把标签顶到最左、数值顶到最右，中间空出 200px，
+   一列四行的台账散成两团，完全读不出对应关系。
+   正确做法：标签 flex: 0 0 52px 定宽（4 个汉字），数值紧随其后——
+   因为标签宽度恒定，多行数值的左缘天然对齐，纵向比对一样成立，
+   且不受列宽变化影响。 */
+.kv {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
+.kv-k {
+  flex: 0 0 52px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.kv-v {
+  min-width: 0;
+  font-size: 13px;
+  color: #303133;
+  /* 等宽数字：多行数值的个位/小数点纵向对齐，扫读金额时不用逐位对 */
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 主数值：该列唯一需要"一眼抓到"的金额（如可提现），加粗着主色，其余中性色弱化 */
+.kv-v--strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f6fd0;
+}
+
+/* 数值后缀（提现次数等次要信息）：弱化一档 + 留 6px 呼吸，
+   与主数值至少一个字的间隔，否则「0.000次」会连成一个数读不出来 */
+.kv-sub {
+  margin-left: 6px;
+  font-size: 12px;
+  font-style: normal;
+  color: #c0c4cc;
 }
 
 /* 操作列：彩色小按钮网格（替代已废弃的 .op-links 文字链）

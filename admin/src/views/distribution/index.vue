@@ -1,183 +1,100 @@
 <template>
-  <div class="divBox">
-    <el-card :bordered="false" shadow="never" class="ivu-mt" :body-style="{ padding: 0 }">
-      <div class="padding-add">
-        <el-form size="small" label-width="75px">
-          <el-form-item class="mr10" label="时间选择：">
+  <div class="divBg addContent-wrapper">
+    <el-card :bordered="false" shadow="never" class="mt16">
+      <!-- 顶部统计条：与订货商管理/代理管理一致，先给总量再给明细 -->
+      <div class="summary-bar">目前有 <b>{{ tableData.total }}</b> 名分销商。</div>
+
+      <!-- 筛选面板：浅灰底块，与白卡片分层；查询/重置统一下沉到 .filter-actions 居中 -->
+      <div class="filter-panel">
+        <el-form inline size="small" @submit.native.prevent>
+          <el-form-item label="成为时间">
             <optionDatePicker v-model="timeVal" @changeOptTime="onchangeTime"></optionDatePicker>
-            <!-- <el-date-picker
-              v-model="timeVal"
-              value-format="yyyy-MM-dd"
-              format="yyyy-MM-dd"
-              size="small"
-              type="daterange"
-              placement="bottom-end"
-              placeholder="自定义时间"
-              style="width: 260px"
-              @change="onchangeTime"
-              start-placeholder="开始时间"
-              end-placeholder="结束时间"
-            /> -->
           </el-form-item>
-          <el-form-item label="用户搜索：">
-            <UserSearchInput ref="userSearchInput" v-model="tableFrom" />
+          <el-form-item label="用户搜索">
+            <UserSearchInput ref="userSearchInput" v-model="tableFrom" @searchList="seachList" />
           </el-form-item>
-          <!-- <el-form-item label="关键词搜索：">
-            <el-input
-              v-model="tableFrom.keywords"
-              placeholder="请输入姓名、电话、UID"
-              class="selWidth"
-              size="small"
-              clearable
-            >
-            </el-input>
-          </el-form-item> -->
-          <div class="ml30">
-            <el-button type="primary" size="small" @click="seachList">搜索</el-button>
-            <el-button size="small" @click="handleReset">重置</el-button>
-          </div>
         </el-form>
+        <div class="filter-actions">
+          <el-button type="primary" icon="el-icon-search" @click="seachList">查询</el-button>
+          <el-button icon="el-icon-refresh" @click="handleReset">重置</el-button>
+        </div>
       </div>
-    </el-card>
-    <el-card class="box-card mt14">
-      <el-table
-        v-loading="listLoading"
-        :data="tableData.data"
-        style="width: 100%"
-        size="mini"
-        class="table"
-        highlight-current-row
-      >
-        <el-table-column prop="uid" label="ID" width="60" />
-        <el-table-column label="头像" min-width="80">
+
+      <!-- 列宽按 Edge 实测内容宽度定（详见技能 crmeb-admin-ui-baseline）：
+           原来 14 个平铺列在窄窗口（1100 视口容器仅 826px）必然横向溢出，
+           而横向溢出正是 fixed="right" 操作列错位的真凶——固定层内层表取整表宽度。
+           这里把「推广/佣金」两组相关数值收进列内多行小台账，14 列 → 6 列，一次解决。 -->
+      <el-table class="admin-table table-lg" v-loading="listLoading" :data="tableData.data" size="small" stripe highlight-current-row>
+        <!-- 头像：44px 头像 + 单元格左右内边距，60 是不裁切的最小宽度 -->
+        <el-table-column label="头像" width="60" align="center">
           <template slot-scope="scope">
-            <div class="demo-image__preview">
-              <el-image :src="scope.row.avatar" :preview-src-list="[scope.row.avatar]" />
+            <img v-if="scope.row.avatar" :src="scope.row.avatar" class="avatar-img" />
+            <span v-else class="avatar-text">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
+          </template>
+        </el-table-column>
+        <!-- 分销商信息：昵称 / ID+手机 / 上级 / 成为时间 四行，弹性列吸收剩余空间。
+             ID 与手机同行省一行高度（两者都是"识别身份"的同类信息）；
+             上级是「清除上级」操作的判断依据，必须与昵称同格可见，不能折叠进弹窗。
+             min-width 160 = 最长行「成为：2026-09-24 19:00」实测 140px（13px 字号）+ 左右内边距 16px。 -->
+        <el-table-column label="分销商信息" min-width="160">
+          <template slot-scope="scope">
+            <div class="info-name">{{ scope.row.nickname || '—' }}</div>
+            <div class="info-line">ID：{{ scope.row.uid }}<span v-if="scope.row.phone"> · {{ scope.row.phone }}</span></div>
+            <div class="info-line">
+              上级：<span :class="{ hq: !hasParent(scope.row) }">{{ hasParent(scope.row) ? scope.row.spreadNickname : '无' }}</span>
+            </div>
+            <div class="info-line">成为：{{ fmtTime(scope.row.promoterTime) }}</div>
+          </template>
+        </el-table-column>
+        <!-- 分销等级：着色 chip，与代理管理的「级别」列同款 -->
+        <el-table-column label="分销等级" min-width="84">
+          <template slot-scope="scope">
+            <span v-if="scope.row.distributorLevelId > 0" class="lv-chip">{{ scope.row.distributorLevelName }}</span>
+            <span v-else class="hq">未分级</span>
+          </template>
+        </el-table-column>
+        <!-- 推广业绩：三行小台账（人数 / 单数 / 金额），比横排三列省 2 个列宽；
+             三个标签统一 4 字，正好填满 .kv-k 的 52px 定宽，数值左缘对齐 -->
+        <el-table-column label="推广业绩" min-width="150">
+          <template slot-scope="scope">
+            <div class="kv"><span class="kv-k">一级用户</span><span class="kv-v">{{ scope.row.spreadCount || 0 }} 人</span></div>
+            <div class="kv"><span class="kv-k">推广订单</span><span class="kv-v">{{ scope.row.spreadOrderNum || 0 }} 单</span></div>
+            <div class="kv"><span class="kv-k">订单金额</span><span class="kv-v">{{ money(scope.row.spreadOrderTotalPrice) }} 元</span></div>
+          </template>
+        </el-table-column>
+        <!-- 佣金：四行小台账，标签左定宽 + 数值右对齐，纵向可直接比对；
+             可提现是唯一需要"一眼看到"的金额，加粗着主色，其余用中性色弱化。
+             140 是实测下限：「已提现 0.00 · 0次」这行最宽（标签 39 + 数值 29 + 后缀 32 + 内边距 16）。 -->
+        <el-table-column label="佣金（元）" min-width="140">
+          <template slot-scope="scope">
+            <div class="kv"><span class="kv-k">可提现</span><span class="kv-v kv-v--strong">{{ money(scope.row.brokeragePrice) }}</span></div>
+            <div class="kv"><span class="kv-k">总额</span><span class="kv-v">{{ money(scope.row.totalBrokeragePrice) }}</span></div>
+            <div class="kv">
+              <span class="kv-k">已提现</span
+              ><span class="kv-v">{{ money(scope.row.extractCountPrice) }}<i class="kv-sub">· {{ scope.row.extractCountNum || 0 }}次</i></span>
+            </div>
+            <div class="kv"><span class="kv-k">冻结</span><span class="kv-v">{{ money(scope.row.freezeBrokeragePrice) }}</span></div>
+          </template>
+        </el-table-column>
+        <!-- 操作：单行等宽三格（与「代理管理」同款 op-grid--auto）。
+             顺序按操作主次与危险度递增：只读查看前置，破坏性「清除上级」收尾——
+             和代理管理把「删除」放最后一格同一个思路，减少误触。
+             「清除上级」只在有上级推广人的行渲染，--auto 会让剩余按钮自动铺满，不留空洞。
+             208px = 单元格左右内边距 30 + 3 格等宽按钮（含 6px 间隙），每格 ≈55px，
+             「推广订单」4 字（13px）需 54px 刚好不截断，再窄就会挤字换行。 -->
+        <el-table-column label="操作" width="208" fixed="right" class-name="op-cell" label-class-name="op-cell">
+          <template slot-scope="scope">
+            <div class="op-grid op-grid--auto">
+              <el-button v-if="checkPermi(['admin:retail:spread:list'])" size="mini" plain class="op-tag tint-neutral" @click="onSpread(scope.row.uid, 'man', '推广人')">推广人</el-button>
+              <el-button v-if="checkPermi(['admin:retail:spread:order:list'])" size="mini" plain class="op-tag tint-neutral" @click="onSpreadOrder(scope.row.uid, 'order', '推广订单')">推广订单</el-button>
+              <el-button v-if="hasParent(scope.row) && checkPermi(['admin:retail:spread:clean'])" size="mini" plain class="op-tag tint-danger" @click="clearSpread(scope.row)">清除上级</el-button>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="nickname" label="用户信息" min-width="130" />
-        <el-table-column label="分销等级" min-width="110">
-          <template slot-scope="scope">
-            <span>{{ scope.row.distributorLevelName || '无' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          sortable
-          prop="spreadCount"
-          label="推广用户(一级)数量"
-          :sort-method="
-            (a, b) => {
-              return a.spreadCount - b.spreadCount;
-            }
-          "
-          min-width="150"
-        />
-        <el-table-column
-          sortable
-          label="推广订单数量"
-          prop="spreadOrderNum"
-          :sort-method="
-            (a, b) => {
-              return a.spreadOrderNum - b.spreadOrderNum;
-            }
-          "
-          min-width="120"
-        />
-        <el-table-column
-          sortable
-          label="推广订单金额"
-          min-width="120"
-          :sort-method="
-            (a, b) => {
-              return a.spreadOrderTotalPrice - b.spreadOrderTotalPrice;
-            }
-          "
-          prop="spreadOrderTotalPrice"
-        />
-        <el-table-column
-          sortable
-          label="佣金总金额"
-          min-width="120"
-          :sort-method="
-            (a, b) => {
-              return a.totalBrokeragePrice - b.totalBrokeragePrice;
-            }
-          "
-          prop="totalBrokeragePrice"
-        />
-        <el-table-column
-          sortable
-          label="已提现金额"
-          min-width="120"
-          :sort-method="
-            (a, b) => {
-              return a.extractCountPrice - b.extractCountPrice;
-            }
-          "
-          prop="extractCountPrice"
-        />
-        <el-table-column
-          sortable
-          label="已提现次数"
-          min-width="120"
-          :sort-method="
-            (a, b) => {
-              return a.extractCountNum - b.extractCountNum;
-            }
-          "
-          prop="extractCountNum"
-        />
-        <el-table-column
-          sortable
-          label="未提现金额"
-          min-width="120"
-          :sort-method="
-            (a, b) => {
-              return a.brokeragePrice - b.brokeragePrice;
-            }
-          "
-          prop="brokeragePrice"
-        />
-        <el-table-column
-          sortable
-          label="冻结中佣金"
-          min-width="120"
-          :sort-method="
-            (a, b) => {
-              return a.freezeBrokeragePrice - b.freezeBrokeragePrice;
-            }
-          "
-          prop="freezeBrokeragePrice"
-        />
-        <el-table-column prop="promoterTime" label="成为推广员时间" min-width="150" />
-        <el-table-column prop="spreadNickname" label="上级推广人" min-width="150" />
-        <el-table-column label="操作" width="150" fixed="right">
-          <template slot-scope="scope">
-            <a @click="onSpread(scope.row.uid, 'man', '推广人')" v-hasPermi="['admin:retail:spread:list']">推广人</a>
-            <el-divider direction="vertical"></el-divider>
-            <el-dropdown>
-              <span class="el-dropdown-link"> 更多<i class="el-icon-arrow-down el-icon--right" /> </span>
-              <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item
-                  @click.native="onSpreadOrder(scope.row.uid, 'order', '推广订单')"
-                  v-if="checkPermi(['admin:retail:spread:order:list'])"
-                  >推广订单</el-dropdown-item
-                >
-                <!--<el-dropdown-item @click.native="onSpreadType(scope.row.uid)">推广方式</el-dropdown-item>-->
-                <el-dropdown-item
-                  @click.native="clearSpread(scope.row)"
-                  v-if="scope.row.spreadNickname && scope.row.spreadNickname !== '无'"
-                  v-hasPermi="['admin:retail:spread:clean']"
-                  >清除上级推广人</el-dropdown-item
-                >
-              </el-dropdown-menu>
-            </el-dropdown>
-          </template>
-        </el-table-column>
       </el-table>
-      <div class="block">
+      <div class="pager">
         <el-pagination
+          background
           :page-sizes="[20, 40, 60, 80]"
           :page-size="tableFrom.limit"
           :current-page="tableFrom.page"
@@ -185,18 +102,16 @@
           :total="tableData.total"
           @size-change="handleSizeChange"
           @current-change="pageChange"
-          background
         />
       </div>
     </el-card>
 
-    <!--推广人-->
+    <!--推广人 / 推广订单 明细弹窗-->
     <el-dialog :title="titleName + '列表'" :visible.sync="dialogVisible" width="900px" :before-close="handleClose">
-      <div class="container">
-        <el-form size="small" label-width="66px">
-          <el-form-item v-if="this.onName !== 'man'" key="1" label="时间选择：" class="mr30">
+      <div class="filter-panel">
+        <el-form inline size="small" @submit.native.prevent>
+          <el-form-item v-if="onName !== 'man'" label="时间">
             <el-date-picker
-              class="selWidth"
               v-model="timeValSpread"
               value-format="yyyy-MM-dd"
               format="yyyy-MM-dd"
@@ -204,83 +119,87 @@
               type="daterange"
               placement="bottom-end"
               placeholder="自定义时间"
-              style="width: 380px"
+              style="width: 260px"
               @change="onchangeTimeSpread"
               start-placeholder="开始时间"
               end-placeholder="结束时间"
             />
           </el-form-item>
-          <el-form-item label="用户类型：" class="mr30">
-            <el-select class="selWidth" @change="onChanges" v-model="spreadFrom.type" placeholder="请选择用户类型">
+          <el-form-item label="用户类型">
+            <el-select v-model="spreadFrom.type" style="width: 140px" @change="onChanges" placeholder="请选择用户类型">
               <el-option label="全部" :value="0"></el-option>
               <el-option label="一级推广人" :value="1"></el-option>
               <el-option label="二级推广人" :value="2"></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="关键字：" class="mr30">
+          <el-form-item label="关键字">
             <el-input
               v-model="spreadFrom.nickName"
               :placeholder="onName === 'order' ? '请输入订单号' : '请输入姓名、电话、UID'"
-              class="selWidth"
+              style="width: 220px"
               size="small"
               clearable
+              @keyup.enter.native="onChanges"
             >
             </el-input>
           </el-form-item>
-          <div class="mb30">
-            <el-button type="primary" size="small" @click="onChanges">搜索</el-button>
-            <el-button size="small" @click="handleResetDialog">重置</el-button>
-          </div>
         </el-form>
+        <div class="filter-actions">
+          <el-button type="primary" icon="el-icon-search" @click="onChanges">查询</el-button>
+          <el-button icon="el-icon-refresh" @click="handleResetDialog">重置</el-button>
+        </div>
       </div>
       <el-table
         v-if="onName === 'man'"
         key="men"
         v-loading="spreadLoading"
         :data="spreadData.data"
+        class="admin-table"
         style="width: 100%"
-        size="mini"
-        class="table"
+        size="small"
+        stripe
         highlight-current-row
       >
-        <el-table-column prop="uid" label="ID" width="60" />
-        <el-table-column label="头像" min-width="80">
+        <el-table-column prop="uid" label="ID" width="80" />
+        <el-table-column label="用户信息" min-width="160">
           <template slot-scope="scope">
-            <div class="demo-image__preview">
-              <el-image :src="scope.row.avatar" :preview-src-list="[scope.row.avatar]" />
-            </div>
+            <div class="info-name">{{ scope.row.nickname || '—' }}</div>
+            <div class="info-line">{{ scope.row.phone || '—' }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="nickname" label="用户信息" min-width="130" />
-        <el-table-column prop="is_promoter" label="是否推广员" min-width="120">
+        <el-table-column label="是否推广员" width="110">
           <template slot-scope="scope">
             <span>{{ scope.row.isPromoter | filterYesOrNo }}</span>
           </template>
         </el-table-column>
-        <el-table-column sortable label="推广人数" min-width="120" prop="spreadCount" />
-        <el-table-column sortable label="订单数" min-width="120" prop="payCount" />
+        <el-table-column sortable label="推广人数" min-width="110" prop="spreadCount" />
+        <el-table-column sortable label="订单数" min-width="110" prop="payCount" />
       </el-table>
       <el-table
         v-if="onName === 'order'"
         key="order"
         v-loading="spreadLoading"
         :data="spreadData.data"
+        class="admin-table"
         style="width: 100%"
-        size="mini"
-        class="table"
+        size="small"
+        stripe
         highlight-current-row
       >
-        <el-table-column prop="orderId" label="订单ID" min-width="120" />
-        <el-table-column label="用户信息" min-width="150">
+        <el-table-column prop="orderId" label="订单ID" min-width="130" />
+        <el-table-column label="用户信息" min-width="170">
           <template slot-scope="scope">
-            <span>{{ scope.row.realName }}<el-divider direction="vertical"></el-divider>{{ scope.row.userPhone }}</span>
+            <span>{{ scope.row.realName }}</span>
+            <el-divider direction="vertical"></el-divider>
+            <span>{{ scope.row.userPhone }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="updateTime" label="时间" min-width="150" />
+        <el-table-column prop="updateTime" label="时间" min-width="170" />
         <el-table-column sortable label="返佣金额" min-width="120" prop="price" />
       </el-table>
-      <div class="block dialog-block">
+      <div class="pager">
         <el-pagination
+          background
           :page-sizes="[10, 20, 30, 40]"
           :page-size="spreadFrom.limit"
           :current-page="spreadFrom.page"
@@ -295,21 +214,12 @@
 </template>
 
 <script>
-import {
-  promoterListApi,
-  spreadStatisticsApi,
-  spreadListApi,
-  spreadOrderListApi,
-  spreadClearApi,
-} from '@/api/distribution';
-import cardsData from '@/components/cards/index';
+import { promoterListApi, spreadListApi, spreadOrderListApi, spreadClearApi } from '@/api/distribution';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 export default {
   name: 'AccountsUser',
-  components: { cardsData },
   data() {
     return {
-      cardLists: [],
       timeVal: [],
       tableData: {
         data: [],
@@ -323,7 +233,6 @@ export default {
         page: 1,
         limit: 20,
       },
-      fromList: this.$constants.fromList,
       dialogVisible: false,
       spreadData: {
         data: [],
@@ -333,7 +242,7 @@ export default {
         page: 1,
         limit: 10,
         dateLimit: '',
-        type: '0',
+        type: 0,
         nickName: '',
         uid: '',
       },
@@ -345,11 +254,24 @@ export default {
     };
   },
   mounted() {
-    // this.spreadStatistics()
     this.getList();
   },
   methods: {
     checkPermi,
+    // 时间截到「分」：完整时间戳 186px 太占宽，秒对分销台账无决策价值
+    fmtTime(t) {
+      return t ? String(t).slice(0, 16) : '—';
+    },
+    // 金额千分位 + 两位小数；空值统一显示 0.00，避免列内出现空白造成"数据缺失"错觉
+    money(v) {
+      const n = Number(v);
+      if (v === null || v === undefined || v === '' || isNaN(n)) return '0.00';
+      return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+    // 是否存在上级推广人：spreadUid 与 spreadNickname 任一有值即视为有上级
+    hasParent(row) {
+      return (row && row.spreadUid > 0) || !!(row && row.spreadNickname && row.spreadNickname !== '无');
+    },
     handleResetDialog() {
       this.spreadFrom.dateLimit = '';
       this.spreadFrom.type = 0;
@@ -363,24 +285,13 @@ export default {
       this.tableFrom.content = '';
       this.tableFrom.searchType = 'all';
       this.timeVal = [];
+      this.$refs.userSearchInput && this.$refs.userSearchInput.clearInput();
       this.getList();
     },
     seachList() {
       this.tableFrom.page = 1;
       this.getList();
     },
-    // 统计
-    // spreadStatistics() {
-    //   spreadStatisticsApi({ dateLimit: this.tableFrom.dateLimit, keywords: this.tableFrom.nickName}).then((res) => {
-    //     this.cardLists = [
-    //       { name: '分销人员人数', count: res.distributionNum },
-    //       { name: '发展会员人数', count: res.developNum },
-    //       { name: '推广订单总数', count: res.orderNum },
-    //       { name: '推广订单金额（元）', count: res.orderPriceCount },
-    //       { name: '提现次数', count: res.withdrawCount }
-    //     ]
-    //   })
-    // },
     // 清除
     clearSpread(row) {
       this.$modalSure('解除【' + row.nickname + '】的上级推广人吗').then(() => {
@@ -407,13 +318,6 @@ export default {
     },
     handleClose() {
       this.dialogVisible = false;
-    },
-    // 选择时间
-    selectChangeSpread(tab) {
-      this.timeValSpread = [];
-      this.spreadFrom.dateLimit = tab;
-      this.spreadFrom.page = 1;
-      this.onName === 'man' ? this.getListSpread() : this.getSpreadOrderList();
     },
     // 具体日期
     onchangeTimeSpread(e) {
@@ -475,13 +379,6 @@ export default {
           this.spreadLoading = false;
         });
     },
-    selectChange(tab) {
-      this.tableFrom.dateLimit = tab;
-      this.tableFrom.page = 1;
-      this.timeVal = [];
-      // this.spreadStatistics()
-      this.getList();
-    },
     // 具体日期
     onchangeTime(e) {
       this.timeVal = e;
@@ -515,28 +412,11 @@ export default {
 </script>
 
 <style scoped>
-.el-dropdown-link {
-  cursor: pointer;
-  color: #409eff;
-  font-size: 12px;
-}
-.el-icon-arrow-down {
-  font-size: 12px;
-}
-.el-form {
-  display: flex;
-  flex-wrap: wrap;
-}
-.dialog-block {
-  padding-bottom: 20px;
-}
-::v-deep .el-form-item__content {
-  display: flex;
-}
-.date-picker {
-  margin-left: 20px;
-}
-.el-dropdown-link {
-  color: var(--prev-color-primary);
+/* 列表范式（summary-bar / filter-panel / table-lg / op-grid / avatar / info-line / lv-chip / kv）
+   已统一提升到 theme/styles.scss 全局定义，本页不再写 scoped 副本 */
+::v-deep .op-cell .op-tag {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
