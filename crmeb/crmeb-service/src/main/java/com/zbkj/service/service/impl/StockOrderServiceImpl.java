@@ -525,13 +525,24 @@ public class StockOrderServiceImpl implements StockOrderService {
         if (agent == null || agent.getStatus() != 1) {
             return result;
         }
-        // 按商品聚合：自购已付款实体采购单数量（虚拟单只入虚拟库存，不占云仓，故排除）
-        List<StockOrder> myOrders = stockOrderDao.selectList(physicalPurchaseWrapper()
+        // 按商品聚合：【已完成】的实体采购单数量（虚拟单只入虚拟库存，不占云仓，故排除）
+        // 口径：订单走到「已完成」（确认收货）才算货到手，才计入可支配实体库存；
+        // 已付款但在途的单不计入，改为下方的「在途」单独展示，避免付款即虚增库存。
+        List<StockOrder> myOrders = stockOrderDao.selectList(physicalStockInWrapper()
                 .eq(StockOrder::getAgentId, agent.getId()));
         Map<Integer, Integer> purchased = new HashMap<>();
         Map<Integer, StockOrderProduct> productInfo = new HashMap<>();
         accumulateOrderProducts(myOrders, purchased, productInfo);
-        // 已供应给直接下级的数量（下级已付款实体采购单）
+        // 在途数量：已付款但尚未完成的实体采购单（等待匹配/待上级审核/待发货/待收货），只展示不参与计算
+        List<StockOrder> inTransitOrders = stockOrderDao.selectList(physicalPurchaseWrapper()
+                .eq(StockOrder::getAgentId, agent.getId())
+                .in(StockOrder::getStatus, StockOrder.STATUS_WAIT_MATCH,
+                        StockOrder.STATUS_WAIT_PARENT_AUDIT,
+                        StockOrder.STATUS_WAIT_SEND,
+                        StockOrder.STATUS_WAIT_RECEIVE));
+        Map<Integer, Integer> inTransit = new HashMap<>();
+        accumulateOrderProducts(inTransitOrders, inTransit, null);
+        // 已供应给直接下级的数量（下级已付款实体采购单 —— 此处仍是「付款即占用」口径，防超卖）
         List<StockOrder> childOrders = stockOrderDao.selectList(physicalPurchaseWrapper()
                 .eq(StockOrder::getParentAgentId, agent.getId()));
         Map<Integer, Integer> supplied = new HashMap<>();
@@ -561,6 +572,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         pids.addAll(exOutDelta.keySet());
         pids.addAll(exPending.keySet());
         pids.addAll(adjustMap.keySet());
+        pids.addAll(inTransit.keySet());
         for (Integer pid : pids) {
             int net = purchased.getOrDefault(pid, 0)
                     - supplied.getOrDefault(pid, 0)
@@ -571,7 +583,11 @@ public class StockOrderServiceImpl implements StockOrderService {
             // pendingRaw 为负数（占用记 -num），取其绝对值作为「换货中锁定量」，且不超过净持有量
             int pendingRaw = exPending.getOrDefault(pid, 0);
             int pending = pendingRaw < 0 ? Math.min(-pendingRaw, Math.max(net, 0)) : 0;
-            if (net <= 0 && pending <= 0) {
+            // 在途（已付款未收货）：只展示，不参与可供应量
+            int onWay = inTransit.getOrDefault(pid, 0);
+            // 净库存、换货锁定、在途全为 0 才不展示 —— 只有在途的商品也要出一行，
+            // 否则用户会以为"我付了钱的货不见了"
+            if (net <= 0 && pending <= 0 && onWay <= 0) {
                 continue;
             }
             HashMap<String, Object> row = new HashMap<>();
@@ -585,8 +601,10 @@ public class StockOrderServiceImpl implements StockOrderService {
                 row.put("productName", sp == null ? ("商品" + pid) : sp.getStoreName());
                 row.put("image", sp == null ? "" : sp.getImage());
             }
-            row.put("num", net - pending);
+            // 可供应量兜底不为负：入库口径改严后，净额可能为负（货还没到、下级已下单占用）
+            row.put("num", Math.max(net - pending, 0));
             row.put("exchangeNum", pending);
+            row.put("inTransitNum", onWay);
             result.add(row);
         }
         result.sort((a, b) -> Integer.compare(
@@ -595,12 +613,11 @@ public class StockOrderServiceImpl implements StockOrderService {
     }
 
     /**
-     * 实体采购单查询条件：已付款 + 采购单(order_type=1) + 实体库存单(stock_type=1 或历史空值) + 未删除
-     * 虚拟采购单只入虚拟库存、不占云仓；提货单(order_type=2)不参与实体库存推导
-     */
-    /**
-     * 已付款的实体采购单过滤条件（用于推导代理可供应量）
-     * 注意：必须排除已驳回(-1)与已取消(-2)的订单，否则上级驳回后仍占用上级可供应量，导致库存无法释放
+     * 实体采购单【占用侧】查询条件：已付款 + 采购单(order_type=1) + 实体库存单(stock_type=1 或历史空值) + 未删除
+     *
+     * 用途：推导「上级已被占用掉多少可供应量」。下级一付款即占用上级库存，防止上级把同一批货重复卖给多个下级。
+     * 虚拟采购单只入虚拟库存、不占云仓；提货单(order_type=2)不参与实体库存推导。
+     * 注意：必须排除已驳回(-1)与已取消(-2)的订单，否则上级驳回后仍占用上级可供应量，导致库存无法释放。
      */
     private LambdaQueryWrapper<StockOrder> physicalPurchaseWrapper() {
         return new LambdaQueryWrapper<StockOrder>()
@@ -609,6 +626,24 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .and(w -> w.eq(StockOrder::getStockType, StockOrder.STOCK_TYPE_PHYSICAL)
                         .or().isNull(StockOrder::getStockType))
                 .notIn(StockOrder::getStatus, StockOrder.STATUS_REJECT, StockOrder.STATUS_CANCEL)
+                .eq(StockOrder::getIsDel, 0);
+    }
+
+    /**
+     * 实体采购单【入库侧】查询条件：已完成 + 采购单(order_type=1) + 实体库存单(stock_type=1 或历史空值) + 未删除
+     *
+     * 用途：推导「我自己有多少可支配实体库存」。**订单走到「已完成」（确认收货）才算货到手**，
+     * 钱付了但货还在途（待审核/待发货/待收货/等待匹配）一律不上账，避免"付款即虚增库存"。
+     * 与占用侧 physicalPurchaseWrapper 刻意分开，两者口径不对称是业务要求：
+     *   入库＝完成才 +（货真到手）；占用＝下级付款即 −（防超卖）。
+     * 已完成必然已付款，故无需再判 payStatus；-1/-2 已被 status=4 天然排除。
+     */
+    private LambdaQueryWrapper<StockOrder> physicalStockInWrapper() {
+        return new LambdaQueryWrapper<StockOrder>()
+                .eq(StockOrder::getStatus, StockOrder.STATUS_COMPLETE)
+                .eq(StockOrder::getOrderType, StockOrder.ORDER_TYPE_PURCHASE)
+                .and(w -> w.eq(StockOrder::getStockType, StockOrder.STOCK_TYPE_PHYSICAL)
+                        .or().isNull(StockOrder::getStockType))
                 .eq(StockOrder::getIsDel, 0);
     }
 
@@ -2269,17 +2304,22 @@ public class StockOrderServiceImpl implements StockOrderService {
     }
 
     /**
-     * 某代理对某商品的可用库存 = 其历史已付款实体采购数量 - 已供应给直接下级的实体数量
+     * 某代理对某商品的可用库存 = 其历史【已完成】实体采购数量 - 已供应给直接下级的实体数量
      *                              - 线下销售出库 - 换货中占用 + 后台调整 + 已完成换货净额
      * 仅统计实体采购单：虚拟采购单只入虚拟库存、提货单不参与推导
+     *
+     * ⚠️ 出入库口径刻意不对称（2026-09-24 业务确认）：
+     *   入库 = 已完成（货真到手才算自己的货，在途不供货）；
+     *   占用 = 下级已付款（一付款即扣上级可供应量，防超卖）。
+     * 因此本方法既可能因"在途未收货"而暂时为 0，也可能因"下级已占用"而为负，统一兜底为 0。
      *
      * @param excludeChildOrderId 计算"已供应给下级"时排除的订单ID。用于判定"某笔订单能否被该上级满足"：
      *                            该订单本身（已付款）也计入 supplied，若不排除会重复占用自己所需的量，
      *                            导致上级明明补足了货仍被判库存不足，订单卡在"匹配上级中"。
      */
     private int getAgentStockNum(StockAgent agent, Integer productId, Integer excludeChildOrderId) {
-        // 上级自己采购的数量（已付款实体订单，虚拟单不计入实体可供应量）
-        List<StockOrder> myOrders = stockOrderDao.selectList(physicalPurchaseWrapper()
+        // 上级自己采购的数量（【已完成】的实体订单 —— 在途未收货的不算，虚拟单不计入实体可供应量）
+        List<StockOrder> myOrders = stockOrderDao.selectList(physicalStockInWrapper()
                 .eq(StockOrder::getAgentId, agent.getId()));
         int purchased = 0;
         List<Integer> myOrderIds = new ArrayList<>();
@@ -2325,10 +2365,13 @@ public class StockOrderServiceImpl implements StockOrderService {
                 .eq(StockAdjustLog::getIsDel, 0))) {
             adjusted += a.getNum() == null ? 0 : a.getNum();
         }
-        return purchased - supplied - sold + adjusted
+        int net = purchased - supplied - sold + adjusted
                 + exchangeStockDeltaMap(agent.getId()).getOrDefault(productId, 0)
                 + exchangeOutDeltaMap(agent.getId()).getOrDefault(productId, 0)
                 + exchangePendingDeltaMap(agent.getId()).getOrDefault(productId, 0);
+        // 可供应量兜底不为负：入库口径改严后，净额可能为负（在途未收货、下级已占用），
+        // 负值对外无意义，且会让"当前剩余：-3"这类提示很难看
+        return Math.max(net, 0);
     }
 
     /**

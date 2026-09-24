@@ -4,7 +4,7 @@
     <view class="head-card">
       <view class="badge">实体库存</view>
       <view class="head-title">我的云仓库存</view>
-      <view class="head-sub">已付款采购入仓 · 下级订货自动扣减</view>
+      <view class="head-sub">收货完成入仓 · 下级订货自动扣减</view>
     </view>
 
     <!-- 身份信息 -->
@@ -26,6 +26,7 @@
         <view class="p-info">
           <view class="p-name">{{ p.productName }}</view>
           <view class="p-meta">可供应数量 <text class="p-num">{{ p.num }}</text></view>
+          <view v-if="p.inTransitNum > 0" class="p-way">在途 <text class="way-num">{{ p.inTransitNum }}</text> 件 · 确认收货后入仓</view>
           <view v-if="p.exchangeNum > 0" class="p-lock">换货锁定 <text class="lock-num">{{ p.exchangeNum }}</text> 件</view>
           <view class="p-op">
             <button class="ex-btn" size="mini" @click="goExchange(p)">换货</button>
@@ -38,7 +39,7 @@
     <!-- 空态 -->
     <view v-if="!list.length && loaded" class="empty-box">
       <view class="empty-title">暂无实体库存</view>
-      <view class="empty-sub">在商品中心选择「实体库存」下单，付款后总部发入云仓</view>
+      <view class="empty-sub">在商品中心选择「实体库存」下单，确认收货后计入库存</view>
       <button class="go-btn" size="mini" @click="navGoods">去订货</button>
     </view>
 
@@ -242,6 +243,16 @@
   padding: 4rpx 12rpx;
 }
 .lock-num { font-weight: 700; }
+.p-way {
+  display: inline-block;
+  margin-top: 8rpx;
+  background: #eaf2ff;
+  color: #2b6fe3;
+  font-size: 21rpx;
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
+}
+.way-num { font-weight: 700; }
 .p-op { display: flex; align-items: center; margin-top: 16rpx; }
 .sell-btn { background: linear-gradient(135deg, #1f5fc4, #2b7de9); color: #fff; border-radius: 999rpx; font-size: 24rpx; padding: 0 40rpx; margin-left: 12rpx; }
 .sell-disabled { background: #c8cdd6; }

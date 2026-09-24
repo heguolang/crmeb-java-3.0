@@ -75,6 +75,16 @@
   }
 }
 
+/* 操作列网格（.op-grid / .op-stack，定义见 theme/styles.scss）内的按钮同理：
+   间距一律交给 grid 的 gap 统一，必须清零上面那条 `.el-button + .el-button { 14px !important }`。
+   ⚠️ 清零规则的选择器必须写成「容器 + .el-button + .el-button」这种 (0,3,0) 级别，
+   只在 .op-tag 里写 margin:0 !important 是**无效的** —— 单类 (0,1,0) 打不过 (0,2,0)，
+   结果就是相邻按钮一个 14px 一个 6px，间距一宽一窄永远对不齐（2026-09-24 踩坑）。 */
+.op-grid .el-button + .el-button,
+.op-stack .el-button + .el-button {
+  margin-left: 0 !important;
+}
+
 .op-btn {
   border-radius: 3px;
   font-weight: 400;

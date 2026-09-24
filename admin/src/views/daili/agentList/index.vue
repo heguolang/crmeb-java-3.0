@@ -38,36 +38,41 @@
         </div>
       </div>
 
+      <!-- 列宽按 Edge 实测内容宽度重排（2026-09-24）：
+           总 min 宽 812px，1100 视口下容器 826px → 不再横向溢出。
+           横向溢出是操作列错位的真凶：el-table 一旦出现横向滚动，
+           fixed 层内部 table 会被算成整表宽度（1646）而不是 178，
+           导致表头行与数据行的「操作」列错开整个溢出量（实测 116px）。
+           时间列改用固定 width（原来 min-width 会被拉到 382px，撑出一片空白）。 -->
       <el-table class="admin-table table-lg" v-loading="listLoading" :data="tableData.data" size="small" stripe highlight-current-row>
-        <!-- 代理用户：昵称 + UID 两行 -->
-        <el-table-column label="代理用户" min-width="140">
+        <!-- 代理用户：昵称 + UID 两行（弹性列，吸收剩余空间） -->
+        <el-table-column label="代理用户" min-width="118">
           <template slot-scope="scope">
             <div class="info-name">{{ scope.row.nickname || '-' }}</div>
             <div class="info-line">UID：{{ scope.row.uid }}</div>
           </template>
         </el-table-column>
-        <!-- 级别/状态/备注/区域：弹性分摊，避免单列独吞留白 -->
-        <el-table-column label="级别" width="72">
+        <el-table-column label="级别" width="62">
           <template slot-scope="scope">
             <span class="lv-chip">{{ levelLabel(scope.row.level) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="regionName" label="代理区域" min-width="110" show-overflow-tooltip />
-        <el-table-column label="奖励比例" width="80">
+        <el-table-column prop="regionName" label="代理区域" min-width="84" show-overflow-tooltip />
+        <el-table-column label="奖励比例" width="76">
           <template slot-scope="scope">{{ scope.row.ratio }}%</template>
         </el-table-column>
-        <el-table-column label="状态" min-width="88">
+        <el-table-column label="状态" min-width="66">
           <template slot-scope="scope">
             <span class="st-dot st-dot-lg" :class="{ on: scope.row.status === 1, warn: scope.row.status === 0, danger: scope.row.status === 2 }">
               <i></i>{{ statusLabel(scope.row.status) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="applyMark" label="备注" min-width="96" show-overflow-tooltip>
+        <el-table-column prop="applyMark" label="备注" min-width="76" show-overflow-tooltip>
           <template slot-scope="scope">{{ scope.row.applyMark || '—' }}</template>
         </el-table-column>
-        <!-- 时间：两行等宽时间戳，列宽给足，避免「创建 2026-09-24 19:19:01」被压断换行 -->
-        <el-table-column label="时间" min-width="178" class-name="time-cell">
+        <!-- 时间：两行完整时间戳，实测文本 151px + 内边距 20px = 171px，取 180 固定宽 -->
+        <el-table-column label="时间" width="180" class-name="time-cell">
           <template slot-scope="scope">
             <div class="info-line">创建 {{ scope.row.createTime || '-' }}</div>
             <div class="info-line">审核 {{ scope.row.checkTime || '—' }}</div>
@@ -75,7 +80,7 @@
         </el-table-column>
         <!-- 操作：待审核「通过/拒绝/修改」3 个，已审核「修改/删除」2 个，等宽单行铺满
              顺序按操作主次：审核动作前置，常规修改居中，破坏性删除收尾 -->
-        <el-table-column label="操作" width="178" fixed="right" class-name="op-cell" label-class-name="op-cell">
+        <el-table-column label="操作" width="150" fixed="right" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
             <div class="op-grid op-grid--auto">
               <el-button v-if="canAudit(scope.row)" size="mini" plain class="op-tag tint-primary" @click="onAudit(scope.row, 1)">通过</el-button>

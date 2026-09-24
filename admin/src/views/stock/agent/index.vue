@@ -34,15 +34,15 @@
       </div>
 
       <el-table class="admin-table table-lg" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
-        <!-- 头像 -->
+        <!-- 头像：44px 头像 + 单元格左右内边距，70 是不裁切的最小宽度 -->
         <el-table-column label="头像" width="70" align="center">
           <template slot-scope="scope">
             <img v-if="scope.row.avatar" :src="scope.row.avatar" class="avatar-img" />
             <span v-else class="avatar-text">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
           </template>
         </el-table-column>
-        <!-- 订货商信息：昵称/手机/ID/上级 多行 -->
-        <el-table-column label="订货商信息" width="220">
+        <!-- 订货商信息：昵称/手机/ID/上级 多行（弹性列，吸收剩余空间） -->
+        <el-table-column label="订货商信息" min-width="170">
           <template slot-scope="scope">
             <div class="info-name">{{ scope.row.nickname }}</div>
             <div class="info-line">{{ scope.row.phone || '—' }}</div>
@@ -51,12 +51,12 @@
           </template>
         </el-table-column>
         <!-- 等级/状态/备注：三列弹性均分剩余空间，避免备注单列独吞出现大片空白 -->
-        <el-table-column label="等级" min-width="100">
+        <el-table-column label="等级" min-width="80">
           <template slot-scope="scope">
             <span class="lv-chip">{{ scope.row.levelName || '—' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" min-width="80">
+        <el-table-column label="状态" min-width="72">
           <template slot-scope="scope">
             <span
               class="st-dot st-dot-lg"
@@ -65,15 +65,18 @@
             >
           </template>
         </el-table-column>
-        <el-table-column label="备注" min-width="140" show-overflow-tooltip>
+        <el-table-column label="备注" min-width="84" show-overflow-tooltip>
           <template slot-scope="scope">{{ scope.row.mark || '—' }}</template>
         </el-table-column>
-        <!-- 创建时间：右侧留白，与操作列拉开间距 -->
-        <el-table-column label="创建时间" width="150" class-name="time-cell">
+        <!-- 创建时间：fmtTime 截到「分」（2026-09-24 19:35，16 字符），142px 足够且不再被拉伸成宽列。
+             原来是 min-width，被弹性分配撑到 300+，把整表推到横向溢出，fixed="right" 的操作列随之错位。 -->
+        <el-table-column label="创建时间" width="142" class-name="time-cell">
           <template slot-scope="scope">{{ fmtTime(scope.row.createTime) }}</template>
         </el-table-column>
-        <!-- 操作：着色小按钮网格（左留间距拉开时间列，右留白使整组按钮左移） -->
-        <el-table-column label="操作" width="250" fixed="right" class-name="op-cell" label-class-name="op-cell">
+        <!-- 操作：着色小按钮网格（左留间距拉开时间列，右留白使整组按钮左移）
+             200px = 单元格左右内边距 30 + 3 格等宽按钮（含 6px 间隙）；「库存记录」4 字是
+             最宽按钮，格子按 (200-30-12)/3 ≈ 52px 算刚好不截断，再窄就会挤字换行。 -->
+        <el-table-column label="操作" width="200" fixed="right" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
             <div class="op-stack">
               <!-- 上排：写操作（修改 / 状态切换 / 删除）。删除固定第 3 格，位置稳定好记，
