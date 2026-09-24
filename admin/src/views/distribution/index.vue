@@ -25,6 +25,9 @@
            而横向溢出正是 fixed="right" 操作列错位的真凶——固定层内层表取整表宽度。
            这里把「推广/佣金」两组相关数值收进列内多行小台账，14 列 → 6 列，一次解决。 -->
       <el-table class="admin-table table-lg" v-loading="listLoading" :data="tableData.data" size="small" stripe highlight-current-row>
+        <!-- 头部留白列（用户要求：左侧也留一点空白，头像别贴卡片边）。
+             定宽 60 与尾部留白列同理——min-width 会参与弹性分配、稀释内容列比例。 -->
+        <el-table-column width="60" />
         <!-- 头像：44px 头像 + 单元格左右内边距，60 是不裁切的最小宽度 -->
         <el-table-column label="头像" width="60" align="center">
           <template slot-scope="scope">
