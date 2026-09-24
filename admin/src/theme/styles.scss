@@ -1055,19 +1055,22 @@ body {
     line-height: 22px;
   }
 
-  /* 倒数第二列右留白 + 末列左留白 = 两列拉开约 56px；末列右留白使按钮组整体左移 */
+  /* 时间列右留白 + 操作列左留白：两列之间保留呼吸感。
+     2026-09-24 收紧：原 24px / 32px 过宽，196px 的操作列被内边距吃掉 50px，
+     3 个按钮只剩 146px 可用，被迫换行、错位。 */
   td.time-cell .cell {
-    padding-right: 24px !important;
+    padding-right: 16px !important;
   }
 
   td.op-cell .cell {
-    padding-left: 32px !important;
-    padding-right: 18px !important;
+    padding-left: 16px !important;
+    padding-right: 14px !important;
   }
 
-  /* 表头同步同样的左留白：让"操作"标题与按钮组左缘对齐 */
+  /* 表头同步同样的左留白 + 显式左对齐：让"操作"标题与按钮组左缘对齐 */
   th.op-cell .cell {
-    padding-left: 32px !important;
+    padding-left: 16px !important;
+    text-align: left;
   }
 }
 
@@ -1133,6 +1136,25 @@ body {
   justify-items: stretch;
 }
 
+/* 操作列自适应变体：按钮数量随行状态变化时用（如「待审核 3 个 / 已审核 2 个」）。
+   grid-auto-flow:column + 隐式列 minmax(0,1fr) → 列数由按钮数量决定，永远单行等宽铺满：
+   既不会「4 个按钮」被 3 列模板挤到换行，也不会「2 个按钮」在右侧留一格空洞。 */
+.op-grid--auto {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+/* 操作列：多行分组（按钮数 ≥ 5 时用）。
+   每行仍是一个独立 .op-grid，所以某行因权限少渲染 1 个按钮时，
+   只会在该行右侧留一格，不会把整组按钮挤错行。
+   典型用法：上排「写操作」+ 下排「只读查看」，两排在语义与色彩上自动分层。 */
+.op-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 /* 操作按钮：柔和着色 + 深色描边 + 深字色（不用纯色实底，保证可读不糊）
    tint-primary 主操作 / tint-neutral 中性查看 / tint-warn 状态变更 / tint-danger 删除 */
 .op-tag {
@@ -1192,4 +1214,11 @@ body {
       border-color: #eeb2b2 !important;
     }
   }
+}
+
+/* 次级操作按钮（只读查看类，如「团队 / 库存 / 库存记录」）：矮一档、小一档，
+   与同一操作列里的「修改 / 删除」等写操作形成视觉分层，避免主次不分。 */
+.op-tag--sm {
+  padding: 4px 0 !important;
+  font-size: 12px !important;
 }

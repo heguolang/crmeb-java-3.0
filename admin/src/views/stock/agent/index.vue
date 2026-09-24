@@ -75,13 +75,21 @@
         <!-- 操作：着色小按钮网格（左留间距拉开时间列，右留白使整组按钮左移） -->
         <el-table-column label="操作" width="250" fixed="right" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
-            <div class="op-grid">
-              <el-button size="mini" plain class="op-tag tint-primary" @click="openEdit(scope.row)">修改</el-button>
-              <el-button v-if="checkPermi(['admin:stock:agent:update'])" size="mini" plain class="op-tag tint-warn" @click="onStatus(scope.row)">{{ scope.row.status === 1 ? '禁用' : '启用' }}</el-button>
-              <el-button size="mini" plain class="op-tag tint-neutral" @click="openTeam(scope.row)">团队</el-button>
-              <el-button size="mini" plain class="op-tag tint-neutral" @click="openStock(scope.row)">库存</el-button>
-              <el-button size="mini" plain class="op-tag tint-neutral" @click="openStockLog(scope.row)">库存记录</el-button>
-              <el-button v-if="checkPermi(['admin:stock:agent:delete'])" size="mini" plain class="op-tag tint-danger" @click="onDelete(scope.row)">删除</el-button>
+            <div class="op-stack">
+              <!-- 上排：写操作（修改 / 状态切换 / 删除）。删除固定第 3 格，位置稳定好记，
+                   不再夹在「库存记录」旁边误触 -->
+              <div class="op-grid">
+                <el-button size="mini" plain class="op-tag tint-primary" @click="openEdit(scope.row)">修改</el-button>
+                <el-button v-if="checkPermi(['admin:stock:agent:update'])" size="mini" plain class="op-tag tint-warn" @click="onStatus(scope.row)">{{ scope.row.status === 1 ? '禁用' : '启用' }}</el-button>
+                <el-button v-if="checkPermi(['admin:stock:agent:delete'])" size="mini" plain class="op-tag tint-danger" @click="onDelete(scope.row)">删除</el-button>
+              </div>
+              <!-- 下排：只读查看（团队 / 库存 / 库存记录）。统一中性色 + 小一档字号，
+                   与上排写操作在视觉上分层，一眼能区分"改数据"和"看数据" -->
+              <div class="op-grid">
+                <el-button size="mini" plain class="op-tag op-tag--sm tint-neutral" @click="openTeam(scope.row)">团队</el-button>
+                <el-button size="mini" plain class="op-tag op-tag--sm tint-neutral" @click="openStock(scope.row)">库存</el-button>
+                <el-button size="mini" plain class="op-tag op-tag--sm tint-neutral" @click="openStockLog(scope.row)">库存记录</el-button>
+              </div>
             </div>
           </template>
         </el-table-column>

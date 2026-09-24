@@ -47,40 +47,41 @@
           </template>
         </el-table-column>
         <!-- 级别/状态/备注/区域：弹性分摊，避免单列独吞留白 -->
-        <el-table-column label="级别" width="80">
+        <el-table-column label="级别" width="72">
           <template slot-scope="scope">
             <span class="lv-chip">{{ levelLabel(scope.row.level) }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="regionName" label="代理区域" min-width="110" show-overflow-tooltip />
-        <el-table-column label="奖励比例" width="85">
+        <el-table-column label="奖励比例" width="80">
           <template slot-scope="scope">{{ scope.row.ratio }}%</template>
         </el-table-column>
-        <el-table-column label="状态" min-width="90">
+        <el-table-column label="状态" min-width="88">
           <template slot-scope="scope">
             <span class="st-dot st-dot-lg" :class="{ on: scope.row.status === 1, warn: scope.row.status === 0, danger: scope.row.status === 2 }">
               <i></i>{{ statusLabel(scope.row.status) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="applyMark" label="备注" min-width="110" show-overflow-tooltip>
+        <el-table-column prop="applyMark" label="备注" min-width="96" show-overflow-tooltip>
           <template slot-scope="scope">{{ scope.row.applyMark || '—' }}</template>
         </el-table-column>
-        <!-- 时间：右侧留白，与操作列拉开间距 -->
-        <el-table-column label="时间" width="165" class-name="time-cell">
+        <!-- 时间：两行等宽时间戳，列宽给足，避免「创建 2026-09-24 19:19:01」被压断换行 -->
+        <el-table-column label="时间" min-width="178" class-name="time-cell">
           <template slot-scope="scope">
             <div class="info-line">创建 {{ scope.row.createTime || '-' }}</div>
             <div class="info-line">审核 {{ scope.row.checkTime || '—' }}</div>
           </template>
         </el-table-column>
-        <!-- 操作：彩色小按钮网格 -->
-        <el-table-column label="操作" width="196" fixed="right" class-name="op-cell" label-class-name="op-cell">
+        <!-- 操作：待审核「通过/拒绝/修改」3 个，已审核「修改/删除」2 个，等宽单行铺满
+             顺序按操作主次：审核动作前置，常规修改居中，破坏性删除收尾 -->
+        <el-table-column label="操作" width="178" fixed="right" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
-            <div class="op-grid">
-              <el-button v-if="checkPermi(['admin:agent:update'])" size="mini" plain class="op-tag tint-primary" @click="openEdit(scope.row)">修改</el-button>
-              <el-button v-if="checkPermi(['admin:agent:audit']) && scope.row.status === 0" size="mini" plain class="op-tag tint-warn" @click="onAudit(scope.row, 1)">通过</el-button>
-              <el-button v-if="checkPermi(['admin:agent:audit']) && scope.row.status === 0" size="mini" plain class="op-tag tint-danger" @click="onAudit(scope.row, 2)">拒绝</el-button>
-              <el-button v-if="checkPermi(['admin:agent:delete'])" size="mini" plain class="op-tag tint-danger" @click="onDelete(scope.row)">删除</el-button>
+            <div class="op-grid op-grid--auto">
+              <el-button v-if="canAudit(scope.row)" size="mini" plain class="op-tag tint-primary" @click="onAudit(scope.row, 1)">通过</el-button>
+              <el-button v-if="canAudit(scope.row)" size="mini" plain class="op-tag tint-warn" @click="onAudit(scope.row, 2)">拒绝</el-button>
+              <el-button v-if="checkPermi(['admin:agent:update'])" size="mini" plain class="op-tag tint-neutral" @click="openEdit(scope.row)">修改</el-button>
+              <el-button v-if="canDelete(scope.row)" size="mini" plain class="op-tag tint-danger" @click="onDelete(scope.row)">删除</el-button>
             </div>
           </template>
         </el-table-column>
@@ -302,6 +303,14 @@ export default {
       const map = { 0: '待审核', 1: '已通过', 2: '已拒绝' };
       return map[status] || '-';
     },
+    // 审核动作只对「待审核」行开放；删除只对已审核（通过/拒绝）行开放。
+    // 两道互斥判断保证任意一行最多 3 个按钮，操作列永远单行等宽、不再换行错位。
+    canAudit(row) {
+      return checkPermi(['admin:agent:audit']) && row.status === 0;
+    },
+    canDelete(row) {
+      return checkPermi(['admin:agent:delete']) && row.status !== 0;
+    },
     async getCityList() {
       try {
         const res = await cityTreeApi();
@@ -498,5 +507,22 @@ export default {
 /* 列表范式（summary-bar/filter-panel/table-lg/op-grid 等）已全局定义于 theme/styles.scss */
 .user-picker {
   display: inline-block;
+}
+
+/* 操作按钮：等分收缩到极限时也禁止文字换行，避免按钮被压成"竖排两字"的破碎观感 */
+::v-deep .op-cell .op-tag {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 操作列表头与按钮组左缘对齐（fixed 列的表头独立渲染，需显式左对齐） */
+::v-deep .op-cell .cell {
+  text-align: left;
+}
+
+/* 时间列：完整时间戳需要 ~155px，收紧右内边距后 178px 列宽刚好容纳且留余量 */
+::v-deep .table-lg td.time-cell .cell {
+  padding-right: 12px !important;
 }
 </style>
