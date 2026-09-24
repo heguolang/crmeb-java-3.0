@@ -35,16 +35,27 @@
             <span v-else class="avatar-text">{{ (scope.row.nickname || '?').slice(0, 1).toUpperCase() }}</span>
           </template>
         </el-table-column>
-        <!-- 分销商信息：昵称 / ID+手机 / 上级 / 成为时间 四行。
+        <!-- 分销商信息：昵称 / ID（可复制）/ 手机 / 上级（ID·昵称）/ 成为时间 五行。
              min-width 208：四个内容列按用户标注稿比例（384:271:271:297 @1920）
              折算的弹性权重，el-table 按 min-width 加权分多余宽度，
              宽屏下最终列宽即复现标注稿比例。 -->
         <el-table-column label="分销商信息" min-width="208">
           <template slot-scope="scope">
             <div class="info-name">{{ scope.row.nickname || '—' }}</div>
-            <div class="info-line">ID：{{ scope.row.uid }}<span v-if="scope.row.phone"> · {{ scope.row.phone }}</span></div>
             <div class="info-line">
-              上级：<span :class="{ hq: !hasParent(scope.row) }">{{ hasParent(scope.row) ? scope.row.spreadNickname : '无' }}</span>
+              ID：<span class="id-chip">{{ scope.row.uid }}</span>
+              <i class="el-icon-document-copy copy-btn" title="复制 ID" @click="copyText(scope.row.uid)"></i>
+            </div>
+            <div class="info-line" v-if="scope.row.phone">手机：{{ scope.row.phone }}</div>
+            <div class="info-line">
+              上级：<span :class="{ hq: !hasParent(scope.row) }">{{ spreadNick(scope.row) }}</span>
+              <span v-if="hasParent(scope.row) && scope.row.spreadUid" class="id-chip">ID:{{ scope.row.spreadUid }}</span>
+              <i
+                v-if="hasParent(scope.row) && scope.row.spreadUid"
+                class="el-icon-document-copy copy-btn"
+                title="复制上级ID"
+                @click="copyText(scope.row.spreadUid)"
+              ></i>
             </div>
             <div class="info-line">成为：{{ fmtTime(scope.row.promoterTime) }}</div>
           </template>
@@ -283,6 +294,37 @@ export default {
     hasParent(row) {
       return (row && row.spreadUid > 0) || !!(row && row.spreadNickname && row.spreadNickname !== '无');
     },
+    // 复制文本到剪贴板：与用户列表页同款实现（中文提示 + execCommand 兜底）
+    copyText(text) {
+      const value = String(text);
+      const done = () => this.$message.success('已复制：' + value);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(() => this.fallbackCopy(value, done));
+      } else {
+        this.fallbackCopy(value, done);
+      }
+    },
+    fallbackCopy(value, done) {
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.top = '-9999px';
+      document.body.appendChild(input);
+      input.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (e) {
+        this.$message.error('复制失败，请手动复制');
+      }
+      document.body.removeChild(input);
+    },
+    // 上级昵称：没有则显示「无」；ID 单独用 .id-chip 色块展示（与用户列表页 ID 视觉一致）
+    spreadNick(row) {
+      if (!this.hasParent(row)) return '无';
+      return row.spreadNickname || '';
+    },
     handleResetDialog() {
       this.spreadFrom.dateLimit = '';
       this.spreadFrom.type = 0;
@@ -429,5 +471,28 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* ID 复制小图标：默认弱色，悬停亮主色，命中区放大到 20px 便于点中 */
+.copy-btn {
+  margin-left: 2px;
+  color: #c0c4cc;
+  cursor: pointer;
+  font-size: 14px;
+  transition: color 0.15s;
+}
+.copy-btn:hover {
+  color: #409eff;
+}
+/* ID 色块：浅蓝底 chip，让 ID 从一列灰色文字里跳出来（与「健康大使」等级 chip 同一视觉语言） */
+.id-chip {
+  display: inline-block;
+  margin-left: 2px;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: #ecf5ff;
+  color: #409eff;
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
 }
 </style>
