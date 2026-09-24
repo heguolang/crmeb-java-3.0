@@ -86,11 +86,10 @@
              顺序按操作主次与危险度递增：只读查看前置，破坏性「清除上级」收尾——
              和代理管理把「删除」放最后一格同一个思路，减少误触。
              「清除上级」只在有上级推广人的行渲染，--auto 会让剩余按钮自动铺满，不留空洞。
-             208px = 单元格左右内边距 30 + 3 格等宽按钮（含 6px 间隙），每格 ≈55px，
-             「推广订单」4 字（13px）需 54px 刚好不截断，再窄就会挤字换行。
-             位置按用户标注：紧跟「佣金」，不再 fixed="right" 钉死最右——
-             各列最小宽合计 816 ≤ 826（1100 视口容器），永不溢出，固定列已无必要。 -->
-        <el-table-column label="操作" width="208" class-name="op-cell" label-class-name="op-cell">
+             246px = 单元格左右内边距 30 + 3 格等宽按钮（含 6px 间隙），每格 ≈68px：
+             「推广订单」4 字（13px）需 54px，55px 格子文字顶边显挤（用户反馈），
+             加宽到 68 后四字两侧各 ~7px 呼吸空间。 -->
+        <el-table-column label="操作" width="246" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
             <div class="op-grid op-grid--auto">
               <el-button v-if="checkPermi(['admin:retail:spread:list'])" size="mini" plain class="op-tag tint-neutral" @click="onSpread(scope.row.uid, 'man', '推广人')">推广人</el-button>
