@@ -278,7 +278,8 @@ export default {
         justify-content: center;
         height: 100%;
         padding: 0 20px;
-        font-size: 15px;
+        /* 2026-09-25 用户要求：顶栏字号小一号（15→14） */
+        font-size: 14px;
 
         i {
           margin-right: 6px;

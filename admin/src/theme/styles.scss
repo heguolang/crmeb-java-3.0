@@ -1141,7 +1141,9 @@ body {
 
 .info-line {
   font-size: 13px;
-  color: #909399;
+  /* 2026-09-25 用户要求：手机/时间等正文加深，与 .kv-v 同色（#303133）；
+     「无上级」.hq 仍保持更浅的 #c0c4cc 作占位弱化 */
+  color: #303133;
   line-height: 24px;
 }
 
