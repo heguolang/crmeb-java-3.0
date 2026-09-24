@@ -33,6 +33,8 @@
 	import {
 		mapGetters
 	} from "vuex";
+	// 开关值兼容：后端/历史脏数据可能给到 1 / '1' / "'1'" / true
+	const paySwitchOn = (v) => v === true || v === 1 || Number(String(v).replace(/[^0-9]/g, '')) === 1;
 	export default {
 		props: {
 			pay_close: {
@@ -93,8 +95,8 @@
 			},
 			payConfig(){
 				getPayConfig().then(res=>{
-					this.payMode[1].payStatus = parseInt(res.data.yuePayStatus) === 1 ? 1 : 2;
-					this.payMode[0].payStatus = parseInt(res.data.payWeixinOpen) === 1 ? 1 : 0;
+					this.payMode[1].payStatus = paySwitchOn(res.data.yuePayStatus) ? 1 : 2;
+					this.payMode[0].payStatus = paySwitchOn(res.data.payWeixinOpen) ? 1 : 0;
 				})
 			},
 			goPay: function(number, paytype) {

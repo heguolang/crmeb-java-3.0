@@ -132,7 +132,7 @@
                     >
                   </view>
                 </view>
-                <view class="flex justify-between items-end relative">
+                <view class="flex justify-between items-end relative" style="min-height: 56rpx;">
                   <view class="flex-y-center">
                     <text
                       class="fs-22"
@@ -148,7 +148,7 @@
                     >
                   </view>
                   <view
-                    class="absolute right-0 bottom-0"
+                    class="abs-rb"
                     @tap.stop="addCartChange(item, index)"
                     v-if="!showBtn"
                   >
