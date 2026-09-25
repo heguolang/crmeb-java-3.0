@@ -26,14 +26,15 @@ public interface UserTeamLevelDao extends BaseMapper<UserTeamLevel> {
                                                         @Param("status") Integer status);
 
     /**
-     * 统计团队（整条推荐链所有下级）中当前会员等级等于目标等级的人数。
+     * 统计团队（整条推荐链所有下级）中当前分销商等级等于目标等级的人数
+     * （eb_user.distributor_level_id = eb_distributor_level.id）。
      * 递归 CTE 沿 spread_uid 下钻，depth 上限 50 防御异常循环链。
      */
     @Select("WITH RECURSIVE team_chain(uid, depth) AS (" +
             " SELECT uid, 1 FROM eb_user WHERE spread_uid = #{uid}" +
             " UNION ALL" +
             " SELECT u.uid, tc.depth + 1 FROM eb_user u INNER JOIN team_chain tc ON u.spread_uid = tc.uid WHERE tc.depth < 50" +
-            ") SELECT COUNT(*) FROM team_chain tc INNER JOIN eb_user u ON u.uid = tc.uid WHERE u.level = #{levelId}")
+            ") SELECT COUNT(*) FROM team_chain tc INNER JOIN eb_user u ON u.uid = tc.uid WHERE u.distributor_level_id = #{levelId}")
     int countTeamLevelUsers(@Param("uid") Integer uid, @Param("levelId") Integer levelId);
 }
 

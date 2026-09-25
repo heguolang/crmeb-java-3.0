@@ -276,11 +276,11 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
     /**
      * 判断用户是否满足该团队等级的升级条件。
      *
-     * <p>共五个条件：自购业绩、团队业绩、直推业绩、直推等级人数、团队级别人数，按链式组合：
-     * <pre>自购 [selfTeamRelation] 团队 [teamDirectRelation] 直推金额 [directLevelRelation] 直推等级人数 [teamLevelRelation] 团队级别人数</pre>
+     * <p>共五个条件：自购业绩、团队业绩、直推业绩、直推分销商等级人数、团队分销商等级人数，按链式组合：
+     * <pre>自购 [selfTeamRelation] 团队 [teamDirectRelation] 直推金额 [directLevelRelation] 直推分销商等级人数 [teamLevelRelation] 团队分销商等级人数</pre>
      * 关系值：1=与，2=或。注意门槛为 0 的条件视为「自动满足」，
-     * 用「或」连接时等同于跳过该条件。等级人数条件：等级与人数均 > 0 才启用，
-     * 按会员等级(level)实时统计——直推只统计一级推荐人，团队统计整条推荐链的所有下级。
+     * 用「或」连接时等同于跳过该条件。分销商等级人数条件：等级与人数均 > 0 才启用，
+     * 按分销商等级（eb_user.distributor_level_id）实时统计——直推只统计一级推荐人，团队统计整条推荐链的所有下级。
      */
     private boolean meetsTeamLevelCondition(SystemTeamLevel level, UserTeamLevelStat stat) {
         if (ObjectUtil.isNull(level) || ObjectUtil.isNull(stat)) {
@@ -296,7 +296,7 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         boolean directLevelPass = checkDirectLevelPass(level, stat.getUid());
         boolean teamLevelPass = checkTeamLevelPass(level, stat.getUid());
 
-        // 自购 [r1] 团队，结果 [r2] 直推金额，再 [r3] 直推等级人数，最后 [r4] 团队级别人数
+        // 自购 [r1] 团队，结果 [r2] 直推金额，再 [r3] 直推分销商等级人数，最后 [r4] 团队分销商等级人数
         boolean result = combine(level.getSelfTeamRelation(), selfPass, teamPass);
         result = combine(level.getTeamDirectRelation(), result, directPass);
         result = combine(level.getDirectLevelRelation(), result, directLevelPass);
@@ -304,8 +304,8 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
     }
 
     /**
-     * 直推等级人数条件：目标等级id与人数门槛均 > 0 才启用（否则视为自动满足）。
-     * 统计直接推荐人（spread_uid = 当前用户）中，会员等级等于目标等级的实时人数。
+     * 直推分销商等级人数条件：目标等级id与人数门槛均 > 0 才启用（否则视为自动满足）。
+     * 统计直接推荐人（spread_uid = 当前用户）中，分销商等级（eb_user.distributor_level_id）等于目标等级的实时人数。
      */
     private boolean checkDirectLevelPass(SystemTeamLevel level, Integer uid) {
         Integer targetLevelId = ObjectUtil.defaultIfNull(level.getDirectLevelId(), 0);
@@ -315,14 +315,14 @@ public class UserTeamLevelServiceImpl extends ServiceImpl<UserTeamLevelDao, User
         }
         LambdaQueryWrapper<User> lqw = Wrappers.lambdaQuery();
         lqw.eq(User::getSpreadUid, uid);
-        lqw.eq(User::getLevel, targetLevelId);
+        lqw.eq(User::getDistributorLevelId, targetLevelId);
         long count = userService.count(lqw);
         return count >= countThreshold;
     }
 
     /**
-     * 团队级别人数条件：目标等级id与人数门槛均 > 0 才启用（否则视为自动满足）。
-     * 统计团队（整条推荐链的所有下级）中，会员等级等于目标等级的实时人数。
+     * 团队分销商等级人数条件：目标等级id与人数门槛均 > 0 才启用（否则视为自动满足）。
+     * 统计团队（整条推荐链的所有下级）中，分销商等级（eb_user.distributor_level_id）等于目标等级的实时人数。
      */
     private boolean checkTeamLevelPass(SystemTeamLevel level, Integer uid) {
         Integer targetLevelId = ObjectUtil.defaultIfNull(level.getTeamLevelId(), 0);

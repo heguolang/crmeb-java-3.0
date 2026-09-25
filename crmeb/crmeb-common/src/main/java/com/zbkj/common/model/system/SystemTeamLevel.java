@@ -53,19 +53,19 @@ public class SystemTeamLevel implements Serializable {
     @ApiModelProperty(value = "团队与直推条件关系：1=与，2=或")
     private Integer teamDirectRelation;
 
-    @ApiModelProperty(value = "直推金额与直推等级人数条件关系：1=与，2=或")
+    @ApiModelProperty(value = "直推金额与直推分销商等级人数条件关系：1=与，2=或")
     private Integer directLevelRelation;
 
-    @ApiModelProperty(value = "直推等级人数-目标用户等级id(来源用户级别)，0=未启用")
+    @ApiModelProperty(value = "直推分销商等级人数-目标分销商等级id(来源分销商等级)，0=未启用")
     private Integer directLevelId;
 
     @ApiModelProperty(value = "直推达到目标用户等级的人数门槛，0=未启用")
     private Integer directLevelCount;
 
-    @ApiModelProperty(value = "直推等级人数与团队级别人数条件关系：1=与，2=或")
+    @ApiModelProperty(value = "直推分销商等级人数与团队分销商等级人数条件关系：1=与，2=或")
     private Integer teamLevelRelation;
 
-    @ApiModelProperty(value = "团队级别人数-目标用户等级id(来源用户级别)，0=未启用")
+    @ApiModelProperty(value = "团队分销商等级人数-目标分销商等级id(来源分销商等级)，0=未启用")
     private Integer teamLevelId;
 
     @ApiModelProperty(value = "团队中达到目标用户等级的人数门槛，0=未启用")

@@ -70,36 +70,36 @@ public class SystemTeamLevelRequest implements Serializable {
     @Max(value = 2, message = "条件关系参数不合法")
     private Integer teamDirectRelation;
 
-    @ApiModelProperty(value = "直推金额与直推等级人数条件关系：1=与，2=或", example = "1")
-    @NotNull(message = "直推金额与直推等级人数条件关系不能为空")
+    @ApiModelProperty(value = "直推金额与直推分销商等级人数条件关系：1=与，2=或", example = "1")
+    @NotNull(message = "直推金额与直推分销商等级人数条件关系不能为空")
     @Min(value = 1, message = "条件关系参数不合法")
     @Max(value = 2, message = "条件关系参数不合法")
     private Integer directLevelRelation;
 
-    @ApiModelProperty(value = "直推等级人数-目标用户等级id，0=未启用", example = "0")
+    @ApiModelProperty(value = "直推分销商等级人数-目标分销商等级id，0=未启用", example = "0")
     @NotNull(message = "目标用户等级不能为空")
     @Min(value = 0, message = "目标用户等级参数不合法")
     private Integer directLevelId;
 
     @ApiModelProperty(value = "直推达到目标用户等级的人数门槛，0=未启用", example = "0")
-    @NotNull(message = "直推等级人数门槛不能为空")
-    @Min(value = 0, message = "直推等级人数门槛不能小于0")
+    @NotNull(message = "直推分销商等级人数门槛不能为空")
+    @Min(value = 0, message = "直推分销商等级人数门槛不能小于0")
     private Integer directLevelCount;
 
-    @ApiModelProperty(value = "直推等级人数与团队级别人数条件关系：1=与，2=或", example = "1")
-    @NotNull(message = "直推等级人数与团队级别人数条件关系不能为空")
+    @ApiModelProperty(value = "直推分销商等级人数与团队分销商等级人数条件关系：1=与，2=或", example = "1")
+    @NotNull(message = "直推分销商等级人数与团队分销商等级人数条件关系不能为空")
     @Min(value = 1, message = "条件关系参数不合法")
     @Max(value = 2, message = "条件关系参数不合法")
     private Integer teamLevelRelation;
 
-    @ApiModelProperty(value = "团队级别人数-目标用户等级id，0=未启用", example = "0")
+    @ApiModelProperty(value = "团队分销商等级人数-目标分销商等级id，0=未启用", example = "0")
     @NotNull(message = "团队目标用户等级不能为空")
     @Min(value = 0, message = "团队目标用户等级参数不合法")
     private Integer teamLevelId;
 
     @ApiModelProperty(value = "团队中达到目标用户等级的人数门槛，0=未启用", example = "0")
-    @NotNull(message = "团队级别人数门槛不能为空")
-    @Min(value = 0, message = "团队级别人数门槛不能小于0")
+    @NotNull(message = "团队分销商等级人数门槛不能为空")
+    @Min(value = 0, message = "团队分销商等级人数门槛不能小于0")
     private Integer teamLevelCount;
 
     @ApiModelProperty(value = "自购订单统计时机：1=支付成功，2=订单完成", example = "2")

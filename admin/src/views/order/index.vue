@@ -130,18 +130,18 @@
             <div class="col col-recv">
               <!-- 下单会员（先看会员，再看收货） -->
               <div class="kv member-row">
-                <span class="k">下单会员：</span>
+                <span class="k">下单会员</span>
                 <span class="v">{{ row.nickname || '-' }}<span class="member-uid">（UID {{ row.uid || '-' }}）</span></span>
               </div>
-              <div class="kv"><span class="k" style="flex-shrink:0">会员手机：</span><span class="v">{{ row.phone || '-' }}</span></div>
+              <div class="kv"><span class="k">会员手机</span><span class="v">{{ row.phone || '-' }}</span></div>
               <div class="kv">
-                <span class="k">推荐人：</span>
+                <span class="k">推荐人</span>
                 <span class="v">{{ row.spreadNickname || '无' }}<span class="member-uid" v-if="row.spreadUid">（UID {{ row.spreadUid }}）</span></span>
               </div>
-              <div class="kv"><span class="k">收货人：</span><span class="v">{{ row.realName || '-' }}</span></div>
-              <div class="kv"><span class="k" style="flex-shrink:0">收货电话：</span><span class="v">{{ row.userPhone || '-' }}</span></div>
+              <div class="kv"><span class="k">收货人</span><span class="v">{{ row.realName || '-' }}</span></div>
+              <div class="kv"><span class="k">收货电话</span><span class="v">{{ row.userPhone || '-' }}</span></div>
               <div class="kv">
-                <span class="k">地址：</span>
+                <span class="k">地址</span>
                 <el-tooltip v-if="row.userAddress" effect="dark" :content="row.userAddress" placement="top">
                   <span class="v">{{ row.userAddress }}</span>
                 </el-tooltip>
@@ -149,13 +149,15 @@
               </div>
             </div>
             <div class="col col-amount">
-              <div class="kv"><span class="k">总价：</span><span class="v">￥{{ fmtMoney(row.proTotalPrice || row.payPrice) }}</span></div>
-              <div class="kv"><span class="k">实付：</span><span class="v">￥{{ fmtMoney(row.payPrice) }}</span></div>
+              <div class="kv"><span class="k">总价</span><span class="v">￥{{ fmtMoney(row.proTotalPrice || row.payPrice) }}</span></div>
+              <div class="kv"><span class="k">实付</span><span class="v">￥{{ fmtMoney(row.payPrice) }}</span></div>
+              <div v-if="row.payTime" class="kv pay-time-row">
+                <span class="k">付款时间</span><span class="v">{{ shortTime(row.payTime) }}</span>
+              </div>
             </div>
             <div class="col col-state">
               <div class="pay-text">{{ row.paid ? '已支付' : '未支付' }}</div>
               <div class="sub-text">{{ row.payTypeStr || '—' }}</div>
-              <div v-if="row.payTime" class="sub-text">付款时间：{{ shortTime(row.payTime) }}</div>
             </div>
             <div class="col col-ops">
               <el-button v-if="checkPermi(['admin:order:info'])" size="mini" type="success" plain class="op-btn" @click="onOrderDetails(row.orderId)">订单详情</el-button>
@@ -163,6 +165,10 @@
                 v-if="row.statusStr.key === 'notShipped' && row.refundStatus === 0 && checkPermi(['admin:order:send'])"
                 size="mini" type="primary" plain class="op-btn" @click="sendOrder(row)"
               >发货</el-button>
+              <el-button
+                v-if="checkPermi(['admin:order:mark'])"
+                size="mini" type="info" plain class="op-btn" @click="onOrderMark(row)"
+              >订单备注</el-button>
               <el-button
                 v-if="row.paid === false && !row.isAlterPrice && checkPermi(['admin:order:update:price'])"
                 size="mini" type="warning" plain class="op-btn" @click="edit(row)"
@@ -179,7 +185,6 @@
               <el-dropdown v-if="hasMoreActions(row)" trigger="click" class="op-more">
                 <span class="el-dropdown-link">更多<i class="el-icon-arrow-down el-icon--right" /></span>
                 <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item @click.native="onOrderMark(row)" v-if="checkPermi(['admin:order:mark'])">订单备注</el-dropdown-item>
                   <el-dropdown-item v-if="row.refundStatus === 1 && checkPermi(['admin:order:refund:refuse'])" @click.native="onOrderRefuse(row)">拒绝退款</el-dropdown-item>
                   <el-dropdown-item v-if="row.refundStatus === 1 && checkPermi(['admin:order:refund'])" @click.native="onOrderRefund(row)">立即退款</el-dropdown-item>
                   <el-dropdown-item v-if="row.statusStr.key === 'deleted' && checkPermi(['admin:order:delete'])" @click.native="handleDelete(row)">删除订单</el-dropdown-item>
@@ -410,10 +415,9 @@ export default {
     orderTypeText(row) {
       return row.type === 1 ? '视频号订单' : '普通订单';
     },
-    // 「更多」下拉是否还有可见项（无则不渲染下拉）
+    // 「更多」下拉是否还有可见项（无则不渲染下拉；订单备注已提为独立按钮，不计入）
     hasMoreActions(row) {
       return (
-        checkPermi(['admin:order:mark']) ||
         (row.refundStatus === 1 && (checkPermi(['admin:order:refund:refuse']) || checkPermi(['admin:order:refund']))) ||
         (row.statusStr.key === 'deleted' && checkPermi(['admin:order:delete']))
       );
@@ -825,10 +829,12 @@ export default {
   margin-left: 14px;
 }
 
-/* 卡片体：网格分列，列间细分隔线 */
+/* 卡片体：网格分列，列间细分隔线
+   列宽方案照搬分销商管理定稿：内容列弹性分配，
+   末尾定宽 150px 留白列不参与分配，右侧固定空一段、右三列不顶边 */
 .card-body {
   display: grid;
-  grid-template-columns: minmax(280px, 1.5fr) minmax(210px, 1.2fr) 180px 190px 150px;
+  grid-template-columns: minmax(280px, 1.5fr) minmax(210px, 1.2fr) 180px 190px 150px 150px;
   align-items: center;
   padding: 18px 0;
 }
@@ -845,8 +851,7 @@ export default {
   justify-content: center;
   padding-left: 22px;
   padding-right: 18px;
-}
-/* 下单会员：与下面的收货信息做视觉区分 */
+}/* 下单会员：与下面的收货信息做视觉区分 */
 .col .member-row .v {
   color: #303133;
   font-weight: 600;
@@ -867,6 +872,7 @@ export default {
 .kv .k {
   color: #909399;
   flex-shrink: 0;
+  margin-right: 4px;
 }
 .kv .v {
   color: #303133;
@@ -955,6 +961,12 @@ export default {
   color: #303133;
   font-weight: 500;
 }
+/* 付款时间行：弱化展示 */
+.col-amount .pay-time-row .v {
+  color: #909399;
+  font-weight: 400;
+  font-size: 12px;
+}
 .amount {
   font-size: 18px;
   font-weight: 600;
@@ -980,7 +992,11 @@ export default {
   white-space: nowrap;
 }
 
-/* 支付状态列 */
+/* 支付状态列：内容居中 */
+.col-state {
+  align-items: center;
+  text-align: center;
+}
 .pay-text {
   font-size: 14px;
   font-weight: 600;
@@ -988,7 +1004,7 @@ export default {
   line-height: 22px;
 }
 
-/* 操作列：小按钮自动换行 */
+/* 操作列：小按钮自动换行，整体居中 */
 .col-ops {
   align-items: center;
 }
@@ -996,7 +1012,7 @@ export default {
   min-width: 76px;
   margin: 4px 0 !important;
   margin-left: 0 !important;
-  display: block;
+  display: inline-block;
 }
 .op-more {
   margin-top: 6px;

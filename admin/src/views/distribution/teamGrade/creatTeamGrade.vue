@@ -2,15 +2,18 @@
   <el-dialog
     :title="formData.id ? '编辑团队等级' : '添加团队等级'"
     :visible.sync="dialogVisible"
-    width="720px"
+    width="760px"
+    top="6vh"
+    custom-class="team-grade-dialog"
     :close-on-click-modal="false"
     :before-close="handleClose"
   >
-    <el-form :model="formData" :rules="rules" ref="teamForm" label-width="150px" class="demo-ruleForm" v-loading="loading">
+    <el-form :model="formData" :rules="rules" ref="teamForm" label-width="110px" v-loading="loading">
+      <!-- 基本信息 -->
+      <div class="section-title">基本信息</div>
       <el-form-item label="等级名称：" prop="name">
-        <el-input v-model="formData.name" placeholder="如：初级团队、金牌团队" maxlength="50" />
+        <el-input v-model="formData.name" placeholder="如：初级团队、金牌团队" maxlength="50" style="width: 320px" />
       </el-form-item>
-
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="等级序号：" prop="grade">
@@ -19,9 +22,9 @@
               :min="1"
               :max="999"
               controls-position="right"
-              placeholder="数字越大等级越高"
-              style="width: 100%"
+              style="width: 180px"
             />
+            <span class="inline-tip">数字越大等级越高</span>
           </el-form-item>
         </el-col>
         <el-col :span="12" v-if="!formData.id">
@@ -31,179 +34,216 @@
         </el-col>
       </el-row>
 
-      <el-divider content-position="left">升级条件</el-divider>
+      <!-- 升级条件：表格化布局 -->
+      <div class="section-title">升级条件</div>
+      <div class="cond-table">
+        <div class="cond-header">
+          <span class="col-relation">关系</span>
+          <span class="col-name">升级条件</span>
+          <span class="col-value">门槛值</span>
+          <span class="col-extra">统计时机 / 分销商等级</span>
+        </div>
 
-      <div class="cond-row">
-        <el-form-item prop="selfOrderAmount" label-width="200px" class="cond-item">
-          <template slot="label">自购门槛(元)：</template>
-          <el-input-number
-            v-model="formData.selfOrderAmount"
-            :min="0"
-            :precision="2"
-            controls-position="right"
-            style="width: 130px"
-          />
-        </el-form-item>
-        <el-form-item label="统计时机：" prop="selfOrderTriggerType" label-width="80px" class="cond-item">
-          <el-select v-model="formData.selfOrderTriggerType" placeholder="请选择" style="width: 130px">
-            <el-option label="支付成功" :value="1" />
-            <el-option label="订单完成" :value="2" />
-          </el-select>
-        </el-form-item>
-      </div>
+        <!-- 自购门槛 -->
+        <div class="cond-row">
+          <div class="col-relation">
+            <span class="relation-muted" title="首个条件无需连接词">—</span>
+          </div>
+          <div class="col-name">自购门槛(元)</div>
+          <div class="col-value">
+            <el-form-item prop="selfOrderAmount">
+              <el-input-number
+                v-model="formData.selfOrderAmount"
+                :min="0"
+                :precision="2"
+                controls-position="right"
+                style="width: 160px"
+              />
+            </el-form-item>
+          </div>
+          <div class="col-extra">
+            <el-form-item prop="selfOrderTriggerType">
+              <el-select v-model="formData.selfOrderTriggerType" style="width: 160px">
+                <el-option label="支付成功" :value="1" />
+                <el-option label="订单完成" :value="2" />
+              </el-select>
+            </el-form-item>
+          </div>
+        </div>
 
-      <div class="cond-row">
-        <el-form-item prop="teamOrderAmount" label-width="200px" class="cond-item">
-          <template slot="label">
-            <span class="label-join">
-              <el-radio-group v-model="formData.selfTeamRelation">
-                <el-radio :label="1">与</el-radio>
-                <el-radio :label="2">或</el-radio>
-              </el-radio-group>
-            </span>
-            团队门槛(元)：
-          </template>
-          <el-input-number
-            v-model="formData.teamOrderAmount"
-            :min="0"
-            :precision="2"
-            controls-position="right"
-            style="width: 130px"
-          />
-        </el-form-item>
-        <el-form-item label="统计时机：" prop="teamOrderTriggerType" label-width="80px" class="cond-item">
-          <el-select v-model="formData.teamOrderTriggerType" placeholder="请选择" style="width: 130px">
-            <el-option label="支付成功" :value="1" />
-            <el-option label="订单完成" :value="2" />
-          </el-select>
-        </el-form-item>
-      </div>
+        <!-- 团队门槛 -->
+        <div class="cond-row">
+          <div class="col-relation">
+            <el-radio-group v-model="formData.selfTeamRelation">
+              <el-radio :label="1">与</el-radio>
+              <el-radio :label="2">或</el-radio>
+            </el-radio-group>
+          </div>
+          <div class="col-name">团队门槛(元)</div>
+          <div class="col-value">
+            <el-form-item prop="teamOrderAmount">
+              <el-input-number
+                v-model="formData.teamOrderAmount"
+                :min="0"
+                :precision="2"
+                controls-position="right"
+                style="width: 160px"
+              />
+            </el-form-item>
+          </div>
+          <div class="col-extra">
+            <el-form-item prop="teamOrderTriggerType">
+              <el-select v-model="formData.teamOrderTriggerType" style="width: 160px">
+                <el-option label="支付成功" :value="1" />
+                <el-option label="订单完成" :value="2" />
+              </el-select>
+            </el-form-item>
+          </div>
+        </div>
 
-      <div class="cond-row">
-        <el-form-item prop="directOrderAmount" label-width="200px" class="cond-item">
-          <template slot="label">
-            <span class="label-join">
-              <el-radio-group v-model="formData.teamDirectRelation">
-                <el-radio :label="1">与</el-radio>
-                <el-radio :label="2">或</el-radio>
-              </el-radio-group>
-            </span>
-            直推门槛(元)：
-          </template>
-          <el-input-number
-            v-model="formData.directOrderAmount"
-            :min="0"
-            :precision="2"
-            controls-position="right"
-            style="width: 130px"
-          />
-        </el-form-item>
-        <el-form-item label="统计时机：" prop="directOrderTriggerType" label-width="80px" class="cond-item">
-          <el-select v-model="formData.directOrderTriggerType" placeholder="请选择" style="width: 130px">
-            <el-option label="支付成功" :value="1" />
-            <el-option label="订单完成" :value="2" />
-          </el-select>
-        </el-form-item>
-      </div>
+        <!-- 直推门槛 -->
+        <div class="cond-row">
+          <div class="col-relation">
+            <el-radio-group v-model="formData.teamDirectRelation">
+              <el-radio :label="1">与</el-radio>
+              <el-radio :label="2">或</el-radio>
+            </el-radio-group>
+          </div>
+          <div class="col-name">直推门槛(元)</div>
+          <div class="col-value">
+            <el-form-item prop="directOrderAmount">
+              <el-input-number
+                v-model="formData.directOrderAmount"
+                :min="0"
+                :precision="2"
+                controls-position="right"
+                style="width: 160px"
+              />
+            </el-form-item>
+          </div>
+          <div class="col-extra">
+            <el-form-item prop="directOrderTriggerType">
+              <el-select v-model="formData.directOrderTriggerType" style="width: 160px">
+                <el-option label="支付成功" :value="1" />
+                <el-option label="订单完成" :value="2" />
+              </el-select>
+            </el-form-item>
+          </div>
+        </div>
 
-      <div class="cond-row">
-        <el-form-item prop="directLevelCount" label-width="200px" class="cond-item">
-          <template slot="label">
-            <span class="label-join">
-              <el-radio-group v-model="formData.directLevelRelation">
-                <el-radio :label="1">与</el-radio>
-                <el-radio :label="2">或</el-radio>
-              </el-radio-group>
-            </span>
-            直推等级人数：
-          </template>
-          <el-input-number
-            v-model="formData.directLevelCount"
-            :min="0"
-            :precision="0"
-            controls-position="right"
-            style="width: 130px"
-          />
-        </el-form-item>
-        <el-form-item label="达到等级：" prop="directLevelId" label-width="80px" class="cond-item">
-          <el-select
-            v-model="formData.directLevelId"
-            placeholder="选择用户级别"
-            clearable
-            filterable
-            style="width: 130px"
-          >
-            <el-option v-for="item in userLevelOptions" :key="item.id" :label="item.name" :value="item.id" />
-          </el-select>
-        </el-form-item>
-      </div>
+        <!-- 直推分销商等级人数 -->
+        <div class="cond-row">
+          <div class="col-relation">
+            <el-radio-group v-model="formData.directLevelRelation">
+              <el-radio :label="1">与</el-radio>
+              <el-radio :label="2">或</el-radio>
+            </el-radio-group>
+          </div>
+          <div class="col-name">直推分销商等级人数</div>
+          <div class="col-value">
+            <el-form-item prop="directLevelCount">
+              <el-input-number
+                v-model="formData.directLevelCount"
+                :min="0"
+                :precision="0"
+                controls-position="right"
+                style="width: 160px"
+              />
+            </el-form-item>
+          </div>
+          <div class="col-extra">
+            <el-form-item prop="directLevelId">
+              <el-select
+                v-model="formData.directLevelId"
+                placeholder="选择分销商等级"
+                clearable
+                filterable
+                style="width: 160px"
+              >
+                <el-option v-for="item in distributorLevelOptions" :key="item.id" :label="item.name" :value="item.id" />
+              </el-select>
+            </el-form-item>
+          </div>
+        </div>
 
-      <div class="cond-row">
-        <el-form-item prop="teamLevelCount" label-width="200px" class="cond-item">
-          <template slot="label">
-            <span class="label-join">
-              <el-radio-group v-model="formData.teamLevelRelation">
-                <el-radio :label="1">与</el-radio>
-                <el-radio :label="2">或</el-radio>
-              </el-radio-group>
-            </span>
-            团队级别人数：
-          </template>
-          <el-input-number
-            v-model="formData.teamLevelCount"
-            :min="0"
-            :precision="0"
-            controls-position="right"
-            style="width: 130px"
-          />
-        </el-form-item>
-        <el-form-item label="达到等级：" prop="teamLevelId" label-width="80px" class="cond-item">
-          <el-select
-            v-model="formData.teamLevelId"
-            placeholder="选择用户级别"
-            clearable
-            filterable
-            style="width: 130px"
-          >
-            <el-option v-for="item in userLevelOptions" :key="item.id" :label="item.name" :value="item.id" />
-          </el-select>
-        </el-form-item>
+        <!-- 团队分销商等级人数 -->
+        <div class="cond-row">
+          <div class="col-relation">
+            <el-radio-group v-model="formData.teamLevelRelation">
+              <el-radio :label="1">与</el-radio>
+              <el-radio :label="2">或</el-radio>
+            </el-radio-group>
+          </div>
+          <div class="col-name">团队分销商等级人数</div>
+          <div class="col-value">
+            <el-form-item prop="teamLevelCount">
+              <el-input-number
+                v-model="formData.teamLevelCount"
+                :min="0"
+                :precision="0"
+                controls-position="right"
+                style="width: 160px"
+              />
+            </el-form-item>
+          </div>
+          <div class="col-extra">
+            <el-form-item prop="teamLevelId">
+              <el-select
+                v-model="formData.teamLevelId"
+                placeholder="选择分销商等级"
+                clearable
+                filterable
+                style="width: 160px"
+              >
+                <el-option v-for="item in distributorLevelOptions" :key="item.id" :label="item.name" :value="item.id" />
+              </el-select>
+            </el-form-item>
+          </div>
+        </div>
       </div>
 
       <div class="form-tip cond-tip">
-        判定顺序：自购门槛 「与/或」 团队门槛 「与/或」 直推门槛 「与/或」 直推等级人数 「与/或」 团队级别人数。金额/人数门槛为
-        0 的条件视为自动满足，用「或」连接时等同于跳过该条件；等级人数按用户当前会员等级实时统计（直推=一级推荐人，团队=整条推荐链的所有下级），等级来源于「会员等级」配置。
+        <div class="tip-title"><i class="el-icon-info" /> 判定规则</div>
+        <ul class="tip-list">
+          <li>按「自购门槛 → 团队门槛 → 直推门槛 → 直推分销商等级人数 → 团队分销商等级人数」顺序，以「与/或」依次连接判定；</li>
+          <li>金额/人数为 0 的条件视为自动满足，用「或」连接时等同于跳过该条件；</li>
+          <li>等级人数按用户当前分销商等级实时统计（直推=一级推荐人，团队=整条推荐链的所有下级），等级来源于「分销商等级」配置。</li>
+        </ul>
       </div>
 
-      <el-divider content-position="left">团队奖配置</el-divider>
-
+      <!-- 团队奖配置 -->
+      <div class="section-title">团队奖配置</div>
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="团队奖比例(%)：" prop="config.teamBrokerageRate">
+          <el-form-item label="团队奖比例：" prop="config.teamBrokerageRate">
             <el-input-number
               v-model="formData.config.teamBrokerageRate"
               :min="0"
               :max="100"
               :precision="0"
               controls-position="right"
-              style="width: 100%"
+              style="width: 160px"
             />
+            <span class="inline-tip">%</span>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="平级奖比例(%)：" prop="config.peerAwardRate">
+          <el-form-item label="平级奖比例：" prop="config.peerAwardRate">
             <el-input-number
               v-model="formData.config.peerAwardRate"
               :min="0"
               :max="100"
               :precision="0"
               controls-position="right"
-              style="width: 100%"
+              style="width: 160px"
             />
+            <span class="inline-tip">%</span>
           </el-form-item>
         </el-col>
       </el-row>
 
+      <!-- 图标与权益 -->
+      <div class="section-title">图标与权益</div>
       <el-form-item label="等级图标：" prop="icon">
         <div class="upLoadPicBox" @click="modalPicTap('1', 'icon')">
           <div v-if="formData.icon" class="pictrue"><img :src="formData.icon" /></div>
@@ -212,7 +252,6 @@
           </div>
         </div>
       </el-form-item>
-
       <el-form-item label="等级权益描述：">
         <el-input
           v-model="formData.description"
@@ -220,6 +259,7 @@
           :rows="2"
           placeholder="选填，描述该团队等级的权益内容"
           maxlength="500"
+          show-word-limit
         />
       </el-form-item>
     </el-form>
@@ -237,7 +277,7 @@
 
 <script>
 import { teamLevelSaveApi, teamLevelInfoApi, teamLevelUpdateApi } from '@/api/teamLevel';
-import { levelListApi } from '@/api/user';
+import { distributorLevelListApi } from '@/api/distributorLevel';
 import { Debounce } from '@/utils/validate';
 
 const defaultForm = () => ({
@@ -274,19 +314,19 @@ export default {
       dialogVisible: false,
       formData: defaultForm(),
       loading: false,
-      userLevelOptions: [],
+      distributorLevelOptions: [],
       rules: {
         name: [{ required: true, message: '请输入等级名称', trigger: 'blur' }],
         grade: [{ required: true, message: '请输入等级序号', trigger: 'blur' }],
         selfOrderAmount: [{ required: true, message: '请输入自购门槛', trigger: 'blur' }],
         teamOrderAmount: [{ required: true, message: '请输入团队门槛', trigger: 'blur' }],
         directOrderAmount: [{ required: true, message: '请输入直推门槛', trigger: 'blur' }],
-        directLevelCount: [{ required: true, message: '请输入直推等级人数门槛', trigger: 'blur' }],
+        directLevelCount: [{ required: true, message: '请输入直推分销商等级人数门槛', trigger: 'blur' }],
         directLevelId: [
           {
             validator: (rule, value, callback) => {
               if (this.formData.directLevelCount > 0 && !value) {
-                callback(new Error('人数门槛大于0时必须选择目标用户级别'));
+                callback(new Error('人数门槛大于0时必须选择目标分销商等级'));
               } else {
                 callback();
               }
@@ -294,12 +334,12 @@ export default {
             trigger: 'change',
           },
         ],
-        teamLevelCount: [{ required: true, message: '请输入团队级别人数门槛', trigger: 'blur' }],
+        teamLevelCount: [{ required: true, message: '请输入团队分销商等级人数门槛', trigger: 'blur' }],
         teamLevelId: [
           {
             validator: (rule, value, callback) => {
               if (this.formData.teamLevelCount > 0 && !value) {
-                callback(new Error('人数门槛大于0时必须选择目标用户级别'));
+                callback(new Error('人数门槛大于0时必须选择目标分销商等级'));
               } else {
                 callback();
               }
@@ -319,7 +359,7 @@ export default {
     openCreate() {
       this.formData = defaultForm();
       this.dialogVisible = true;
-      this.loadUserLevels();
+      this.loadDistributorLevels();
       this.$nextTick(() => {
         if (this.$refs.teamForm) {
           this.$refs.teamForm.clearValidate();
@@ -329,7 +369,7 @@ export default {
     openEdit(id) {
       this.formData = { ...defaultForm(), id };
       this.dialogVisible = true;
-      this.loadUserLevels();
+      this.loadDistributorLevels();
       this.$nextTick(() => {
         if (this.$refs.teamForm) {
           this.$refs.teamForm.clearValidate();
@@ -337,15 +377,15 @@ export default {
         this.loadInfo(id);
       });
     },
-    // 用户级别（会员等级）选项，用于「直推等级人数」条件
-    loadUserLevels() {
-      if (this.userLevelOptions.length) return;
-      levelListApi()
+    // 分销商等级选项，用于「直推分销商等级人数 / 团队分销商等级人数」条件
+    loadDistributorLevels() {
+      if (this.distributorLevelOptions.length) return;
+      distributorLevelListApi()
         .then((res) => {
-          this.userLevelOptions = res || [];
+          this.distributorLevelOptions = res || [];
         })
         .catch(() => {
-          this.userLevelOptions = [];
+          this.distributorLevelOptions = [];
         });
     },
     modalPicTap(tit, num) {
@@ -455,48 +495,143 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.demo-ruleForm {
+::v-deep .team-grade-dialog {
+  .el-dialog__body {
+    max-height: calc(88vh - 130px);
+    overflow-y: auto;
+    padding: 16px 24px 8px;
+  }
+  .el-dialog__footer {
+    border-top: 1px solid #f0f0f0;
+    padding: 12px 24px;
+  }
+}
+
+.demo-ruleForm,
+.el-form {
   ::v-deep .el-form-item {
-    margin-bottom: 14px;
-  }
-  ::v-deep .el-input-number {
-    width: 100%;
+    margin-bottom: 16px;
   }
 }
 
-.form-tip {
+.section-title {
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.88);
+  line-height: 22px;
+  padding-left: 10px;
+  margin: 8px 0 16px;
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 3px;
+    width: 3px;
+    height: 16px;
+    background: #1890ff;
+    border-radius: 2px;
+  }
+}
+
+.inline-tip {
+  margin-left: 8px;
   font-size: 12px;
-  line-height: 18px;
-  color: #909399;
+  color: rgba(0, 0, 0, 0.45);
 }
 
+/* 升级条件迷你表格 */
+.cond-table {
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cond-header,
 .cond-row {
   display: flex;
+  align-items: flex-start;
+  padding: 0 16px;
+}
+.cond-header {
+  height: 36px;
   align-items: center;
-  .label-join {
-    ::v-deep .el-radio-group {
-      vertical-align: middle;
-      margin-right: 2px;
-    }
-    ::v-deep .el-radio {
-      margin-right: 8px;
-      .el-radio__label {
-        padding-left: 4px;
-        font-size: inherit;
-      }
-    }
+  background: #fafafa;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+.cond-row {
+  padding-top: 12px;
+  padding-bottom: 4px;
+  & + .cond-row {
+    border-top: 1px solid #f0f0f0;
   }
-  .cond-item {
-    margin-bottom: 0;
-    margin-right: 8px;
-    ::v-deep .el-form-item__error {
-      padding-top: 2px;
-    }
+  ::v-deep .el-form-item {
+    margin-bottom: 12px;
   }
 }
+.col-relation {
+  width: 88px;
+  flex-shrink: 0;
+  text-align: center;
+  line-height: 32px;
+  ::v-deep .el-radio {
+    margin-right: 8px;
+    .el-radio__label {
+      padding-left: 4px;
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.65);
+    }
+    .el-radio__label {
+      padding-left: 4px;
+    }
+  }
+  .relation-muted {
+    color: rgba(0, 0, 0, 0.25);
+  }
+}
+.col-name {
+  width: 130px;
+  flex-shrink: 0;
+  line-height: 32px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.65);
+}
+.col-value {
+  width: 176px;
+  flex-shrink: 0;
+}
+.col-extra {
+  flex: 1;
+}
 
+/* 判定规则提示框 */
+.form-tip {
+  font-size: 12px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.45);
+}
 .cond-tip {
-  margin: 14px 0 14px 0;
+  margin: 12px 0 16px;
+  padding: 10px 12px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  .tip-title {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.65);
+    margin-bottom: 4px;
+    i {
+      color: #1890ff;
+      margin-right: 4px;
+    }
+  }
+  .tip-list {
+    margin: 0;
+    padding-left: 16px;
+    li {
+      margin-bottom: 2px;
+    }
+  }
 }
 
 .upLoadPicBox {
@@ -504,7 +639,7 @@ export default {
   .pictrue {
     width: 80px;
     height: 80px;
-    border: 1px dashed #d9d9d9;
+    border: 1px solid #d9d9d9;
     border-radius: 4px;
     img {
       width: 100%;
@@ -520,6 +655,10 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: border-color 0.2s;
+    &:hover {
+      border-color: #1890ff;
+    }
     .cameraIconfont {
       font-size: 24px;
       color: #8c939d;

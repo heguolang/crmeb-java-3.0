@@ -131,14 +131,20 @@
               <div v-if="row.groupNames" class="sub-text">商品分组：{{ row.groupNames }}</div>
             </div>
             <div class="list-cell">
-              <div class="irow"><span class="il">售价：</span><span class="iv">￥{{ fmtMoney(row.price) }}</span></div>
-              <div class="irow"><span class="il">市场价：</span><span class="iv">￥{{ fmtMoney(row.otPrice) }}</span></div>
-              <div class="irow"><span class="il">成本价：</span><span class="iv">￥{{ fmtMoney(row.cost) }}</span></div>
+              <div class="irow">
+                <span class="il">售价</span>
+                <span class="iv price-main">￥{{ fmtMoney(row.price) }}</span>
+              </div>
+              <div class="irow"><span class="il">市场价</span><span class="iv iv-sub">￥{{ fmtMoney(row.otPrice) }}</span></div>
+              <div class="irow"><span class="il">成本价</span><span class="iv iv-sub">￥{{ fmtMoney(row.cost) }}</span></div>
             </div>
             <div class="list-cell">
-              <div class="irow"><span class="il">销量：</span><span class="iv">{{ row.sales || 0 }}</span></div>
-              <div class="irow"><span class="il">库存：</span><span class="iv">{{ row.stock || 0 }}</span></div>
-              <div class="irow"><span class="il">收藏：</span><span class="iv">{{ row.collectCount || 0 }}</span></div>
+              <div class="irow"><span class="il">销量</span><span class="iv">{{ row.sales || 0 }}</span></div>
+              <div class="irow">
+                <span class="il">库存</span>
+                <span class="iv" :class="{ 'iv-danger': !(row.stock > 0) }">{{ row.stock || 0 }}</span>
+              </div>
+              <div class="irow"><span class="il">收藏</span><span class="iv">{{ row.collectCount || 0 }}</span></div>
             </div>
             <div class="list-cell cell-state">
               <el-switch
@@ -852,30 +858,40 @@ export default {
   margin-top: 6px;
 }
 
-/* 键值行（售价 / 商品数据列）：label 固定宽，value 紧贴左对齐
-   注意不要用 .kv —— 那是全局基座 list-page.scss 的两端对齐布局，会撞名 */
+/* 键值行（售价 / 商品数据列）：标签固定宽 + 弱化，数值 14px 右侧对齐
+   注意：不要用 text-align-last: justify 拉伸标签（「售价」会被拉成「售　价」），
+   也不要把标签塞进两端对齐的全局 .kv（那是 list-page.scss 的布局，会撞名） */
 .irow {
   display: flex;
   align-items: baseline;
-  font-size: 13px;
   line-height: 24px;
-  margin: 3px 0;
+  margin: 2px 0;
 }
 .irow .il {
-  color: #909399;
   flex-shrink: 0;
-  width: 58px;
-  text-align: justify;
-  text-align-last: justify;
+  font-size: 12px;
+  color: #909399;
 }
 .irow .iv {
+  margin-left: 6px;
+  font-size: 14px;
   color: #303133;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  margin-left: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.irow .price-main {
+  font-weight: 600;
+}
+.irow .iv-sub {
+  font-weight: 400;
+  color: #606266;
+}
+.irow .iv-danger {
+  color: #f56c6c;
+  font-weight: 600;
 }
 
 /* 状态列开关居中 */
