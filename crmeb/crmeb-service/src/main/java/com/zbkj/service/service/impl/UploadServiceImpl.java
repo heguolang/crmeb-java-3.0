@@ -87,7 +87,7 @@ public class UploadServiceImpl implements UploadService {
     public FileResultVo imageUpload(MultipartFile multipartFile, String model, Integer pid) {
         FileResultVo fileResultVo = new FileResultVo();
         try {
-            fileResultVo = commonUpload(multipartFile, model, pid, UploadConstants.UPLOAD_FILE_KEYWORD);
+            fileResultVo = commonUpload(multipartFile, model, pid, UploadConstants.UPLOAD_FILE_KEYWORD, false);
         } catch (IOException e) {
             logger.error("图片上传IO异常，{}", e.getMessage());
             throw new CrmebException("图片上传 IO异常");
@@ -107,7 +107,7 @@ public class UploadServiceImpl implements UploadService {
     public FileResultVo fileUpload(MultipartFile multipartFile, String model, Integer pid) throws IOException {
         FileResultVo fileResultVo = new FileResultVo();
         try {
-            fileResultVo = commonUpload(multipartFile, model, pid, UploadConstants.UPLOAD_FILE_KEYWORD);
+            fileResultVo = commonUpload(multipartFile, model, pid, UploadConstants.UPLOAD_FILE_KEYWORD, true);
         } catch (IOException e) {
             logger.error("文件上传IO异常，{}", e.getMessage());
             throw new CrmebException("文件上传 IO异常");
@@ -120,9 +120,10 @@ public class UploadServiceImpl implements UploadService {
      *
      * @param fileName 文件名称
      * @param fileSize 文件大小
+     * @param isFile   是否文件上传（文件走 file_max_size/file_ext_str 配置，图片走 image 配置）
      * @return 后缀名
      */
-    private String uploadValidate(String fileName, float fileSize, String fileType, String contentType) {
+    private String uploadValidate(String fileName, float fileSize, String fileType, String contentType, boolean isFile) {
         // 文件后缀名
         String extName = FilenameUtils.getExtension(fileName).toLowerCase();
         if (StrUtil.isEmpty(extName)) {
@@ -133,7 +134,7 @@ public class UploadServiceImpl implements UploadService {
             }
         }
 
-        String extStr = systemConfigService.getValueByKey(fileType.equals(UploadConstants.UPLOAD_AFTER_FILE_KEYWORD) ? SysConfigConstants.UPLOAD_FILE_EXT_STR_CONFIG_KEY : SysConfigConstants.UPLOAD_IMAGE_EXT_STR_CONFIG_KEY);
+        String extStr = systemConfigService.getValueByKey(isFile ? SysConfigConstants.UPLOAD_FILE_EXT_STR_CONFIG_KEY : SysConfigConstants.UPLOAD_IMAGE_EXT_STR_CONFIG_KEY);
         // 判断文件的后缀名是否符合规则
         if (StrUtil.isNotBlank(extStr)) {
             // 切割文件扩展名
@@ -148,7 +149,7 @@ public class UploadServiceImpl implements UploadService {
             }
         }
         // 文件大小验证
-        int size = Integer.parseInt(systemConfigService.getValueByKey(fileType.equals(UploadConstants.UPLOAD_AFTER_FILE_KEYWORD) ? SysConfigConstants.UPLOAD_FILE_MAX_SIZE_CONFIG_KEY : SysConfigConstants.UPLOAD_IMAGE_MAX_SIZE_CONFIG_KEY));
+        int size = Integer.parseInt(systemConfigService.getValueByKey(isFile ? SysConfigConstants.UPLOAD_FILE_MAX_SIZE_CONFIG_KEY : SysConfigConstants.UPLOAD_IMAGE_MAX_SIZE_CONFIG_KEY));
         String fs = String.format("%.2f", fileSize);
         if (fileSize > size) {
             throw new CrmebException(CommonResultCode.VALIDATE_FAILED, StrUtil.format("最大允许上传 {} MB文件，当前文件大小为 {} MB", size, fs));
@@ -164,10 +165,11 @@ public class UploadServiceImpl implements UploadService {
      * @param model         模块 用户user,商品product,微信wechat,文章article,系统system
      * @param pid           分类ID 0编辑器,1商品图片,2拼团图片,3砍价图片,4秒杀图片,5文章图片,6组合数据图,7前台用户,8微信系列
      * @param fileType      文件类型
+     * @param isFile        是否文件上传（文件走 file_max_size/file_ext_str 配置，图片走 image 配置）
      * @return FileResultVo
      * @throws IOException IOE异常
      */
-    private FileResultVo commonUpload(MultipartFile multipartFile, String model, Integer pid, String fileType) throws IOException {
+    private FileResultVo commonUpload(MultipartFile multipartFile, String model, Integer pid, String fileType, boolean isFile) throws IOException {
         if (ObjectUtil.isNull(multipartFile) || multipartFile.isEmpty()) {
             throw new CrmebException(CommonResultCode.VALIDATE_FAILED, "上载的文件对象不存在...");
         }
@@ -175,7 +177,7 @@ public class UploadServiceImpl implements UploadService {
         String fileName = multipartFile.getOriginalFilename();
         float fileSize = (float) multipartFile.getSize() / 1024 / 1024;
         // 文件后缀名
-        String extName = uploadValidate(fileName, fileSize, fileType, multipartFile.getContentType());
+        String extName = uploadValidate(fileName, fileSize, fileType, multipartFile.getContentType(), isFile);
         if (fileName.length() > 99) {
             fileName = StrUtil.subPre(fileName, 90).concat(".").concat(extName);
         }
