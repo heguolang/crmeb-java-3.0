@@ -38,12 +38,13 @@ export function hiddenSetSwitch(key, value) {
 }
 
 /**
- * 模块开关状态（匿名接口，前端/H5 通用）
+ * 模块开关简表（登录管理员可读，业务页面用）
  * 返回 { teamReward, stock, store, daili, spread }
+ * 注意：不要用 /front/hidden/switches——admin 服务没有该控制器，会 401
  */
-export function hiddenSwitchesFront() {
+export function hiddenSwitchesBrief() {
   return request({
-    url: '/front/hidden/switches',
+    url: '/admin/hidden/switch/brief',
     method: 'GET',
   });
 }

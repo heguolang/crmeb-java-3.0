@@ -373,6 +373,22 @@ public class HiddenController {
     }
 
     /**
+     * 模块开关简表（业务页面用）：任何登录管理员可读，不做运维账号校验。
+     * 返回短键名，与前端 moduleSwitches 对应：teamReward/stock/store/daili/spread
+     */
+    @ApiOperation(value = "模块开关简表", hidden = true)
+    @RequestMapping(value = "/switch/brief", method = RequestMethod.GET)
+    public Map<String, Object> switchBrief() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("teamReward", "1".equals(systemConfigService.getValueByKey("sys_switch_team_reward")));
+        result.put("stock", "1".equals(systemConfigService.getValueByKey("sys_switch_stock")));
+        result.put("store", "1".equals(systemConfigService.getValueByKey("sys_switch_store")));
+        result.put("daili", "1".equals(systemConfigService.getValueByKey("sys_switch_daili")));
+        result.put("spread", "1".equals(systemConfigService.getValueByKey("sys_switch_spread")));
+        return result;
+    }
+
+    /**
      * 设置模块开关（模式推广 / 营销通用）
      */
     @ApiOperation(value = "设置开关", hidden = true)

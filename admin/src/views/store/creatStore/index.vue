@@ -1014,7 +1014,7 @@ import creatAttr from '../components/creatAttr';
 import Templates from '../../appSetting/wxAccount/wxTemplate/index';
 import { Debounce } from '@/utils/validate';
 import { copyConfigApi, copyProductApi } from '@/api/store';
-import { hiddenSwitchesFront } from '@/api/hidden';
+import { hiddenSwitchesBrief } from '@/api/hidden';
 const defaultObj = {
   image: '',
   sliderImages: [],
@@ -1535,7 +1535,7 @@ export default {
   methods: {
     // 拉取模块开关：运维面板关闭的模块（分销/区域代理/团队奖/门店）隐藏对应佣金分节
     fetchModuleSwitches() {
-      hiddenSwitchesFront()
+      hiddenSwitchesBrief()
         .then((res) => {
           if (res && typeof res === 'object') {
             this.moduleSwitches = { ...this.moduleSwitches, ...res };
