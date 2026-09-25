@@ -15970,7 +15970,7 @@ LOCK TABLES `eb_system_menu` WRITE;
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (1,0,'运营','menu',NULL,'/dashboard','M',200,1,0,'2021-11-15 20:11:17','2024-07-04 01:34:56');
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (2,0,'商品','s-goods',NULL,'/store','M',180,1,0,'2021-11-15 20:11:17','2024-07-04 01:35:03');
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (3,0,'订单','s-order',NULL,'/order','M',160,1,0,'2021-11-15 20:11:17','2024-07-04 01:35:14');
-INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (4,0,'用户','user-solid',NULL,'/user','M',140,1,0,'2021-11-15 20:11:17','2024-07-04 01:35:23');
+INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (4,701,'用户','user-solid',NULL,'/user','M',106,1,0,'2021-11-15 20:11:17','2024-07-04 01:35:23');
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (5,0,'内容','s-management',NULL,'/content','M',130,1,0,'2021-11-15 20:11:18','2024-07-04 01:35:40');
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (6,0,'应用','s-promotion',NULL,'/appSetting','M',120,1,0,'2021-11-15 20:11:18','2024-07-04 01:35:49');
 INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`) VALUES (7,0,'营销','s-marketing',NULL,'/marketing','M',110,1,0,'2021-11-15 20:11:18','2024-07-04 01:35:56');
@@ -20878,7 +20878,7 @@ SET NAMES utf8mb4;
 -- ------------------------------------------------------------
 INSERT INTO `eb_system_menu`
   (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`)
-SELECT 0, '运营', 's-operation', NULL, '/yunying', 'M', 190, 1, 0, NOW(), NOW()
+SELECT 0, '会员', 's-operation', NULL, '/yunying', 'M', 190, 1, 0, NOW(), NOW()
   FROM DUAL
  WHERE NOT EXISTS (
        SELECT 1 FROM `eb_system_menu`
@@ -21839,8 +21839,8 @@ INSERT INTO `tmp_menu_sync`
 ('/operation', 'M', '', '', '设置', 's-tools', 70, 1, 0),
 ('/order', 'M', '', '', '订单', 's-order', 160, 1, 0),
 ('/store', 'M', '', '', '商品', 's-goods', 180, 1, 0),
-('/user', 'M', '', '', '用户', 'user-solid', 140, 1, 0),
-('/yunying', 'M', '', '', '运营', 's-operation', 190, 1, 0),
+('/user', 'M', '/yunying', '', '用户', 'user-solid', 106, 1, 0),
+('/yunying', 'M', '', '', '会员', 's-operation', 190, 1, 0),
 ('/user/grade', 'C', '/user', 'admin:system:user:level:list', '用户等级', '', 2, 1, 0),
 ('/user/group', 'C', '/user', 'admin:user:group:list', '用户分组', '', 1, 1, 0),
 ('/user/index', 'C', '/user', 'admin:user:list', '用户管理 ', '', 100, 1, 0),

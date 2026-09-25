@@ -1886,7 +1886,7 @@ SET NAMES utf8mb4;
 -- ------------------------------------------------------------
 INSERT INTO `eb_system_menu`
   (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`)
-SELECT 0, '运营', 's-operation', NULL, '/yunying', 'M', 190, 1, 0, NOW(), NOW()
+SELECT 0, '会员', 's-operation', NULL, '/yunying', 'M', 190, 1, 0, NOW(), NOW()
   FROM DUAL
  WHERE NOT EXISTS (
        SELECT 1 FROM `eb_system_menu`
@@ -2864,8 +2864,8 @@ INSERT INTO `tmp_menu_sync`
 ('/operation', 'M', '', '', '设置', 's-tools', 70, 1, 0),
 ('/order', 'M', '', '', '订单', 's-order', 160, 1, 0),
 ('/store', 'M', '', '', '商品', 's-goods', 180, 1, 0),
-('/user', 'M', '', '', '用户', 'user-solid', 140, 1, 0),
-('/yunying', 'M', '', '', '运营', 's-operation', 190, 1, 0),
+('/user', 'M', '/yunying', '', '用户', 'user-solid', 106, 1, 0),
+('/yunying', 'M', '', '', '会员', 's-operation', 190, 1, 0),
 ('/user/grade', 'C', '/user', 'admin:system:user:level:list', '用户等级', '', 2, 1, 0),
 ('/user/group', 'C', '/user', 'admin:user:group:list', '用户分组', '', 1, 1, 0),
 ('/user/index', 'C', '/user', 'admin:user:list', '用户管理 ', '', 100, 1, 0),
