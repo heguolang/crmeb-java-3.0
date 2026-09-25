@@ -36,3 +36,14 @@ export function hiddenSetSwitch(key, value) {
     params: { key, value },
   });
 }
+
+/**
+ * 模块开关状态（匿名接口，前端/H5 通用）
+ * 返回 { teamReward, stock, store, daili, spread }
+ */
+export function hiddenSwitchesFront() {
+  return request({
+    url: '/front/hidden/switches',
+    method: 'GET',
+  });
+}

@@ -221,13 +221,21 @@ export default {
       hiddenSetSwitch(item.key, groupObj[item.key])
         .then(() => {
           const target = groupObj[item.key] ? '开启' : '关闭';
-          this.$message.success(`「${item.name}」已${target}，正在刷新菜单…`);
-          // 清掉菜单缓存，刷新后强制重新拉取最新（已按开关过滤）的菜单
+          this.$message.success(`「${item.name}」已${target}，菜单已同步更新`);
+          // 清掉菜单缓存，原地重新拉取最新（已按开关过滤）的菜单并重建侧边栏。
+          // 不再用 location.reload()：整页刷新会重新走登录态/菜单/路由全套启动请求，
+          // 弱网或接口抖动时任何一步失败就是整页白屏（2026-09-25 线上实测）。
           localStorage.removeItem('MerPlatAdmin_MenuList');
           localStorage.removeItem('MerPlatAdmin_oneLvRoutes');
-          setTimeout(() => {
-            location.reload();
-          }, 600);
+          this.$store
+            .dispatch('user/getMenus')
+            .then(() => {
+              // 触发 aside / columnsAside 重新按新菜单树渲染
+              this.bus.$emit('routesListChange');
+            })
+            .catch(() => {
+              this.$message.error('菜单刷新失败，请手动刷新页面');
+            });
         })
         .catch(() => {
           groupObj[item.key] = !groupObj[item.key];

@@ -403,7 +403,7 @@
           </div>
 
           <!-- ==================== 1. 分销商返佣 ==================== -->
-          <section class="cm-sec cm-sec--dist">
+          <section v-if="moduleSwitches.spread" class="cm-sec cm-sec--dist">
             <header class="cm-sec__hd">
               <div class="cm-sec__title">
                 <span class="cm-sec__dot"></span>
@@ -627,7 +627,7 @@
           </section>
 
           <!-- ==================== 2. 区域代理 ==================== -->
-          <section class="cm-sec cm-sec--agent">
+          <section v-if="moduleSwitches.daili" class="cm-sec cm-sec--agent">
             <header class="cm-sec__hd">
               <div class="cm-sec__title">
                 <span class="cm-sec__dot"></span>
@@ -755,7 +755,7 @@
           </section>
 
           <!-- ==================== 3. 团队奖 ==================== -->
-          <section class="cm-sec cm-sec--team">
+          <section v-if="moduleSwitches.teamReward" class="cm-sec cm-sec--team">
             <header class="cm-sec__hd">
               <div class="cm-sec__title">
                 <span class="cm-sec__dot"></span>
@@ -877,7 +877,7 @@
           </section>
 
           <!-- ==================== 4. 门店服务费 ==================== -->
-          <section class="cm-sec cm-sec--store">
+          <section v-if="moduleSwitches.store" class="cm-sec cm-sec--store">
             <header class="cm-sec__hd">
               <div class="cm-sec__title">
                 <span class="cm-sec__dot"></span>
@@ -1014,6 +1014,7 @@ import creatAttr from '../components/creatAttr';
 import Templates from '../../appSetting/wxAccount/wxTemplate/index';
 import { Debounce } from '@/utils/validate';
 import { copyConfigApi, copyProductApi } from '@/api/store';
+import { hiddenSwitchesFront } from '@/api/hidden';
 const defaultObj = {
   image: '',
   sliderImages: [],
@@ -1254,6 +1255,9 @@ export default {
   data() {
     return {
       htmlKey: 0,
+      // 模块开关（运维面板）：关闭的模块隐藏佣金设置对应分节
+      // spread=分销返佣 daili=区域代理 teamReward=团队奖 store=门店服务费
+      moduleSwitches: { spread: true, daili: true, teamReward: true, store: true },
       isDisabled: this.$route.params.isDisabled === '1' ? true : false,
       activity: { 默认: 'red', 秒杀: 'blue', 砍价: 'green', 拼团: 'yellow' },
       props2: {
@@ -1515,6 +1519,7 @@ export default {
     this.loadProductGroups();
     this.loadLevelOptions();
     this.markCommissionBaseline();
+    this.fetchModuleSwitches();
   },
   mounted() {
     this.getCopyConfig();
@@ -1528,6 +1533,16 @@ export default {
     this.getGoodsType();
   },
   methods: {
+    // 拉取模块开关：运维面板关闭的模块（分销/区域代理/团队奖/门店）隐藏对应佣金分节
+    fetchModuleSwitches() {
+      hiddenSwitchesFront()
+        .then((res) => {
+          if (res && typeof res === 'object') {
+            this.moduleSwitches = { ...this.moduleSwitches, ...res };
+          }
+        })
+        .catch(() => {});
+    },
     addProduct() {
       if (this.url) {
         this.loading = true;
