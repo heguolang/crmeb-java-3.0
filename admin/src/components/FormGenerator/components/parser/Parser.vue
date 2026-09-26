@@ -91,7 +91,7 @@ const layouts = {
     const listeners = buildListeners.call(this, scheme);
     let labelWidth = config.labelWidth ? `${config.labelWidth}px` : null;
     if (config.showLabel === false) labelWidth = '0';
-    // 系统设置不再展示第三方帮助链接（历史 tipsIsLink / help.crmeb.net）
+    // 系统设置不再展示第三方帮助链接（历史 tipsIsLink 逻辑已移除）
     if (config.tips && config.tipsDesc && !config.tipsIsLink) {
       return (
         <el-col span={config.span}>

@@ -1,9 +1,9 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "crmeb_java_public",
+    "title": "qianxu_java_public",
     "version": "last",
-    "description": "crmeb_java_public"
+    "description": "qianxu_java_public"
   },
   "basePath": "/",
   "tags": [

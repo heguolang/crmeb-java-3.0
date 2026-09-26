@@ -96,7 +96,7 @@
 					font-size:26rpx;
 					font-family:PingFang SC;
 					font-weight:500;
-					color: $crmeb-font-color;
+					color: $qianxu-font-color;
 				}
 				.bottom{
 					margin-top: 22rpx;
@@ -120,19 +120,19 @@
 					.cart{
 						height: 46rpx;
 						.pictrue{
-							color: $crmeb-theme-color;
+							color: $qianxu-theme-color;
 							font-size:46rpx;
 							width: 46rpx;
 							height: 46rpx;
 							text-align: center;
 							line-height: 46rpx;
 							&.icon-jiahao{
-								 color: $crmeb-theme-color;
+								 color: $qianxu-theme-color;
 							}
 						}
 						.num{
 							font-size: 30rpx;
-							color: $crmeb-font-color;
+							color: $qianxu-font-color;
 							font-weight: bold;
 							width: 60rpx;
 							text-align: center;
@@ -141,9 +141,9 @@
 					.icon-gouwuche6{
 						width: 46rpx;
 						height: 46rpx;
-						background-color: $crmeb-theme-color;
+						background-color: $qianxu-theme-color;
 						border-radius: 50%;
-						color: $crmeb-font-color-white;
+						color: $qianxu-font-color-white;
 						font-size: 30rpx;
 					}
 					.bnt{
@@ -153,10 +153,10 @@
 						@include main_bg_color(theme);
 						border-radius:23rpx;
 						font-size: 22rpx;
-						color: $crmeb-font-color-white;
+						color: $qianxu-font-color-white;
 						position: relative;
 						&.end{
-							background:$crmeb-font-color-disable;
+							background:$qianxu-font-color-disable;
 						}
 						.num{
 							min-width: 12rpx;

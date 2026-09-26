@@ -9,8 +9,8 @@ import time
 
 MYSQL = r"D:\env\mysql-8.0.29-winx64\bin\mysql.exe"
 DB = "crmeb_java3"
-SQL = r"D:\crmeb-java-3.0\crmeb\sql\oneclick\ALL_IN_ONE.sql"
-LOG = r"D:\crmeb-java-3.0\local-dev\_trace_import.log"
+SQL = r"D:\qianxu-java-3.0\crmeb\sql\oneclick\ALL_IN_ONE.sql"
+LOG = r"D:\qianxu-java-3.0\local-dev\_trace_import.log"
 TABLES = ["eb_system_menu", "eb_system_config", "eb_system_admin"]
 
 

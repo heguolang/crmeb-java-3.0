@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-生成 crmeb/sql/table_comments_20260923.sql —— 表备注补全/修正脚本。
+生成 qianxu/sql/table_comments_20260923.sql —— 表备注补全/修正脚本。
 
 取值优先级：
   1) OVERRIDE        人工确认的修正值（错注释 / 乱码 / 英文注释）
@@ -14,7 +14,7 @@
 """
 import os, re, sys
 
-ROOT = r'D:\crmeb-java-3.0'
+ROOT = r'D:\qianxu-java-3.0'
 TMP = os.path.join(ROOT, 'local-dev', 'tmp')
 OUT = os.path.join(ROOT, 'crmeb', 'sql', 'table_comments_20260923.sql')
 
@@ -126,7 +126,7 @@ missing_before = [n for n, c in rows if not c]
 fixed = [n for n, c in rows if c and (n in OVERRIDE or '?' in c)]
 
 hdr = f"""-- ============================================================
--- CRMEB Java 3.0 表备注补全 / 修正（2026-09-23）
+-- QIANXU Java 3.0 表备注补全 / 修正（2026-09-23）
 --
 -- 背景：库里有一部分表没有 COMMENT，在客户端里看不出这张表是做什么的；
 --       另有少数表的注释写错、乱码或残留英文。
@@ -166,7 +166,7 @@ SELECT COUNT(*) AS 库里无备注的表数
  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
    AND IFNULL(TABLE_COMMENT, '') = '';
 
-SELECT 'CRMEB table_comments done' AS result;
+SELECT 'QIANXU table_comments done' AS result;
 """
 
 with open(OUT, 'w', encoding='utf-8', newline='\n') as f:

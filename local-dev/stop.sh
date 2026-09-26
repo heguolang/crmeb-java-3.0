@@ -1,15 +1,15 @@
 #!/bin/bash
-# CRMEB Java 3.0 本地一键停止脚本（仅停止应用，保留 MySQL / Redis）
+# QIANXU Java 3.0 本地一键停止脚本（仅停止应用，保留 MySQL / Redis）
 set -u
 
 echo "==> 停止管理端前端"
 pkill -f "vue-cli-service serve" 2>/dev/null && echo "    已停止" || echo "    未运行"
 
 echo "==> 停止后台 API (8080)"
-pkill -f "Crmeb-admin.jar" 2>/dev/null && echo "    已停止" || echo "    未运行"
+pkill -f "Qianxu-admin.jar" 2>/dev/null && echo "    已停止" || echo "    未运行"
 
 echo "==> 停止前台 API (8081)"
-pkill -f "Crmeb-front.jar" 2>/dev/null && echo "    已停止" || echo "    未运行"
+pkill -f "Qianxu-front.jar" 2>/dev/null && echo "    已停止" || echo "    未运行"
 
 echo ""
 echo "说明：会员端 H5 由 HBuilderX 运行，请在其内置浏览器中停止，或退出 HBuilderX。"

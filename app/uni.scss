@@ -23,7 +23,7 @@ $uni-color-success: #4cd964;
 $uni-color-warning: #f0ad4e;
 $uni-color-error: #dd524d;
 
-/* crmeb颜色变量 */
+/* qianxu颜色变量 */
 $theme-color:#E93323;
 $theme-color-opacity:rgba(233,51,35,.6);
 $bg-star: #f62c2c;
@@ -33,9 +33,9 @@ $bg-end1:#F86429;   // 主题渐变色1-结束
 
 
 /* 背景颜色 */
-$crmeb-theme-color: #1DB0FC;
-$crmeb-bg-color:#fff;
-$crmeb-bg-color-grey: #F7F7F7; //背景为灰色
+$qianxu-theme-color: #1DB0FC;
+$qianxu-bg-color:#fff;
+$qianxu-bg-color-grey: #F7F7F7; //背景为灰色
 $uni-bg-color:#ffffff;
 $uni-bg-color-grey:#f8f8f8;
 $uni-bg-color-hover:#f1f1f1;//点击状态颜色
@@ -46,13 +46,13 @@ $uni-border-color:#c8c7cc;
 
 /* 尺寸变量 */
 /*字体颜色(少部分其他,不限于字体)*/
-$crmeb-font-color: #333333; //文章标题、主要信息、强调内容、段落信息引导词、文字按钮
-$crmeb-font-color-subtitle: #666666; //通知公告、列表非编辑文字（如订单详情页内订单号、灰黑色按钮等）
-$crmeb-font-color-assist: #999999; //副标题文字、次要信息、辅助、提示（如首页副标题、已售件数等）
-$crmeb-font-color-grey: #bbbbbb; //辅助文字、相对弱性文字
-$crmeb-font-color-disable: #cccccc; //禁用状态文字、弱提示性文字（如搜索框、禁用按钮等）
-$crmeb-font-color-white: #ffffff; //用于彩色或深色背景上
-$crmeb-price-color: #FD502F; 
+$qianxu-font-color: #333333; //文章标题、主要信息、强调内容、段落信息引导词、文字按钮
+$qianxu-font-color-subtitle: #666666; //通知公告、列表非编辑文字（如订单详情页内订单号、灰黑色按钮等）
+$qianxu-font-color-assist: #999999; //副标题文字、次要信息、辅助、提示（如首页副标题、已售件数等）
+$qianxu-font-color-grey: #bbbbbb; //辅助文字、相对弱性文字
+$qianxu-font-color-disable: #cccccc; //禁用状态文字、弱提示性文字（如搜索框、禁用按钮等）
+$qianxu-font-color-white: #ffffff; //用于彩色或深色背景上
+$qianxu-price-color: #FD502F; 
 /* 文字尺寸 */
 $uni-font-size-sm:24upx;
 $uni-font-size-base:28upx;

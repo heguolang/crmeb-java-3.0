@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # ==================================================================
-#  CRMEB Java 3.0 - start ALL local services with ONE command
+#  QIANXU Java 3.0 - start ALL local services with ONE command
 #    Redis 6379 | Admin API 8080 | Front API 8081 | Admin Web 9527
 #
-#  Usage:  bash /d/crmeb-java-3.0/local-dev/start-all.sh
-#          bash /d/crmeb-java-3.0/local-dev/start-all.sh --detach
+#  Usage:  bash /d/qianxu-java-3.0/local-dev/start-all.sh
+#          bash /d/qianxu-java-3.0/local-dev/start-all.sh --detach
 #  Idempotent: any port already LISTENING is skipped.
 #
 #  Default mode keeps this shell ALIVE on purpose: when launched as a
@@ -13,7 +13,7 @@
 #  --detach returns immediately (use when you run it by hand and accept
 #  that the services may be reaped later).
 #
-#  Then check with:  bash /d/crmeb-java-3.0/local-dev/check-all.sh
+#  Then check with:  bash /d/qianxu-java-3.0/local-dev/check-all.sh
 # ==================================================================
 set -u
 export PATH="/usr/bin:/bin:/c/Windows/System32:$PATH"
@@ -25,14 +25,14 @@ esac
 
 JAVA="D:/env/java/jdk8u504-b01/bin/java.exe"
 NODE_DIR="/c/Users/Administrator/.workbuddy/binaries/node/versions/22.22.2-3"
-PROJ=/d/crmeb-java-3.0
+PROJ=/d/qianxu-java-3.0
 LOGS=$PROJ/local-dev/logs
 mkdir -p "$LOGS"
 
 port_up() { netstat -ano 2>/dev/null | grep LISTENING | grep -q ":$1 "; }
 
 echo "==================================================="
-echo " CRMEB start-all (6379 / 8080 / 8081 / 9527)"
+echo " QIANXU start-all (6379 / 8080 / 8081 / 9527)"
 echo "==================================================="
 
 # ---------- Redis 6379 ----------
@@ -43,15 +43,15 @@ fi
 
 # ---------- Admin API 8080 ----------
 if port_up 8080; then echo "[8080] Admin API  -> already up"; else
-  (cd "$PROJ/crmeb/crmeb-admin/target" && "$JAVA" -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 \
-     -jar Crmeb-admin.jar --server.port=8080 > "$LOGS/admin-8080.log" 2>&1 &)
+  (cd "$PROJ/qianxu/qianxu-admin/target" && "$JAVA" -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 \
+     -jar Qianxu-admin.jar --server.port=8080 > "$LOGS/admin-8080.log" 2>&1 &)
   echo "[8080] Admin API  -> starting (~60s)"
 fi
 
 # ---------- Front API 8081 ----------
 if port_up 8081; then echo "[8081] Front API  -> already up"; else
-  (cd "$PROJ/crmeb/crmeb-front/target" && "$JAVA" -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 \
-     -jar Crmeb-front.jar --server.port=8081 > "$LOGS/front-8081.log" 2>&1 &)
+  (cd "$PROJ/qianxu/qianxu-front/target" && "$JAVA" -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 \
+     -jar Qianxu-front.jar --server.port=8081 > "$LOGS/front-8081.log" 2>&1 &)
   echo "[8081] Front API  -> starting (~60s)"
 fi
 

@@ -1,14 +1,14 @@
 @echo off
 REM ============================================================
-REM  CRMEB Java 3.0  -  Windows local dev launcher
+REM  QIANXU Java 3.0  -  Windows local dev launcher
 REM  Starts: MySQL 8.0(3306) -> Redis(6379) -> Admin API(8080)
 REM          -> Front API(8081) -> Admin Web(9527)
 REM  DB     : Windows service "MySQL80" (auto-start), root/123456, db crmeb
-REM  Logs   : D:\crmeb-java-3.0\local-dev\logs
+REM  Logs   : D:\qianxu-java-3.0\local-dev\logs
 REM ============================================================
 setlocal
 set "JAVA_HOME=D:\env\java\jdk8u504-b01"
-set "PROJ=D:\crmeb-java-3.0"
+set "PROJ=D:\qianxu-java-3.0"
 set "LOGS=%PROJ%\local-dev\logs"
 REM MySQL 8.0 runs as a Windows service; we only need "net start" when it is down.
 set "MYSQL_SVC=MySQL80"
@@ -46,14 +46,14 @@ if errorlevel 1 (
 echo [3/5] Admin API 8080 ...
 netstat -ano | findstr /C:":8080 " | findstr LISTENING >nul
 if errorlevel 1 (
-  start "crmeb-admin" /B "%JAVA_HOME%\bin\java.exe" %JAVA_OPTS% -jar "%PROJ%\crmeb\crmeb-admin\target\Crmeb-admin.jar" --server.port=8080 %DEMO_FLAG% > "%LOGS%\crmeb-admin.log" 2>&1
+  start "qianxu-admin" /B "%JAVA_HOME%\bin\java.exe" %JAVA_OPTS% -jar "%PROJ%\qianxu\qianxu-admin\target\Qianxu-admin.jar" --server.port=8080 %DEMO_FLAG% > "%LOGS%\qianxu-admin.log" 2>&1
   echo       starting
 ) else ( echo       already running )
 
 echo [4/5] Front API 8081 ...
 netstat -ano | findstr /C:":8081 " | findstr LISTENING >nul
 if errorlevel 1 (
-  start "crmeb-front" /B "%JAVA_HOME%\bin\java.exe" %JAVA_OPTS% -jar "%PROJ%\crmeb\crmeb-front\target\Crmeb-front.jar" --server.port=8081 %DEMO_FLAG% > "%LOGS%\crmeb-front.log" 2>&1
+  start "qianxu-front" /B "%JAVA_HOME%\bin\java.exe" %JAVA_OPTS% -jar "%PROJ%\qianxu\qianxu-front\target\Qianxu-front.jar" --server.port=8081 %DEMO_FLAG% > "%LOGS%\qianxu-front.log" 2>&1
   echo       starting
 ) else ( echo       already running )
 
@@ -62,7 +62,7 @@ netstat -ano | findstr /C:":9527 " | findstr LISTENING >nul
 if errorlevel 1 (
   set "PATH=%NODE_DIR%;%PATH%"
   set "NODE_OPTIONS=--openssl-legacy-provider"
-  start "crmeb-admin-web" /B cmd /c "npm --prefix "%PROJ%\admin" run dev -- --port=9527 > "%LOGS%\admin-web.log" 2>&1"
+  start "qianxu-admin-web" /B cmd /c "npm --prefix "%PROJ%\admin" run dev -- --port=9527 > "%LOGS%\admin-web.log" 2>&1"
   echo       starting ^(first run may take 1-2 min^)
 ) else ( echo       already running )
 

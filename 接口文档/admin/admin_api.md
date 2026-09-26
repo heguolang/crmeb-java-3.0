@@ -1,6 +1,6 @@
 
- <h1 class="curproject-name"> crmeb_java_admin </h1> 
- crmeb_java_admin
+ <h1 class="curproject-name"> qianxu_java_admin </h1> 
+ qianxu_java_admin
 
 
 # Admin 平台用户

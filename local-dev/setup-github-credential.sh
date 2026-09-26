@@ -6,14 +6,14 @@
 #       既不落成明文文件，也不会出现在对话记录里。
 #
 # 用法：在「终端」里执行
-#     bash /Users/qianxu/WorkBuddy/java/crmeb-java-3.0/local-dev/setup-github-credential.sh
+#     bash /Users/qianxu/WorkBuddy/java/qianxu-java-3.0/local-dev/setup-github-credential.sh
 #
 # 跑完会做一次真实验证，并生成 local-dev/push-to-github.sh —— 之后直接跑它就能推。
 
 set -u
 
-REPO="/Users/qianxu/WorkBuddy/java/crmeb-java-3.0"
-GH_REPO="heguolang/crmeb-java-3.0"
+REPO="/Users/qianxu/WorkBuddy/java/qianxu-java-3.0"
+GH_REPO="heguolang/qianxu-java-3.0"
 DIRECT_HOST="github.com"
 DIRECT_URL="https://${DIRECT_HOST}/${GH_REPO}.git"
 MIRROR_HOST="ghfast.top"

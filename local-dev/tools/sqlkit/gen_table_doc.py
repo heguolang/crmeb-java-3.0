@@ -75,10 +75,10 @@ def main():
         buckets.setdefault(match(t) or '其它', []).append((t, cmt, n))
 
     out = []
-    out.append('# CRMEB Java 3.0 数据库表清单')
+    out.append('# QIANXU Java 3.0 数据库表清单')
     out.append('')
-    out.append('> 库名 `crmeb`（线上 `crmeb_java3`），共 %d 张基础表，全部已带中文备注。' % len(rows))
-    out.append('> 表备注由 `crmeb/sql/table_comments_20260923.sql` 幂等维护，已并入 `crmeb/sql/oneclick/02_patches_all.sql`。')
+    out.append('> 库名 `qianxu`（线上 `crmeb_java3`），共 %d 张基础表，全部已带中文备注。' % len(rows))
+    out.append('> 表备注由 `qianxu/sql/table_comments_20260923.sql` 幂等维护，已并入 `qianxu/sql/oneclick/02_patches_all.sql`。')
     out.append('')
     # 目录
     out.append('## 模块索引')

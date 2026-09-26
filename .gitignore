@@ -9,9 +9,9 @@ Thumbs.db
 # Logs
 *.log
 LOG_HOME_IS_UNDEFINED/
-crmeb_front_log/
-crmeb_admin_log/
-crmeb/*/LOG_HOME_IS_UNDEFINED/
+qianxu_front_log/
+qianxu_admin_log/
+qianxu/*/LOG_HOME_IS_UNDEFINED/
 
 # Java / Maven
 **/target/
@@ -83,3 +83,13 @@ local-dev/tmp*/**
 local-dev/backup_*/
 local-dev/*.sql
 !local-dev/sql/*.sql
+
+# 本地工作区与设计稿（不入库）
+.workbuddy/
+admin/dist_*/
+会员端主题设计图/
+会员端主题设计图.zip
+后台改版-*.png
+后台改版-*.md
+local-dev/线上会员账号_*.md
+local-dev/audit_skills.py

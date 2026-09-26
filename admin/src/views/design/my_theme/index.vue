@@ -9,7 +9,7 @@
           <el-button type="primary" @click="handleAdd">新建主题</el-button>
           <el-button @click="handleImport">导入主题</el-button>
           <!-- 主题广场入口已按需求隐藏（2026-09-17），恢复时取消下行注释 -->
-          <!-- <img class="theme-in" src="https://www.crmeb.com/static/images/zhutishichang.png" alt="" @click="toTheme" /> -->
+          <!-- <img class="theme-in" src="" alt="" @click="toTheme" /> -->
         </div>
         <div class="right-actions flex">
           <el-input v-model="searchKeyword" placeholder="请输入主题名称" class="search-input m-r-10"> </el-input>
@@ -276,7 +276,7 @@ export default {
       this.selectVisible = true;
     },
     toTheme() {
-      window.open('https://www.crmeb.com/theme?from=crmebkytheme', '_blank');
+      // （主题广场外链已移除）
     },
     handleThemeSelect(theme) {
       // 跳转新建页，使用选中主题作为模板

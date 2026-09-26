@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-CRMEB Java 3.0 —— 线上（宝塔 Linux）部署辅助脚本
+QIANXU Java 3.0 —— 线上（宝塔 Linux）部署辅助脚本
 =================================================
 用 SSH 直连服务器完成：探测 -> 上传 -> 备份 -> 校验。
 （**落位 + 重启不在本脚本内**，见下方 ⚠）
@@ -27,13 +27,13 @@ CRMEB Java 3.0 —— 线上（宝塔 Linux）部署辅助脚本
 
     ⚠ apply（覆盖 jar + 前端 + 重启）**不在本脚本实现**，只打印步骤：
       线上停进程必须用**完整 jar 路径**匹配，否则会误杀服务器上并存的
-      另一套 CRMEB（admin.xml168.cn）。这套动作风险高，按
-      `crmeb-build-deploy` 技能「线上部署」章节的步骤逐条手工执行、
+      另一套 QIANXU（admin.xml168.cn）。这套动作风险高，按
+      `qianxu-build-deploy` 技能「线上部署」章节的步骤逐条手工执行、
       每步核对输出，不要图省事一次性批量跑。
 
 安全约定：
     * 本脚本**不做**任何 delete/rm 业务数据操作；
-    * 覆盖前一律先备份到 /www/backup/crmeb_deploy_<ts>/；
+    * 覆盖前一律先备份到 /www/backup/qianxu_deploy_<ts>/；
     * 破坏性动作需要额外加 --yes 才真正执行。
 """
 
@@ -56,17 +56,17 @@ DB_NAME = os.environ.get("CRM_DB_NAME", "crmeb_java3")
 ONLINE_ADMIN = "/www/wwwroot/api.qianxutec.com"        # admin/front jar 所在
 ONLINE_WEB = "/www/wwwroot/admin.qianxutec.com"        # 后台前端 dist 所在
 
-LOCAL = "D:/crmeb-java-3.0"
+LOCAL = "D:/qianxu-java-3.0"
 ART = {
-    "admin_jar": LOCAL + "/crmeb/crmeb-admin/target/Crmeb-admin.jar",
-    "front_jar": LOCAL + "/crmeb/crmeb-front/target/Crmeb-front.jar",
+    "admin_jar": LOCAL + "/qianxu/qianxu-admin/target/Qianxu-admin.jar",
+    "front_jar": LOCAL + "/qianxu/qianxu-front/target/Qianxu-front.jar",
     "admin_dist": LOCAL + "/admin/dist_online",
-    "sql": LOCAL + "/crmeb/sql/oneclick/02_patches_all.sql",
+    "sql": LOCAL + "/qianxu/sql/oneclick/02_patches_all.sql",
 }
 
 TS = time.strftime("%Y%m%d_%H%M%S")
-STAGING = "/tmp/crmeb_deploy_" + TS
-BACKUP = "/www/backup/crmeb_deploy_" + TS
+STAGING = "/tmp/qianxu_deploy_" + TS
+BACKUP = "/www/backup/qianxu_deploy_" + TS
 
 
 def log(msg):
@@ -172,7 +172,7 @@ def cmd_probe(cli):
     run(cli, "which mysql; mysql -uroot -p'$(grep -m1 -oP \"(?<=password=).*\" /www/server/panel/config/mysql.json 2>/dev/null)' -e 'select 1' 2>/dev/null | head -2")
 
     log("\n[10] 当前部署版本线索（jar 时间戳）")
-    run(cli, "find /www/wwwroot /www/server /opt /home -maxdepth 4 -name 'Crmeb*.jar' -exec ls -la {} \\; 2>/dev/null | head -10")
+    run(cli, "find /www/wwwroot /www/server /opt /home -maxdepth 4 -name 'Qianxu*.jar' -exec ls -la {} \\; 2>/dev/null | head -10")
 
     log("\n探测完成，未改动任何东西。")
 
@@ -184,7 +184,7 @@ def cmd_backup(cli, yes):
     run(cli, "mkdir -p %s/jar %s/dist" % (BACKUP, BACKUP))
 
     log("\n[1] 备份 jar")
-    for j in ("Crmeb-admin.jar", "Crmeb-front.jar"):
+    for j in ("Qianxu-admin.jar", "Qianxu-front.jar"):
         run(cli, "cp -p %s/%s %s/jar/ 2>/dev/null && echo '  已备份 %s' || echo '  跳过 %s（不存在）'"
                  % (ONLINE_ADMIN, j, BACKUP, j, j))
 
@@ -199,8 +199,8 @@ def cmd_backup(cli, yes):
         log("  （未设 CRM_DB_PASS，跳过 mysqldump）")
     else:
         run(cli, "/www/server/mysql/bin/mysqldump -u%s -p%s --single-transaction --routines "
-                 "--triggers --events %s 2>/dev/null | gzip > %s/crmeb_%s.sql.gz && "
-                 "ls -la %s/crmeb_%s.sql.gz"
+                 "--triggers --events %s 2>/dev/null | gzip > %s/qianxu_%s.sql.gz && "
+                 "ls -la %s/qianxu_%s.sql.gz"
                  % (DB_USER, DB_PASS, DB_NAME, BACKUP, DB_NAME, BACKUP, DB_NAME))
 
     run(cli, "du -sh %s" % BACKUP)
@@ -256,7 +256,7 @@ def cmd_sql(cli, yes):
     log("       hidden_super_admin  -> sys_switch_* 三个模块开关")
     log("     线上若手工调过这些，整包跑会把它们打回原形。")
     log("     正确做法：先从 SQL 里抽出全部表名 + 列名，逐个查线上 information_schema")
-    log("     算差集，只补真正缺的那几列（见 crmeb-build-deploy 技能「线上部署」章节）。")
+    log("     算差集，只补真正缺的那几列（见 qianxu-build-deploy 技能「线上部署」章节）。")
     log("")
     code, out, _ = run(cli, "test -f %s && echo OK" % sql_remote, quiet=True)
     if "OK" not in out:
@@ -277,10 +277,10 @@ def cmd_apply(cli, yes):
     """已停用。落位 + 重启风险高，必须逐步手工执行并核对输出。"""
     log("\n落位（覆盖 jar 与后台前端）+ 重启 —— 本脚本不代劳")
     log("")
-    log("  原因：服务器上**并存放着两套 CRMEB**（本项目 api.qianxutec.com 与")
+    log("  原因：服务器上**并存放着两套 QIANXU**（本项目 api.qianxutec.com 与")
     log("        admin.xml168.cn）。停进程若只按 jar 名匹配，会连别人那套一起杀掉。")
-    log("        必须用**完整路径**匹配：grep \"$D/Crmeb-admin.jar\"。这类动作不适合")
-    log("        放进脚本一键跑，请按 crmeb-build-deploy 技能「线上部署」章节逐步执行。")
+    log("        必须用**完整路径**匹配：grep \"$D/Qianxu-admin.jar\"。这类动作不适合")
+    log("        放进脚本一键跑，请按 qianxu-build-deploy 技能「线上部署」章节逐步执行。")
     log("")
     log("  参照参数（本次实测）：")
     log("    站点目录 D = %s" % ONLINE_ADMIN)

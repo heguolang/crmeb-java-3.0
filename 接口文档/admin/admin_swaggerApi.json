@@ -1,9 +1,9 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "crmeb_java_admin",
+    "title": "qianxu_java_admin",
     "version": "last",
-    "description": "crmeb_java_admin"
+    "description": "qianxu_java_admin"
   },
   "basePath": "/",
   "tags": [

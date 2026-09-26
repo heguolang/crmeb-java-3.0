@@ -63,7 +63,7 @@ import colors from "@/mixins/color";
 import themePage from "@/mixins/themePage.js";
 import PageDesign from "@/subpackage/diyComponents/pageDesign.vue";
 import { getShare } from "@/api/public.js";
-import { getCrmebCopyRight, getTempIds } from "@/api/api.js";
+import { getQianxuCopyRight, getTempIds } from "@/api/api.js";
 import { SUBSCRIBE_MESSAGE } from "@/config/cache";
 import { mapGetters, mapMutations } from "vuex";
 import { toLogin } from "@/libs/login.js";
@@ -209,7 +209,7 @@ export default {
       if (options.spid) app.globalData.spid = options.spid;
     },
     getCopyRight() {
-      getCrmebCopyRight()
+      getQianxuCopyRight()
         .then((res) => {
           let data = res.data;
           uni.setStorageSync("wechatStatus", data.wechat_status);

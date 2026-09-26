@@ -1,0 +1,100 @@
+package com.qxkj.common.constants;
+
+/**
+ *
+ *  +----------------------------------------------------------------------
+ *  | 黔序商城 [ 黔序科技，助力企业发展 ]
+ *  +----------------------------------------------------------------------
+ *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
+ *  +----------------------------------------------------------------------
+ *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
+ *  +----------------------------------------------------------------------
+ *  | Author: 贵州黔序科技有限公司
+ *  +----------------------------------------------------------------------
+ */
+public class BrokerageRecordConstants {
+
+    /** 佣金记录类型—增加 */
+    public static final Integer BROKERAGE_RECORD_TYPE_ADD = 1;
+
+    /** 佣金记录类型—扣减 */
+    public static final Integer BROKERAGE_RECORD_TYPE_SUB = 2;
+
+    /** 佣金记录状态—创建 */
+    public static final Integer BROKERAGE_RECORD_STATUS_CREATE = 1;
+
+    /** 佣金记录状态—冻结期 */
+    public static final Integer BROKERAGE_RECORD_STATUS_FROZEN = 2;
+
+    /** 佣金记录状态—完成 */
+    public static final Integer BROKERAGE_RECORD_STATUS_COMPLETE = 3;
+
+    /** 佣金记录状态—失效（订单退款） */
+    public static final Integer BROKERAGE_RECORD_STATUS_INVALIDATION = 4;
+
+    /** 佣金记录状态—提现申请 */
+    public static final Integer BROKERAGE_RECORD_STATUS_WITHDRAW = 5;
+
+    /** 佣金记录关联类型—订单 */
+    public static final String BROKERAGE_RECORD_LINK_TYPE_ORDER = "order";
+
+    /** 佣金记录关联类型—提现 */
+    public static final String BROKERAGE_RECORD_LINK_TYPE_WITHDRAW = "withdraw";
+
+    /** 佣金记录关联类型—转余额 */
+    public static final String BROKERAGE_RECORD_LINK_TYPE_YUE = "yue";
+
+    /** 佣金记录关联类型—后台操作 */
+    public static final String BROKERAGE_RECORD_LINK_TYPE_SYSTEM = "system";
+
+    /** 佣金记录标题—订单获得佣金 */
+    public static final String BROKERAGE_RECORD_TITLE_ORDER = "获得推广佣金";
+
+    /** 佣金记录标题—自购返佣 */
+    public static final String BROKERAGE_RECORD_TITLE_SELF = "获得自购返佣";
+
+    /** 分销等级—自购返佣 */
+    public static final Integer BROKERAGE_LEVEL_SELF = 0;
+
+    /** 分销等级—团队极差奖 */
+    public static final Integer BROKERAGE_LEVEL_TEAM_DIFF = 10;
+
+    /** 分销等级—团队平级奖 */
+    public static final Integer BROKERAGE_LEVEL_TEAM_PEER = 11;
+
+    /** 佣金记录标题—团队极差奖 */
+    public static final String BROKERAGE_RECORD_TITLE_TEAM_DIFF = "获得团队极差奖";
+
+    /** 佣金记录标题—团队平级奖 */
+    public static final String BROKERAGE_RECORD_TITLE_TEAM_PEER = "获得团队平级奖";
+
+    /** 分销等级—区域代理奖励 */
+    public static final Integer BROKERAGE_LEVEL_AGENT = 12;
+
+    /** 分销等级—区域代理平级推荐奖 */
+    public static final Integer BROKERAGE_LEVEL_AGENT_PEER = 13;
+
+    /** 分销等级—区域代理越级推荐奖 */
+    public static final Integer BROKERAGE_LEVEL_AGENT_LEAP = 14;
+
+    /** 佣金记录标题—区域代理奖励 */
+    public static final String BROKERAGE_RECORD_TITLE_AGENT = "获得区域代理奖励";
+
+    /** 佣金记录标题—区域代理平级推荐奖 */
+    public static final String BROKERAGE_RECORD_TITLE_AGENT_PEER = "获得区域代理平级推荐奖";
+
+    /** 佣金记录标题—区域代理越级推荐奖 */
+    public static final String BROKERAGE_RECORD_TITLE_AGENT_LEAP = "获得区域代理越级推荐奖";
+
+    /** 佣金记录标题—提现申请 */
+    public static final String BROKERAGE_RECORD_TITLE_WITHDRAW_APPLY = "提现申请";
+
+    /** 佣金记录标题—提现拒绝 */
+    public static final String BROKERAGE_RECORD_TITLE_WITHDRAW_FAIL = "提现申请拒绝";
+
+    /** 佣金记录标题—佣金转余额 */
+    public static final String BROKERAGE_RECORD_TITLE_BROKERAGE_YUE = "佣金转余额";
+
+    /** 佣金记录标题—后台操作 */
+    public static final String BROKERAGE_RECORD_TITLE_SYSTEM = "后台操作";
+}

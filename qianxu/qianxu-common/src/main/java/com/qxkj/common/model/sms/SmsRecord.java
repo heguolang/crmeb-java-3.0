@@ -1,0 +1,66 @@
+package com.qxkj.common.model.sms;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
+
+import java.io.Serializable;
+import java.util.Date;
+
+/**
+ *
+ *  +----------------------------------------------------------------------
+ *  | 黔序商城 [ 黔序科技，助力企业发展 ]
+ *  +----------------------------------------------------------------------
+ *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
+ *  +----------------------------------------------------------------------
+ *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
+ *  +----------------------------------------------------------------------
+ *  | Author: 贵州黔序科技有限公司
+ *  +----------------------------------------------------------------------
+ */
+@Data
+@EqualsAndHashCode(callSuper = false)
+@Accessors(chain = true)
+@TableName("eb_sms_record")
+@ApiModel(value="SmsRecord对象", description="短信发送记录表")
+public class SmsRecord implements Serializable {
+
+    private static final long serialVersionUID=1L;
+
+    @ApiModelProperty(value = "短信发送记录编号")
+    @TableId(value = "id", type = IdType.AUTO)
+    private Integer id;
+
+    @ApiModelProperty(value = "短信平台账号")
+    private String uid;
+
+    @ApiModelProperty(value = "接受短信的手机号")
+    private String phone;
+
+    @ApiModelProperty(value = "短信内容")
+    private String content;
+
+    @ApiModelProperty(value = "添加记录ip")
+    private String addIp;
+
+    @ApiModelProperty(value = "短信模板ID")
+    private String template;
+
+    @ApiModelProperty(value = "状态码 100=成功,130=失败,131=空号,132=停机,133=关机,134=无状态")
+    private Integer resultcode;
+
+    @ApiModelProperty(value = "发送记录id")
+    private Integer recordId;
+
+    @ApiModelProperty(value = "创建时间")
+    private Date createTime;
+
+    @ApiModelProperty(value = "备注")
+    private String memo;
+}

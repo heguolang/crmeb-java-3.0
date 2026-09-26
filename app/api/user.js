@@ -1,11 +1,11 @@
 // +----------------------------------------------------------------------
-// | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
+// | 黔序商城 [ 黔序科技，助力企业发展 ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2016~2026 https://www.crmeb.com All rights reserved.
+// | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
 // +----------------------------------------------------------------------
-// | Licensed CRMEB并不是自由软件，未经许可不能去掉CRMEB相关版权
+// | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
 // +----------------------------------------------------------------------
-// | Author: CRMEB Team <admin@crmeb.com>
+// | Author: 贵州黔序科技有限公司
 // +----------------------------------------------------------------------
 
 import request from "@/utils/request.js";
@@ -448,22 +448,11 @@ export function getuserDalance()
 }
 
 /*
-统计
+统计（原 QIANXU 官方统计上报接口已移除）
 *
 */
 export function computeUser(){
-	uni.request({
-	    url: document.location.protocol + '//shop.crmeb.net/index.php/admin/server.upgrade_api/updatewebinfo',
-		method:'POST',
-		data: {
-	        host:window.location.host,
-			https:document.location.protocol,
-			version:'CRMEB-JAVA-SY-V2.0',
-			ip:Cache.has('Ip') ? Cache.get('Ip') : ''
-	    },
-		dataType:'json',
-	    success: (res) => {}
-	});
+	// 黔序商城：不再向任何第三方上报站点信息
 }
 
 /**

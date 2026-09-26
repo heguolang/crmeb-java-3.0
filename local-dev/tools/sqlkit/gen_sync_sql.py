@@ -5,17 +5,17 @@
 输入：
   local-dev/tmp/local_config.tsv   本地 eb_system_config（HEX 编码 value）
   local-dev/tmp/menu_full.tsv      本地 eb_system_menu 全表 + 父级 component
-  crmeb/sql/Crmeb_v3.0.sql         厂商基库 dump（用于算「与基库不同」的差异集）
+  qianxu/sql/Qianxu_v3.0.sql         厂商基库 dump（用于算「与基库不同」的差异集）
 
 输出：
-  crmeb/sql/system_settings_20260923.sql
-  crmeb/sql/menu_sync_20260923.sql
+  qianxu/sql/system_settings_20260923.sql
+  qianxu/sql/menu_sync_20260923.sql
 """
 import re, os, datetime
 
-TMP = r'D:\crmeb-java-3.0\local-dev\tmp'
-SQLDIR = r'D:\crmeb-java-3.0\crmeb\sql'
-BASE_SQL = os.path.join(SQLDIR, 'Crmeb_v3.0.sql')
+TMP = r'D:\qianxu-java-3.0\local-dev\tmp'
+SQLDIR = r'D:\qianxu-java-3.0\crmeb\sql'
+BASE_SQL = os.path.join(SQLDIR, 'Qianxu_v3.0.sql')
 
 PROD_API = 'http://api.qianxutec.com'
 PROD_H5 = 'http://app.qianxutec.com'
@@ -91,9 +91,9 @@ chg_lines = '\n'.join(
     for n in CHANGED_NAMES if n in loc)
 
 hdr = f"""-- ============================================================
--- CRMEB Java 3.0 项目配置收敛（本地配置 → 线上）
+-- QIANXU Java 3.0 项目配置收敛（本地配置 → 线上）
 -- 生成时间: {datetime.datetime.now():%Y-%m-%d %H:%M:%S}
--- 生成来源：本地库 eb_system_config 与厂商基库 Crmeb_v3.0.sql 的差异集
+-- 生成来源：本地库 eb_system_config 与厂商基库 Qianxu_v3.0.sql 的差异集
 --   · 我方新增配置 {len(new_names)} 项（订货商 / 团队奖 / 分销商等级 / 区域代理 / 提现 / 隐藏面板开关等）
 --   · 值被我方修改 {len(CHANGED_NAMES)} 项，逐条如下：
 {chg_lines}
@@ -146,7 +146,7 @@ SELECT t.`name`, t.`title`, 0, t.`value`, 0, NOW(), NOW()
 DROP TEMPORARY TABLE `tmp_cfg_sync`;
 
 -- 3) 自检：下列各项必须全部存在（数量应与本次同步项数一致）
-SELECT 'CRMEB system_settings done' AS result, COUNT(*) AS ensured_rows
+SELECT 'QIANXU system_settings done' AS result, COUNT(*) AS ensured_rows
   FROM eb_system_config WHERE `name` IN (""" + ', '.join(q(n) for n, _, _ in rows_cfg) + """);
 """
 
@@ -194,7 +194,7 @@ hidden = [m for m in menu_rows if m['is_show'] == '0' and m['is_delte'] == '0']
 depth1 = [m for m in menu_rows if m['parent']]
 
 mhdr = f"""-- ============================================================
--- CRMEB Java 3.0 后台菜单可见树收敛（本地 → 线上）
+-- QIANXU Java 3.0 后台菜单可见树收敛（本地 → 线上）
 -- 生成时间: {datetime.datetime.now():%Y-%m-%d %H:%M:%S}
 -- 范围：menu_type 为 M（目录）/ C（菜单）的 {len(menu_rows)} 项，即后台左侧导航的完整可见树。
 --       其中标记为删除 {len(deleted)} 项、隐藏 {len(hidden)} 项、有父级归属 {len(depth1)} 项。
@@ -317,7 +317,7 @@ DROP TEMPORARY TABLE `tmp_menu_canon`;
 DROP TEMPORARY TABLE `tmp_menu_sync`;
 
 -- 4) 自检：可见树里应当能查到全部已删除标记
-SELECT 'CRMEB menu_sync done' AS result,
+SELECT 'QIANXU menu_sync done' AS result,
        SUM(`menu_type` = 'M') AS dirs,
        SUM(`menu_type` = 'C') AS menus,
        SUM(IFNULL(`is_delte`, 0) = 1 AND `menu_type` IN ('M', 'C')) AS deleted_mark

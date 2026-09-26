@@ -1,6 +1,6 @@
 # 分销商升级条件 / 团队奖 / 订货商升级条件 — 检查与接入清单
 
-> 日期：2026-09-23　代码根：`D:\crmeb-java-3.0\crmeb`
+> 日期：2026-09-23　代码根：`D:\qianxu-java-3.0\crmeb`
 > 本次改动：分销商等级全链路接入 + 团队等级幂等/并发加固 + 订货商统计口径修正
 
 ---
@@ -22,7 +22,7 @@
 
 | 项 | 状态 | 位置 |
 |---|---|---|
-| 统计表（6 个金额字段，持久化） | ✅ | `crmeb-common/.../model/user/UserTeamLevelStat.java:34-50` |
+| 统计表（6 个金额字段，持久化） | ✅ | `qianxu-common/.../model/user/UserTeamLevelStat.java:34-50` |
 | 支付成功累计 | ✅ | `UserTeamLevelServiceImpl.java:343-353`；入口 `OrderPayServiceImpl.java:404` |
 | 订单完成累计 | ✅ | `UserTeamLevelServiceImpl.java:355-362`；入口 `StoreOrderTaskServiceImpl.java:303` |
 | 退款回退 | ✅ | `UserTeamLevelServiceImpl.java:364-380`；入口 `StoreOrderTaskServiceImpl.java:546` |
@@ -122,8 +122,8 @@
 
 ```bash
 # 1) 建表与配置（幂等，可重复执行）
-mysql -uroot -p123456 crmeb < crmeb/sql/distributor_level_upgrade_20260923.sql
-# 或走一键补丁：cd crmeb/sql/oneclick && ./deploy.sh patch
+mysql -uroot -p123456 crmeb < qianxu/sql/distributor_level_upgrade_20260923.sql
+# 或走一键补丁：cd qianxu/sql/oneclick && ./deploy.sh patch
 
 # 2) 重算某个用户的分销商等级统计（后台接口，需 admin token）
 curl -X POST -H "Authori-zation: <token>" http://127.0.0.1:8080/api/admin/distributor/level/recalc/66
@@ -154,6 +154,6 @@ INSERT IGNORE INTO eb_level_stat_order_log(order_no,module,scene) VALUES ('T1','
 1. **团队奖重复发放风险**：统计层已幂等，佣金记录层未加去重（改了会影响现有金额逻辑，未动）。
 2. **人数指标未持久化**：直推/团队人数仍是实时 count，数据量大时判定会变慢；团队等级同理（既有设计，未改）。
 3. **订货商已升级层级不回退**：订单取消后业绩不再计入，但已升的层级不会降（与"只升不降"策略一致）。
-4. **无会员端展示**：分销商等级目前只有后台，前端 `crmeb-front` 无相关接口与页面。
+4. **无会员端展示**：分销商等级目前只有后台，前端 `qianxu-front` 无相关接口与页面。
 5. **分销商等级 5 个预置等级的条件门槛全为 0**，按设计「全 0 视为未配置，不参与自动升级」，
    需要在后台逐个配置门槛后才会生效。

@@ -7,7 +7,7 @@
 import re
 import sys
 
-ROOT = r"D:\crmeb-java-3.0\crmeb\sql\oneclick"
+ROOT = r"D:\qianxu-java-3.0\crmeb\sql\oneclick"
 SEG_RE = re.compile(r"-- =+ BEGIN: (?P<name>\S+\.sql) =+(?P<body>.*?)-- =+ END: (?P=name) =+", re.S)
 
 

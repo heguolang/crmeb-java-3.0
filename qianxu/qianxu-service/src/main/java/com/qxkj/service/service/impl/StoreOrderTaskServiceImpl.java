@@ -1,0 +1,827 @@
+package com.qxkj.service.service.impl;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateField;
+import cn.hutool.core.date.DateTime;
+import cn.hutool.core.date.DateUnit;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
+import com.qxkj.common.constants.*;
+import com.qxkj.common.exception.QianxuException;
+import com.qxkj.common.model.product.StoreProduct;
+import com.qxkj.common.model.sms.SmsTemplate;
+import com.qxkj.common.model.system.SystemNotification;
+import com.qxkj.common.model.user.*;
+import com.qxkj.common.utils.QianxuDateUtil;
+import com.qxkj.common.model.bargain.StoreBargain;
+import com.qxkj.common.model.combination.StoreCombination;
+import com.qxkj.common.model.combination.StorePink;
+import com.qxkj.common.model.coupon.StoreCouponUser;
+import com.qxkj.common.model.wechat.video.PayComponentOrder;
+import com.qxkj.common.model.wechat.video.PayComponentProduct;
+import com.qxkj.common.model.wechat.video.PayComponentProductSku;
+import com.qxkj.common.model.seckill.StoreSeckill;
+import com.qxkj.common.model.order.StoreOrder;
+import com.qxkj.common.model.order.StoreOrderInfo;
+import com.qxkj.common.model.product.StoreProductAttrValue;
+import com.qxkj.common.model.system.SystemAdmin;
+import com.qxkj.common.vo.ShopOrderPayVo;
+import com.qxkj.service.delete.OrderUtils;
+import com.qxkj.service.service.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ *
+ *  +----------------------------------------------------------------------
+ *  | 黔序商城 [ 黔序科技，助力企业发展 ]
+ *  +----------------------------------------------------------------------
+ *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
+ *  +----------------------------------------------------------------------
+ *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
+ *  +----------------------------------------------------------------------
+ *  | Author: 贵州黔序科技有限公司
+ *  +----------------------------------------------------------------------
+ */
+@Service
+public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
+    //日志
+    private static final Logger logger = LoggerFactory.getLogger(StoreOrderTaskServiceImpl.class);
+
+    @Autowired
+    private StoreOrderService storeOrderService;
+
+    @Autowired
+    private StoreOrderInfoService storeOrderInfoService;
+
+    @Autowired
+    private StoreProductService storeProductService;
+
+    @Autowired
+    private StoreOrderStatusService storeOrderStatusService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private SystemConfigService systemConfigService;
+
+    @Autowired
+    private StoreSeckillService storeSeckillService;
+
+    @Autowired
+    private StoreBargainService storeBargainService;
+
+    @Autowired
+    private StoreCombinationService storeCombinationService;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private UserBrokerageRecordService userBrokerageRecordService;
+
+    @Autowired
+    private SmsService smsService;
+
+    @Autowired
+    private SystemAdminService systemAdminService;
+
+    @Autowired
+    private UserTokenService userTokenService;
+
+    @Autowired
+    private TemplateMessageService templateMessageService;
+
+    @Autowired
+    private OrderUtils orderUtils;
+
+    @Autowired
+    private StorePinkService storePinkService;
+
+    @Autowired
+    private UserIntegralRecordService userIntegralRecordService;
+
+    @Autowired
+    private UserLevelService userLevelService;
+
+    @Autowired
+    private UserTeamLevelService userTeamLevelService;
+
+    @Autowired
+    private DistributorLevelService distributorLevelService;
+
+    @Autowired
+    private AgentService agentService;
+
+    @Autowired
+    private SystemUserLevelService systemUserLevelService;
+
+    @Autowired
+    private PayComponentOrderService componentOrderService;
+
+    @Autowired
+    private WechatVideoOrderService wechatVideoOrderService;
+
+    @Autowired
+    private PayComponentProductService componentProductService;
+
+    @Autowired
+    private PayComponentProductSkuService componentProductSkuService;
+
+    @Autowired
+    private StoreProductAttrValueService attrValueService;
+
+    @Autowired
+    private StoreCouponUserService couponUserService;
+
+    @Autowired
+    private UserExperienceRecordService userExperienceRecordService;
+
+    @Autowired
+    private SystemNotificationService systemNotificationService;
+
+    @Autowired
+    private SmsTemplateService smsTemplateService;
+    @Autowired
+    private AsyncService asyncService;
+
+
+    /**
+     * 用户取消订单
+     * @author Mr.Zhang
+     * @since 2020-07-09
+     */
+    @Override
+    @Transactional(rollbackFor = {RuntimeException.class, Error.class, QianxuException.class})
+    public Boolean cancelByUser(StoreOrder storeOrder) {
+        try{
+            /*
+            * 1、修改订单状态 （用户操作的时候已处理）
+            * 2、写订单日志
+            * 3、回滚库存
+            * 4、回滚优惠券
+            * 5、回滚积分
+            * */
+
+            Boolean execute = transactionTemplate.execute(e -> {
+                //写订单日志
+                storeOrderStatusService.createLog(storeOrder.getId(), "cancel_order", "取消订单");
+                // 退优惠券
+                if (storeOrder.getCouponId() > 0) {
+                    StoreCouponUser couponUser = couponUserService.getById(storeOrder.getCouponId());
+                    couponUser.setStatus(CouponConstants.STORE_COUPON_USER_STATUS_USABLE);
+                    couponUser.setUpdateTime(DateUtil.date());
+                    couponUserService.updateById(couponUser);
+                }
+                Boolean rollbackStock = rollbackStock(storeOrder);
+                if (!rollbackStock) {
+                    throw new QianxuException("回滚库存失败");
+                }
+                return Boolean.TRUE;
+            });
+            return execute;
+        }catch (Exception e){
+            return false;
+        }
+    }
+
+    /**
+     * 完成订单
+     * @author Mr.Zhang
+     * @since 2020-07-09
+     */
+    @Override
+    public Boolean complete(StoreOrder storeOrder) {
+        /*
+         * 1、修改订单状态 （用户操作的时候已处理）
+         * 2、写订单日志
+         * 3、交易完成时累计消费金额/团队并触发升级
+         * 4、到账方式为「完成到账」时入账待处理佣金/积分
+         * */
+        // 获取待入账佣金（CREATE/FROZEN）
+        List<UserBrokerageRecord> recordList = userBrokerageRecordService.findListByLinkIdAndLinkType(
+                storeOrder.getOrderId(), BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        List<UserBrokerageRecord> pendingBrokerageList = CollUtil.newArrayList();
+        for (UserBrokerageRecord record : recordList) {
+            if (record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE)
+                    || record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_INVALIDATION)) {
+                continue;
+            }
+            if (record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE)
+                    || record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_FROZEN)) {
+                pendingBrokerageList.add(record);
+            }
+        }
+
+        // 获取待入账赠送积分
+        List<UserIntegralRecord> integralRecordList = userIntegralRecordService.findListByOrderIdAndUid(
+                storeOrder.getOrderId(), storeOrder.getUid());
+        List<UserIntegralRecord> pendingIntegralList = integralRecordList.stream()
+                .filter(e -> e.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD))
+                .filter(e -> e.getStatus().equals(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_CREATE)
+                        || e.getStatus().equals(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_FROZEN))
+                .collect(Collectors.toList());
+
+        Boolean execute = transactionTemplate.execute(e -> {
+            storeOrderStatusService.createLog(storeOrder.getId(), "check_order_over", "订单已完成");
+
+            // 待入账佣金：订单完成直接入账
+            if (CollUtil.isNotEmpty(pendingBrokerageList)) {
+                Map<Integer, BigDecimal> brokerageCursor = new HashMap<>();
+                for (UserBrokerageRecord record : pendingBrokerageList) {
+                    BigDecimal before = brokerageCursor.computeIfAbsent(record.getUid(), uid -> {
+                        User bu = userService.getById(uid);
+                        return ObjectUtil.isNotNull(bu)
+                                ? ObjectUtil.defaultIfNull(bu.getBrokeragePrice(), BigDecimal.ZERO)
+                                : BigDecimal.ZERO;
+                    });
+                    BigDecimal after = before.add(ObjectUtil.defaultIfNull(record.getPrice(), BigDecimal.ZERO));
+                    record.setBalance(after);
+                    record.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE);
+                    record.setFrozenTime(0);
+                    record.setThawTime(cn.hutool.core.date.DateUtil.current(false));
+                    record.setUpdateTime(DateUtil.date());
+                    Boolean brokerageOk = userService.operationBrokerage(record.getUid(), record.getPrice(), before, "add");
+                    if (!Boolean.TRUE.equals(brokerageOk)) {
+                        throw new QianxuException("订单完成佣金到账失败");
+                    }
+                    brokerageCursor.put(record.getUid(), after);
+                }
+                userBrokerageRecordService.updateBatchById(pendingBrokerageList);
+            }
+
+            // 待入账赠送积分：订单完成直接入账
+            if (CollUtil.isNotEmpty(pendingIntegralList)) {
+                User integralUser = userService.getById(storeOrder.getUid());
+                Integer before = ObjectUtil.isNotNull(integralUser)
+                        ? ObjectUtil.defaultIfNull(integralUser.getIntegral(), 0)
+                        : 0;
+                int cursor = before;
+                int totalAdd = 0;
+                for (UserIntegralRecord record : pendingIntegralList) {
+                    int addAmount = ObjectUtil.defaultIfNull(record.getIntegral(), 0);
+                    totalAdd += addAmount;
+                    cursor += addAmount;
+                    record.setBalance(cursor);
+                    record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
+                    record.setFrozenTime(0);
+                    record.setThawTime(cn.hutool.core.date.DateUtil.current(false));
+                    record.setUpdateTime(DateUtil.date());
+                }
+                if (totalAdd > 0) {
+                    Boolean integralOk = userService.operationIntegral(storeOrder.getUid(), totalAdd, before, "add");
+                    if (!Boolean.TRUE.equals(integralOk)) {
+                        throw new QianxuException("订单完成积分到账失败");
+                    }
+                }
+                userIntegralRecordService.updateBatchById(pendingIntegralList);
+            }
+
+            userLevelService.processLevelOnOrderComplete(storeOrder);
+            userTeamLevelService.processTeamLevelOnOrderComplete(storeOrder);
+            // 分销商等级：完成时不再累加金额，仅重试一次升级判定
+            distributorLevelService.processOnOrderComplete(storeOrder);
+            // 区域代理奖励明细状态同步
+            agentService.syncRewardStatus(storeOrder.getOrderId());
+            return Boolean.TRUE;
+        });
+        // 入账后剩余 CREATE 才会被 complete 节点冻结；通常已无 CREATE
+        if (Boolean.TRUE.equals(execute)) {
+            asyncService.brokerageFreezeByNode(storeOrder.getOrderId(), "complete");
+        }
+        return execute;
+    }
+
+    /**
+     * 回滚库存
+     * @param storeOrder 订单信息
+     */
+    private Boolean rollbackStock(StoreOrder storeOrder) {
+        try{
+            // 查找出商品详情
+            List<StoreOrderInfo> orderInfoList = storeOrderInfoService.getListByOrderNo(storeOrder.getOrderId());
+            if(null == orderInfoList || orderInfoList.size() < 1){
+                return true;
+            }
+
+            // 兼容处理秒杀数据退款
+            // 秒杀商品回滚库存和销量
+            if(null != storeOrder.getSeckillId() && storeOrder.getSeckillId() > 0){
+                // 秒杀只会有一个商品
+                StoreOrderInfo orderInfo = orderInfoList.get(0);
+                StoreSeckill storeSeckill = storeSeckillService.getById(storeOrder.getSeckillId());
+                storeSeckillService.operationStock(storeOrder.getSeckillId(), orderInfo.getPayNum(), "add");
+                StoreProductAttrValue seckillAttrValue = attrValueService.getByIdAndProductIdAndType(orderInfo.getAttrValueId(), storeSeckill.getId(), Constants.PRODUCT_TYPE_SECKILL);
+                attrValueService.operationStock(seckillAttrValue.getId(), orderInfo.getPayNum(), "add", Constants.PRODUCT_TYPE_SECKILL, seckillAttrValue.getVersion());
+                StoreProduct storeProduct = storeProductService.getById(storeSeckill.getProductId());
+                storeProductService.operationStock(storeProduct.getId(), orderInfo.getPayNum(), "add", storeProduct.getVersion());
+                List<StoreProductAttrValue> attrValueList = attrValueService.getListByProductIdAndType(storeSeckill.getProductId(), Constants.PRODUCT_TYPE_NORMAL);
+                attrValueList.forEach(e -> {
+                    if (e.getSuk().equals(orderInfo.getSku())) {
+                        attrValueService.operationStock(e.getId(), orderInfo.getPayNum(), "add", Constants.PRODUCT_TYPE_NORMAL, e.getVersion());
+                    }
+                });
+            } else if (ObjectUtil.isNotNull(storeOrder.getBargainId()) && storeOrder.getBargainId() > 0) { // 砍价商品回滚销量库存
+                StoreOrderInfo orderInfo = orderInfoList.get(0);
+                StoreBargain storeBargain = storeBargainService.getById(storeOrder.getBargainId());
+                storeBargainService.operationStock(storeBargain.getId(), orderInfo.getPayNum(), "add");
+                StoreProductAttrValue bargainAttrValue = attrValueService.getByIdAndProductIdAndType(orderInfo.getAttrValueId(), storeBargain.getId(), Constants.PRODUCT_TYPE_BARGAIN);
+                attrValueService.operationStock(bargainAttrValue.getId(), orderInfo.getPayNum(), "add", Constants.PRODUCT_TYPE_BARGAIN, bargainAttrValue.getVersion());
+                StoreProduct storeProduct = storeProductService.getById(storeBargain.getProductId());
+                storeProductService.operationStock(storeProduct.getId(), orderInfo.getPayNum(), "add", storeProduct.getVersion());
+                List<StoreProductAttrValue> attrValueList = attrValueService.getListByProductIdAndType(storeBargain.getProductId(), Constants.PRODUCT_TYPE_NORMAL);
+                attrValueList.forEach(e -> {
+                    if (e.getSuk().equals(orderInfo.getSku())) {
+                        attrValueService.operationStock(e.getId(), orderInfo.getPayNum(), "add", Constants.PRODUCT_TYPE_NORMAL, e.getVersion());
+                    }
+                });
+            } else if (ObjectUtil.isNotNull(storeOrder.getCombinationId()) && storeOrder.getCombinationId() > 0) { // 拼团商品回滚销量库存
+                StoreOrderInfo orderInfo = orderInfoList.get(0);
+                StoreCombination storeCombination = storeCombinationService.getById(storeOrder.getCombinationId());
+                storeCombinationService.operationStock(storeCombination.getId(), orderInfo.getPayNum(), "add");
+                StoreProductAttrValue combinationAttrValue = attrValueService.getByIdAndProductIdAndType(orderInfo.getAttrValueId(), storeCombination.getId(), Constants.PRODUCT_TYPE_PINGTUAN);
+                attrValueService.operationStock(combinationAttrValue.getId(), orderInfo.getPayNum(), "add", Constants.PRODUCT_TYPE_PINGTUAN, combinationAttrValue.getVersion());
+                StoreProduct storeProduct = storeProductService.getById(storeCombination.getProductId());
+                storeProductService.operationStock(storeProduct.getId(), orderInfo.getPayNum(), "add", storeProduct.getVersion());
+                List<StoreProductAttrValue> attrValueList = attrValueService.getListByProductIdAndType(storeCombination.getProductId(), Constants.PRODUCT_TYPE_NORMAL);
+                attrValueList.forEach(e -> {
+                    if (e.getSuk().equals(orderInfo.getSku())) {
+                        attrValueService.operationStock(e.getId(), orderInfo.getPayNum(), "add", Constants.PRODUCT_TYPE_NORMAL, e.getVersion());
+                    }
+                });
+            } else if (storeOrder.getType().equals(1)) {// 视频订单自动取消
+                // 获取视频订单信息
+                for (StoreOrderInfo orderInfoVo : orderInfoList) {
+                    Integer payNum = orderInfoVo.getPayNum();
+                    Integer attrValueId = orderInfoVo.getAttrValueId();
+                    PayComponentProduct componentProduct = componentProductService.getById(orderInfoVo.getProductId());
+//                    componentProduct.setSales(componentProduct.getSales() - payNum);
+                    PayComponentProductSku productSku = componentProductSkuService.getByProIdAndAttrValueId(orderInfoVo.getProductId(), attrValueId);
+//                    productSku.setStockNum(productSku.getStockNum() + payNum);
+                    StoreProductAttrValue productAttrValue = attrValueService.getById(attrValueId);
+//                    productAttrValue.setStock(productAttrValue.getStock() + payNum);
+//                    productAttrValue.setSales(productAttrValue.getSales() - payNum);
+//                    componentProductService.updateById(componentProduct);
+//                    componentProductSkuService.updateById(productSku);
+//                    attrValueService.updateById(productAttrValue);
+
+                    componentProductSkuService.operationStock(productSku.getId(), payNum, "add", productSku.getVersion());
+                    componentProductService.operationStock(componentProduct.getId(), payNum, "add");
+                    attrValueService.operationStock(productAttrValue.getId(), payNum, "add", Constants.PRODUCT_TYPE_COMPONENT, productAttrValue.getVersion());
+                }
+                return true;
+
+            } else { // 正常商品回滚销量库存
+                for (StoreOrderInfo orderInfoVo : orderInfoList) {
+                    StoreProduct storeProduct = storeProductService.getById(orderInfoVo.getProductId());
+                    storeProductService.operationStock(storeProduct.getId(), orderInfoVo.getPayNum(), "add", storeProduct.getVersion());
+                    StoreProductAttrValue productAttrValue = attrValueService.getById(orderInfoVo.getAttrValueId());
+                    attrValueService.operationStock(productAttrValue.getId(), orderInfoVo.getPayNum(), "add", Constants.PRODUCT_TYPE_NORMAL, productAttrValue.getVersion());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("回滚库存失败，error = " + e.getMessage());
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 订单退款处理
+     * 退款得时候根据userBill 来进行回滚
+     */
+    @Override
+    public Boolean refundOrder(StoreOrder storeOrder) {
+        /**
+         * 1、写订单日志
+         * 2、回滚消耗积分
+         * 3、回滚获得积分
+         * 4、回滚冻结期佣金
+         * 5、回滚经验
+         * 6、回滚库存
+         * 7、发送通知
+         * 实际上2-5就是user数据的处理+userBill的记录
+         */
+        // 获取用户对象
+        User user = userService.getById(storeOrder.getUid());
+        if (ObjectUtil.isNull(user)) {
+            logger.error("订单退款处理，对应的用户不存在,storeOrder===>" + storeOrder);
+            return Boolean.FALSE;
+        }
+
+        // 回滚经验（支付时可能未累计经验）
+        UserExperienceRecord userExperienceRecord = userExperienceRecordService.getByOrderNoAndUid(storeOrder.getOrderId(), storeOrder.getUid());
+        final UserExperienceRecord experienceRecord;
+        if (ObjectUtil.isNotNull(userExperienceRecord)) {
+            user.setExperience(Math.max(0, ObjectUtil.defaultIfNull(user.getExperience(), 0) - userExperienceRecord.getExperience()));
+            experienceRecord = new UserExperienceRecord();
+            BeanUtils.copyProperties(userExperienceRecord, experienceRecord);
+            experienceRecord.setId(null);
+            experienceRecord.setTitle(ExperienceRecordConstants.EXPERIENCE_RECORD_TITLE_REFUND);
+            experienceRecord.setType(ExperienceRecordConstants.EXPERIENCE_RECORD_TYPE_SUB);
+            experienceRecord.setBalance(user.getExperience());
+            experienceRecord.setMark(StrUtil.format("订单退款，扣除{}赠送经验", userExperienceRecord.getExperience()));
+            experienceRecord.setCreateTime(cn.hutool.core.date.DateUtil.date());
+        } else {
+            experienceRecord = null;
+        }
+
+        // 回滚已付款计单
+        if (Boolean.TRUE.equals(systemUserLevelService.hasOrderCountTriggerOnPaid())
+                && Boolean.TRUE.equals(storeOrder.getPaid())) {
+            user.setPayCount(Math.max(0, ObjectUtil.defaultIfNull(user.getPayCount(), 0) - 1));
+        }
+
+        // 回滚积分
+        List<UserIntegralRecord> integralRecordList = userIntegralRecordService.findListByOrderIdAndUid(storeOrder.getOrderId(), storeOrder.getUid());
+        integralRecordList.forEach(record -> {
+            if (record.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_SUB)) {// 订单抵扣部分
+                user.setIntegral(user.getIntegral() + record.getIntegral());
+                record.setId(null);
+                record.setTitle(IntegralRecordConstants.BROKERAGE_RECORD_TITLE_REFUND);
+                record.setType(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD);
+                record.setBalance(user.getIntegral());
+                record.setMark(StrUtil.format("订单退款，返还支付扣除得{}积分", record.getIntegral()));
+                record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
+                record.setUpdateTime(cn.hutool.core.date.DateUtil.date());
+            } else if (record.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD)) {// 冻结/已到账赠送积分
+                record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_INVALIDATION);
+                record.setUpdateTime(cn.hutool.core.date.DateUtil.date());
+            }
+        });
+        List<UserIntegralRecord> addIntegralList = integralRecordList.stream().filter(e -> ObjectUtil.isNull(e.getId())).collect(Collectors.toList());
+        List<UserIntegralRecord> updateIntegralList = integralRecordList.stream()
+                .filter(e -> ObjectUtil.isNotNull(e.getId()))
+                .collect(Collectors.toList());
+
+        StoreOrder tempOrder = new StoreOrder();
+        tempOrder.setId(storeOrder.getId());
+        tempOrder.setRefundStatus(2);
+        // 佣金处理：CREATE/FROZEN 置失效；COMPLETE 需扣回佣金余额
+        List<UserBrokerageRecord> brokerageRecordList = CollUtil.newArrayList();
+        List<UserBrokerageRecord> clawbackBrokerageList = CollUtil.newArrayList();
+        List<UserBrokerageRecord> recordList = userBrokerageRecordService.findListByLinkIdAndLinkType(storeOrder.getOrderId(), BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        if (CollUtil.isNotEmpty(recordList)) {
+            recordList.forEach(r -> {
+                if (r.getStatus() < BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE) {
+                    r.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_INVALIDATION);
+                    r.setUpdateTime(DateUtil.date());
+                    brokerageRecordList.add(r);
+                } else if (r.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE)
+                        && BrokerageRecordConstants.BROKERAGE_RECORD_TYPE_ADD.equals(r.getType())) {
+                    clawbackBrokerageList.add(r);
+                    r.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_INVALIDATION);
+                    r.setUpdateTime(DateUtil.date());
+                    brokerageRecordList.add(r);
+                }
+            });
+        }
+
+        Boolean execute = transactionTemplate.execute(e -> {
+            //写订单日志
+            storeOrderStatusService.saveRefund(storeOrder.getId(), storeOrder.getRefundPrice(), "成功");
+
+            // 更新用户数据
+            user.setUpdateTime(DateUtil.date());
+            userService.updateById(user);
+
+            // 积分部分
+            if (CollUtil.isNotEmpty(addIntegralList)) {
+                userIntegralRecordService.saveBatch(addIntegralList);
+            }
+            if (CollUtil.isNotEmpty(updateIntegralList)) {
+                userIntegralRecordService.updateBatchById(updateIntegralList);
+            }
+
+            // 佣金处理
+            if (CollUtil.isNotEmpty(brokerageRecordList)) {
+                userBrokerageRecordService.updateBatchById(brokerageRecordList);
+            }
+            // 已到账佣金扣回
+            if (CollUtil.isNotEmpty(clawbackBrokerageList)) {
+                Map<Integer, BigDecimal> brokerageCursor = new HashMap<>();
+                for (UserBrokerageRecord r : clawbackBrokerageList) {
+                    BigDecimal before = brokerageCursor.computeIfAbsent(r.getUid(), uid -> {
+                        User bu = userService.getById(uid);
+                        return ObjectUtil.isNotNull(bu)
+                                ? ObjectUtil.defaultIfNull(bu.getBrokeragePrice(), BigDecimal.ZERO)
+                                : BigDecimal.ZERO;
+                    });
+                    Boolean brokerageOk = userService.operationBrokerage(r.getUid(), r.getPrice(), before, "sub");
+                    if (!Boolean.TRUE.equals(brokerageOk)) {
+                        throw new QianxuException("退款佣金扣回失败");
+                    }
+                    brokerageCursor.put(r.getUid(), before.subtract(r.getPrice()));
+                }
+            }
+
+            // 经验处理
+            if (ObjectUtil.isNotNull(experienceRecord)) {
+                userExperienceRecordService.save(experienceRecord);
+            }
+            userLevelService.downLevel(user);
+
+            // 团队等级回滚
+            userTeamLevelService.rollbackTeamLevelOnRefund(storeOrder);
+
+            // 分销商等级统计回退（只回退统计，不降级）
+            distributorLevelService.rollbackOnRefund(storeOrder);
+
+            // 回滚库存
+            Boolean rollbackStock = rollbackStock(storeOrder);
+            if (!rollbackStock) {
+                throw new QianxuException("回滚库存失败");
+            }
+
+            tempOrder.setUpdateTime(DateUtil.date());
+            storeOrderService.updateById(tempOrder);
+
+            // 拼团状态处理
+            if (storeOrder.getCombinationId() > 0) {
+                StorePink storePink = storePinkService.getByOrderId(storeOrder.getOrderId());
+                storePink.setStatus(3);
+                storePink.setIsRefund(true);
+                storePinkService.updateById(storePink);
+            }
+
+            // 退优惠券
+            if (storeOrder.getCouponId() > 0 ) {
+                StoreCouponUser couponUser = couponUserService.getById(storeOrder.getCouponId());
+                couponUser.setStatus(CouponConstants.STORE_COUPON_USER_STATUS_USABLE);
+                couponUser.setUpdateTime(DateUtil.date());
+                couponUserService.updateById(couponUser);
+            }
+            return Boolean.TRUE;
+        });
+
+        // 视频号订单创建售后
+        try {
+            componentOrderService.createAfterSale(storeOrder.getOrderId());
+        } catch (Exception e) {
+            e.printStackTrace();
+            // 视频号订单售后部分失败
+            logger.error("视频号订单售后部分处理失败，message = " + e.getMessage());
+        }
+        return execute;
+    }
+
+    /**
+     * 超时未支付系统自动取消
+     */
+    @Override
+    public Boolean autoCancel(StoreOrder storeOrder) {
+        // 判断订单是否支付
+        if (storeOrder.getPaid()) {
+            return Boolean.TRUE;
+        }
+        if (storeOrder.getIsDel() || storeOrder.getIsSystemDel()) {
+            return Boolean.TRUE;
+        }
+        // 获取过期时间
+        String cancelStr;
+        DateTime cancelTime;
+        if (storeOrder.getType().equals(1)) {
+            cancelStr = "3";
+            cancelTime = cn.hutool.core.date.DateUtil.offset(storeOrder.getCreateTime(), DateField.MINUTE, Integer.parseInt(cancelStr));
+        } else {
+            if (storeOrder.getBargainId() > 0 || storeOrder.getSeckillId() > 0 || storeOrder.getCombinationId() > 0) {
+                cancelStr = systemConfigService.getValueByKey("order_activity_time");
+            } else {
+                cancelStr = systemConfigService.getValueByKey("order_cancel_time");
+            }
+            if (StrUtil.isBlank(cancelStr)) {
+                cancelStr = "1";
+            }
+            cancelTime = cn.hutool.core.date.DateUtil.offset(storeOrder.getCreateTime(), DateField.HOUR_OF_DAY, Integer.parseInt(cancelStr));
+        }
+        long between = cn.hutool.core.date.DateUtil.between(cancelTime, cn.hutool.core.date.DateUtil.date(), DateUnit.SECOND, false);
+        if (between < 0) {// 未到过期时间继续循环
+            return Boolean.FALSE;
+        }
+        storeOrder.setIsDel(true).setIsSystemDel(true);
+        Boolean execute = false;
+
+        if (storeOrder.getType().equals(1)) {
+            // 视频订单修改状态
+            PayComponentOrder componentOrder = componentOrderService.getByOrderNo(storeOrder.getOrderId());
+            ShopOrderPayVo shopOrderPayVo = new ShopOrderPayVo();
+            shopOrderPayVo.setOutOrderId(componentOrder.getOrderNo());
+            shopOrderPayVo.setOpenid(componentOrder.getOpenid());
+            shopOrderPayVo.setActionType(4);// 超时未支付
+            Boolean shopOrderPay = wechatVideoOrderService.shopOrderPay(shopOrderPayVo);
+            if (!shopOrderPay) {
+                logger.error("视频号订单自动取消失败，订单号 = " + storeOrder.getOrderId());
+                return Boolean.FALSE;
+            }
+            componentOrder.setStatus(250);
+            execute = transactionTemplate.execute(e -> {
+                storeOrder.setUpdateTime(DateUtil.date());
+                storeOrderService.updateById(storeOrder);
+                componentOrderService.updateById(componentOrder);
+                //写订单日志
+                storeOrderStatusService.createLog(storeOrder.getId(), "cancel", "到期未支付系统自动取消");
+                // 回滚库存
+                Boolean rollbackStock = rollbackStock(storeOrder);
+                if (!rollbackStock) {
+                    throw new QianxuException("回滚库存失败");
+                }
+                return Boolean.TRUE;
+            });
+        } else {
+            execute = transactionTemplate.execute(e -> {
+                storeOrder.setUpdateTime(DateUtil.date());
+                storeOrderService.updateById(storeOrder);
+                //写订单日志
+                storeOrderStatusService.createLog(storeOrder.getId(), "cancel", "到期未支付系统自动取消");
+                // 退优惠券
+                if (storeOrder.getCouponId() > 0 ) {
+                    StoreCouponUser couponUser = couponUserService.getById(storeOrder.getCouponId());
+                    couponUser.setStatus(CouponConstants.STORE_COUPON_USER_STATUS_USABLE);
+                    couponUser.setUpdateTime(DateUtil.date());
+                    couponUserService.updateById(couponUser);
+                }
+                // 回滚库存
+                Boolean rollbackStock = rollbackStock(storeOrder);
+                if (!rollbackStock) {
+                    throw new QianxuException("回滚库存失败");
+                }
+                return Boolean.TRUE;
+            });
+        }
+        return execute;
+    }
+
+    /**
+     * 订单收货task处理
+     * @param orderId 订单id
+     * @return Boolean
+     * 1.写订单日志
+     * 2.分佣-佣金进入冻结期
+     */
+    @Override
+    public Boolean orderReceiving(Integer orderId) {
+        StoreOrder storeOrder = storeOrderService.getById(orderId);
+        if (ObjectUtil.isNull(storeOrder)) {
+            throw new QianxuException(StrUtil.format("订单收货task处理，未找到订单，id={}", orderId));
+        }
+        User user = userService.getById(storeOrder.getUid());
+
+        // 获取佣金记录
+        //List<UserBrokerageRecord> recordList = userBrokerageRecordService.findListByLinkIdAndLinkType(storeOrder.getOrderId(), BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
+        //logger.info("收货处理佣金条数：" + recordList.size());
+        //for (UserBrokerageRecord record : recordList) {
+        //    if (!record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE)) {
+        //        throw new QianxuException(StrUtil.format("订单收货task处理，订单佣金记录不是创建状态，id={}", orderId));
+        //    }
+        //    // 佣金进入冻结期
+        //    record.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_FROZEN);
+        //    // 计算解冻时间
+        //    Long thawTime = cn.hutool.core.date.DateUtil.current(false);
+        //    if (record.getFrozenTime() > 0) {
+        //        DateTime dateTime = cn.hutool.core.date.DateUtil.offsetDay(new Date(), record.getFrozenTime());
+        //        thawTime = dateTime.getTime();
+        //    }
+        //    record.setThawTime(thawTime);
+        //    record.setUpdateTime(DateUtil.date());
+        //}
+
+        // 获取积分记录：支付已到账的为 COMPLETE，完成到账的保留 CREATE 直至订单完成，收货时不再冻结
+        List<UserIntegralRecord> integralRecordList = userIntegralRecordService.findListByOrderIdAndUid(storeOrder.getOrderId(), storeOrder.getUid());
+        logger.info("收货处理积分条数：" + integralRecordList.size());
+        boolean integralOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_INTEGRAL_CREDIT_TIMING);
+        List<UserIntegralRecord> userIntegralRecordList = CollUtil.newArrayList();
+        if (integralOnPay) {
+            // 支付到账模式下，收货节点对仍为 CREATE 的记录进入冻结（兼容旧数据）
+            userIntegralRecordList.addAll(integralRecordList.stream()
+                    .filter(e -> e.getType().equals(IntegralRecordConstants.INTEGRAL_RECORD_TYPE_ADD))
+                    .filter(e -> e.getStatus().equals(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_CREATE))
+                    .collect(Collectors.toList()));
+            for (UserIntegralRecord record : userIntegralRecordList) {
+                record.setStatus(IntegralRecordConstants.INTEGRAL_RECORD_STATUS_FROZEN);
+                Long thawTime = cn.hutool.core.date.DateUtil.current(false);
+                if (record.getFrozenTime() > 0) {
+                    DateTime dateTime = cn.hutool.core.date.DateUtil.offsetDay(new Date(), record.getFrozenTime());
+                    thawTime = dateTime.getTime();
+                }
+                record.setThawTime(thawTime);
+                record.setUpdateTime(DateUtil.date());
+            }
+        }
+
+        Boolean execute = transactionTemplate.execute(e -> {
+            // 日志
+            storeOrderStatusService.createLog(storeOrder.getId(), "user_take_delivery", Constants.ORDER_STATUS_STR_TAKE);
+            // 积分进入冻结期（仅支付到账模式）
+            if (CollUtil.isNotEmpty(userIntegralRecordList)) {
+                userIntegralRecordService.updateBatchById(userIntegralRecordList);
+            }
+            return Boolean.TRUE;
+        });
+        if (execute) {
+
+            // 完成到账模式下：CREATE 佣金留给订单完成入账，收货节点不冻结
+            boolean brokerageOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_BROKERAGE_CREDIT_TIMING);
+            boolean teamOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_TEAM_BROKERAGE_CREDIT_TIMING);
+            if (brokerageOnPay && teamOnPay) {
+                asyncService.brokerageFreezeByNode(storeOrder.getOrderId(), "receipt");
+            }
+
+            // 发送用户确认收货管理员提醒短信
+            SystemNotification notification = systemNotificationService.getByMark(NotifyConstants.RECEIPT_GOODS_ADMIN_MARK);
+            if (notification.getIsSms().equals(1)) {
+                // 查询可已发送短信的管理员
+                List<SystemAdmin> systemAdminList = systemAdminService.findIsSmsList();
+                if (CollUtil.isNotEmpty(systemAdminList)) {
+                    SmsTemplate smsTemplate = smsTemplateService.getDetail(notification.getSmsId());
+                    Integer tempId = Integer.valueOf(smsTemplate.getTempId());
+                    // 发送短信
+                    systemAdminList.forEach(admin -> {
+                        smsService.sendOrderReceiptNotice(admin.getPhone(), storeOrder.getOrderId(), admin.getRealName(), tempId);
+                    });
+                }
+            }
+
+            // 发送消息通知
+            pushMessageOrder(storeOrder, user);
+        }
+
+        return execute;
+    }
+
+    private boolean isPayCreditTiming(String configKey) {
+        String value = systemConfigService.getValueByKey(configKey);
+        return StrUtil.isBlank(value) || SysConfigConstants.CREDIT_TIMING_ON_PAY.equals(value);
+    }
+
+    /**
+     * 发送消息通知
+     * 根据用户类型发送
+     * 公众号模板消息
+     * 小程序订阅消息
+     */
+    private void pushMessageOrder(StoreOrder storeOrder, User user) {
+        SystemNotification notification = systemNotificationService.getByMark(NotifyConstants.RECEIPT_GOODS_MARK);
+        if (storeOrder.getIsChannel().equals(2)) {
+            return;
+        }
+        if (!storeOrder.getPayType().equals(Constants.PAY_TYPE_WE_CHAT)) {
+            return;
+        }
+        UserToken userToken;
+        HashMap<String, String> temMap = new HashMap<>();
+        // 公众号
+        if (storeOrder.getIsChannel().equals(Constants.ORDER_PAY_CHANNEL_PUBLIC) && notification.getIsWechat().equals(1)) {
+            userToken = userTokenService.getTokenByUserId(user.getUid(), UserConstants.USER_TOKEN_TYPE_WECHAT);
+            if (ObjectUtil.isNull(userToken)) {
+                return ;
+            }
+            // 发送微信模板消息
+            temMap.put(Constants.WE_CHAT_TEMP_KEY_FIRST, "您购买的商品已确认收货！");
+            temMap.put("keyword1", storeOrder.getOrderId());
+            temMap.put("keyword2", "已收货");
+            temMap.put("keyword3", QianxuDateUtil.nowDateTimeStr());
+            temMap.put("keyword4", "详情请进入订单查看");
+            temMap.put(Constants.WE_CHAT_TEMP_KEY_END, "感谢你的使用。");
+            templateMessageService.pushTemplateMessage(notification.getWechatId(), temMap, userToken.getToken());
+        } else if (notification.getIsRoutine().equals(1)) {
+            // 小程序发送订阅消息
+            userToken = userTokenService.getTokenByUserId(user.getUid(), UserConstants.USER_TOKEN_TYPE_ROUTINE);
+            if (ObjectUtil.isNull(userToken)) {
+                return ;
+            }
+            // 组装数据
+            // 获取商品名称
+            String storeNameAndCarNumString = orderUtils.getStoreNameAndCarNumString(storeOrder.getId());
+            if (StrUtil.isBlank(storeNameAndCarNumString)) {
+                return ;
+            }
+            if (storeNameAndCarNumString.length() > 20) {
+                storeNameAndCarNumString = storeNameAndCarNumString.substring(0, 15) + "***";
+            }
+//        temMap.put("character_string6", storeOrder.getOrderId());
+//        temMap.put("phrase4", "已收货");
+//        temMap.put("time7", DateUtil.nowDateTimeStr());
+//        temMap.put("thing1", storeNameAndCarNumString);
+//        temMap.put("thing5", "您购买的商品已确认收货！");
+            temMap.put("character_string6", storeOrder.getOrderId());
+            temMap.put("date5", QianxuDateUtil.nowDateTimeStr());
+            temMap.put("thing2", storeNameAndCarNumString);
+            templateMessageService.pushMiniTemplateMessage(notification.getRoutineId(), temMap, userToken.getToken());
+        }
+    }
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==================================================================
-#  CRMEB - health check for all local services
-#  Usage: bash /d/crmeb-java-3.0/local-dev/check-all.sh
+#  QIANXU - health check for all local services
+#  Usage: bash /d/qianxu-java-3.0/local-dev/check-all.sh
 # ==================================================================
 set -u
 export PATH="/usr/bin:/bin:/c/Windows/System32:$PATH"

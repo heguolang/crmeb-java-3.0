@@ -12,8 +12,8 @@ import sys
 
 MYSQL = r"D:\env\mysql-8.0.29-winx64\bin\mysql.exe"
 DB = "crmeb_java3"
-SQL_FILE = r"D:\crmeb-java-3.0\crmeb\sql\oneclick\ALL_IN_ONE.sql"
-TMP = r"D:\crmeb-java-3.0\local-dev\_tmp_hidden_menu.sql"
+SQL_FILE = r"D:\qianxu-java-3.0\crmeb\sql\oneclick\ALL_IN_ONE.sql"
+TMP = r"D:\qianxu-java-3.0\local-dev\_tmp_hidden_menu.sql"
 
 
 def run(sql=None, stdin_file=None):

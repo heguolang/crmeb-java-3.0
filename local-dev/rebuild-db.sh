@@ -1,18 +1,18 @@
 #!/bin/bash
 # ============================================================
-# CRMEB Java 3.0 —— 数据库全量覆盖 + 图片合并 + 全量业务数据还原
+# QIANXU Java 3.0 —— 数据库全量覆盖 + 图片合并 + 全量业务数据还原
 #
 # 用法：
 #   bash local-dev/rebuild-db.sh                  # 全量覆盖（自动备份）
 #   bash local-dev/rebuild-db.sh --no-backup      # 跳过备份
-#   bash local-dev/rebuild-db.sh --with-migration # 额外跑 crmeb/sql/migration/*
+#   bash local-dev/rebuild-db.sh --with-migration # 额外跑 qianxu/sql/migration/*
 #
 # ⚠️ 会 DROP 整个 crmeb 库！默认执行前会自动备份。
 #
 # 执行顺序严格对齐上游官方文档 db-data/导入说明.txt 的 14 步，
-# 之后追加第 15 步：把 db-data/crmeb_image 的图片合并进 crmeb/crmebimage。
+# 之后追加第 15 步：把 db-data/qianxu_image 的图片合并进 qianxu/crmebimage。
 #
-# 【为什么不跑 crmeb/sql/migration/*】
+# 【为什么不跑 qianxu/sql/migration/*】
 #   官方 14 步里没有它们。add_missing_team_level_tables.sql +
 #   add_missing_columns.sql 已覆盖这些 migration 建的表和列，
 #   export_admin_settings.sql 又导出了全套菜单。
@@ -31,7 +31,7 @@
 set -u
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SQLDIR="$PROJECT_DIR/crmeb/sql"
+SQLDIR="$PROJECT_DIR/qianxu/sql"
 DBDATA="$PROJECT_DIR/db-data"
 MYSQL_BIN="/opt/homebrew/opt/mysql@8.0/bin"
 MYSQL="$MYSQL_BIN/mysql"
@@ -40,7 +40,7 @@ SOCKET="/tmp/mysql.sock"
 DB="crmeb"
 DBUSER="root"
 DBPASS="root"
-IMAGE_ROOT="$PROJECT_DIR/crmeb"          # crmeb.imagePath 指向这里
+IMAGE_ROOT="$PROJECT_DIR/qianxu"          # crmeb.imagePath 指向这里
 IMAGE_DIR="$IMAGE_ROOT/crmebimage"
 
 DO_BACKUP=1
@@ -65,7 +65,7 @@ run_sql() {
 
 # ---------- 0. 备份 ----------
 if [ "$DO_BACKUP" = "1" ]; then
-  BK="/Users/qianxu/WorkBuddy/java/_backup_crmeb_dbfull_$(date +%Y%m%d_%H%M%S)"
+  BK="/Users/qianxu/WorkBuddy/java/_backup_qianxu_dbfull_$(date +%Y%m%d_%H%M%S)"
   echo "==> [0/4] 备份现有库到 $BK"
   mkdir -p "$BK"
   "$MYSQL" -u"$DBUSER" -p"$DBPASS" --socket="$SOCKET" "$DB" -e "
@@ -77,8 +77,8 @@ if [ "$DO_BACKUP" = "1" ]; then
     | grep -v "Using a password" > "$BK/baseline_before.txt"
   "$DUMP" -u"$DBUSER" -p"$DBPASS" --socket="$SOCKET" \
     --single-transaction --routines --triggers "$DB" \
-    > "$BK/crmeb_before.sql" 2>/dev/null
-  echo "    DB 备份: $(ls -lh "$BK/crmeb_before.sql" | awk '{print $5}')"
+    > "$BK/qianxu_before.sql" 2>/dev/null
+  echo "    DB 备份: $(ls -lh "$BK/qianxu_before.sql" | awk '{print $5}')"
   if [ -d "$IMAGE_DIR" ]; then
     tar -czf "$BK/crmebimage_before.tar.gz" -C "$IMAGE_ROOT" crmebimage 2>/dev/null
     echo "    图片备份: $(ls -lh "$BK/crmebimage_before.tar.gz" 2>/dev/null | awk '{print $5}')"
@@ -95,7 +95,7 @@ echo "    已重建"
 
 # ---------- 2. 官方 14 步 ----------
 STEPS=(
-  "$SQLDIR/Crmeb_v3.0.sql"                        # 1  全量建表
+  "$SQLDIR/Qianxu_v3.0.sql"                        # 1  全量建表
   "$SQLDIR/add_missing_team_level_tables.sql"     # 2  补齐 5 张缺失表
   "$SQLDIR/add_missing_columns.sql"               # 3  补齐缺失字段
   "$SQLDIR/upgrade_team_level_direct.sql"         # 4  团队等级链式关系
@@ -108,7 +108,7 @@ STEPS=(
   "$SQLDIR/stock.sql"                             # 11 订货系统
   "$SQLDIR/update_deploy_config.sql"              # 12 本地域名/图片根地址
   "$SQLDIR/export_admin_settings.sql"             # 13 后台设置+菜单
-  "$DBDATA/crmeb_full_data_export.sql"            # 14 全量业务数据（带行数保护）
+  "$DBDATA/qianxu_full_data_export.sql"            # 14 全量业务数据（带行数保护）
 )
 LABELS=("1/14 全量建表" "2/14 补表" "3/14 补字段" "4/14 团队等级" "5/14 登录提示" \
         "6/14 改密码菜单" "7/14 日志管理" "8/14 默认分类" "9/14 版权" "10/14 区域代理" \
@@ -151,7 +151,7 @@ done
 
 # ---------- 3. 图片合并 ----------
 echo "==> [3/4] 合并图片到 $IMAGE_DIR"
-IMG_SRC="$DBDATA/crmeb_image/crmebimage"
+IMG_SRC="$DBDATA/qianxu_image/crmebimage"
 if [ -d "$IMG_SRC" ]; then
   BEFORE=$(find "$IMAGE_DIR" -type f 2>/dev/null | wc -l | tr -d ' ')
   mkdir -p "$IMAGE_DIR"

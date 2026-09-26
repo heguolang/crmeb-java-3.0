@@ -1,8 +1,8 @@
 <template>
 	<view class="app_update">
 		<view class="logo_box">
-			<image :src="urlDomain+'crmebimage/perset/staticImg/crmeb_java.png'"></image>
-			<view class="title">crmeb</view>
+			
+			<view class="title">黔序商城</view>
 			<view class="version">Version {{appUpdate.versionCode}}</view> 
 		</view>
 		<view class="jiancha" @click="appVersionConfig()">

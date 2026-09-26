@@ -738,7 +738,7 @@
 	}
 
 	.goodCate {
-		background-color: $crmeb-bg-color;
+		background-color: $qianxu-bg-color;
 
 		.mask {
 			// z-index: 99; 
@@ -803,7 +803,7 @@
 				left: 0;
 				bottom: 0;
 				top: 0;
-				background-color: $crmeb-bg-color-grey;
+				background-color: $qianxu-bg-color-grey;
 				overflow-y: auto;
 				overflow-x: hidden;
 				margin-top: 128rpx;
@@ -814,10 +814,10 @@
 					height: 100rpx;
 					width: 100%;
 					font-size: 26rpx;
-					color: $crmeb-font-color;
+					color: $qianxu-font-color;
 
 					&.on {
-						background-color: $crmeb-bg-color;
+						background-color: $qianxu-bg-color;
 						width: 100%;
 						text-align: center;
 						@include main_color(theme);
@@ -844,7 +844,7 @@
 			padding-top: 10rpx;
 			width: 77%;
 			float: right;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			padding-bottom: 130rpx;
 		}
 
@@ -852,13 +852,13 @@
 			margin-top: 104rpx;
 			width: 100%;
 			float: right;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			padding-bottom: 130rpx;
 		}
 
 		.bgcolor {
 			width: 100%;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 		}
 
 		.goodsList {
@@ -872,7 +872,7 @@
 			margin-top: 128rpx;
 			height: 100rpx;
 			z-index: 99;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 		}
 
 		.hongTab {
@@ -882,7 +882,7 @@
 			margin-top: 128rpx;
 			height: 100rpx;
 			z-index: 99;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 		}
 
 		.longItem {
@@ -894,8 +894,8 @@
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
-			color: $crmeb-font-color;
-			background-color: $crmeb-bg-color-grey;
+			color: $qianxu-font-color;
+			background-color: $qianxu-bg-color-grey;
 			border-radius: 22rpx;
 			margin-left: 12rpx;
 
@@ -917,14 +917,14 @@
 			.underline {
 				width: 33rpx;
 				height: 4rpx;
-				background-color: $crmeb-bg-color;
+				background-color: $qianxu-bg-color;
 			}
 		}
 
 		.openList {
 			width: 12%;
 			height: 100rpx;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			line-height: 100rpx;
 			padding-left: 30rpx;
 			margin-top: 128rpx;
@@ -935,7 +935,7 @@
 
 			.iconfont {
 				font-size: 22rpx;
-				color: $crmeb-font-color-subtitle;
+				color: $qianxu-font-color-subtitle;
 			}
 		}
 
@@ -945,7 +945,7 @@
 			top: 0;
 			margin-top: 128rpx;
 			z-index: 99;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			right: 0;
 		}
 
@@ -955,13 +955,13 @@
 			top: 0;
 			margin-top: 128rpx;
 			z-index: 99;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			right: 0;
 		}
 
 		.title {
 			font-size: 26rpx;
-			color: $crmeb-font-color-assist;
+			color: $qianxu-font-color-assist;
 			// padding-left: 20rpx;
 
 			.closeList {
@@ -973,7 +973,7 @@
 
 				.iconfont {
 					font-size: 22rpx;
-					color: $crmeb-font-color-subtitle;
+					color: $qianxu-font-color-subtitle;
 				}
 			}
 		}
@@ -986,7 +986,7 @@
 
 			.item {
 				height: 60rpx;
-				background-color: $crmeb-bg-color-grey;
+				background-color: $qianxu-bg-color-grey;
 				border-radius: 30rpx;
 				line-height: 60rpx;
 				padding: 0 15rpx;

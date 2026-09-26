@@ -1,0 +1,98 @@
+package com.qxkj.service.service;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.qxkj.common.request.PageParamRequest;
+import com.qxkj.common.model.product.StoreProductRelation;
+import com.qxkj.common.request.UserCollectAllRequest;
+import com.qxkj.common.request.UserCollectRequest;
+import com.qxkj.common.response.UserRelationResponse;
+
+import java.util.List;
+
+/**
+ *
+ *  +----------------------------------------------------------------------
+ *  | 黔序商城 [ 黔序科技，助力企业发展 ]
+ *  +----------------------------------------------------------------------
+ *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
+ *  +----------------------------------------------------------------------
+ *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
+ *  +----------------------------------------------------------------------
+ *  | Author: 贵州黔序科技有限公司
+ *  +----------------------------------------------------------------------
+ */
+public interface StoreProductRelationService extends IService<StoreProductRelation> {
+
+    List<StoreProductRelation> getList(Integer productId, String type);
+
+    /**
+     * 取消收藏
+     * @param requestJson 收藏idsJson
+     * @return Boolean
+     */
+    Boolean delete(String requestJson);
+
+    /**
+     * 批量收藏
+     * @param request 收藏参数
+     * @return Boolean
+     */
+    Boolean all(UserCollectAllRequest request);
+
+    List<StoreProductRelation> getLikeOrCollectByUser(Integer userId, Integer productId,boolean isLike);
+
+    /**
+     * 获取用户收藏列表
+     * @param pageParamRequest 分页参数
+     * @return List<UserRelationResponse>
+     */
+    List<UserRelationResponse> getUserList(PageParamRequest pageParamRequest);
+
+    /**
+     * 获取用户的收藏数量
+     * @param uid 用户uid
+     * @return 收藏数量
+     */
+    Integer getCollectCountByUid(Integer uid);
+
+    /**
+     * 根据商品Id取消收藏
+     * @param proId 商品Id
+     * @return Boolean
+     */
+    Boolean deleteByProId(Integer proId);
+
+    /**
+     * 根据商品Id取消收藏
+     * @param proId 商品Id
+     * @return Boolean
+     */
+    Boolean deleteByProIdAndUid(Integer proId);
+
+    /**
+     * 根据日期获取收藏量
+     * @param date 日期，yyyy-MM-dd格式
+     * @return Integer
+     */
+    Integer getCountByDate(String date);
+
+    /**
+     * 根据日期获取收藏量
+     * @param date 日期，yyyy-MM-dd格式
+     * @param proId 商品id
+     * @return Integer
+     */
+    Integer getCountByDateAndProId(String date, Integer proId);
+
+    /**
+     * 添加收藏
+     * @param request 收藏参数
+     */
+    Boolean add(UserCollectRequest request);
+
+    /**
+     * 通过用户id删除
+     * @param uid 用户ID
+     */
+    Boolean deleteByUid(Integer uid);
+}

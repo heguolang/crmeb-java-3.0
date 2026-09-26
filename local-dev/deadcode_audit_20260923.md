@@ -31,17 +31,17 @@
 
 | 文件 | 判定理由 |
 |---|---|
-| `crmeb-common/.../result/AdminResultCode.java` | 枚举值零引用；同目录实际使用的是 `ResultCode` / `ApiResultCode` |
-| `crmeb-common/.../result/CommunityResultCode.java` | 社区模块整体未在本项目启用 |
-| `crmeb-common/.../result/MarketingResultCode.java` | 零引用 |
-| `crmeb-common/.../result/MemberResultCode.java` | 零引用（会员模块用的是 `ResultCode`） |
-| `crmeb-common/.../result/MerchantResultCode.java` | 零引用 |
-| `crmeb-common/.../result/OnePassResultCode.java` | 一号通模块回调未接入 |
-| `crmeb-common/.../result/OrderResultCode.java` | 零引用 |
-| `crmeb-common/.../result/PayResultCode.java` | 零引用 |
-| `crmeb-common/.../result/WechatResultCode.java` | 零引用 |
-| `crmeb-common/.../result/CouponResultCode.java` | **级联失效**：只被下面 2.4 的 `ShopOrderDetailVo` 引用 |
-| `crmeb-common/.../exception/ExceptionCodeEnum.java` | 实现的是同项目 `ExceptionHandler` 接口，但枚举本身零引用、无任何遍历点 |
+| `qianxu-common/.../result/AdminResultCode.java` | 枚举值零引用；同目录实际使用的是 `ResultCode` / `ApiResultCode` |
+| `qianxu-common/.../result/CommunityResultCode.java` | 社区模块整体未在本项目启用 |
+| `qianxu-common/.../result/MarketingResultCode.java` | 零引用 |
+| `qianxu-common/.../result/MemberResultCode.java` | 零引用（会员模块用的是 `ResultCode`） |
+| `qianxu-common/.../result/MerchantResultCode.java` | 零引用 |
+| `qianxu-common/.../result/OnePassResultCode.java` | 一号通模块回调未接入 |
+| `qianxu-common/.../result/OrderResultCode.java` | 零引用 |
+| `qianxu-common/.../result/PayResultCode.java` | 零引用 |
+| `qianxu-common/.../result/WechatResultCode.java` | 零引用 |
+| `qianxu-common/.../result/CouponResultCode.java` | **级联失效**：只被下面 2.4 的 `ShopOrderDetailVo` 引用 |
+| `qianxu-common/.../exception/ExceptionCodeEnum.java` | 实现的是同项目 `ExceptionHandler` 接口，但枚举本身零引用、无任何遍历点 |
 
 ### 2.2 请求 DTO（13 个）—— 无任何 Controller 形参绑定
 
@@ -163,7 +163,7 @@
 | `admin/src/vendor/Export2Zip.js` | 零引用 |
 | `admin/src/views/login/verifition/Verify/SilderVerify.vue` | 真实使用的是 `verifySlider.vue`（`Verify.vue` 只 import 了它） |
 | `admin/src/views/login/verifition/utils/fomat.ts` | 零引用 |
-| `local-dev/sql/product_group_level_source.sql` | 与 `crmeb/sql/product_group_level_source.sql` 内容重复（仅差已废弃的 `USE` 行） |
+| `local-dev/sql/product_group_level_source.sql` | 与 `qianxu/sql/product_group_level_source.sql` 内容重复（仅差已废弃的 `USE` 行） |
 
 ---
 
@@ -202,7 +202,7 @@
    本次报出来的都是**连引用都没有**的，不存在误删。
 4. **`admin/src/views/**/index.vue` 里内容完全相同的路由容器**（`<template><router-view/></template>`）：
    共 7 个文件哈希一致，但每个都被各自路由 `import()` 引用，属**正常设计**，不是冗余。
-5. **图片资源重复**（`crmebimage` 与 `db-data/crmeb_image` 大量同哈希文件）：运行时静态资源，不属代码。
+5. **图片资源重复**（`crmebimage` 与 `db-data/qianxu_image` 大量同哈希文件）：运行时静态资源，不属代码。
 
 ---
 
@@ -213,11 +213,11 @@
 | Java 类死代码清零 | `deadcode_scan.py` 第三轮 | `零外部引用的类: 0`、`从未被使用的 private 成员: 0` |
 | 前端死代码清零 | `deadcode_scan_front.py admin/src` | `不可达（可删候选）: 0` |
 | 残余引用兜底 | 对 33 个被删类名做全仓库 grep（java/xml/yml/properties/vue/js/ts/sql） | **零命中** |
-| Java 全量编译 | `mvnw.sh -o -DskipTests -pl crmeb-common,crmeb-service,crmeb-admin,crmeb-front -am compile`（先 `touch` 全部源文件强制重编） | 4 模块 **BUILD SUCCESS** |
+| Java 全量编译 | `mvnw.sh -o -DskipTests -pl qianxu-common,qianxu-service,qianxu-admin,qianxu-front -am compile`（先 `touch` 全部源文件强制重编） | 4 模块 **BUILD SUCCESS** |
 | 后台生产构建 | `vue-cli-service build` | **DONE Build complete**，无 error |
 
-> 「touch 全部源文件」是为了绕过 Maven 增量编译器（它会因 crmeb-front 源文件时间戳未变而跳过编译），
-> 否则 `crmeb-front` 会显示 `Nothing to compile`，等于**没验证**。
+> 「touch 全部源文件」是为了绕过 Maven 增量编译器（它会因 qianxu-front 源文件时间戳未变而跳过编译），
+> 否则 `qianxu-front` 会显示 `Nothing to compile`，等于**没验证**。
 
 ---
 

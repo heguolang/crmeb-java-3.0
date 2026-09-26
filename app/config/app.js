@@ -1,21 +1,15 @@
 // +----------------------------------------------------------------------
-// | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
+// | 黔序商城 [ 黔序科技，助力企业发展 ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2016~2026 https://www.crmeb.com All rights reserved.
+// | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
 // +----------------------------------------------------------------------
-// | Licensed CRMEB并不是自由软件，未经许可不能去掉CRMEB相关版权
+// | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
 // +----------------------------------------------------------------------
-// | Author: CRMEB Team <admin@crmeb.com>
+// | Author: 贵州黔序科技有限公司
 // +----------------------------------------------------------------------
-//移动端商城API
-// 本地调试用：crmeb-front (8081)
 let domain = 'http://127.0.0.1:8081'
 // 生产（线上）
 // let domain = 'https://api.qianxutec.com'
-// 演示站
-// let domain = 'https://apif.java.crmeb.net'
-// 深度演示站
-// let domain = 'https://apif.crmeb.xbdzz.cn'
 
 module.exports = {
 	// 请求域名 格式： https://您的域名
@@ -27,18 +21,12 @@ module.exports = {
 		HTTP_H5_URL: 'http://127.0.0.1:8090',
 		// 生产（线上）
 		// HTTP_H5_URL: 'https://app.qianxutec.com',
-		// 演示站
-		// HTTP_H5_URL: 'http://java.crmeb.net',
-		// 深度演示站
-		// HTTP_H5_URL: 'crmeb.xbdzz.cn',
-		// HTTP_H5_URL: 'java.9gt.net',
 	// #endif
 	// #ifdef H5
 		HTTP_REQUEST_URL:domain,
 	// #endif
 	HEADER:{
-		'content-type': 'application/json',
-		'X-Source' : 'df07addc462f7f8f'
+		'content-type': 'application/json'
 	},
 	HEADERPARAMS:{
 		'content-type': 'application/x-www-form-urlencoded'

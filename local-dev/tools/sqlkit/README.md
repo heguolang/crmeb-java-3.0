@@ -1,6 +1,6 @@
 # sqlkit — 一键补丁生成与验收工具
 
-`crmeb/sql/oneclick/02_patches_all.sql` 是**生成物**：由 `crmeb/sql/*.sql` 各独立脚本按
+`qianxu/sql/oneclick/02_patches_all.sql` 是**生成物**：由 `qianxu/sql/*.sql` 各独立脚本按
 `-- ========== BEGIN: xxx.sql ==========` 分节拼接而成，线上由 `deploy.sh patch` 执行。
 
 > 改数据请改源脚本，**不要直接改补丁包**——下次重新拼接就会覆盖。
@@ -8,7 +8,7 @@
 ## 标准流程
 
 ```bash
-cd /d/crmeb-java-3.0
+cd /d/qianxu-java-3.0
 PY=/c/Users/Administrator/.workbuddy/binaries/python/versions/3.13.12/python
 
 # 1) 从库导出快照（配置 / 菜单 / 表名+备注+行数）
@@ -21,7 +21,7 @@ $PY local-dev/tools/sqlkit/gen_table_comments.py  # → table_comments_*.sql
 $PY local-dev/tools/sqlkit/gen_table_doc.py       # → local-dev/db_table_reference.md
 
 # 3) 重新拼接补丁包（务必从干净备份起，避免分节重复累积）
-cp local-dev/tmp/02_patches_all.bak.sql crmeb/sql/oneclick/02_patches_all.sql
+cp local-dev/tmp/02_patches_all.bak.sql qianxu/sql/oneclick/02_patches_all.sql
 $PY local-dev/tools/sqlkit/patch_bundle.py
 
 # 4) 验收：连跑三遍，要求 EXIT=0 / ERROR=0，且前后 mysqldump 完全一致

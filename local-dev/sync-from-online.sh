@@ -6,8 +6,8 @@
 #     线上是生产，本地是开发，反向覆盖 = 删生产数据。
 #
 #  用法：
-#    bash /d/crmeb-java-3.0/local-dev/sync-from-online.sh --dry-run   # 只预演，不动任何东西
-#    bash /d/crmeb-java-3.0/local-dev/sync-from-online.sh --yes       # 真执行（会覆盖本地 crmeb）
+#    bash /d/qianxu-java-3.0/local-dev/sync-from-online.sh --dry-run   # 只预演，不动任何东西
+#    bash /d/qianxu-java-3.0/local-dev/sync-from-online.sh --yes       # 真执行（会覆盖本地 crmeb）
 #
 #  执行前会自动把本地 crmeb 全量备份到 /d/env/backup/，可整库回滚。
 #

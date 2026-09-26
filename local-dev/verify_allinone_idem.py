@@ -14,8 +14,8 @@ import time
 
 MYSQL = r"D:\env\mysql-8.0.29-winx64\bin\mysql.exe"
 DB = "crmeb_java3"
-SQL = r"D:\crmeb-java-3.0\crmeb\sql\oneclick\ALL_IN_ONE.sql"
-LOG = r"D:\crmeb-java-3.0\local-dev\_idem_import.log"
+SQL = r"D:\qianxu-java-3.0\crmeb\sql\oneclick\ALL_IN_ONE.sql"
+LOG = r"D:\qianxu-java-3.0\local-dev\_idem_import.log"
 
 # 内容快照表（含 id、按 id 排序，保证可比）
 CONTENT_TABLES = [

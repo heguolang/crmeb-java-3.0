@@ -5,10 +5,9 @@
 </div>
 
 > **仓库说明**  
-> 本仓库为 **黔序科技商城系统 完整版**（`crmeb` 后端 + `admin` 管理端 + `app` 移动端 一体）。  
-> 与 GitHub 上旧版拆分仓库区分：[`crmeb-java`](https://github.com/heguolang/crmeb-java) / [`crmeb-java-admin`](https://github.com/heguolang/crmeb-java-admin) / [`crmeb-app`](https://github.com/heguolang/crmeb-app)。  
+> 本仓库为 **黔序科技商城系统 完整版**（`qianxu` 后端 + `admin` 管理端 + `app` 移动端 一体）。  
 > 本版额外含：会员等级返佣、团队等级/团队奖、注册默认推广员、订货商实体库存等能力。  
-> 系统基于开源项目 [CRMEB Java 3.0](https://gitee.com/ZhongBangKeJi/crmeb_java)（Apache-2.0 协议）二次开发，遵循原协议保留其版权声明。
+> 系统基于 Apache-2.0 协议的开源电商系统二次开发，遵循原协议保留其版权声明；**黔序商城系统软件 V1.0 已登记软件著作权（登记号 2025SR2146980，贵州黔序科技有限公司）**。
 
 <div align="center">
     <a href="LICENSE">
@@ -62,7 +61,7 @@
 qianxu-mall
 ├── admin/          PC端管理端（Vue + ElementUI）
 ├── app/            移动商城（UniApp标准开发，支持H5 + 微信小程序）
-├── crmeb/          后端API服务（Java SpringBoot + MybatisPlus）
+├── qianxu/          后端API服务（Java SpringBoot + MybatisPlus）
 └── 接口文档/        部署后也可在线查看 Swagger 文档
 ```
 
@@ -70,18 +69,18 @@ qianxu-mall
 
 ### 📚 参考资料
 
-以下为上游开源项目 CRMEB 的文档资源，二次开发时可参考：
+以下为上游开源项目 QIANXU 的文档资源，二次开发时可参考：
 
 | 文档 | 链接 |
 |------|------|
-| 使用文档 | https://doc.crmeb.com/java/crmeb_java_30/41958 |
-| 数据字典 | https://doc.crmeb.com/java/crmeb_java_30/41957 |
-| 二开文档 | https://doc.crmeb.com/java/crmeb_java_30/41829 |
+| 使用文档 | 内部资料（已移除外部链接） |
+| 数据字典 | 内部资料（已移除外部链接） |
+| 二开文档 | 内部资料（已移除外部链接） |
 
 ---
 
 ### 📄 开源协议
 
-本项目基于 [Apache License 2.0](LICENSE) 发布，源自 CRMEB Java 3.0 开源版本。依照协议要求，源文件中的原始版权声明予以保留。
+本项目基于 [Apache License 2.0](LICENSE) 发布，源自 QIANXU Java 3.0 开源版本。依照协议要求，源文件中的原始版权声明予以保留。
 
 © 2026 贵州黔序科技有限公司

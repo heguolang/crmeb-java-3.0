@@ -1,5 +1,5 @@
 #!/bin/bash
-# CRMEB Java 3.0 本地一键启动脚本
+# QIANXU Java 3.0 本地一键启动脚本
 # 启动顺序：MySQL -> Redis -> 后台API(8080) -> 前台API(8081) -> 管理端前端(9527)
 set -u
 
@@ -38,18 +38,18 @@ echo "==> [3/5] 启动后台 API (8080)"
 if port_open 8080; then
   echo "    8080 已被占用，跳过"
 else
-  nohup "$JAVA_HOME/bin/java" -jar "$PROJECT_DIR/crmeb/crmeb-admin/target/Crmeb-admin.jar" \
-    --server.port=8080 --crmeb.imagePath="$PROJECT_DIR/crmeb/" \
-    > "$LOG_DIR/crmeb-admin.log" 2>&1 &
+  nohup "$JAVA_HOME/bin/java" -jar "$PROJECT_DIR/qianxu/qianxu-admin/target/Qianxu-admin.jar" \
+    --server.port=8080 --crmeb.imagePath="$PROJECT_DIR/qianxu/" \
+    > "$LOG_DIR/qianxu-admin.log" 2>&1 &
 fi
 
 echo "==> [4/5] 启动前台 API (8081)"
 if port_open 8081; then
   echo "    8081 已被占用，跳过"
 else
-  nohup "$JAVA_HOME/bin/java" -jar "$PROJECT_DIR/crmeb/crmeb-front/target/Crmeb-front.jar" \
-    --server.port=8081 --crmeb.imagePath="$PROJECT_DIR/crmeb/" \
-    > "$LOG_DIR/crmeb-front.log" 2>&1 &
+  nohup "$JAVA_HOME/bin/java" -jar "$PROJECT_DIR/qianxu/qianxu-front/target/Qianxu-front.jar" \
+    --server.port=8081 --crmeb.imagePath="$PROJECT_DIR/qianxu/" \
+    > "$LOG_DIR/qianxu-front.log" 2>&1 &
 fi
 
 echo "==> [5/5] 启动管理端前端 (9527)"

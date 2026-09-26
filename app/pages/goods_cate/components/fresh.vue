@@ -712,7 +712,7 @@
 
 <style lang="scss">
 	page {
-		background-color: $crmeb-bg-color;
+		background-color: $qianxu-bg-color;
 	}
 
 	::-webkit-scrollbar {
@@ -723,7 +723,7 @@
 	}
 
 	.goodCate1 {
-		background-color: $crmeb-bg-color;
+		background-color: $qianxu-bg-color;
 		::v-deep .mask {
 			// z-index: 99;
 		}
@@ -737,7 +737,7 @@
 		.header {
 			position: fixed;
 			height: 128rpx;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			top: 0;
 			left: 0;
 			width: 100%;
@@ -768,16 +768,16 @@
 				/* #endif */
 				height: 68rpx;
 				border-radius: 36rpx;
-				background-color: $crmeb-bg-color-grey;
+				background-color: $qianxu-bg-color-grey;
 				font-size: 26rpx;
-				color: $crmeb-font-color-disable;
+				color: $qianxu-font-color-disable;
 				margin-left: 22rpx;
 				padding: 0 30rpx;
 
 				.iconfont {
 					font-size: 30rpx;
 					margin-right: 18rpx;
-					color: $crmeb-font-color-subtitle;
+					color: $qianxu-font-color-subtitle;
 				}
 
 				// image{
@@ -797,7 +797,7 @@
 				left: 0;
 				bottom: 0;
 				top: 0;
-				background-color: $crmeb-bg-color-grey;
+				background-color: $qianxu-bg-color-grey;
 				overflow-y: auto;
 				overflow-x: hidden;
 				margin-top: 128rpx;
@@ -808,10 +808,10 @@
 					height: 100rpx;
 					width: 100%;
 					font-size: 26rpx;
-					color: $crmeb-font-color;
+					color: $qianxu-font-color;
 
 					&.on {
-						background-color: $crmeb-bg-color;
+						background-color: $qianxu-bg-color;
 						width: 100%;
 						text-align: center;
 						@include main_color(theme);
@@ -836,19 +836,19 @@
 			margin-top: 104rpx;
 			width: 77%;
 			float: right;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			padding-bottom: 130rpx;
 		}
 		.hide_slide{
 			margin-top: 104rpx;
 			width: 100%;
 			float: right;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			padding-bottom: 130rpx;
 		}
 		.bgcolor {
 			width: 100%;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 		}
 				
 		.goodsList {
@@ -862,7 +862,7 @@
 			margin-top: 128rpx;
 			height: 100rpx;
 			z-index: 99;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 		}
 		.hongTab{
 			width: 100%;
@@ -871,7 +871,7 @@
 			margin-top: 128rpx;
 			height: 100rpx;
 			z-index:99;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 		}
 		.longItem {
 			height: 44rpx;
@@ -882,14 +882,14 @@
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
-			color: $crmeb-font-color;
-			background-color: $crmeb-bg-color-grey;
+			color: $qianxu-font-color;
+			background-color: $qianxu-bg-color-grey;
 			border-radius: 22rpx;
 			margin-left: 12rpx;
 			&.click {
 				font-weight: bold;
 				@include main_bg_color(theme);
-				color: $crmeb-font-color-white;
+				color: $qianxu-font-color-white;
 			}
 		}
 			
@@ -904,13 +904,13 @@
 			.underline {
 				width: 33rpx;
 				height: 4rpx;
-				background-color: $crmeb-bg-color;
+				background-color: $qianxu-bg-color;
 			}
 		}	
 		.openList {
 			width: 12%;
 			height: 100rpx;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			line-height: 100rpx;
 			padding-left: 30rpx;
 			margin-top: 128rpx;
@@ -921,7 +921,7 @@
 				
 			.iconfont {
 				font-size: 22rpx;
-				color: $crmeb-font-color-subtitle;
+				color: $qianxu-font-color-subtitle;
 			}
 		}
 				
@@ -931,7 +931,7 @@
 			top: 0;
 			margin-top: 128rpx;
 			z-index: 99;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			right: 0;
 		}
 		.hownTab{
@@ -940,12 +940,12 @@
 			top: 0;
 			margin-top: 128rpx;
 			z-index: 99;
-			background-color: $crmeb-bg-color;
+			background-color: $qianxu-bg-color;
 			right: 0;
 		}
 		.title {
 			font-size: 26rpx;
-			color: $crmeb-font-color-assist;
+			color: $qianxu-font-color-assist;
 			// padding-left: 20rpx;
 			
 			.closeList {
@@ -957,7 +957,7 @@
 			
 				.iconfont {
 					font-size: 22rpx;
-					color: $crmeb-font-color-subtitle;
+					color: $qianxu-font-color-subtitle;
 				}
 			}
 		}
@@ -970,7 +970,7 @@
 			
 			.item {
 				height: 60rpx;
-				background-color: $crmeb-bg-color-grey;
+				background-color: $qianxu-bg-color-grey;
 				border-radius: 30rpx;
 				line-height: 60rpx;
 				padding: 0 15rpx;
@@ -981,7 +981,7 @@
 				&.click {
 					font-weight: bold;
 					@include main_bg_color(theme);
-					color: $crmeb-font-color-white;
+					color: $qianxu-font-color-white;
 				}
 			}
 		}		
@@ -1008,7 +1008,7 @@
 					font-size:26rpx;
 					font-family:PingFang SC;
 					font-weight:500;
-					color: $crmeb-font-color;
+					color: $qianxu-font-color;
 				}
 				.bottom{
 					margin-top: 22rpx;
@@ -1024,19 +1024,19 @@
 					.cart{
 						height: 46rpx;
 						.pictrue{
-							color: $crmeb-theme-color;
+							color: $qianxu-theme-color;
 							font-size:46rpx;
 							width: 46rpx;
 							height: 46rpx;
 							text-align: center;
 							line-height: 46rpx;
 							&.icon-jiahao{
-								 color: $crmeb-theme-color;
+								 color: $qianxu-theme-color;
 							}
 						}
 						.num{
 							font-size: 30rpx;
-							color: $crmeb-font-color;
+							color: $qianxu-font-color;
 							font-weight: bold;
 							width: 60rpx;
 							text-align: center;
@@ -1045,9 +1045,9 @@
 					.icon-gouwuche6{
 						width: 46rpx;
 						height: 46rpx;
-						background-color: $crmeb-theme-color;
+						background-color: $qianxu-theme-color;
 						border-radius: 50%;
-						color: $crmeb-font-color-white;
+						color: $qianxu-font-color-white;
 						font-size: 30rpx;
 					}
 					.bnt{
@@ -1057,10 +1057,10 @@
 						@include main_bg_color(theme);
 						border-radius:23rpx;
 						font-size: 22rpx;
-						color: $crmeb-font-color-white;
+						color: $qianxu-font-color-white;
 						position: relative;
 						&.end{
-							background:$crmeb-font-color-disable;
+							background:$qianxu-font-color-disable;
 						}
 						.num{
 							min-width: 12rpx;

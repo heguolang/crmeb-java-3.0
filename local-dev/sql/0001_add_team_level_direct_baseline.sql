@@ -1,7 +1,7 @@
 -- ============================================================
 -- 补齐 eb_system_team_level 的「直推订单」基线列
 --
--- 背景：仓库里的 crmeb/sql/upgrade_team_level_direct.sql 使用
+-- 背景：仓库里的 qianxu/sql/upgrade_team_level_direct.sql 使用
 --       `AFTER direct_order_amount` 作为定位锚点，但仓库中
 --       【没有任何脚本】创建过 direct_order_amount /
 --       direct_order_trigger_type 这两列（上游是在自己库里手工加的，
@@ -10,7 +10,7 @@
 --       ERROR 1054: Unknown column 'direct_order_amount'。
 --
 -- 作用：幂等补齐这两列，使 upgrade_team_level_direct.sql 可正常执行。
--- 顺序：本脚本 → crmeb/sql/upgrade_team_level_direct.sql
+-- 顺序：本脚本 → qianxu/sql/upgrade_team_level_direct.sql
 -- ============================================================
 
 SET @db = DATABASE();

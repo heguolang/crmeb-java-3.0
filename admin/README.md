@@ -1,4 +1,4 @@
-# CRMEB Admin
+# QIANXU Admin
 ## 开发规范
 统一使用ES6 语法
 方法注释
@@ -212,7 +212,7 @@ utils 自定义工具js 独立命名，一般不用新建文件夹
 
 ```bash
 # 克隆项目
-git clone https://gitee.com/ZhongBangKeJi/crmeb_java/
+git clone https://gitee.com/ZhongBangKeJi/qianxu_java/
 
 # 进入项目目录
 cd ##

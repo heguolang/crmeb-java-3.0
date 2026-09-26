@@ -415,7 +415,7 @@ export default {
       typeName: '',
       currentPage: 'cate',
       modelBanner: [
-        'https://image.java.crmeb.net/crmebimage/maintain/2021/07/06/c99ee385e94d4711a0ea4be72169a86euwmzuhxbb2.jpg',
+        '',
       ],
       urlbg: require('@/assets/imgs/user_bg.png'),
       indexTab: [],

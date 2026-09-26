@@ -3,7 +3,7 @@
 严格二进制读写 + 锚点定位，避免编辑器/换行二次转码污染（历史踩坑）。"""
 import io, os
 
-ROOT = r'D:\crmeb-java-3.0'
+ROOT = r'D:\qianxu-java-3.0'
 SQL = os.path.join(ROOT, 'crmeb', 'sql')
 PATCH = os.path.join(SQL, 'oneclick', '02_patches_all.sql')
 

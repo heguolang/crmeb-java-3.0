@@ -12,7 +12,7 @@
     line-height: 32px;
   }
   // input
-  // 2026-09-25：12px → 14px（CRMEB 遗留 12px 与全站 14px 正文基线冲突，
+  // 2026-09-25：12px → 14px（QIANXU 遗留 12px 与全站 14px 正文基线冲突，
   // 造成「输入框文字比标签大」的错层；radio 因漏网是 14px 反而衬出 label 小）
   .el-input__inner,
   .el-textarea__inner {

@@ -1,4 +1,4 @@
-# PROJECT_NOTES.md — CRMEB Java 3.0 项目细节手册
+# PROJECT_NOTES.md — QIANXU Java 3.0 项目细节手册
 
 > 本文件是 `D:\WorkBuddy\java系统\.workbuddy\memory\MEMORY.md` 的**详细版附录**。
 > MEMORY.md 只留硬规则；动手做下面这些事之前，先读这里对应章节。
@@ -218,7 +218,7 @@
   取配置最稳的方式是 `mConfig[activeIndex]` 拿组件后按 `id` 在 `defaultArray` 里找；
 - 改完要 `commit('mobildConfig/UPDATEARR')` 一次才会刷新右栏与预览。
 
-详细机制见技能 `crmeb-theme-diy`。
+详细机制见技能 `qianxu-theme-diy`。
 
 ### 页面预览（2026-09-23，装修 Tab 右上角）
 
@@ -261,7 +261,7 @@
 **凡改动了数据库相关的东西（菜单 / 配置 / 表结构）要让线上生效，都要补增量脚本。**
 
 ```
-crmeb/sql/
+qianxu/sql/
 ├── *.sql                          单点增量脚本（命名如 add_ / fix_ / hide_，均幂等）
 ├── migration/                     模块级脚本
 └── oneclick/                      ★ 一键部署
@@ -271,18 +271,18 @@ crmeb/sql/
     └── deploy.sh / deploy.bat
 ```
 
-- **线上执行**：`cd crmeb/sql/oneclick && ./deploy.sh patch`
+- **线上执行**：`cd qianxu/sql/oneclick && ./deploy.sh patch`
 - **新增单脚本后必须追加到 `02_patches_all.sql`**：
   按 `-- ========== BEGIN: xxx.sql ==========` 分节，插在文件末尾
   `SET FOREIGN_KEY_CHECKS = 1;` 之前。
 - **脚本必须幂等**：按 `component` / `perms` 定位而**不要用自增 id**（线上 id 与本机可能不同），
   新建用 `INSERT ... SELECT ... WHERE NOT EXISTS` 防重。
 - 执行完 **重启 admin/front jar + 清 Redis 配置缓存**，再重新登录刷新菜单。
-- **提交 git 时不要带本地业务数据**：`crmeb/crmebimage/public/**`（本地上传的图片）等要留在工作区。
+- **提交 git 时不要带本地业务数据**：`qianxu/crmebimage/public/**`（本地上传的图片）等要留在工作区。
 
 ### ⚠️ 铁律：`oneclick/02_patches_all.sql` 是「生成物」，且曾被转码污染（2026-09-23）
 
-该文件由 `crmeb/sql/*.sql` 各独立脚本**拼接**而成，历史上某次拼接经过
+该文件由 `qianxu/sql/*.sql` 各独立脚本**拼接**而成，历史上某次拼接经过
 **有损转码（UTF-8 → GBK → UTF-8，非法字节被替换成 `?`）**，
 导致 **37 个分节里 33 个全部损坏**：
 
@@ -290,7 +290,7 @@ crmeb/sql/
   （`ERROR 1064 near '0.00' COMMENT ...`），线上 `deploy.sh patch` 必然失败、缺表
 - 多分节中文注释变 `???`，含中文的 `INSERT` 值会乱码入库（菜单名等）
 
-**源文件 `crmeb/sql/*.sql` 全部完好**（合法 UTF-8），已于 2026-09-23 按分节顺序
+**源文件 `qianxu/sql/*.sql` 全部完好**（合法 UTF-8），已于 2026-09-23 按分节顺序
 用源文件内容重建，并重写文件头；4 个无独立源文件的分节按 SQL 逻辑重写注释。
 **结果：`EXIT=0，零 ERROR`，幂等可重跑。**
 
@@ -343,7 +343,7 @@ crmeb/sql/
 - **未删（重要）**：`SystemUserLevelBrokerage` model / Service / Dao / Request
   —— `OrderPayServiceImpl:797` 按**用户会员等级**取返佣比例算佣金，动了会破坏结算链路。
   本次只删了旧页面专用的 `SystemUserLevelBrokerageController` + `...SaveRequest`。
-- 增量脚本：`crmeb/sql/distributor_level_20260923.sql` +
+- 增量脚本：`qianxu/sql/distributor_level_20260923.sql` +
   `distributor_level_upgrade_20260923.sql`（已并入 `02_patches_all.sql`）。
 - 等级体系整体约定与新增表/字段清单见 `local-dev/level_rules_checklist.md`。
 
@@ -394,7 +394,7 @@ crmeb/sql/
 
 ## G. 本地启动 / 打包硬规则（2026-09-23 定稿）
 
-端口：MySQL 3306（root/123456，库 `crmeb`）｜Redis 6379（密码 123456，admin session db10、
+端口：MySQL 3306（root/123456，库 `qianxu`）｜Redis 6379（密码 123456，admin session db10、
 微信 token db14、配置缓存 db7+db10）｜Admin API 8080｜Front API 8081｜Admin Web 9527。
 一键：`bash local-dev/start-all.sh`（幂等，默认阻塞常驻——后台任务一退出宿主会回收整棵子进程树）；
 自检 `check-all.sh`。用户侧持久运行双击 `local-dev/start-all.bat`；停服 `stop-windows.bat`（`full` 连库一起停）。
@@ -403,9 +403,9 @@ crmeb/sql/
 
 ```bash
 export PATH="/usr/bin:/bin:/c/Windows/System32:$PATH"
-cd /d/crmeb-java-3.0/crmeb/crmeb-admin/target && \
+cd /d/qianxu-java-3.0/qianxu/qianxu-admin/target && \
   "D:/env/java/jdk8u504-b01/bin/java.exe" -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 \
-  -jar Crmeb-admin.jar --server.port=8080
+  -jar Qianxu-admin.jar --server.port=8080
 ```
 
 1. **必须 `run_in_background=true` 且命令末尾不加 `&`**。加了 `&` 子进程被回收，日志停在
@@ -424,17 +424,17 @@ cd /d/crmeb-java-3.0/crmeb/crmeb-admin/target && \
 ### Maven 打包
 
 ```bash
-cd /d/crmeb-java-3.0/crmeb && bash /d/crmeb-java-3.0/local-dev/mvnw.sh \
-  -o -DskipTests -pl crmeb-common,crmeb-service,crmeb-admin,crmeb-front -am clean package
+cd /d/qianxu-java-3.0/crmeb && bash /d/qianxu-java-3.0/local-dev/mvnw.sh \
+  -o -DskipTests -pl qianxu-common,qianxu-service,qianxu-admin,qianxu-front -am clean package
 ```
 
 - 报 `找不到或无法加载主类 org.codehaus.plexus.classworlds.launcher.Launcher` 时即用此包装脚本
   （内置 `MSYS_NO_PATHCONV=1`；**不能写 `exec VAR=val cmd`**，shell 会报 not found）。
 - 打包前先停 8080/8081，否则 `clean` 失败（jar 被句柄占用）。
-- ⚠️ **`-pl` 绝不能省 `crmeb-front`**：front 跑旧 jar 时行为与新代码**静默不一致** ——
+- ⚠️ **`-pl` 绝不能省 `qianxu-front`**：front 跑旧 jar 时行为与新代码**静默不一致** ——
   曾出现旧 `matchRole()` 对未知权限类型落 `return true`，表现为"后台配了权限但人人可见、
   游客照常被拦"，极易误判成逻辑写错。**碰过 common/service 必须两端一起打。**
-- **Maven 根 pom 在 `D:/crmeb-java-3.0/crmeb/`**（不是上一层），错目录报
+- **Maven 根 pom 在 `D:/qianxu-java-3.0/qianxu/`**（不是上一层），错目录报
   `Could not find the selected project in the reactor`。
 - MSYS 下 `/tmp` 实映射 `C:/Users/ADMINI~1/AppData/Local/Temp`，java/python 读写临时文件
   要用 Windows 路径（`$(cygpath -w ...)`），否则"curl 写了 python 读不到"。
@@ -444,7 +444,7 @@ cd /d/crmeb-java-3.0/crmeb && bash /d/crmeb-java-3.0/local-dev/mvnw.sh \
 ```bash
 export PATH="/c/Users/Administrator/.workbuddy/binaries/node/versions/22.22.2-3:/usr/bin:/bin:/c/Windows/System32:$PATH"
 export NODE_OPTIONS="--openssl-legacy-provider"
-cd /d/crmeb-java-3.0/admin && node node_modules/@vue/cli-service/bin/vue-cli-service.js serve --port=9527
+cd /d/qianxu-java-3.0/admin && node node_modules/@vue/cli-service/bin/vue-cli-service.js serve --port=9527
 ```
 
 17~30 秒，出现 ` DONE  Compiled successfully` 即成功。改了 .vue 想确保生效**直接重启 dev server**
@@ -459,19 +459,19 @@ cd /d/crmeb-java-3.0/admin && node node_modules/@vue/cli-service/bin/vue-cli-ser
 
 ```bash
 # 1) 备份
-mysqldump -uroot -p --default-character-set=utf8mb4 crmeb > crmeb_backup_$(date +%Y%m%d).sql
+mysqldump -uroot -p --default-character-set=utf8mb4 crmeb > qianxu_backup_$(date +%Y%m%d).sql
 
 # 2) 执行一键补丁（幂等，含本轮全部 DDL + 数据清理）
 #    库名由连接决定：线上 crmeb_java3、本地 crmeb —— 脚本内已无 USE 语句
-mysql -uroot -p --default-character-set=utf8mb4 crmeb_java3 < crmeb/sql/oneclick/02_patches_all.sql
-# 末尾应输出：CRMEB fix_duplicate_data done / CRMEB oneclick patches done
+mysql -uroot -p --default-character-set=utf8mb4 crmeb_java3 < qianxu/sql/oneclick/02_patches_all.sql
+# 末尾应输出：QIANXU fix_duplicate_data done / QIANXU oneclick patches done
 ```
 
 > ⚠️ 补丁包**不再包含**「本地设置快照」（`local_default_settings.sql` 分节）。
 > 该分节用 `REPLACE INTO` 按主键覆盖 `eb_system_config` / `eb_page_diy`，
 > 会把线上的微信支付配置、短信账号、存储密钥一起冲掉，故已停用。
 > 确实需要复刻本地展示设置时**单独执行**并逐项核对：
-> `mysql -uroot -p --default-character-set=utf8mb4 crmeb_java3 < crmeb/sql/local_default_settings.sql`
+> `mysql -uroot -p --default-character-set=utf8mb4 crmeb_java3 < qianxu/sql/local_default_settings.sql`
 
 补丁包内含的**数据清理**（`fix_duplicate_data_20260923.sql`，已并入末尾）：
 1. `eb_system_config` 同 name 重复行只保留 **id 最大（最后写入）** 的一条 ——
@@ -484,9 +484,9 @@ mysql -uroot -p --default-character-set=utf8mb4 crmeb_java3 < crmeb/sql/oneclick
 ### 二、后端（两端必须同时替换）
 
 ```bash
-# 停服 → 构建（务必带 -pl crmeb-front）→ 启动
+# 停服 → 构建（务必带 -pl qianxu-front）→ 启动
 cd crmeb && bash ../local-dev/mvnw.sh -o -DskipTests \
-  -pl crmeb-common,crmeb-service,crmeb-admin,crmeb-front -am clean package
+  -pl qianxu-common,qianxu-service,qianxu-admin,qianxu-front -am clean package
 # 启动必须带 -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8，否则库里的中文全乱码
 ```
 
@@ -555,7 +555,7 @@ $PY local-dev/tools/deadcode_scan_front.py admin/src   # 不可达 = 0
 
 # 3) Java 全量重编（先 touch 全部源文件！）
 cd crmeb && find . -name "*.java" -not -path "*/target/*" -exec touch {} +
-bash ../local-dev/mvnw.sh -o -DskipTests -pl crmeb-common,crmeb-service,crmeb-admin,crmeb-front -am compile
+bash ../local-dev/mvnw.sh -o -DskipTests -pl qianxu-common,qianxu-service,qianxu-admin,qianxu-front -am compile
 
 # 4) 后台生产构建
 cd admin && NODE_OPTIONS=--openssl-legacy-provider node node_modules/@vue/cli-service/bin/vue-cli-service.js build

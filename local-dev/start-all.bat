@@ -1,6 +1,6 @@
 @echo off
 REM ==================================================================
-REM  CRMEB Java 3.0 - START ALL local services
+REM  QIANXU Java 3.0 - START ALL local services
 REM    Redis 6379 | Admin API 8080 | Front API 8081 | Admin Web 9527
 REM
 REM  Usage : double-click, or run from anywhere.
@@ -10,7 +10,7 @@ REM ==================================================================
 setlocal
 
 set "JAVA_HOME=D:\env\java\jdk8u504-b01"
-set "PROJ=D:\crmeb-java-3.0"
+set "PROJ=D:\qianxu-java-3.0"
 set "NODE_DIR=C:\Users\Administrator\.workbuddy\binaries\node\versions\22.22.2-3"
 set "LOGS=%PROJ%\local-dev\logs"
 set "JAVA_OPTS=-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
@@ -18,13 +18,13 @@ set "JAVA_OPTS=-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
 if not exist "%LOGS%" mkdir "%LOGS%"
 
 echo ===================================================
-echo  CRMEB start-all   (Redis 6379 / Admin 8080 / Front 8081 / Web 9527)
+echo  QIANXU start-all   (Redis 6379 / Admin 8080 / Front 8081 / Web 9527)
 echo ===================================================
 
 REM ---------- Redis 6379 ----------
 netstat -ano | findstr /C:":6379 " | findstr LISTENING >nul
 if errorlevel 1 (
-  start "crmeb-redis" /MIN "D:\env\redis\redis-server.exe" --port 6379 --requirepass 123456 --maxmemory 512mb
+  start "qianxu-redis" /MIN "D:\env\redis\redis-server.exe" --port 6379 --requirepass 123456 --maxmemory 512mb
   echo [6379] Redis      -> starting
 ) else (
   echo [6379] Redis      -> already up
@@ -33,7 +33,7 @@ if errorlevel 1 (
 REM ---------- Admin API 8080 ----------
 netstat -ano | findstr /C:":8080 " | findstr LISTENING >nul
 if errorlevel 1 (
-  start "crmeb-admin" /MIN "%JAVA_HOME%\bin\java.exe" %JAVA_OPTS% -jar "%PROJ%\crmeb\crmeb-admin\target\Crmeb-admin.jar" --server.port=8080
+  start "qianxu-admin" /MIN "%JAVA_HOME%\bin\java.exe" %JAVA_OPTS% -jar "%PROJ%\qianxu\qianxu-admin\target\Qianxu-admin.jar" --server.port=8080
   echo [8080] Admin API  -> starting (~60s)
 ) else (
   echo [8080] Admin API  -> already up
@@ -42,7 +42,7 @@ if errorlevel 1 (
 REM ---------- Front API 8081 ----------
 netstat -ano | findstr /C:":8081 " | findstr LISTENING >nul
 if errorlevel 1 (
-  start "crmeb-front" /MIN "%JAVA_HOME%\bin\java.exe" %JAVA_OPTS% -jar "%PROJ%\crmeb\crmeb-front\target\Crmeb-front.jar" --server.port=8081
+  start "qianxu-front" /MIN "%JAVA_HOME%\bin\java.exe" %JAVA_OPTS% -jar "%PROJ%\qianxu\qianxu-front\target\Qianxu-front.jar" --server.port=8081
   echo [8081] Front API  -> starting (~60s)
 ) else (
   echo [8081] Front API  -> already up
@@ -51,7 +51,7 @@ if errorlevel 1 (
 REM ---------- Admin Web 9527 (vue dev server) ----------
 netstat -ano | findstr /C:":9527 " | findstr LISTENING >nul
 if errorlevel 1 (
-  start "crmeb-web" /MIN cmd /c "set NODE_OPTIONS=--openssl-legacy-provider&& cd /d "%PROJ%\admin"&& "%NODE_DIR%\node.exe" node_modules\@vue\cli-service\bin\vue-cli-service.js serve --port=9527"
+  start "qianxu-web" /MIN cmd /c "set NODE_OPTIONS=--openssl-legacy-provider&& cd /d "%PROJ%\admin"&& "%NODE_DIR%\node.exe" node_modules\@vue\cli-service\bin\vue-cli-service.js serve --port=9527"
   echo [9527] Admin Web  -> starting (webpack ~25s)
 ) else (
   echo [9527] Admin Web  -> already up

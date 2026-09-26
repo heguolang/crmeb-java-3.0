@@ -1,9 +1,9 @@
 {
-  "name": "crmeb-java-webpc-admin",
-  "version": "4.2.1",
-  "description": "Java mall free open source CRMEB mall JAVA version, SpringBoot + Maven + Swagger + Mybatis Plus + Redis + Uniapp +Vue+elementUI Including mobile terminal, applet, PC background, Api interface; products, users, shopping carts, orders, points, Modules such as coupons, marketing, balance, permissions, roles, system settings, combined data, and drag-and-drop forms have greatly reduced the cost of second-opening.",
-  "author": "CRMEB",
-  "license": "MIT",
+  "name": "qianxu-java5.0-webpc-admin",
+  "version": "5.0.0",
+  "description": "黔序商城管理系统（贵州黔序科技有限公司）",
+  "author": "贵州黔序科技有限公司",
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "vue-cli-service serve --open",
     "build:prod": "vue-cli-service build",
@@ -29,14 +29,14 @@
     ]
   },
   "keywords": [
-    "CRMEB Java"
+    "QIANXU Java"
   ],
   "repository": {
     "type": "gitee",
-    "url": "https://gitee.com/ZhongBangKeJi/crmeb_java"
+    "url": "https://gitee.com/ZhongBangKeJi/qianxu_java"
   },
   "bugs": {
-    "url": "https://gitee.com/ZhongBangKeJi/crmeb_java/issues"
+    "url": "https://gitee.com/ZhongBangKeJi/qianxu_java/issues"
   },
   "dependencies": {
     "@babel/parser": "^7.9.6",

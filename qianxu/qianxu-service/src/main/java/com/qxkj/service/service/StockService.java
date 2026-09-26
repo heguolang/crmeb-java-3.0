@@ -1,0 +1,168 @@
+package com.qxkj.service.service;
+
+import com.qxkj.common.model.stock.StockAgent;
+import com.qxkj.common.model.stock.StockLevel;
+import com.qxkj.common.model.stock.StockLog;
+import com.qxkj.common.page.CommonPage;
+import com.qxkj.common.request.StockAgentCreateRequest;
+import com.qxkj.common.request.StockAgentRequest;
+import com.qxkj.common.request.StockRequests;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 订货系统-基础服务（层级/代理树/拿货价/云仓库存）
+ */
+public interface StockService {
+
+    // ==================== 后台 ====================
+
+    /** 层级列表 */
+    List<StockLevel> getLevelList();
+
+    /** 保存层级（新增或修改） */
+    Boolean saveLevel(StockLevel level);
+
+    /** 删除层级 */
+    Boolean deleteLevel(Integer id);
+
+    /** 代理分页列表（联用户/层级/上级昵称） */
+    CommonPage<StockAgent> getAdminAgentList(String keywords, Integer uid, Integer levelId, Integer status, com.qxkj.common.request.PageParamRequest page);
+
+    /** 后台新增/修改代理 */
+    Boolean saveAgent(StockAgentRequest request);
+
+    /** 删除代理 */
+    Boolean deleteAgent(Integer id);
+
+    /** 启用/禁用代理 */
+    Boolean changeAgentStatus(Integer id, Integer status);
+
+    /** 商品列表（含库存与各层级拿货价，仅已加入订货的商品） */
+    HashMap<String, Object> getProductList(String keywords, com.qxkj.common.request.PageParamRequest page);
+
+    /** 已加入订货模块的商品关联列表 */
+    java.util.List<com.qxkj.common.model.stock.StockProductRel> getStockProductRelList();
+
+    /** 后台：设置商品是否支持虚拟/实体库存下单 */
+    void saveProductStockType(Integer productId, Boolean supportVirtual, Boolean supportPhysical);
+
+    /** 取某商品在订货模块的配置（未加入返回 null） */
+    com.qxkj.common.model.stock.StockProductRel getProductRel(Integer productId);
+
+    /** 可添加商品列表（尚未加入订货的商品，供选择添加） */
+    HashMap<String, Object> getSelectableProductList(String keywords, com.qxkj.common.request.PageParamRequest page);
+
+    /** 批量添加商品到订货模块 */
+    Boolean addProducts(java.util.List<Integer> productIds);
+
+    /** 从订货模块移除商品 */
+    Boolean removeStockProduct(Integer productId);
+
+    /** 保存商品层级拿货价 */
+    Boolean savePrice(StockRequests.StockPriceSetRequest request);
+
+    /** 手动调整库存（记日志） */
+    Boolean adjustStock(StockRequests.StockAdjustRequest request, Integer adminId);
+
+    /** 库存变动日志 */
+    CommonPage<StockLog> getLogList(Integer productId, Integer type, com.qxkj.common.request.PageParamRequest page);
+
+    /**
+     * 订货商库存调整记录（后台「库存修改记录」）：可按代理/会员/库存类型筛选，用于溯源
+     */
+    CommonPage<java.util.HashMap<String, Object>> getAdjustLogList(Integer agentId, Integer uid, Integer stockType,
+                                                                  com.qxkj.common.request.PageParamRequest page);
+
+    /** 订货商下级团队（伞下全部，含层级深度 level=1 表示直接下级） */
+    List<HashMap<String, Object>> getAgentTeam(Integer agentId, Integer uid);
+
+    /** 后台调整订货商虚拟库存（正增负减，同步改 num/remain_num） */
+    void adjustAgentVirtualStock(StockRequests.StockAgentAdjustRequest request);
+
+    /** 后台调整订货商实体库存（写调整记录参与实体库存推导，同步扣/补云仓） */
+    void adjustAgentPhysicalStock(StockRequests.StockAgentAdjustRequest request);
+
+    // ==================== 会员端 ====================
+
+    /** 我的代理身份（含层级名、上级昵称） */
+    HashMap<String, Object> getMyAgentInfo(Integer uid);
+
+    /** 新增下级订货商（按手机号绑定已注册用户，创建后为「待对方同意」状态） */
+    Boolean createSubAgent(Integer uid, StockAgentCreateRequest request);
+
+    /** 被邀请人确认/拒绝订货商邀请（agree=true 同意并成为正式订货商，false 拒绝即作废邀请） */
+    Boolean agreeSubAgent(Integer uid, boolean agree);
+
+    /** 我的下级代理列表 */
+    List<StockAgent> getSubAgentList(Integer uid);
+
+    /** 可选层级列表（代理端创建下级时：只能选比自己低的层级） */
+    List<StockLevel> getLevelListForAgent(Integer uid);
+
+    // ==================== 公共 ====================
+
+    /** 根据UID取订货代理身份（含层级） */
+    StockAgent getAgentByUid(Integer uid);
+
+    /** 根据代理ID取代理 */
+    StockAgent getAgentById(Integer agentId);
+
+    /** 某代理对某商品的拿货价（价格表优先 -> 层级默认折扣 -> 零售价） */
+    java.math.BigDecimal getProductPrice(StockAgent agent, Integer productId);
+
+    /** 规格级拿货价：规格专用价 > 商品专用价 > 层级折扣(按规格零售价) > 规格零售价 */
+    java.math.BigDecimal getProductPrice(StockAgent agent, Integer productId, String skuKey);
+
+    /** 商品规格列表（suk / 规格名 / 零售价 / 云仓规格库存） */
+    List<java.util.HashMap<String, Object>> getProductSkuList(Integer productId);
+
+    /** 某规格的各层级拿货价（后台回显，含未配置的层级为 null） */
+    List<java.util.HashMap<String, Object>> getPriceSkuList(Integer productId, String skuKey);
+
+    /** 云仓规格可用库存 */
+    int getSkuStock(Integer productId, String skuKey);
+
+    /** 按规格扣减云仓库存（规格库存 + 商品总库存同步扣减） */
+    void deductStockBySku(Integer productId, String skuKey, Integer num, Integer type, String linkNo, String mark);
+
+    /** 按规格回补云仓库存 */
+    void addStockBySku(Integer productId, String skuKey, Integer num, Integer type, String linkNo, String mark);
+
+    /** 扣减库存（乐观锁 stock>=num），失败抛出 QianxuException */
+    void deductStock(Integer productId, Integer num, Integer type, String linkNo, String mark);
+
+    /** 回补库存 */
+    void addStock(Integer productId, Integer num, Integer type, String linkNo, String mark);
+
+    /** 收集某代理的全部下级代理ID（含间接，BFS） */
+    List<Integer> collectSubAgentIds(Integer agentId);
+
+    /** 某代理的直接下级代理列表 */
+    List<StockAgent> getDirectChildren(Integer agentId);
+
+    /** 级差阶梯列表 */
+    List<com.qxkj.common.model.stock.StockLadder> getLadderList();
+
+    /** 保存级差阶梯（全量覆盖） */
+    Boolean saveLadders(List<com.qxkj.common.model.stock.StockLadder> ladders);
+
+    /** 代理ID -> uid 映射 */
+    Map<Integer, Integer> getAgentUidMap(List<Integer> agentIds);
+
+    /**
+     * 校验并自动升级订货商层级
+     * 依据 eb_stock_level 上的四项条件（自购消费 / 直推订单业绩 / 团队伞下业绩 / 购买指定产品）
+     * 与条件组合方式（0=或 1=与）判断是否可升到更高层级，可升则更新并返回 true
+     */
+    Boolean checkAndUpgrade(Integer uid);
+
+    /** 订货商变更记录列表（联查昵称/手机号） */
+    CommonPage<com.qxkj.common.model.stock.StockChangeLog> getChangeLogList(
+            Integer uid, Integer type, com.qxkj.common.request.PageParamRequest page);
+
+    /** 写入订货商变更记录 */
+    void logChange(Integer agentId, Integer uid, Integer type, String oldValue, String newValue, String mark);
+}

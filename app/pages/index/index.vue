@@ -136,7 +136,7 @@
 <script>
 const app = getApp();
 import colors from "@/mixins/color";
-import { getCrmebCopyRight } from "@/api/api.js";
+import { getQianxuCopyRight } from "@/api/api.js";
 import { getShare } from "@/api/public.js";
 import waterfallsFlow from "@/components/WaterfallsFlow/WaterfallsFlow.vue";
 import emptyPage from "@/components/emptyPage.vue";
@@ -407,7 +407,7 @@ export default {
       uni.removeStorageSync("rulesStoreId");
     },
     getCopyRight() {
-      getCrmebCopyRight()
+      getQianxuCopyRight()
         .then((res) => {
           let data = res.data;
           uni.setStorageSync("wechatStatus", data.wechat_status);

@@ -87,7 +87,7 @@
             <!-- 主题广场入口已按需求隐藏（2026-09-17） -->
             <!-- <img
               class="title-icon"
-              src="https://www.crmeb.com/static/images/zhutishichang.png"
+              src=""
               alt=""
               @click="toTheme"
             /> -->
@@ -264,7 +264,7 @@ export default {
       this.showDetail = false;
     },
     toTheme() {
-      window.open('https://www.crmeb.com/theme?from=crmebkytheme', '_blank');
+      // （主题广场外链已移除）
     },
     viewStyleDetail(item) {
       this.selectedStyle = item;

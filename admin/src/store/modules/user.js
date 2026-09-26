@@ -1,11 +1,11 @@
 // +----------------------------------------------------------------------
-// | CRMEB [ CRMEB赋能开发者，助力企业发展 ]
+// | 黔序商城 [ 黔序科技，助力企业发展 ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2016~2024 https://www.crmeb.com All rights reserved.
+// | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
 // +----------------------------------------------------------------------
-// | Licensed CRMEB并不是自由软件，未经许可不能去掉CRMEB相关版权
+// | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
 // +----------------------------------------------------------------------
-// | Author: CRMEB Team <admin@crmeb.com>
+// | Author: 贵州黔序科技有限公司
 // +----------------------------------------------------------------------
 
 import { login, logout, getInfo } from '@/api/user';
@@ -132,12 +132,12 @@ const actions = {
           // commit('SET_ROLES', ['admin'])
           commit('SET_NAME', account);
           // 头像不再写死外部链接。
-          // 原值 'http://kaifa.crmeb.net/system/images/admin_logo.png' 是 CRMEB 演示站地址，
+          // 原值 '旧演示站logo地址' 是旧演示站地址，
           // 该域名长期不可用（TCP 通、HTTP 挂 10 秒后 502）。浏览器每次渲染头像都会重新发起请求，
-          // 请求期间页面一直处于 loading → 标签页图标持续转圈、状态栏显示「正在加载 kaifa.crmeb.net…」。
+          // 请求期间页面一直处于 loading → 标签页图标持续转圈、状态栏显示「正在加载 外部域名…」。
           // 置空后由 layout/navBars/breadcrumb/user.vue 降级为账号首字母占位块，零外部请求。
           commit('SET_AVATAR', '');
-          commit('SET_INTRODUCTION', 'CRMEB admin');
+          commit('SET_INTRODUCTION', 'QIANXU admin');
           commit('SET_PERMISSIONS', data.permissionsList); //权限标识
           resolve(data);
         })

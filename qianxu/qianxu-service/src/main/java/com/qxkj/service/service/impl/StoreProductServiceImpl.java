@@ -1,0 +1,1955 @@
+package com.qxkj.service.service.impl;
+
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.parser.Feature;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
+import com.qxkj.common.constants.Constants;
+import com.qxkj.common.exception.QianxuException;
+import com.qxkj.common.model.category.Category;
+import com.qxkj.common.model.coupon.StoreCoupon;
+import com.qxkj.common.model.product.*;
+import com.qxkj.common.page.CommonPage;
+import com.qxkj.common.request.*;
+import com.qxkj.common.response.*;
+import com.qxkj.common.result.CommonResultCode;
+import com.qxkj.common.result.ProductResultCode;
+import com.qxkj.common.utils.QianxuDateUtil;
+import com.qxkj.common.utils.QianxuUtil;
+import com.qxkj.common.utils.ProductCommissionUtil;
+import com.qxkj.common.utils.RedisUtil;
+import com.qxkj.common.vo.MyRecord;
+import com.qxkj.service.dao.StoreProductDao;
+import com.qxkj.service.delete.ProductUtils;
+import com.qxkj.service.service.*;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import javax.annotation.Resource;
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ *
+ *  +----------------------------------------------------------------------
+ *  | 黔序商城 [ 黔序科技，助力企业发展 ]
+ *  +----------------------------------------------------------------------
+ *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
+ *  +----------------------------------------------------------------------
+ *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
+ *  +----------------------------------------------------------------------
+ *  | Author: 贵州黔序科技有限公司
+ *  +----------------------------------------------------------------------
+ */
+@Service
+public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreProduct>
+        implements StoreProductService {
+
+    @Resource
+    private StoreProductDao dao;
+
+    @Autowired
+    private StoreProductAttrService attrService;
+
+    @Autowired
+    private StoreProductAttrValueService storeProductAttrValueService;
+
+    @Autowired
+    private SystemConfigService systemConfigService;
+
+    @Autowired
+    private StoreProductDescriptionService storeProductDescriptionService;
+
+    @Autowired
+    private RedisUtil redisUtil;
+
+    @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
+    private StoreProductRelationService storeProductRelationService;
+
+    @Autowired
+    private SystemAttachmentService systemAttachmentService;
+
+    @Autowired
+    private StoreProductAttrResultService storeProductAttrResultService;
+
+    @Autowired
+    private StoreProductCouponService storeProductCouponService;
+
+    @Autowired
+    private StoreCouponService storeCouponService;
+
+    @Autowired
+    private ProductUtils productUtils;
+
+    @Autowired
+    private StoreBargainService storeBargainService;
+
+    @Autowired
+    private StoreCombinationService storeCombinationService;
+
+    @Autowired
+    private StoreSeckillService storeSeckillService;
+
+    @Autowired
+    private OnePassService onePassService;
+
+    @Autowired
+    private StoreCartService storeCartService;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private ActivityStyleService activityStyleService;
+
+    @Autowired
+    private StoreProductGuaranteeService guaranteeService;
+    @Autowired
+    private StoreProductAttrOptionService productAttrOptionService;
+    @Autowired
+    private StoreProductGroupService storeProductGroupService;
+
+    private static final Logger logger = LoggerFactory.getLogger(StoreProductServiceImpl.class);
+
+    private void applyCateIdFilter(LambdaQueryWrapper<StoreProduct> lambdaQueryWrapper, String cateId) {
+        if (StringUtils.isNotBlank(cateId)) {
+            lambdaQueryWrapper.apply(QianxuUtil.getFindInSetSql("cate_id", cateId));
+        }
+    }
+
+    /**
+     * 获取产品列表Admin
+     * @param request 筛选参数
+     * @param pageParamRequest 分页参数
+     * @return PageInfo
+     */
+    @Override
+    public PageInfo<StoreProductResponse> getAdminList(StoreProductSearchRequest request, PageParamRequest pageParamRequest) {
+        //带 StoreProduct 类的多条件查询
+        LambdaQueryWrapper<StoreProduct> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        //类型搜索
+        switch (request.getType()) {
+            case 1:
+                //出售中（已上架）
+                lambdaQueryWrapper.eq(StoreProduct::getIsShow, true);
+                lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+                lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+                break;
+            case 2:
+                //仓库中（未上架）
+                lambdaQueryWrapper.eq(StoreProduct::getIsShow, false);
+                lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+                lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+                break;
+            case 3:
+                //已售罄
+                lambdaQueryWrapper.le(StoreProduct::getStock, 0);
+                lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+                lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+                break;
+            case 4:
+                //警戒库存
+                Integer stock = Integer.parseInt(systemConfigService.getValueByKey("store_stock"));
+                lambdaQueryWrapper.le(StoreProduct::getStock, stock);
+                lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+                lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+                break;
+            case 5:
+                //回收站
+                lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, true);
+                lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+                break;
+            default:
+                break;
+        }
+        //关键字搜索
+        if (StrUtil.isNotBlank(request.getKeywords())) {
+            lambdaQueryWrapper.and(i -> i
+                    .or().eq(StoreProduct::getId, request.getKeywords())
+                    .or().like(StoreProduct::getStoreName, request.getKeywords())
+                    .or().like(StoreProduct::getKeyword, request.getKeywords()));
+        }
+        applyCateIdFilter(lambdaQueryWrapper, request.getCateId());
+        // 新增销量排行和价格排行
+        if (StrUtil.isNotBlank(request.getSalesOrder())) {
+            if (request.getSalesOrder().equals(Constants.SORT_DESC)) {
+                lambdaQueryWrapper.last(" order by (sales + ficti) desc, sort desc, id desc");
+            } else {
+                lambdaQueryWrapper.last(" order by (sales + ficti) asc, sort asc, id asc");
+            }
+        } else {
+            if (StrUtil.isNotBlank(request.getPriceOrder())) {
+                if (request.getPriceOrder().equals(Constants.SORT_DESC)) {
+                    lambdaQueryWrapper.orderByDesc(StoreProduct::getPrice);
+                } else {
+                    lambdaQueryWrapper.orderByAsc(StoreProduct::getPrice);
+                }
+            }
+
+            lambdaQueryWrapper.orderByDesc(StoreProduct::getSort);
+            lambdaQueryWrapper.orderByDesc(StoreProduct::getId);
+        }
+//        lambdaQueryWrapper.orderByDesc(StoreProduct::getSort).orderByDesc(StoreProduct::getId);
+
+        Page<StoreProduct> storeProductPage = PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        List<StoreProduct> storeProducts = dao.selectList(lambdaQueryWrapper);
+        List<StoreProductResponse> storeProductResponses = new ArrayList<>();
+        for (StoreProduct product : storeProducts) {
+            StoreProductResponse storeProductResponse = new StoreProductResponse();
+            BeanUtils.copyProperties(product, storeProductResponse);
+            StoreProductAttr storeProductAttrPram = new StoreProductAttr();
+            storeProductAttrPram.setProductId(product.getId()).setType(Constants.PRODUCT_TYPE_NORMAL);
+            List<StoreProductAttr> attrs = attrService.getByEntity(storeProductAttrPram);
+
+            if (attrs.size() > 0) {
+                storeProductResponse.setAttr(attrs);
+            }
+            List<StoreProductAttrValueResponse> storeProductAttrValueResponse = new ArrayList<>();
+
+            StoreProductAttrValue storeProductAttrValuePram = new StoreProductAttrValue();
+            storeProductAttrValuePram.setProductId(product.getId()).setType(Constants.PRODUCT_TYPE_NORMAL);
+            List<StoreProductAttrValue> storeProductAttrValues = storeProductAttrValueService.getByEntity(storeProductAttrValuePram);
+            storeProductAttrValues.stream().map(e->{
+                StoreProductAttrValueResponse response = new StoreProductAttrValueResponse();
+                BeanUtils.copyProperties(e,response);
+                storeProductAttrValueResponse.add(response);
+                return e;
+            }).collect(Collectors.toList());
+            storeProductResponse.setAttrValue(storeProductAttrValueResponse);
+            // 处理富文本
+            StoreProductDescription sd = storeProductDescriptionService.getOne(
+                    new LambdaQueryWrapper<StoreProductDescription>()
+                            .eq(StoreProductDescription::getProductId, product.getId())
+                            .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_NORMAL), false);
+            if (null != sd) {
+                storeProductResponse.setContent(null == sd.getDescription()?"":sd.getDescription());
+            }
+            // 处理分类中文
+            List<Category> cg = categoryService.getByIds(QianxuUtil.stringToArray(product.getCateId()));
+            if (CollUtil.isEmpty(cg)) {
+                storeProductResponse.setCateValues("");
+            } else {
+                storeProductResponse.setCateValues(cg.stream().map(Category::getName).collect(Collectors.joining(",")));
+            }
+
+            storeProductResponse.setCollectCount(
+                    storeProductRelationService.getList(product.getId(),"collect").size());
+            storeProductResponses.add(storeProductResponse);
+        }
+        // 批量填充所属商品分组名
+        Map<Integer, String> groupNamesMap = storeProductGroupService.getGroupNamesByProductIds(
+                storeProducts.stream().map(StoreProduct::getId).collect(Collectors.toList()));
+        for (StoreProductResponse response : storeProductResponses) {
+            response.setGroupNames(groupNamesMap.getOrDefault(response.getId(), ""));
+        }
+        // 多条sql查询处理分页正确
+        return CommonPage.copyPageInfo(storeProductPage, storeProductResponses);
+    }
+
+    /**
+     * 根据商品id集合获取
+     * @param productIds id集合
+     * @return
+     */
+    @Override
+    public List<StoreProduct> getListInIds(List<Integer> productIds) {
+        LambdaQueryWrapper<StoreProduct> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.in(StoreProduct::getId,productIds);
+        lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+        return dao.selectList(lambdaQueryWrapper);
+    }
+
+    /**
+     * 新增产品
+     * @param request 新增产品request对象
+     * @return 新增结果
+     */
+    @Override
+    public Boolean save(StoreProductAddRequest request) {
+        // 多规格需要校验规格参数
+        if (!request.getSpecType()) {
+            if (request.getAttrValue().size() > 1) {
+                throw new QianxuException("单规格商品属性值不能大于1");
+            }
+        }
+        // 校验规格属性
+        request.getAttr().forEach(attr -> {
+            if (CollUtil.isEmpty(attr.getOptionList())) {
+                throw new QianxuException("规格属性值不能为空");
+            }
+        });
+
+        StoreProduct storeProduct = new StoreProduct();
+        BeanUtils.copyProperties(request, storeProduct);
+        storeProduct.setId(null);
+        storeProduct.setAddTime(QianxuDateUtil.getNowTime());
+        storeProduct.setIsShow(false);
+        ProductCommissionConfig syncedCfg = syncLegacyBrokerageIntoCommission(
+                request.getCommissionConfig(), request.getIsSub(), request.getAttrValue());
+        storeProduct.setCommissionConfig(ProductCommissionUtil.toJson(syncedCfg));
+        if (syncedCfg.getDistributor() != null && (
+                ProductCommissionUtil.hasOverride(syncedCfg.getDistributor().getDirectAmount(), syncedCfg.getDistributor().getDirectRate())
+                        || ProductCommissionUtil.hasOverride(syncedCfg.getDistributor().getIndirectAmount(), syncedCfg.getDistributor().getIndirectRate())
+                        || Boolean.TRUE.equals(syncedCfg.getDistributor().getEnabled()))) {
+            storeProduct.setIsSub(true);
+        }
+
+        // 设置Acticity活动
+        storeProduct.setActivity(getProductActivityStr(request.getActivity()));
+
+        String cdnUrl = systemAttachmentService.getCdnUrl();
+        //主图
+        storeProduct.setImage(systemAttachmentService.clearPrefix(storeProduct.getImage()));
+
+        //轮播图
+        storeProduct.setSliderImage(systemAttachmentService.clearPrefix(storeProduct.getSliderImage()));
+        // 展示图
+        if (StrUtil.isNotEmpty(storeProduct.getFlatPattern())) {
+            storeProduct.setFlatPattern(systemAttachmentService.clearPrefix(storeProduct.getFlatPattern()));
+        }
+
+        List<StoreProductAttrValueAddRequest> attrValueAddRequestList = request.getAttrValue();
+        //计算价格
+        StoreProductAttrValueAddRequest minAttrValue = attrValueAddRequestList.stream().min(Comparator.comparing(StoreProductAttrValueAddRequest::getPrice)).get();
+        storeProduct.setPrice(minAttrValue.getPrice());
+        storeProduct.setOtPrice(minAttrValue.getOtPrice());
+        storeProduct.setCost(minAttrValue.getCost());
+        storeProduct.setStock(attrValueAddRequestList.stream().mapToInt(StoreProductAttrValueAddRequest::getStock).sum());
+
+        // 默认值设置
+        if (ObjectUtil.isNull(request.getSort())) {
+            storeProduct.setSort(0);
+        }
+        if (ObjectUtil.isNull(request.getIsHot())) {
+            storeProduct.setIsHot(false);
+        }
+        if (ObjectUtil.isNull(request.getIsBenefit())) {
+            storeProduct.setIsBenefit(false);
+        }
+        if (ObjectUtil.isNull(request.getIsBest())) {
+            storeProduct.setIsBest(false);
+        }
+        if (ObjectUtil.isNull(request.getIsNew())) {
+            storeProduct.setIsNew(false);
+        }
+        if (ObjectUtil.isNull(request.getIsGood())) {
+            storeProduct.setIsGood(false);
+        }
+        if (ObjectUtil.isNull(request.getGiveIntegral())) {
+            storeProduct.setGiveIntegral(0);
+        }
+        if (ObjectUtil.isNull(request.getIsGiveIntegral())) {
+            storeProduct.setIsGiveIntegral(true);
+        }
+        if (ObjectUtil.isNull(request.getIntegralDeduct())) {
+            storeProduct.setIntegralDeduct(0);
+        }
+        if (ObjectUtil.isNull(request.getIsIntegralDeductBrokerage())) {
+            storeProduct.setIsIntegralDeductBrokerage(true);
+        }
+        if (ObjectUtil.isNull(request.getFicti())) {
+            storeProduct.setFicti(0);
+        }
+
+        List<StoreProductAttrAddRequest> addRequestList = request.getAttr();
+        List<StoreProductAttr> attrList = new ArrayList<>();
+        Map<String, List<StoreProductAttrOption>> optionMap = new HashMap<>();
+
+        addRequestList.forEach(e -> {
+            StoreProductAttr attr = new StoreProductAttr();
+            BeanUtils.copyProperties(e, attr);
+            attr.setType(Constants.PRODUCT_TYPE_NORMAL);
+            // 处理规格属性
+            List<ProductAttrOptionAddRequest> optionRequestList = e.getOptionList();
+            List<StoreProductAttrOption> attrOptionList = optionRequestList.stream().map(optionRequest -> {
+                StoreProductAttrOption option = new StoreProductAttrOption();
+                option.setOptionName(optionRequest.getOptionName());
+                option.setSort(ObjectUtil.isNotNull(optionRequest.getSort()) ? optionRequest.getSort() : 0);
+                option.setImage(StrUtil.isNotBlank(optionRequest.getImage()) ? systemAttachmentService.clearPrefix(optionRequest.getImage(), cdnUrl) : "");
+                return option;
+            }).collect(Collectors.toList());
+
+            attrList.add(attr);
+            optionMap.put(attr.getAttrName(), attrOptionList);
+        });
+
+        List<StoreProductAttrValue> attrValueList = attrValueAddRequestList.stream().map(e -> {
+            StoreProductAttrValue attrValue = new StoreProductAttrValue();
+            BeanUtils.copyProperties(e, attrValue);
+            attrValue.setId(null);
+            attrValue.setSuk(getSku(e.getAttrValue()));
+            attrValue.setQuota(0);
+            attrValue.setQuotaShow(0);
+            attrValue.setType(Constants.PRODUCT_TYPE_NORMAL);
+            attrValue.setImage(systemAttachmentService.clearPrefix(e.getImage()));
+            return attrValue;
+        }).collect(Collectors.toList());
+
+        // 处理富文本
+        StoreProductDescription spd = new StoreProductDescription();
+        spd.setDescription(request.getContent().length() > 0 ? systemAttachmentService.clearPrefix(request.getContent()) : "");
+        spd.setType(Constants.PRODUCT_TYPE_NORMAL);
+
+        Boolean execute = transactionTemplate.execute(e -> {
+            save(storeProduct);
+
+            attrList.forEach(attr -> attr.setProductId(storeProduct.getId()));
+            attrService.saveBatch(attrList);
+
+            // 保存规格属性选项
+            attrList.forEach(attr -> {
+                List<StoreProductAttrOption> optionList = optionMap.get(attr.getAttrName());
+                optionList.forEach(option -> {
+                    option.setProductId(attr.getProductId());
+                    option.setAttrId(attr.getId());
+                });
+                productAttrOptionService.saveBatch(optionList);
+            });
+
+            attrValueList.forEach(value -> value.setProductId(storeProduct.getId()));
+            storeProductAttrValueService.saveBatch(attrValueList);
+
+            spd.setProductId(storeProduct.getId());
+            storeProductDescriptionService.deleteByProductId(storeProduct.getId(), Constants.PRODUCT_TYPE_NORMAL);
+            storeProductDescriptionService.save(spd);
+
+            if (CollUtil.isNotEmpty(request.getCouponIds())) {
+                List<StoreProductCoupon> couponList = new ArrayList<>();
+                for (Integer couponId : request.getCouponIds()) {
+                    StoreProductCoupon spc = new StoreProductCoupon(storeProduct.getId(), couponId, QianxuDateUtil.getNowTime());
+                    couponList.add(spc);
+                }
+                storeProductCouponService.saveBatch(couponList);
+            }
+            if (request.getProductGroupIds() != null) {
+                storeProductGroupService.bindProductGroups(storeProduct.getId(), request.getProductGroupIds());
+            }
+            return Boolean.TRUE;
+        });
+
+        return execute;
+    }
+
+    /**
+     * 商品sku
+     * @param attrValue json字符串
+     * @return sku
+     */
+    private String getSku(String attrValue) {
+        if (StrUtil.isEmpty(attrValue)) {
+            throw new QianxuException("商品属性值不能为空");
+        }
+        LinkedHashMap<String, String> linkedHashMap = JSONObject.parseObject(attrValue, LinkedHashMap.class, Feature.OrderedField);
+        Iterator<Map.Entry<String, String>> iterator = linkedHashMap.entrySet().iterator();
+        List<String> strings = CollUtil.newArrayList();
+        while (iterator.hasNext()) {
+            Map.Entry<String, String> next = iterator.next();
+            strings.add(next.getValue());
+        }
+//        List<String> strings = jsonObject.values().stream().map(o -> (String) o).collect(Collectors.toList());
+        return String.join(",", strings);
+    }
+
+    /**
+     * 商品活动字符串
+     * @param activityList 活动数组
+     * @return 商品活动字符串
+     */
+    private String getProductActivityStr(List<String> activityList) {
+        if (CollUtil.isEmpty(activityList)) {
+            return "0, 1, 2, 3";
+        }
+        List<Integer> activities = new ArrayList<>();
+        activityList.forEach(e->{
+            switch (e) {
+                case Constants.PRODUCT_TYPE_NORMAL_STR:
+                    activities.add(Constants.PRODUCT_TYPE_NORMAL);
+                    break;
+                case Constants.PRODUCT_TYPE_SECKILL_STR:
+                    activities.add(Constants.PRODUCT_TYPE_SECKILL);
+                    break;
+                case Constants.PRODUCT_TYPE_BARGAIN_STR:
+                    activities.add(Constants.PRODUCT_TYPE_BARGAIN);
+                    break;
+                case Constants.PRODUCT_TYPE_PINGTUAN_STR:
+                    activities.add(Constants.PRODUCT_TYPE_PINGTUAN);
+                    break;
+            }
+        });
+        return activities.stream().map(Object::toString).collect(Collectors.joining(","));
+    }
+
+    /**
+     * 更新商品信息
+     * @param storeProductRequest 商品参数
+     * @return 更新结果
+     */
+    @Override
+    public Boolean update(StoreProductAddRequest storeProductRequest) {
+        if (ObjectUtil.isNull(storeProductRequest.getId())) {
+            throw new QianxuException("商品ID不能为空");
+        }
+
+        if (!storeProductRequest.getSpecType()) {
+            if (storeProductRequest.getAttrValue().size() > 1) {
+                throw new QianxuException("单规格商品属性值不能大于1");
+            }
+        }
+        // 校验规格属性
+        storeProductRequest.getAttr().forEach(attr -> {
+            if (CollUtil.isEmpty(attr.getOptionList())) {
+                throw new QianxuException("规格属性值不能为空");
+            }
+        });
+
+        StoreProduct tempProduct = getById(storeProductRequest.getId());
+        if (ObjectUtil.isNull(tempProduct)) {
+            throw new QianxuException("商品不存在");
+        }
+        if (tempProduct.getIsRecycle() || tempProduct.getIsDel()) {
+            throw new QianxuException("商品已删除");
+        }
+        // 出售中(is_show=1)商品允许直接编辑保存，状态保持不变；仅回收站/已删除拦截（上方已拦截）
+        // 如果商品是活动商品主商品不允许修改
+//        if (storeSeckillService.isExistByProductId(storeProductRequest.getId())) {
+//            throw new QianxuException("商品作为秒杀商品的主商品，需要修改请先删除对应秒杀商品");
+//        }
+//        if (storeBargainService.isExistByProductId(storeProductRequest.getId())) {
+//            throw new QianxuException("商品作为砍价商品的主商品，需要修改请先删除对应砍价商品");
+//        }
+//        if (storeCombinationService.isExistByProductId(storeProductRequest.getId())) {
+//            throw new QianxuException("商品作为拼团商品的主商品，需要修改请先删除对应拼团商品");
+//        }
+
+        StoreProduct storeProduct = new StoreProduct();
+        BeanUtils.copyProperties(storeProductRequest, storeProduct);
+        // 请求对象已移除 storeInfo 字段，实体默认值是 ""，不兜底会把原简介清空
+        storeProduct.setStoreInfo(tempProduct.getStoreInfo() == null ? "" : tempProduct.getStoreInfo());
+        if (ObjectUtil.isNull(storeProduct.getIsGiveIntegral())) {
+            storeProduct.setIsGiveIntegral(true);
+        }
+        if (ObjectUtil.isNull(storeProduct.getGiveIntegral())) {
+            storeProduct.setGiveIntegral(0);
+        }
+        if (ObjectUtil.isNull(storeProduct.getIntegralDeduct())) {
+            storeProduct.setIntegralDeduct(0);
+        }
+        if (ObjectUtil.isNull(storeProduct.getIsIntegralDeductBrokerage())) {
+            storeProduct.setIsIntegralDeductBrokerage(true);
+        }
+        ProductCommissionConfig syncedCfg = syncLegacyBrokerageIntoCommission(
+                storeProductRequest.getCommissionConfig(), storeProductRequest.getIsSub(), storeProductRequest.getAttrValue());
+        storeProduct.setCommissionConfig(ProductCommissionUtil.toJson(syncedCfg));
+        if (syncedCfg.getDistributor() != null && (
+                ProductCommissionUtil.hasOverride(syncedCfg.getDistributor().getDirectAmount(), syncedCfg.getDistributor().getDirectRate())
+                        || ProductCommissionUtil.hasOverride(syncedCfg.getDistributor().getIndirectAmount(), syncedCfg.getDistributor().getIndirectRate())
+                        || Boolean.TRUE.equals(syncedCfg.getDistributor().getEnabled()))) {
+            storeProduct.setIsSub(true);
+        }
+
+        // 设置Activity活动
+        storeProduct.setActivity(getProductActivityStr(storeProductRequest.getActivity()));
+
+        String cdnUrl = systemAttachmentService.getCdnUrl();
+        //主图
+        storeProduct.setImage(systemAttachmentService.clearPrefix(storeProduct.getImage()));
+
+        //轮播图
+        storeProduct.setSliderImage(systemAttachmentService.clearPrefix(storeProduct.getSliderImage()));
+
+        List<StoreProductAttrValueAddRequest> attrValueAddRequestList = storeProductRequest.getAttrValue();
+        //计算价格
+        StoreProductAttrValueAddRequest minAttrValue = attrValueAddRequestList.stream().min(Comparator.comparing(StoreProductAttrValueAddRequest::getPrice)).get();
+        storeProduct.setPrice(minAttrValue.getPrice());
+        storeProduct.setOtPrice(minAttrValue.getOtPrice());
+        storeProduct.setCost(minAttrValue.getCost());
+        storeProduct.setStock(attrValueAddRequestList.stream().mapToInt(StoreProductAttrValueAddRequest::getStock).sum());
+
+        // attr部分
+        List<StoreProductAttrAddRequest> addRequestList = storeProductRequest.getAttr();
+        List<StoreProductAttr> attrList = new ArrayList<>();
+        Map<String, List<StoreProductAttrOption>> optionMap = new HashMap<>();
+
+        addRequestList.forEach(attrRequest -> {
+            StoreProductAttr attr = new StoreProductAttr();
+            BeanUtils.copyProperties(attrRequest, attr);
+            attr.setProductId(storeProduct.getId());
+            List<ProductAttrOptionAddRequest> optionRequestList = attrRequest.getOptionList();
+            List<StoreProductAttrOption> attrOptionList = optionRequestList.stream().map(optionRequest -> {
+                StoreProductAttrOption option = new StoreProductAttrOption();
+                option.setProductId(storeProduct.getId());
+                option.setOptionName(optionRequest.getOptionName());
+                option.setSort(ObjectUtil.isNotNull(optionRequest.getSort()) ? optionRequest.getSort() : 0);
+                option.setImage(StrUtil.isNotBlank(optionRequest.getImage()) ? systemAttachmentService.clearPrefix(optionRequest.getImage(), cdnUrl) : "");
+                return option;
+            }).collect(Collectors.toList());
+            attrList.add(attr);
+            optionMap.put(attr.getAttrName(), attrOptionList);
+        });
+        //List<StoreProductAttr> attrAddList = CollUtil.newArrayList();
+        //List<StoreProductAttr> attrUpdateList = CollUtil.newArrayList();
+        //addRequestList.forEach(e -> {
+        //    StoreProductAttr attr = new StoreProductAttr();
+        //    BeanUtils.copyProperties(e, attr);
+        //    if (ObjectUtil.isNull(attr.getId())) {
+        //        attr.setProductId(storeProduct.getId());
+        //        attr.setType(Constants.PRODUCT_TYPE_NORMAL);
+        //        attrAddList.add(attr);
+        //    } else {
+        //        attr.setIsDel(false);
+        //        attrUpdateList.add(attr);
+        //    }
+        //});
+
+        // attrValue部分
+        List<StoreProductAttrValue> attrValueAddList = CollUtil.newArrayList();
+        List<StoreProductAttrValue> attrValueUpdateList = CollUtil.newArrayList();
+        attrValueAddRequestList.forEach(e -> {
+            StoreProductAttrValue attrValue = new StoreProductAttrValue();
+            BeanUtils.copyProperties(e, attrValue);
+            attrValue.setSuk(getSku(e.getAttrValue()));
+            attrValue.setImage(systemAttachmentService.clearPrefix(e.getImage()));
+            if (ObjectUtil.isNull(attrValue.getId()) || attrValue.getId().equals(0)) {
+                attrValue.setId(null);
+                attrValue.setProductId(storeProduct.getId());
+                attrValue.setQuota(0);
+                attrValue.setQuotaShow(0);
+                attrValue.setType(Constants.PRODUCT_TYPE_NORMAL);
+                attrValueAddList.add(attrValue);
+            } else {
+                attrValue.setIsDel(false);
+                attrValueUpdateList.add(attrValue);
+            }
+        });
+
+        // 处理富文本
+        StoreProductDescription spd = new StoreProductDescription();
+        spd.setDescription(storeProductRequest.getContent().length() > 0 ? systemAttachmentService.clearPrefix(storeProductRequest.getContent()) : "");
+        spd.setType(Constants.PRODUCT_TYPE_NORMAL);
+        spd.setProductId(storeProduct.getId());
+
+        Boolean execute = transactionTemplate.execute(e -> {
+            // 乐观锁并发保护：以编辑加载时的 version 为条件更新，更新行数为 0 说明期间已被他人修改
+            storeProduct.setVersion(null);
+            LambdaUpdateWrapper<StoreProduct> productUpdateWrapper = new LambdaUpdateWrapper<>();
+            productUpdateWrapper.eq(StoreProduct::getId, storeProduct.getId())
+                    .eq(StoreProduct::getVersion, tempProduct.getVersion())
+                    .set(StoreProduct::getVersion, tempProduct.getVersion() + 1);
+            if (dao.update(storeProduct, productUpdateWrapper) == 0) {
+                throw new QianxuException("商品信息已被他人修改，请刷新后重新编辑再保存");
+            }
+
+            // 先删除原用attr+value
+            attrService.deleteByProductIdAndType(storeProduct.getId(), Constants.PRODUCT_TYPE_NORMAL);
+            productAttrOptionService.deleteByProductUpdate(storeProduct.getId());
+            storeProductAttrValueService.deleteByProductIdAndType(storeProduct.getId(), Constants.PRODUCT_TYPE_NORMAL);
+
+            //if (CollUtil.isNotEmpty(attrAddList)) {
+            //    attrService.saveBatch(attrAddList);
+            //}
+            //if (CollUtil.isNotEmpty(attrUpdateList)) {
+            //    attrService.saveOrUpdateBatch(attrUpdateList);
+            //}
+
+            attrService.saveBatch(attrList);
+            attrList.forEach(attr -> {
+                List<StoreProductAttrOption> optionList = optionMap.get(attr.getAttrName());
+                optionList.forEach(option -> {
+                    option.setAttrId(attr.getId());
+                });
+                productAttrOptionService.saveBatch(optionList);
+            });
+
+            if (CollUtil.isNotEmpty(attrValueAddList)) {
+                storeProductAttrValueService.saveBatch(attrValueAddList);
+            }
+            if (CollUtil.isNotEmpty(attrValueUpdateList)) {
+                storeProductAttrValueService.saveOrUpdateBatch(attrValueUpdateList);
+            }
+
+            storeProductDescriptionService.deleteByProductId(storeProduct.getId(), Constants.PRODUCT_TYPE_NORMAL);
+            storeProductDescriptionService.save(spd);
+
+            if (CollUtil.isNotEmpty(storeProductRequest.getCouponIds())) {
+                storeProductCouponService.deleteByProductId(storeProduct.getId());
+                List<StoreProductCoupon> couponList = new ArrayList<>();
+                for (Integer couponId : storeProductRequest.getCouponIds()) {
+                    StoreProductCoupon spc = new StoreProductCoupon(storeProduct.getId(), couponId, QianxuDateUtil.getNowTime());
+                    couponList.add(spc);
+                }
+                storeProductCouponService.saveBatch(couponList);
+            } else {
+                storeProductCouponService.deleteByProductId(storeProduct.getId());
+            }
+            if (storeProductRequest.getProductGroupIds() != null) {
+                storeProductGroupService.bindProductGroups(storeProduct.getId(), storeProductRequest.getProductGroupIds());
+            }
+
+            return Boolean.TRUE;
+        });
+
+        return execute;
+    }
+
+    /**
+     * 商品详情
+     * @param id 商品id
+     * @return 详情数据
+     */
+    @Override
+    public StoreProductResponse getByProductId(Integer id) {
+        StoreProduct storeProduct = dao.selectById(id);
+        if (null == storeProduct) throw new QianxuException("未找到对应商品信息");
+        StoreProductResponse storeProductResponse = new StoreProductResponse();
+        BeanUtils.copyProperties(storeProduct, storeProductResponse);
+        StoreProductAttr spaPram = new StoreProductAttr();
+        spaPram.setProductId(storeProduct.getId()).setType(Constants.PRODUCT_TYPE_NORMAL);
+        storeProductResponse.setAttr(attrService.getByEntity(spaPram));
+
+        // 设置商品所参与的活动
+        storeProductResponse.setActivityH5(productUtils.getProductCurrentActivity(storeProduct));
+        StoreProductAttrValue spavPram = new StoreProductAttrValue();
+        spavPram.setProductId(id).setType(Constants.PRODUCT_TYPE_NORMAL);
+        List<StoreProductAttrValue> storeProductAttrValues = storeProductAttrValueService.getByEntity(spavPram);
+        // 根据attrValue生成前端所需的数据
+        List<HashMap<String, Object>> attrValues = new ArrayList<>();
+
+        if (storeProduct.getSpecType()) {
+            // 后端多属性用于编辑
+            StoreProductAttrResult sparPram = new StoreProductAttrResult();
+            sparPram.setProductId(storeProduct.getId()).setType(Constants.PRODUCT_TYPE_NORMAL);
+            List<StoreProductAttrResult> attrResults = storeProductAttrResultService.getByEntity(sparPram);
+            if (null == attrResults || attrResults.size() == 0) {
+                throw new QianxuException("未找到对应属性值");
+            }
+            StoreProductAttrResult attrResult = attrResults.get(0);
+            //PC 端生成skuAttrInfo
+            List<StoreProductAttrValueRequest> storeProductAttrValueRequests =
+                    com.alibaba.fastjson.JSONObject.parseArray(attrResult.getResult(), StoreProductAttrValueRequest.class);
+            if (null != storeProductAttrValueRequests) {
+                for (int i = 0; i < storeProductAttrValueRequests.size(); i++) {
+//                    StoreProductAttrValueRequest storeProductAttrValueRequest = storeProductAttrValueRequests.get(i);
+                    HashMap<String, Object> attrValue = new HashMap<>();
+                    String currentSku = storeProductAttrValues.get(i).getSuk();
+                    List<StoreProductAttrValue> hasCurrentSku =
+                            storeProductAttrValues.stream().filter(e -> e.getSuk().equals(currentSku)).collect(Collectors.toList());
+                    StoreProductAttrValue currentAttrValue = hasCurrentSku.get(0);
+                    attrValue.put("id", hasCurrentSku.size() > 0 ? hasCurrentSku.get(0).getId():0);
+                    attrValue.put("image", currentAttrValue.getImage());
+                    attrValue.put("cost", currentAttrValue.getCost());
+                    attrValue.put("price", currentAttrValue.getPrice());
+                    attrValue.put("otPrice", currentAttrValue.getOtPrice());
+                    attrValue.put("stock", currentAttrValue.getStock());
+                    attrValue.put("barCode", currentAttrValue.getBarCode());
+                    attrValue.put("weight", currentAttrValue.getWeight());
+                    attrValue.put("volume", currentAttrValue.getVolume());
+                    attrValue.put("suk", currentSku);
+                    attrValue.put("attrValue", JSON.parseObject(storeProductAttrValues.get(i).getAttrValue(), Feature.OrderedField));
+                    attrValue.put("brokerage", currentAttrValue.getBrokerage());
+                    attrValue.put("brokerageTwo", currentAttrValue.getBrokerageTwo());
+                    String[] skus = currentSku.split(",");
+                    for (int k = 0; k < skus.length; k++) {
+                        attrValue.put("value"+k,skus[k]);
+                    }
+                    attrValues.add(attrValue);
+                }
+            }
+        }
+
+        // H5 端用于生成skuList
+        List<StoreProductAttrValueResponse> sPAVResponses = new ArrayList<>();
+
+        for (StoreProductAttrValue storeProductAttrValue : storeProductAttrValues) {
+            StoreProductAttrValueResponse atr = new StoreProductAttrValueResponse();
+            BeanUtils.copyProperties(storeProductAttrValue,atr);
+            sPAVResponses.add(atr);
+        }
+        storeProductResponse.setAttrValues(attrValues);
+        storeProductResponse.setAttrValue(sPAVResponses);
+//        if (null != storeProductAttrResult) {
+            StoreProductDescription sd = storeProductDescriptionService.getOne(
+                    new LambdaQueryWrapper<StoreProductDescription>()
+                            .eq(StoreProductDescription::getProductId, storeProduct.getId())
+                            .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_NORMAL), false);
+            if (null != sd) {
+                storeProductResponse.setContent(null == sd.getDescription()?"":sd.getDescription());
+            }
+//        }
+        // 获取已关联的优惠券
+        List<StoreProductCoupon> storeProductCoupons = storeProductCouponService.getListByProductId(storeProduct.getId());
+        if (null != storeProductCoupons && storeProductCoupons.size() > 0) {
+            List<Integer> ids = storeProductCoupons.stream().map(StoreProductCoupon::getIssueCouponId).collect(Collectors.toList());
+            List<StoreCoupon> shipCoupons = storeCouponService.getByIds(ids);
+            storeProductResponse.setCoupons(shipCoupons);
+            storeProductResponse.setCouponIds(ids);
+        }
+        return storeProductResponse;
+    }
+
+    /**
+     * 通过ID获取商品列表
+     *
+     * @param proIdsList 商品ID列表
+     * @param label      admin-管理端，front-移动端
+     */
+    @Override
+    public List<StoreProduct> findByIds(List<Integer> proIdsList, String label) {
+        return findByIdsAndLabel(proIdsList, label);
+    }
+
+
+    /**
+     * 商品详情（管理端）
+     * @param id 商品id
+     * @return StoreProductInfoResponse
+     */
+    @Override
+    public StoreProductInfoResponse getInfo(Integer id) {
+        StoreProduct storeProduct = dao.selectById(id);
+        if (ObjectUtil.isNull(storeProduct)) {
+            throw new QianxuException("未找到对应商品信息");
+        }
+
+        StoreProductInfoResponse storeProductResponse = new StoreProductInfoResponse();
+        BeanUtils.copyProperties(storeProduct, storeProductResponse);
+        storeProductResponse.setCommissionConfig(ProductCommissionUtil.parse(storeProduct.getCommissionConfig()));
+
+        // 设置商品所参与的活动
+        List<String> activityList = getProductActivityList(storeProduct.getActivity());
+        storeProductResponse.setActivity(activityList);
+
+        List<StoreProductAttr> attrList = attrService.getListByProductIdAndType(storeProduct.getId(), Constants.PRODUCT_TYPE_NORMAL);
+        attrList.forEach(attr -> {
+            List<StoreProductAttrOption> optionList = productAttrOptionService.findListByAttrId(attr.getId());
+            attr.setOptionList(optionList);
+        });
+        storeProductResponse.setAttr(attrList);
+
+        List<StoreProductAttrValue> attrValueList = storeProductAttrValueService.getListByProductIdAndType(storeProduct.getId(), Constants.PRODUCT_TYPE_NORMAL);
+        List<AttrValueResponse> valueResponseList = attrValueList.stream().map(e -> {
+            AttrValueResponse valueResponse = new AttrValueResponse();
+            BeanUtils.copyProperties(e, valueResponse);
+            valueResponse.setAttrArr(e.getSuk().split(","));
+            return valueResponse;
+        }).collect(Collectors.toList());
+        storeProductResponse.setAttrValue(valueResponseList);
+
+        StoreProductDescription sd = storeProductDescriptionService.getByProductIdAndType(storeProduct.getId(), Constants.PRODUCT_TYPE_NORMAL);
+        if (ObjectUtil.isNotNull(sd)) {
+            storeProductResponse.setContent(ObjectUtil.isNull(sd.getDescription()) ? "" : sd.getDescription());
+        }
+
+        // 获取已关联的优惠券
+        List<StoreProductCoupon> storeProductCoupons = storeProductCouponService.getListByProductId(storeProduct.getId());
+        if (CollUtil.isNotEmpty(storeProductCoupons)) {
+            List<Integer> ids = storeProductCoupons.stream().map(StoreProductCoupon::getIssueCouponId).collect(Collectors.toList());
+            storeProductResponse.setCouponIds(ids);
+        }
+        // 保障服务
+        if (StrUtil.isNotBlank(storeProduct.getGuaranteeIds())) {
+            List<StoreProductGuarantee> guaranteeList = guaranteeService.findByIdList(QianxuUtil.stringToArray(storeProduct.getGuaranteeIds()));
+            storeProductResponse.setGuaranteeList(guaranteeList);
+        }
+        storeProductResponse.setProductGroupIds(storeProductGroupService.getGroupIdsByProductId(storeProduct.getId()));
+        // 旧 is_sub/SKU 佣金回填到佣金设置展示（仅当商品级分销配置为空时）
+        storeProductResponse.setCommissionConfig(fillCommissionFromLegacyIfEmpty(
+                storeProductResponse.getCommissionConfig(), storeProduct.getIsSub(), attrValueList));
+        return storeProductResponse;
+    }
+
+    /**
+     * 保存时：旧版「单独分佣 + SKU 一二佣」迁入 commission_config.distributor（若商品级分销未配置）。
+     * 同时若已配商品级直属/间接佣金，回写 isSub 便于旧 UI 兼容。
+     */
+    private ProductCommissionConfig syncLegacyBrokerageIntoCommission(ProductCommissionConfig cfg,
+                                                                      Boolean isSub,
+                                                                      List<StoreProductAttrValueAddRequest> attrValues) {
+        ProductCommissionConfig config = cfg == null ? new ProductCommissionConfig() : cfg;
+        if (config.getDistributor() == null) {
+            config.setDistributor(new ProductCommissionConfig.Distributor());
+        }
+        ProductCommissionConfig.Distributor d = config.getDistributor();
+        boolean hasDistOverride = ProductCommissionUtil.hasOverride(d.getDirectAmount(), d.getDirectRate())
+                || ProductCommissionUtil.hasOverride(d.getIndirectAmount(), d.getIndirectRate())
+                || d.getEnabled() != null;
+        if (!hasDistOverride && Boolean.TRUE.equals(isSub) && CollUtil.isNotEmpty(attrValues)) {
+            BigDecimal direct = attrValues.stream()
+                    .map(StoreProductAttrValueAddRequest::getBrokerage)
+                    .filter(ObjectUtil::isNotNull)
+                    .findFirst().orElse(null);
+            BigDecimal indirect = attrValues.stream()
+                    .map(StoreProductAttrValueAddRequest::getBrokerageTwo)
+                    .filter(ObjectUtil::isNotNull)
+                    .findFirst().orElse(null);
+            if (direct != null || indirect != null) {
+                d.setEnabled(true);
+                if (d.getDirectAmount() == null && d.getDirectRate() == null) {
+                    d.setDirectAmount(direct);
+                }
+                if (d.getIndirectAmount() == null && d.getIndirectRate() == null) {
+                    d.setIndirectAmount(indirect);
+                }
+            }
+        }
+        return config;
+    }
+
+    /**
+     * 详情回显：商品级分销为空时，用旧 is_sub/SKU 佣金填充，便于「佣金设置」页看到历史数据。
+     */
+    private ProductCommissionConfig fillCommissionFromLegacyIfEmpty(ProductCommissionConfig cfg,
+                                                                    Boolean isSub,
+                                                                    List<StoreProductAttrValue> attrValueList) {
+        ProductCommissionConfig config = cfg == null ? new ProductCommissionConfig() : cfg;
+        if (config.getDistributor() == null) {
+            config.setDistributor(new ProductCommissionConfig.Distributor());
+        }
+        ProductCommissionConfig.Distributor d = config.getDistributor();
+        boolean hasDistOverride = ProductCommissionUtil.hasOverride(d.getDirectAmount(), d.getDirectRate())
+                || ProductCommissionUtil.hasOverride(d.getIndirectAmount(), d.getIndirectRate())
+                || d.getEnabled() != null;
+        if (hasDistOverride || !Boolean.TRUE.equals(isSub) || CollUtil.isEmpty(attrValueList)) {
+            return config;
+        }
+        BigDecimal direct = attrValueList.stream().map(StoreProductAttrValue::getBrokerage)
+                .filter(ObjectUtil::isNotNull).findFirst().orElse(null);
+        BigDecimal indirect = attrValueList.stream().map(StoreProductAttrValue::getBrokerageTwo)
+                .filter(ObjectUtil::isNotNull).findFirst().orElse(null);
+        if (direct == null && indirect == null) {
+            return config;
+        }
+        d.setEnabled(true);
+        d.setDirectAmount(direct);
+        d.setIndirectAmount(indirect);
+        return config;
+    }
+
+    /**
+     * 商品活动字符列表
+     * @param activityStr 商品活动字符串
+     * @return 商品活动字符列表
+     */
+    private List<String> getProductActivityList(String activityStr) {
+        List<String> activityList = CollUtil.newArrayList();
+        if (activityStr.equals("0, 1, 2, 3")) {
+            activityList.add(Constants.PRODUCT_TYPE_NORMAL_STR);
+            activityList.add(Constants.PRODUCT_TYPE_SECKILL_STR);
+            activityList.add(Constants.PRODUCT_TYPE_BARGAIN_STR);
+            activityList.add(Constants.PRODUCT_TYPE_PINGTUAN_STR);
+            return activityList;
+        }
+        String[] split = activityStr.split(",");
+        for (String s : split) {
+            Integer integer = Integer.valueOf(s);
+            if (integer.equals(Constants.PRODUCT_TYPE_NORMAL)) {
+                activityList.add(Constants.PRODUCT_TYPE_NORMAL_STR);
+            }
+            if (integer.equals(Constants.PRODUCT_TYPE_SECKILL)) {
+                activityList.add(Constants.PRODUCT_TYPE_SECKILL_STR);
+            }
+            if (integer.equals(Constants.PRODUCT_TYPE_BARGAIN)) {
+                activityList.add(Constants.PRODUCT_TYPE_BARGAIN_STR);
+            }
+            if (integer.equals(Constants.PRODUCT_TYPE_PINGTUAN)) {
+                activityList.add(Constants.PRODUCT_TYPE_PINGTUAN_STR);
+            }
+        }
+        return activityList;
+    }
+
+    /**
+     * 根据商品tabs获取对应类型的产品数量
+     * @return List
+     */
+    @Override
+    public List<StoreProductTabsHeader> getTabsHeader(StoreProductHeaderRequest request) {
+        List<StoreProductTabsHeader> headers = new ArrayList<>();
+        StoreProductTabsHeader header1 = new StoreProductTabsHeader(0,"出售中商品",1);
+        StoreProductTabsHeader header2 = new StoreProductTabsHeader(0,"仓库中商品",2);
+        StoreProductTabsHeader header3 = new StoreProductTabsHeader(0,"已经售馨商品",3);
+        StoreProductTabsHeader header4 = new StoreProductTabsHeader(0,"警戒库存",4);
+        StoreProductTabsHeader header5 = new StoreProductTabsHeader(0,"商品回收站",5);
+        headers.add(header1);
+        headers.add(header2);
+        headers.add(header3);
+        headers.add(header4);
+        headers.add(header5);
+        for (StoreProductTabsHeader h : headers) {
+            LambdaQueryWrapper<StoreProduct> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+            switch (h.getType()) {
+                case 1:
+                    //出售中（已上架）
+                    lambdaQueryWrapper.eq(StoreProduct::getIsShow, true);
+                    lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+                    lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+                    break;
+                case 2:
+                    //仓库中（未上架）
+                    lambdaQueryWrapper.eq(StoreProduct::getIsShow, false);
+                    lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+                    lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+                    break;
+                case 3:
+                    //已售罄
+                    lambdaQueryWrapper.le(StoreProduct::getStock, 0);
+                    lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+                    lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+                    break;
+                case 4:
+                    //警戒库存
+                    Integer stock = Integer.parseInt(systemConfigService.getValueByKey("store_stock"));
+                    lambdaQueryWrapper.le(StoreProduct::getStock, stock);
+                    lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+                    lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+                    break;
+                case 5:
+                    //回收站
+                    lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, true);
+                    lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+                    break;
+                default:
+                    break;
+            }
+            //关键字搜索
+            if (StrUtil.isNotBlank(request.getKeywords())) {
+                lambdaQueryWrapper.and(i -> i
+                        .or().eq(StoreProduct::getId, request.getKeywords())
+                        .or().like(StoreProduct::getStoreName, request.getKeywords())
+                        .or().like(StoreProduct::getKeyword, request.getKeywords()));
+            }
+            //分类搜索
+            applyCateIdFilter(lambdaQueryWrapper, request.getCateId());
+            List<StoreProduct> storeProducts = dao.selectList(lambdaQueryWrapper);
+            h.setCount(storeProducts.size());
+        }
+
+        return headers;
+    }
+
+    /**
+     * 后台任务批量操作库存
+     */
+    @Override
+    public void consumeProductStock() {
+        String redisKey = Constants.PRODUCT_STOCK_UPDATE;
+        Long size = redisUtil.getListSize(redisKey);
+        logger.info("StoreProductServiceImpl.doProductStock | size:" + size);
+        if (size < 1) {
+            return;
+        }
+        for (int i = 0; i < size; i++) {
+            //如果10秒钟拿不到一个数据，那么退出循环
+            Object data = redisUtil.getRightPop(redisKey, 10L);
+            if (null == data) {
+                continue;
+            }
+            try {
+                StoreProductStockRequest storeProductStockRequest =
+                        com.alibaba.fastjson.JSONObject.toJavaObject(com.alibaba.fastjson.JSONObject.parseObject(data.toString()), StoreProductStockRequest.class);
+                boolean result = doProductStock(storeProductStockRequest);
+                if (!result) {
+                    redisUtil.lPush(redisKey, data);
+                }
+            } catch (Exception e) {
+                redisUtil.lPush(redisKey, data);
+            }
+        }
+    }
+
+    /**
+     * 根据其他平台url导入产品信息
+     * @param url 待导入平台url
+     * @param tag 1=淘宝，2=京东，3=苏宁，4=拼多多， 5=天猫
+     * @return StoreProductRequest
+     */
+    @Override
+    public StoreProductRequest importProductFromUrl(String url, int tag) {
+        StoreProductRequest productRequest = null;
+        try {
+            switch (tag) {
+                case 1:
+                    productRequest = productUtils.getTaobaoProductInfo(url,tag);
+                    break;
+                case 2:
+                    productRequest = productUtils.getJDProductInfo(url,tag);
+                    break;
+                case 3:
+                    productRequest = productUtils.getSuningProductInfo(url,tag);
+                    break;
+                case 4:
+                    productRequest = productUtils.getPddProductInfo(url,tag);
+                    break;
+                case 5:
+                    productRequest = productUtils.getTmallProductInfo(url,tag);
+                    break;
+            }
+        } catch (Exception e) {
+            throw new QianxuException("确认URL和平台是否正确，以及平台费用是否足额"+e.getMessage());
+        }
+        return productRequest;
+    }
+
+    /**
+     *
+     * @param productId 商品id
+     * @param type 类型：recycle——回收站 delete——彻底删除
+     * @return Boolean
+     */
+    @Override
+    public Boolean deleteProduct(Integer productId, String type) {
+        StoreProduct product = getById(productId);
+        if (ObjectUtil.isNull(product)) {
+            throw new QianxuException("商品不存在");
+        }
+        if (StrUtil.isNotBlank(type) && "recycle".equals(type) && product.getIsDel()) {
+            throw new QianxuException("商品已存在回收站");
+        }
+
+        LambdaUpdateWrapper<StoreProduct> lambdaUpdateWrapper = new LambdaUpdateWrapper<>();
+        if (StrUtil.isNotBlank(type) && "delete".equals(type)) {
+            // 判断商品活动状态(秒杀、砍价、拼团)
+            isExistActivity(productId);
+
+            lambdaUpdateWrapper.eq(StoreProduct::getId, productId);
+            lambdaUpdateWrapper.set(StoreProduct::getIsDel, true);
+            return update(lambdaUpdateWrapper);
+        }
+        lambdaUpdateWrapper.eq(StoreProduct::getId, productId);
+        lambdaUpdateWrapper.set(StoreProduct::getIsRecycle, true);
+        return update(lambdaUpdateWrapper);
+    }
+
+    /**
+     * 判断商品活动状态(秒杀、砍价、拼团)
+     * @param productId
+     */
+    private void isExistActivity(Integer productId) {
+        Boolean existActivity = false;
+        // 秒杀活动判断
+        existActivity = storeSeckillService.isExistActivity(productId);
+        if (existActivity) {
+            throw new QianxuException("有商品关联的秒杀商品活动开启中，不能删除");
+        }
+        // 砍价活动判断
+        existActivity = storeBargainService.isExistActivity(productId);
+        if (existActivity) {
+            throw new QianxuException("有商品关联的砍价商品活动开启中，不能删除");
+        }
+        // 拼团活动判断
+        existActivity = storeCombinationService.isExistActivity(productId);
+        if (existActivity) {
+            throw new QianxuException("有商品关联的拼团商品活动开启中，不能删除");
+        }
+    }
+
+    /**
+     * 恢复已删除的商品
+     * @param productId 商品id
+     * @return 恢复结果
+     */
+    @Override
+    public Boolean reStoreProduct(Integer productId) {
+        LambdaUpdateWrapper<StoreProduct> lambdaUpdateWrapper = new LambdaUpdateWrapper<>();
+        lambdaUpdateWrapper.set(StoreProduct::getIsRecycle, 0);
+        lambdaUpdateWrapper.eq(StoreProduct::getId, productId);
+        return update(lambdaUpdateWrapper);
+    }
+
+    /**
+     * 扣减库存任务操作
+     * @param storeProductStockRequest 扣减库存参数
+     * @return 执行结果
+     */
+    @Override
+    public boolean doProductStock(StoreProductStockRequest storeProductStockRequest) {
+        // 获取商品本身信息
+        StoreProduct existProduct = getById(storeProductStockRequest.getProductId());
+        List<StoreProductAttrValue> existAttr =
+                storeProductAttrValueService.getListByProductIdAndAttrId(
+                        storeProductStockRequest.getProductId(),
+                        storeProductStockRequest.getAttrId().toString(),
+                        storeProductStockRequest.getType());
+        if (null == existProduct || null == existAttr) { // 未找到商品
+            logger.info("库存修改任务未获取到商品信息"+JSON.toJSONString(storeProductStockRequest));
+            return true;
+        }
+
+        // 回滚商品库存/销量 并更新
+        boolean isPlus = storeProductStockRequest.getOperationType().equals("add");
+        int productStock = isPlus ? existProduct.getStock() + storeProductStockRequest.getNum() : existProduct.getStock() - storeProductStockRequest.getNum();
+        existProduct.setStock(productStock);
+        existProduct.setSales(existProduct.getSales() - storeProductStockRequest.getNum());
+        updateById(existProduct);
+
+        // 回滚sku库存
+        for (StoreProductAttrValue attrValue : existAttr) {
+            int productAttrStock = isPlus ? attrValue.getStock() + storeProductStockRequest.getNum() : attrValue.getStock() - storeProductStockRequest.getNum();
+            attrValue.setStock(productAttrStock);
+            attrValue.setSales(attrValue.getSales()-storeProductStockRequest.getNum());
+            storeProductAttrValueService.updateById(attrValue);
+        }
+        return true;
+    }
+
+    /**
+     * 获取复制商品配置
+     * @return copyType 复制类型：1：一号通
+     *         copyNum 复制条数(一号通类型下有值)
+     */
+    @Override
+    public MyRecord copyConfig() {
+        String copyType = systemConfigService.getValueByKey("system_product_copy_type");
+        if (StrUtil.isBlank(copyType)) {
+            throw new QianxuException("请先进行采集商品配置");
+        }
+        int copyNum = 0;
+        if (copyType.equals("1")) {// 一号通
+            JSONObject info = onePassService.info();
+            copyNum = Optional.ofNullable(info.getJSONObject("copy").getInteger("num")).orElse(0);
+        }
+        MyRecord record = new MyRecord();
+        record.set("copyType", copyType);
+        record.set("copyNum", copyNum);
+        return record;
+    }
+
+    /**
+     * 复制平台商品
+     * @param url 商品链接
+     * @return MyRecord
+     */
+    @Override
+    public CopyProductResponse copyProduct(String url) {
+        //JSONObject jsonObject = onePassService.copyGoods(url);
+        //StoreProductRequest storeProductRequest = ProductUtils.onePassCopyTransition(jsonObject);
+        //MyRecord record = new MyRecord();
+        //return record.set("info", storeProductRequest);
+        CopyProductResponse copyProductResponse ;
+        try {
+            JSONObject jsonObject = onePassService.copyGoods(url);
+            copyProductResponse = ProductUtils.onePassCopyTransition(jsonObject);
+        } catch (Exception e) {
+            throw new QianxuException("一号通采集商品异常：" + e.getMessage());
+        }
+        return copyProductResponse;
+    }
+
+    /**
+     * 添加/扣减库存
+     * @param id 商品id
+     * @param num 数量
+     * @param type 类型：add—添加，sub—扣减
+     */
+    @Override
+    public Boolean operationStock(Integer id, Integer num, String type, Integer version) {
+        UpdateWrapper<StoreProduct> updateWrapper = new UpdateWrapper<>();
+        if (type.equals("quick_add")) {
+            updateWrapper.setSql(StrUtil.format("stock = stock + {}", num));
+        }
+        if (type.equals("add")) {
+            updateWrapper.setSql(StrUtil.format("stock = stock + {}", num));
+            updateWrapper.setSql(StrUtil.format("sales = sales - {}", num));
+        }
+        if (type.equals("sub")) {
+            updateWrapper.setSql(StrUtil.format("stock = stock - {}", num));
+            updateWrapper.setSql(StrUtil.format("sales = sales + {}", num));
+            // 扣减时加乐观锁保证库存不为负
+            updateWrapper.last(StrUtil.format(" and (stock - {} >= 0)", num));
+        }
+        updateWrapper.setSql("version = version + 1");
+        updateWrapper.eq("id", id);
+//        updateWrapper.eq("version", version);
+        boolean update = update(updateWrapper);
+        if (!update) {
+            throw new QianxuException("更新普通商品库存失败,商品id = " + id);
+        }
+        return update;
+    }
+
+    /**
+     * 下架
+     * @param id 商品id
+     */
+    @Override
+    public Boolean offShelf(Integer id) {
+        StoreProduct storeProduct = getById(id);
+        if (ObjectUtil.isNull(storeProduct)) {
+            throw new QianxuException("商品不存在");
+        }
+        if (!storeProduct.getIsShow()) {
+            return true;
+        }
+
+        storeProduct.setIsShow(false);
+        Boolean execute = transactionTemplate.execute(e -> {
+            dao.updateById(storeProduct);
+            storeCartService.productStatusNotEnable(id);
+            // 商品下架时，清除用户收藏
+            storeProductRelationService.deleteByProId(storeProduct.getId());
+            return Boolean.TRUE;
+        });
+
+        return execute;
+    }
+
+    /**
+     * 上架
+     * @param id 商品id
+     * @return Boolean
+     */
+    @Override
+    public Boolean putOnShelf(Integer id) {
+        StoreProduct storeProduct = getById(id);
+        if (ObjectUtil.isNull(storeProduct)) {
+            throw new QianxuException("商品不存在");
+        }
+        if (storeProduct.getIsShow()) {
+            return true;
+        }
+
+        // 获取商品skuid
+        StoreProductAttrValue tempSku = new StoreProductAttrValue();
+        tempSku.setProductId(id);
+        tempSku.setType(Constants.PRODUCT_TYPE_NORMAL);
+        List<StoreProductAttrValue> skuList = storeProductAttrValueService.getByEntity(tempSku);
+        List<Integer> skuIdList = skuList.stream().map(StoreProductAttrValue::getId).collect(Collectors.toList());
+
+        storeProduct.setIsShow(true);
+        Boolean execute = transactionTemplate.execute(e -> {
+            dao.updateById(storeProduct);
+            storeCartService.productStatusNoEnable(skuIdList);
+            return Boolean.TRUE;
+        });
+        return execute;
+    }
+
+    /**
+     * 批量上架（已在上架状态的商品自动跳过）
+     * @param ids 商品id列表
+     * @return Boolean
+     */
+    @Override
+    public Boolean batchPutOnShelf(List<Integer> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            throw new QianxuException("请选择商品");
+        }
+        Set<Integer> uniq = new HashSet<>(ids);
+        int success = 0;
+        StringBuilder failMsg = new StringBuilder();
+        for (Integer id : uniq) {
+            if (id == null || id <= 0) {
+                continue;
+            }
+            try {
+                if (putOnShelf(id)) {
+                    success++;
+                } else {
+                    failMsg.append("ID ").append(id).append(" 上架失败；");
+                }
+            } catch (Exception e) {
+                failMsg.append("ID ").append(id).append(" ").append(e.getMessage()).append("；");
+            }
+        }
+        if (failMsg.length() > 0) {
+            if (success == 0) {
+                throw new QianxuException(failMsg.toString());
+            }
+            throw new QianxuException("成功上架" + success + "个，失败明细：" + failMsg);
+        }
+        return Boolean.TRUE;
+    }
+
+    /**
+     * 批量下架（已在下架状态的商品自动跳过）
+     * @param ids 商品id列表
+     * @return Boolean
+     */
+    @Override
+    public Boolean batchOffShelf(List<Integer> ids) {
+        if (CollUtil.isEmpty(ids)) {
+            throw new QianxuException("请选择商品");
+        }
+        Set<Integer> uniq = new HashSet<>(ids);
+        int success = 0;
+        StringBuilder failMsg = new StringBuilder();
+        for (Integer id : uniq) {
+            if (id == null || id <= 0) {
+                continue;
+            }
+            try {
+                if (offShelf(id)) {
+                    success++;
+                } else {
+                    failMsg.append("ID ").append(id).append(" 下架失败；");
+                }
+            } catch (Exception e) {
+                failMsg.append("ID ").append(id).append(" ").append(e.getMessage()).append("；");
+            }
+        }
+        if (failMsg.length() > 0) {
+            if (success == 0) {
+                throw new QianxuException(failMsg.toString());
+            }
+            throw new QianxuException("成功下架" + success + "个，失败明细：" + failMsg);
+        }
+        return Boolean.TRUE;
+    }
+
+    /**
+     * 批量删除商品
+     * @param ids 商品id列表
+     * @param type recycle——移入回收站 delete——彻底删除
+     * @return Boolean
+     */
+    @Override
+    public Boolean batchDeleteProduct(List<Integer> ids, String type) {
+        if (CollUtil.isEmpty(ids)) {
+            throw new QianxuException("请选择商品");
+        }
+        String deleteType = "delete".equals(type) ? "delete" : "recycle";
+        Set<Integer> uniq = new HashSet<>(ids);
+        int success = 0;
+        StringBuilder failMsg = new StringBuilder();
+        for (Integer id : uniq) {
+            if (id == null || id <= 0) {
+                continue;
+            }
+            try {
+                if (deleteProduct(id, deleteType)) {
+                    if ("recycle".equals(deleteType)) {
+                        storeCartService.productStatusNotEnable(id);
+                    } else {
+                        storeCartService.productDelete(id);
+                    }
+                    success++;
+                } else {
+                    failMsg.append("ID ").append(id).append(" 操作失败；");
+                }
+            } catch (Exception e) {
+                failMsg.append("ID ").append(id).append(" ").append(e.getMessage()).append("；");
+            }
+        }
+        if (failMsg.length() > 0) {
+            if (success == 0) {
+                throw new QianxuException(failMsg.toString());
+            }
+            throw new QianxuException("成功" + success + "个，失败明细：" + failMsg);
+        }
+        return Boolean.TRUE;
+    }
+
+    /**
+     * 批量修改商品分类（覆盖原分类）
+     * @param ids 商品id列表
+     * @param cateId 分类id，多个用逗号分隔
+     * @return Boolean
+     */
+    @Override
+    public Boolean batchUpdateCate(List<Integer> ids, String cateId) {
+        if (CollUtil.isEmpty(ids)) {
+            throw new QianxuException("请选择商品");
+        }
+        if (StrUtil.isBlank(cateId)) {
+            throw new QianxuException("请选择商品分类");
+        }
+        Set<Integer> cateIdSet = new HashSet<>();
+        for (String item : cateId.split(",")) {
+            if (StrUtil.isBlank(item)) {
+                continue;
+            }
+            Integer cid;
+            try {
+                cid = Integer.valueOf(item.trim());
+            } catch (NumberFormatException e) {
+                throw new QianxuException("商品分类id格式不正确");
+            }
+            if (ObjectUtil.isNull(categoryService.getById(cid))) {
+                throw new QianxuException("商品分类不存在：ID " + cid);
+            }
+            cateIdSet.add(cid);
+        }
+        if (cateIdSet.isEmpty()) {
+            throw new QianxuException("请选择商品分类");
+        }
+        String cateStr = StringUtils.join(cateIdSet, ",");
+        LambdaUpdateWrapper<StoreProduct> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.in(StoreProduct::getId, ids);
+        wrapper.eq(StoreProduct::getIsDel, false);
+        wrapper.set(StoreProduct::getCateId, cateStr);
+        return update(wrapper);
+    }
+
+    /**
+     * 修改商品排序，值越大越靠前
+     * @param id 商品id
+     * @param sort 排序值
+     * @return Boolean
+     */
+    @Override
+    public Boolean updateSort(Integer id, Integer sort) {
+        StoreProduct product = getById(id);
+        if (ObjectUtil.isNull(product)) {
+            throw new QianxuException("商品不存在");
+        }
+        int sortValue = sort == null ? 0 : sort;
+        if (sortValue < 0) {
+            sortValue = 0;
+        }
+        if (sortValue > 99999999) {
+            sortValue = 99999999;
+        }
+        LambdaUpdateWrapper<StoreProduct> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(StoreProduct::getId, id);
+        wrapper.set(StoreProduct::getSort, sortValue);
+        return update(wrapper);
+    }
+
+    /**
+     * 首页商品列表
+     * @param type 类型 【1 精品推荐 2 热门榜单 3首发新品 4促销单品】
+     * @param pageParamRequest 分页参数
+     * @return CommonPage
+     */
+    @Override
+    public List<StoreProduct> getIndexProduct(Integer type, PageParamRequest pageParamRequest) {
+        PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        LambdaQueryWrapper<StoreProduct> lambdaQueryWrapper = Wrappers.lambdaQuery();
+        lambdaQueryWrapper.select(StoreProduct::getId, StoreProduct::getImage, StoreProduct::getStoreName,
+                StoreProduct::getPrice, StoreProduct::getOtPrice, StoreProduct::getActivity, StoreProduct::getCateId);
+        switch (type) {
+            case Constants.INDEX_RECOMMEND_BANNER: //精品推荐
+                lambdaQueryWrapper.eq(StoreProduct::getIsBest, true);
+                break;
+            case Constants.INDEX_HOT_BANNER: //热门榜单
+                lambdaQueryWrapper.eq(StoreProduct::getIsHot, true);
+                break;
+            case Constants.INDEX_NEW_BANNER: //首发新品
+                lambdaQueryWrapper.eq(StoreProduct::getIsNew, true);
+                break;
+            case Constants.INDEX_BENEFIT_BANNER: //促销单品
+                lambdaQueryWrapper.eq(StoreProduct::getIsBenefit, true);
+                break;
+            case Constants.INDEX_GOOD_BANNER: // 优选推荐
+                lambdaQueryWrapper.eq(StoreProduct::getIsGood, true);
+                break;
+        }
+
+        lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+        lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+        lambdaQueryWrapper.gt(StoreProduct::getStock, 0);
+        lambdaQueryWrapper.eq(StoreProduct::getIsShow, true);
+
+        lambdaQueryWrapper.orderByDesc(StoreProduct::getSort);
+        lambdaQueryWrapper.orderByDesc(StoreProduct::getId);
+        return dao.selectList(lambdaQueryWrapper);
+    }
+
+    /**
+     * 获取商品移动端列表
+     * @param request 筛选参数
+     * @param pageRequest 分页参数
+     * @return List
+     */
+    @Override
+    public List<StoreProduct> findH5List(ProductRequest request, PageParamRequest pageRequest) {
+
+        LambdaQueryWrapper<StoreProduct> lqw = Wrappers.lambdaQuery();
+        // id、名称、图片、价格、销量、活动
+        lqw.select(StoreProduct::getId, StoreProduct::getStoreName, StoreProduct::getImage, StoreProduct::getPrice,
+                StoreProduct::getActivity, StoreProduct::getSales, StoreProduct::getFicti, StoreProduct::getUnitName,
+                StoreProduct::getFlatPattern, StoreProduct::getStock, StoreProduct::getCateId,
+                StoreProduct::getOtPrice, StoreProduct::getSpecType);
+
+        lqw.eq(StoreProduct::getIsRecycle, false);
+        lqw.eq(StoreProduct::getIsDel, false);
+        lqw.eq(StoreProduct::getMerId, false);
+        lqw.gt(StoreProduct::getStock, 0);
+        lqw.eq(StoreProduct::getIsShow, true);
+        if (CollUtil.isNotEmpty(request.getExcludeIds())) {
+            lqw.notIn(StoreProduct::getId, request.getExcludeIds());
+        }
+        if (CollUtil.isNotEmpty(request.getProductIds())) {
+            lqw.in(StoreProduct::getId, request.getProductIds());
+        }
+        if (ObjectUtil.isNotNull(request.getCid()) && !request.getCid().isEmpty()) {
+            List<Integer> cidList = Stream.of(request.getCid().split(",")).map(Integer::valueOf).collect(Collectors.toList());
+            //查找当前类下的所有子类
+            List<Category> childVoListByPids = categoryService.getByPIds(cidList);
+            List<Integer> categoryIdList = childVoListByPids.stream().map(Category::getId).collect(Collectors.toList());
+            categoryIdList.addAll(cidList);
+            lqw.apply(QianxuUtil.getFindInSetSql("cate_id", (ArrayList<Integer>) categoryIdList));
+        }
+
+        if (StrUtil.isNotBlank(request.getStoreName())) {
+            lqw.like(StoreProduct::getStoreName, request.getStoreName());
+        }
+
+        if (StrUtil.isNotBlank(request.getKeyword())) {
+//            if (QianxuUtil.isString2Num(request.getKeyword())) {
+//                Integer productId = Integer.valueOf(request.getKeyword());
+//                lqw.like(StoreProduct::getId, productId);
+//            } else {
+            lqw.and(i -> i.like(StoreProduct::getStoreName, request.getKeyword())
+                    .or().like(StoreProduct::getKeyword, request.getKeyword()));
+//            }
+        }
+
+        // 排序部分
+        if (StrUtil.isNotBlank(request.getSalesOrder())) {
+            if (request.getSalesOrder().equals(Constants.SORT_DESC)) {
+                lqw.last(" order by (sales + ficti) desc, sort desc, id desc");
+            } else {
+                lqw.last(" order by (sales + ficti) asc, sort asc, id asc");
+            }
+        } else {
+            if (StrUtil.isNotBlank(request.getPriceOrder())) {
+                if (request.getPriceOrder().equals(Constants.SORT_DESC)) {
+                    lqw.orderByDesc(StoreProduct::getPrice);
+                } else {
+                    lqw.orderByAsc(StoreProduct::getPrice);
+                }
+            }
+
+            lqw.orderByDesc(StoreProduct::getSort);
+            lqw.orderByDesc(StoreProduct::getId);
+        }
+        PageHelper.startPage(pageRequest.getPage(), pageRequest.getLimit());
+        List<StoreProduct> storeProducts = dao.selectList(lqw);
+        storeProducts.forEach(storeProduct -> {
+            storeProduct.setSales(storeProduct.getSales() + storeProduct.getFicti());
+        });
+        return storeProducts;
+    }
+
+    /**
+     * 获取移动端商品详情
+     * @param id 商品id
+     * @return StoreProduct
+     */
+    @Override
+    public StoreProduct getH5Detail(Integer id) {
+        LambdaQueryWrapper<StoreProduct> lqw = Wrappers.lambdaQuery();
+        lqw.select(StoreProduct::getId, StoreProduct::getImage, StoreProduct::getStoreName, StoreProduct::getSliderImage,
+                StoreProduct::getOtPrice, StoreProduct::getStock, StoreProduct::getSales, StoreProduct::getPrice, StoreProduct::getActivity,
+                StoreProduct::getFicti, StoreProduct::getIsSub, StoreProduct::getBrowse, StoreProduct::getUnitName,
+                StoreProduct::getBarCode, StoreProduct::getCateId, StoreProduct::getGuaranteeIds,
+                StoreProduct::getCommissionConfig);
+        lqw.eq(StoreProduct::getId, id);
+        lqw.eq(StoreProduct::getIsRecycle, false);
+        lqw.eq(StoreProduct::getIsDel, false);
+        lqw.eq(StoreProduct::getIsShow, true);
+        StoreProduct storeProduct = dao.selectOne(lqw);
+        if (ObjectUtil.isNull(storeProduct)) {
+            throw new QianxuException(StrUtil.format("未找到编号为{}的商品", id));
+        }
+
+        StoreProductDescription sd = storeProductDescriptionService.getOne(
+                    new LambdaQueryWrapper<StoreProductDescription>()
+                        .eq(StoreProductDescription::getProductId, storeProduct.getId())
+                        .eq(StoreProductDescription::getType, Constants.PRODUCT_TYPE_NORMAL), false);
+        if (ObjectUtil.isNotNull(sd)) {
+            storeProduct.setContent(StrUtil.isBlank(sd.getDescription()) ? "" : sd.getDescription());
+        }
+        return storeProduct;
+    }
+
+    /**
+     * 获取购物车商品信息
+     * @param productId 商品编号
+     * @return StoreProduct
+     */
+    @Override
+    public StoreProduct getCartByProId(Integer productId) {
+        LambdaQueryWrapper<StoreProduct> lqw = Wrappers.lambdaQuery();
+        lqw.select(StoreProduct::getId, StoreProduct::getImage, StoreProduct::getStoreName);
+        lqw.eq(StoreProduct::getId, productId);
+        return dao.selectOne(lqw);
+    }
+
+    /**
+     * 根据日期获取新增商品数量
+     * @param date 日期，yyyy-MM-dd格式
+     * @return Integer
+     */
+    @Override
+    public Integer getNewProductByDate(String date) {
+        LambdaQueryWrapper<StoreProduct> lqw = Wrappers.lambdaQuery();
+        lqw.select(StoreProduct::getId);
+        lqw.eq(StoreProduct::getIsDel, 0);
+        lqw.apply("date_format(add_time, '%Y-%m-%d') = {0}", date);
+        return dao.selectCount(lqw);
+    }
+
+    /**
+     * 获取所有未删除的商品
+     * @return List<StoreProduct>
+     */
+    @Override
+    public List<StoreProduct> findAllProductByNotDelte() {
+        LambdaQueryWrapper<StoreProduct> lqw = Wrappers.lambdaQuery();
+        lqw.select(StoreProduct::getId);
+        lqw.eq(StoreProduct::getIsDel, 0);
+        return dao.selectList(lqw);
+    }
+
+    /**
+     * 模糊搜索商品名称
+     * @param productName 商品名称
+     * @return List
+     */
+    @Override
+    public List<StoreProduct> likeProductName(String productName) {
+        LambdaQueryWrapper<StoreProduct> lqw = Wrappers.lambdaQuery();
+        lqw.select(StoreProduct::getId);
+        lqw.like(StoreProduct::getStoreName, productName);
+        lqw.eq(StoreProduct::getIsDel, 0);
+        return dao.selectList(lqw);
+    }
+
+    /**
+     * 警戒库存数量
+     * @return Integer
+     */
+    @Override
+    public Integer getVigilanceInventoryNum() {
+        Integer stock = Integer.parseInt(systemConfigService.getValueByKey("store_stock"));
+        LambdaQueryWrapper<StoreProduct> lambdaQueryWrapper = Wrappers.lambdaQuery();
+        lambdaQueryWrapper.le(StoreProduct::getStock, stock);
+        lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+        lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+        return dao.selectCount(lambdaQueryWrapper);
+    }
+
+    /**
+     * 销售中（上架）商品数量
+     * @return Integer
+     */
+    @Override
+    public Integer getOnSaleNum() {
+        LambdaQueryWrapper<StoreProduct> lambdaQueryWrapper = Wrappers.lambdaQuery();
+        lambdaQueryWrapper.eq(StoreProduct::getIsShow, true);
+        lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+        lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+        return dao.selectCount(lambdaQueryWrapper);
+    }
+
+    /**
+     * 未销售（仓库）商品数量
+     * @return Integer
+     */
+    @Override
+    public Integer getNotSaleNum() {
+        LambdaQueryWrapper<StoreProduct> lambdaQueryWrapper = Wrappers.lambdaQuery();
+        lambdaQueryWrapper.eq(StoreProduct::getIsShow, false);
+        lambdaQueryWrapper.eq(StoreProduct::getIsRecycle, false);
+        lambdaQueryWrapper.eq(StoreProduct::getIsDel, false);
+        return dao.selectCount(lambdaQueryWrapper);
+    }
+
+    /**
+     * 获取商品排行榜
+     * 1.   3个商品以内不返回数据
+     * 2.   TOP10
+     * @return List
+     */
+    @Override
+    public List<StoreProduct> getLeaderboard() {
+        QueryWrapper<StoreProduct> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("is_show", true);
+        queryWrapper.eq("is_recycle", false);
+        queryWrapper.eq("is_del", false);
+        queryWrapper.last("limit 10");
+        Integer count = dao.selectCount(queryWrapper);
+        if (count < 4) {
+            return CollUtil.newArrayList();
+        }
+        queryWrapper.select("id", "store_name", "image", "price", "ot_price", "(sales + ficti) as sales, cate_id");
+        queryWrapper.orderByDesc("sales");
+        List<StoreProduct> storeProducts = dao.selectList(queryWrapper);
+        // 查询活动边框配置信息, 并赋值给商品response 重复添加的商品数据会根据数据添加持续覆盖后的为准
+        storeProducts = activityStyleService.makeActivityBorderStyle(storeProducts);
+        return  storeProducts;
+    }
+
+    /**
+     * 是否有商品使用运费模板
+     * @return Boolean
+     */
+    @Override
+    public Boolean isUseShippingTemplateId(Integer templateId) {
+        LambdaQueryWrapper<StoreProduct> lqw = Wrappers.lambdaQuery();
+        lqw.eq(StoreProduct::getTempId, templateId);
+        lqw.eq(StoreProduct::getIsDel, false);
+        return dao.selectCount(lqw) > 0;
+    }
+
+    /**
+     * 获取商品所用的分类（包含父级分类）
+     * @param productIdList 商品ID列表
+     * @return 商品分类及所有父级分类ID
+     */
+    @Override
+    public List<Integer> getProductAllCategoryIdByProductIds(List<Integer> productIdList) {
+        List<Integer> idList = new ArrayList<>();
+
+        if (CollUtil.isEmpty(productIdList)) {
+            return idList;
+        }
+        LambdaQueryWrapper<StoreProduct> lqw = new LambdaQueryWrapper<>();
+        lqw.select(StoreProduct::getId, StoreProduct::getCateId);
+        lqw.in(StoreProduct::getId, productIdList);
+        List<StoreProduct> productList = dao.selectList(lqw);
+        if (CollUtil.isEmpty(productList)) {
+            return idList;
+        }
+        //把所有的分类id写入集合
+        for (StoreProduct storeProduct : productList) {
+            List<Integer> categoryIdList = QianxuUtil.stringToArray(storeProduct.getCateId());
+            idList.addAll(categoryIdList);
+        }
+
+        //去重
+        List<Integer> cateIdList = idList.stream().distinct().collect(Collectors.toList());
+
+        List<Category> categoryList = categoryService.getByIds(cateIdList);
+        if (CollUtil.isEmpty(categoryList)) {
+            return idList;
+        }
+
+        for (Category category: categoryList) {
+            List<Integer> parentIdList = QianxuUtil.stringToArrayByRegex(category.getPath(), "/");
+            if (CollUtil.isNotEmpty(parentIdList)) {
+                for (Integer parentId : parentIdList) {
+                    if (parentId > 0) {
+                        idList.add(parentId);
+                    }
+                }
+            }
+        }
+
+        return idList.stream().distinct().collect(Collectors.toList());
+    }
+
+    /**
+     * 快捷添加库存
+     *
+     * @param request 添加库存参数
+     * @return Boolean
+     */
+    @Override
+    public Boolean quickAddStock(ProductAddStockRequest request) {
+        StoreProduct storeProduct = dao.selectById(request.getId());
+        if (storeProduct == null) {
+            throw new QianxuException(ProductResultCode.PRODUCT_NOT_EXIST);
+        }
+        List<ProductAttrValueAddStockRequest> valueStockList = request.getAttrValueList();
+        List<Integer> attrIdList = valueStockList.stream().map(ProductAttrValueAddStockRequest::getId).distinct().collect(Collectors.toList());
+        if (attrIdList.size() != valueStockList.size()) {
+            throw new QianxuException(CommonResultCode.VALIDATE_FAILED, "有重复的商品规格属性ID");
+        }
+        List<StoreProductAttrValue> valueList = storeProductAttrValueService.getByProductIdAndAttrIdList(request.getId(), attrIdList);
+        if (CollUtil.isEmpty(valueList) || valueList.size() != attrIdList.size()) {
+            throw new QianxuException(CommonResultCode.VALIDATE_FAILED, "商品规格属性ID数组数据异常，请刷新后再试");
+        }
+        for (ProductAttrValueAddStockRequest value : valueStockList) {
+            for (StoreProductAttrValue attrValue : valueList) {
+                if (attrValue.getId().equals(value.getId())) {
+                    value.setVersion(attrValue.getVersion());
+                    break;
+                }
+            }
+        }
+        int totalStock = valueStockList.stream().mapToInt(ProductAttrValueAddStockRequest::getAddStock).sum();
+        return transactionTemplate.execute(e -> {
+            operationStock(storeProduct.getId(), totalStock, "quick_add",storeProduct.getVersion());
+            valueStockList.forEach(valueStock -> {
+                storeProductAttrValueService.operationStock(valueStock.getId(), valueStock.getAddStock(),
+                        "quick_add",valueStock.getVersion());
+            });
+            return Boolean.TRUE;
+        });
+
+    }
+
+    /**
+     * 判断商品是否使用服务保障
+     *
+     * @param gid 服务保障id
+     * @return Boolean
+     */
+    @Override
+    public Boolean isUseGuarantee(Integer gid) {
+        LambdaQueryWrapper<StoreProduct> lqw = Wrappers.lambdaQuery();
+        lqw.select(StoreProduct::getId);
+        lqw.eq(StoreProduct::getIsDel, false);
+        lqw.apply(" find_in_set({0}, guarantee_ids)", gid);
+        lqw.last("limit 1");
+        StoreProduct storeProduct = dao.selectOne(lqw);
+        return ObjectUtil.isNotNull(storeProduct);
+
+    }
+
+    ///////////////////////////////////////////自定义方法
+
+    /**
+     * 通过ID获取商品列表
+     *
+     * @param proIdsList 商品ID列表
+     * @param label      admin-管理端，front-移动端
+     */
+    private List<StoreProduct> findByIdsAndLabel(List<Integer> proIdsList, String label) {
+        LambdaQueryWrapper<StoreProduct> lqw = Wrappers.lambdaQuery();
+        lqw.in(StoreProduct::getId, proIdsList);
+        if (label.equals("front")) {
+            getForSaleWhere(lqw);
+        }
+
+//拼接Sql
+        StringBuilder builder = new StringBuilder();
+        builder.append("order by field(id,");
+        int length = proIdsList.size();
+        for(int i= 0; i<length; i++) {
+            if (i == 0) {
+                builder.append(proIdsList.get(i));
+            } else {
+                builder.append(",")
+                        .append(proIdsList.get(i));
+            }
+            if (i == length - 1) {
+                builder.append(")");
+            }
+        }
+        lqw.last(builder.toString());
+        return dao.selectList(lqw);
+    }
+
+    /**
+     * 获取出售中商品的Where条件
+     */
+    private void getForSaleWhere(LambdaQueryWrapper<StoreProduct> lqw) {
+        lqw.eq(StoreProduct::getIsDel, false);
+        lqw.eq(StoreProduct::getIsRecycle, false);
+        lqw.eq(StoreProduct::getIsShow, true);
+    }
+}

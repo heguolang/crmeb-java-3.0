@@ -1,0 +1,45 @@
+package com.qxkj.service.service;
+
+
+/**
+ *
+ *  +----------------------------------------------------------------------
+ *  | 黔序商城 [ 黔序科技，助力企业发展 ]
+ *  +----------------------------------------------------------------------
+ *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
+ *  +----------------------------------------------------------------------
+ *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
+ *  +----------------------------------------------------------------------
+ *  | Author: 贵州黔序科技有限公司
+ *  +----------------------------------------------------------------------
+ */
+ public interface OrderTaskService{
+
+     void cancelByUser();
+
+     void refundApply();
+
+     void complete();
+
+    void orderPaySuccessAfter();
+
+    /**
+     * 自动取消未支付订单
+     */
+    void autoCancel();
+
+    /**
+     * 订单收货
+     */
+    void orderReceiving();
+
+    /**
+     * 订单自动完成
+     */
+    void autoComplete();
+
+    /**
+     * 订单自动收货
+     */
+    void autoTakeDelivery();
+}

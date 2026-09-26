@@ -16,7 +16,7 @@
         <div class="tabs">
           <span class="title">我的主题</span>
           <!-- 主题广场入口已按需求隐藏（2026-09-17） -->
-          <!-- <img class="theme-in" src="https://www.crmeb.com/static/images/zhutishichang.png" alt="" @click="toTheme" /> -->
+          <!-- <img class="theme-in" src="" alt="" @click="toTheme" /> -->
         </div>
       </div>
       <i class="el-icon-close" @click="handleClose"></i>
@@ -255,7 +255,7 @@ export default {
       this.getList();
     },
     toTheme() {
-      window.open('https://www.crmeb.com/theme?from=crmebkytheme', '_blank');
+      // （主题广场外链已移除）
     },
     handleClose() {
       this.showDetail = false;

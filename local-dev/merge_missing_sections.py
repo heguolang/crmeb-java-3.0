@@ -10,7 +10,7 @@ import shutil
 import sys
 import time
 
-ROOT = r"D:\crmeb-java-3.0\crmeb\sql\oneclick"
+ROOT = r"D:\qianxu-java-3.0\crmeb\sql\oneclick"
 SRC_02 = ROOT + r"\02_patches_all.sql"
 DST = ROOT + r"\ALL_IN_ONE.sql"
 
@@ -89,8 +89,8 @@ def main():
         return 0
 
     # ---- apply ----
-    bak = ROOT.replace("\\crmeb\\sql\\oneclick", "")  # 占位，实际用下面拼
-    bak = r"D:\crmeb-java-3.0\local-dev\backup_20260924\ALL_IN_ONE_before_merge_%s.sql" % \
+    bak = ROOT.replace("\\qianxu\\sql\\oneclick", "")  # 占位，实际用下面拼
+    bak = r"D:\qianxu-java-3.0\local-dev\backup_20260924\ALL_IN_ONE_before_merge_%s.sql" % \
           time.strftime("%Y%m%d_%H%M%S")
     shutil.copy2(DST, bak)
     print("备份 -> %s" % bak)

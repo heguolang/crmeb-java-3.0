@@ -1,9 +1,9 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "crmeb_java_front",
+    "title": "qianxu_java_front",
     "version": "last",
-    "description": "crmeb_java_front"
+    "description": "qianxu_java_front"
   },
   "basePath": "/",
   "tags": [

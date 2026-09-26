@@ -1,0 +1,244 @@
+package com.qxkj.front.service;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.qxkj.common.model.system.SystemUserLevel;
+import com.qxkj.common.model.user.User;
+import com.qxkj.common.model.user.UserExperienceRecord;
+import com.qxkj.common.model.user.UserIntegralRecord;
+import com.qxkj.common.page.CommonPage;
+import com.github.pagehelper.PageInfo;
+import com.qxkj.common.request.*;
+import com.qxkj.common.response.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/**
+ *
+ *  +----------------------------------------------------------------------
+ *  | 黔序商城 [ 黔序科技，助力企业发展 ]
+ *  +----------------------------------------------------------------------
+ *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
+ *  +----------------------------------------------------------------------
+ *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
+ *  +----------------------------------------------------------------------
+ *  | Author: 贵州黔序科技有限公司
+ *  +----------------------------------------------------------------------
+ */
+public interface UserCenterService extends IService<User> {
+
+    /**
+     * 推广数据接口(昨天的佣金 累计提现金额 当前佣金)
+     * @return UserCommissionResponse
+     */
+    UserCommissionResponse getCommission();
+
+    /**
+     * 推广佣金/提现总和
+     * @param type 类型 佣金类型3=佣金,4=提现
+     * @return BigDecimal
+     */
+    BigDecimal getSpreadCountByType(Integer type);
+
+    /**
+     * 提现申请
+     * @param request 申请参数
+     * @return Boolean
+     */
+    Boolean extractCash(UserExtractRequest request);
+
+    /**
+     * 获取提现银行列表
+     * @return List<String>
+     */
+    List<String> getExtractBank();
+
+    /**
+     * 会员等级列表
+     */
+    List<SystemUserLevel> getUserLevelList();
+
+    /**
+     * 获取推广人列表
+     * @param request 查询参数
+     * @param pageParamRequest 分页
+     * @return List<UserSpreadPeopleItemResponse>
+     */
+    List<UserSpreadPeopleItemResponse> getSpreadPeopleList(UserSpreadPeopleRequest request, PageParamRequest pageParamRequest);
+
+    /**
+     * 充值额度选择
+     * @return UserRechargeResponse
+     */
+    UserRechargeFrontResponse getRechargeConfig();
+
+    /**
+     * 用户资金统计
+     * @return UserBalanceResponse
+     */
+    UserBalanceResponse getUserBalance();
+
+    /**
+     * 推广订单
+     * @param pageParamRequest 分页参数
+     * @return UserSpreadOrderResponse
+     */
+    UserSpreadOrderResponse getSpreadOrder(PageParamRequest pageParamRequest);
+
+    /**
+     * 充值
+     * @return UserSpreadOrderResponse;
+     */
+    OrderPayResultResponse recharge(UserRechargeRequest request);
+
+    /**
+     * 通过微信code登录
+     */
+    LoginResponse weChatAuthorizeLogin(String code, Integer spreadUid);
+
+    /**
+     * 小程序获取授权logo
+     * @return String
+     */
+    String getLogo();
+
+    /**
+     * 微信登录小程序授权登录
+     * @param code code
+     * @param request 用户参数
+     * @return LoginResponse
+     */
+    LoginResponse weChatAuthorizeProgramLogin(String code, RegisterThirdUserRequest request);
+
+    /**
+     * 推广人排行榜
+     * @param type  String 时间范围(week-周，month-月)
+     * @param pageParamRequest PageParamRequest 分页
+     * @return List<LoginResponse>
+     */
+    List<User> getTopSpreadPeopleListByDate(String type, PageParamRequest pageParamRequest);
+
+    /**
+     * 佣金排行榜
+     * @param type  String 时间范围
+     * @param pageParamRequest PageParamRequest 分页
+     * @return List<User>
+     */
+    List<User> getTopBrokerageListByDate(String type, PageParamRequest pageParamRequest);
+
+    /**
+     * 海报背景图
+     * @return List
+     */
+    List<UserSpreadBannerResponse> getSpreadBannerList();
+
+    /**
+     * 当前用户在佣金排行第几名
+     * @param type  String 时间范围
+     * @return 排名
+     */
+    Integer getNumberByTop(String type);
+
+    /**
+     * 佣金转入余额
+     * @param price 金额
+     * @return Boolean
+     */
+    Boolean transferIn(BigDecimal price);
+
+    /**
+     * 提现记录
+     * @param pageParamRequest 分页参数
+     * @return PageInfo
+     */
+    PageInfo<UserExtractRecordResponse> getExtractRecord(PageParamRequest pageParamRequest);
+
+    /**
+     * 推广佣金明细
+     * @param pageParamRequest 分页参数
+     */
+    PageInfo<SpreadCommissionDetailResponse> getSpreadCommissionDetail(PageParamRequest pageParamRequest);
+
+    /**
+     * 团队奖资金明细
+     * @param pageParamRequest 分页参数
+     */
+    PageInfo<SpreadCommissionDetailResponse> getTeamCommissionDetail(PageParamRequest pageParamRequest);
+
+    /**
+     * 累计团队奖金额
+     * @return BigDecimal
+     */
+    BigDecimal getTeamCommissionTotal();
+
+    /**
+     * 用户账单记录（现金）
+     * @param type 记录类型：all-全部，expenditure-支出，income-收入
+     * @return CommonPage
+     */
+    CommonPage<UserRechargeBillRecordResponse> nowMoneyBillRecord(String type, PageParamRequest pageRequest);
+
+    /**
+     * 微信注册绑定手机号
+     * @param request 请求参数
+     * @return 登录信息
+     */
+    LoginResponse registerBindingPhone(WxBindingPhoneRequest request);
+
+    /**
+     * 用户积分记录列表
+     * @param pageParamRequest 分页参数
+     * @return List<UserIntegralRecord>
+     */
+    List<UserIntegralRecord> getUserIntegralRecordList(PageParamRequest pageParamRequest);
+
+    /**
+     * 微信app登录
+     * @param request 请求参数
+     * @return 登录响应体
+     */
+    LoginResponse appLogin(RegisterAppWxRequest request);
+
+    /**
+     * 获取用户积分信息
+     * @return IntegralUserResponse
+     */
+    IntegralUserResponse getIntegralUser();
+
+    /**
+     * 获取用户经验记录
+     * @param pageParamRequest 分页参数
+     * @return List<UserExperienceRecord>
+     */
+    List<UserExperienceRecord> getUserExperienceList(PageParamRequest pageParamRequest);
+
+    /**
+     * 提现用户信息
+     * @return UserExtractCashResponse
+     */
+    UserExtractCashResponse getExtractUser();
+
+    /**
+     * 提现用户信息
+     * @param category brokerage / balance
+     * @return UserExtractCashResponse
+     */
+    UserExtractCashResponse getExtractUser(String category);
+
+    /**
+     * 推广人列表统计
+     * @return UserSpreadPeopleResponse
+     */
+    UserSpreadPeopleResponse getSpreadPeopleCount();
+
+    /**
+     * 支付宝充值
+     */
+    OrderPayResultResponse aliPayRecharge(UserRechargeRequest request);
+
+    /**
+     * 我的推荐人（上级推广人）
+     * @return hasReferrer/uid/nickname/avatar
+     */
+    java.util.Map<String, Object> getMyReferrer();
+}
