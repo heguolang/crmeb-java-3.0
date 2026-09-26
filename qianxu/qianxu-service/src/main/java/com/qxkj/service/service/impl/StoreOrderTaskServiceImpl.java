@@ -748,7 +748,7 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                 List<SystemAdmin> systemAdminList = systemAdminService.findIsSmsList();
                 if (CollUtil.isNotEmpty(systemAdminList)) {
                     SmsTemplate smsTemplate = smsTemplateService.getDetail(notification.getSmsId());
-                    Integer tempId = Integer.valueOf(smsTemplate.getTempId());
+                    String tempId = smsTemplate.getTempId();
                     // 发送短信
                     systemAdminList.forEach(admin -> {
                         smsService.sendOrderReceiptNotice(admin.getPhone(), storeOrder.getOrderId(), admin.getRealName(), tempId);

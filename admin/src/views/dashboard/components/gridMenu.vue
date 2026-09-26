@@ -80,13 +80,6 @@ export default {
           perms: ['admin:order:list'],
         },
         {
-          bgColor: '#A277FF',
-          icon: 'iconduanxinpeizhi',
-          title: '一号通',
-          url: '/operation/onePass',
-          perms: ['admin:pass:login'],
-        },
-        {
           bgColor: '#E8B600',
           icon: 'iconwenzhangguanli',
           title: '文章管理',

@@ -96,7 +96,11 @@ public class LoginController {
             @ApiImplicitParam(name = "phone", value = "手机号码", required = true)
     })
     public CommonResult<Object> sendCode(@RequestParam String phone) {
-        return CommonResult.failed("短信验证码登录已关闭，请使用手机号密码登录");
+        // 本地联调：走阿里云短信（mock 模式仅写 Redis/日志）
+        if (smsService.sendCommonCode(phone)) {
+            return CommonResult.success("发送成功");
+        }
+        return CommonResult.failed("发送失败");
     }
 
     /**

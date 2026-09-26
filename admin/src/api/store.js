@@ -315,7 +315,7 @@ export function importProductApi(params) {
 }
 
 /**
- * 商品复制 一号通
+ * 商品复制（兼容旧接口，推荐使用 importProductApi / 99Api）
  * @param pram
  */
 export function copyProductApi(data) {

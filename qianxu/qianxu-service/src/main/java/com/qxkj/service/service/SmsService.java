@@ -1,117 +1,76 @@
 package com.qxkj.service.service;
 
+import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.request.SmsApplyTempRequest;
 import com.qxkj.common.request.SmsModifySignRequest;
 import com.qxkj.common.vo.MyRecord;
-import com.qxkj.common.request.PageParamRequest;
 
 import java.math.BigDecimal;
 
 /**
- *
- *  +----------------------------------------------------------------------
- *  | 黔序商城 [ 黔序科技，助力企业发展 ]
- *  +----------------------------------------------------------------------
- *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
- *  +----------------------------------------------------------------------
- *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
- *  +----------------------------------------------------------------------
- *  | Author: 贵州黔序科技有限公司
- *  +----------------------------------------------------------------------
+ * 短信服务（阿里云）
  */
 public interface SmsService {
 
     /**
-     * 修改签名
+     * 修改签名（本地配置写入）
      */
     Boolean modifySign(SmsModifySignRequest request);
 
     /**
-     * 短信模板
+     * 短信模板列表（本地 eb_sms_template）
      */
     MyRecord temps(PageParamRequest pageParamRequest);
 
     /**
-     * 申请模板消息
+     * 申请模板消息（已切换阿里云，控制台申请）
      */
     Boolean applyTempMessage(SmsApplyTempRequest request);
 
     /**
      * 模板申请记录
-     *
-     * @param type (1=验证码 2=通知 3=推广)
      */
     MyRecord applys(Integer type, PageParamRequest pageParamRequest);
 
     /**
      * 发送公共验证码
-     *
-     * @param phone 手机号
      */
     Boolean sendCommonCode(String phone);
 
     /**
      * 发送支付成功短信
-     * @param phone 手机号
-     * @param orderNo 订单编号
-     * @param payPrice 支付金额
-     * @param msgTempId 短信模板id
-     * @return Boolean
+     *
+     * @param templateCode 阿里云模板 CODE
      */
-    Boolean sendPaySuccess(String phone, String orderNo, BigDecimal payPrice, Integer msgTempId);
+    Boolean sendPaySuccess(String phone, String orderNo, BigDecimal payPrice, String templateCode);
 
     /**
-     * 发送管理员下单短信提醒短信
-     * @param phone 手机号
-     * @param orderNo 订单编号
-     * @param realName 管理员名称
-     * @param msgTempId 短信模板id
+     * 发送管理员下单短信提醒
      */
-    Boolean sendCreateOrderNotice(String phone, String orderNo, String realName, Integer msgTempId);
+    Boolean sendCreateOrderNotice(String phone, String orderNo, String realName, String templateCode);
 
     /**
      * 发送订单支付成功管理员提醒短信
-     * @param phone 手机号
-     * @param orderNo 订单编号
-     * @param realName 管理员名称
-     * @param msgTempId 短信模板id
      */
-    Boolean sendOrderPaySuccessNotice(String phone, String orderNo, String realName, Integer msgTempId);
+    Boolean sendOrderPaySuccessNotice(String phone, String orderNo, String realName, String templateCode);
 
     /**
      * 发送用户退款管理员提醒短信
-     * @param phone 手机号
-     * @param orderNo 订单编号
-     * @param realName 管理员名称
-     * @param msgTempId 短信模板id
      */
-    Boolean sendOrderRefundApplyNotice(String phone, String orderNo, String realName, Integer msgTempId);
+    Boolean sendOrderRefundApplyNotice(String phone, String orderNo, String realName, String templateCode);
 
     /**
      * 发送用户确认收货管理员提醒短信
-     * @param phone 手机号
-     * @param orderNo 订单编号
-     * @param realName 管理员名称
-     * @param msgTempId 短信模板id
      */
-    Boolean sendOrderReceiptNotice(String phone, String orderNo, String realName, Integer msgTempId);
+    Boolean sendOrderReceiptNotice(String phone, String orderNo, String realName, String templateCode);
 
     /**
      * 发送订单改价提醒短信
-     * @param phone 手机号
-     * @param orderNo 订单编号
-     * @param price 修改后的支付金额
-     * @param msgTempId 短信模板id
      */
-    Boolean sendOrderEditPriceNotice(String phone, String orderNo, BigDecimal price, Integer msgTempId);
+    Boolean sendOrderEditPriceNotice(String phone, String orderNo, BigDecimal price, String templateCode);
 
     /**
      * 发送订单发货提醒短信
-     * @param phone 手机号
-     * @param nickName 用户昵称
-     * @param storeName 商品名称
-     * @param orderNo 订单编号
-     * @param msgTempId 短信模板id
      */
-    Boolean sendOrderDeliverNotice(String phone, String nickName, String storeName, String orderNo, Integer msgTempId);
+    Boolean sendOrderDeliverNotice(String phone, String nickName, String storeName, String orderNo, String templateCode);
 }

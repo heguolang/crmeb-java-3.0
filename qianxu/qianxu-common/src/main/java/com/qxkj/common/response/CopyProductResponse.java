@@ -13,7 +13,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 商品采集专用 response 一号通Copy商品
+ * 商品采集专用 response
  */
 @Data
 public class CopyProductResponse {

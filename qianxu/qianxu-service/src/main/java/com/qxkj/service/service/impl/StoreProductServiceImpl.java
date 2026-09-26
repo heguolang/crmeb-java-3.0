@@ -112,9 +112,6 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
     private StoreSeckillService storeSeckillService;
 
     @Autowired
-    private OnePassService onePassService;
-
-    @Autowired
     private StoreCartService storeCartService;
 
     @Autowired
@@ -1214,45 +1211,25 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
 
     /**
      * 获取复制商品配置
-     * @return copyType 复制类型：1：一号通
-     *         copyNum 复制条数(一号通类型下有值)
+     * @return copyType 复制类型：2：99Api
+     *         copyNum 复制条数
      */
     @Override
     public MyRecord copyConfig() {
-        String copyType = systemConfigService.getValueByKey("system_product_copy_type");
-        if (StrUtil.isBlank(copyType)) {
-            throw new QianxuException("请先进行采集商品配置");
-        }
-        int copyNum = 0;
-        if (copyType.equals("1")) {// 一号通
-            JSONObject info = onePassService.info();
-            copyNum = Optional.ofNullable(info.getJSONObject("copy").getInteger("num")).orElse(0);
-        }
         MyRecord record = new MyRecord();
-        record.set("copyType", copyType);
-        record.set("copyNum", copyNum);
+        record.set("copyType", "2");
+        record.set("copyNum", 0);
         return record;
     }
 
     /**
-     * 复制平台商品
+     * 复制平台商品（请改用 99Api 导入）
      * @param url 商品链接
      * @return MyRecord
      */
     @Override
     public CopyProductResponse copyProduct(String url) {
-        //JSONObject jsonObject = onePassService.copyGoods(url);
-        //StoreProductRequest storeProductRequest = ProductUtils.onePassCopyTransition(jsonObject);
-        //MyRecord record = new MyRecord();
-        //return record.set("info", storeProductRequest);
-        CopyProductResponse copyProductResponse ;
-        try {
-            JSONObject jsonObject = onePassService.copyGoods(url);
-            copyProductResponse = ProductUtils.onePassCopyTransition(jsonObject);
-        } catch (Exception e) {
-            throw new QianxuException("一号通采集商品异常：" + e.getMessage());
-        }
-        return copyProductResponse;
+        throw new QianxuException("商品采集通道已切换，请使用「导入」功能（99Api）采集商品");
     }
 
     /**

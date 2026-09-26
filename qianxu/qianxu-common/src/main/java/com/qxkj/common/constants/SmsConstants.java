@@ -1,16 +1,7 @@
 package com.qxkj.common.constants;
 
 /**
- *
- *  +----------------------------------------------------------------------
- *  | 黔序商城 [ 黔序科技，助力企业发展 ]
- *  +----------------------------------------------------------------------
- *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
- *  +----------------------------------------------------------------------
- *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
- *  +----------------------------------------------------------------------
- *  | Author: 贵州黔序科技有限公司
- *  +----------------------------------------------------------------------
+ * 短信业务常量（模板类型开关等）
  */
 public class SmsConstants {
 
@@ -20,70 +11,31 @@ public class SmsConstants {
     /** 短信发送队列key */
     public static final String SMS_SEND_KEY = "sms_send_list";
 
-    /** 手机验证码redis key */
+    /** 手机验证码 redis key */
     public static final String SMS_VALIDATE_PHONE = "sms:validate:code:";
     public static final String SMS_VALIDATE_PHONE_NUM = "sms:validate:phone:";
 
-    /**
-     * ---------------------
-     * 短信模版配置开关常量
-     * ---------------------
-     */
     /** 验证码 */
     public static final String SMS_CONFIG_VERIFICATION_CODE = "verificationCode";
-//    public static final Integer SMS_CONFIG_VERIFICATION_CODE_TEMP_ID = 518076;
-    /** 验证码模板ID */
-    public static final Integer SMS_CONFIG_VERIFICATION_CODE_TEMP_ID = 538393;
-
     /** 支付成功短信提醒 */
     public static final String SMS_CONFIG_LOWER_ORDER_SWITCH = "lowerOrderSwitch";
-    /** 支付成功短信提醒模版ID */
-    public static final Integer SMS_CONFIG_LOWER_ORDER_SWITCH_TEMP_ID = 520268;
-
     /** 发货短信提醒 */
     public static final String SMS_CONFIG_DELIVER_GOODS_SWITCH = "deliverGoodsSwitch";
-    /** 发货短信提醒模版ID */
-    public static final Integer SMS_CONFIG_DELIVER_GOODS_SWITCH_TEMP_ID = 520269;
-
     /** 确认收货短信提醒 */
     public static final String SMS_CONFIG_CONFIRM_TAKE_OVER_SWITCH = "confirmTakeOverSwitch";
-    /** 确认收货短信提醒模版ID */
-    public static final Integer SMS_CONFIG_CONFIRM_TAKE_OVER_SWITCH_TEMP_ID = 520271;
-
     /** 用户下单管理员短信提醒 */
     public static final String SMS_CONFIG_ADMIN_LOWER_ORDER_SWITCH = "adminLowerOrderSwitch";
-    /** 用户下单管理员短信提醒模版ID */
-    public static final Integer SMS_CONFIG_ADMIN_LOWER_ORDER_SWITCH_TEMP_ID = 520272;
-
     /** 支付成功管理员短信提醒 */
     public static final String SMS_CONFIG_ADMIN_PAY_SUCCESS_SWITCH = "adminPaySuccessSwitch";
-    /** 支付成功管理员短信提醒模版ID */
-    public static final Integer SMS_CONFIG_ADMIN_PAY_SUCCESS_SWITCH_TEMP_ID = 520273;
-
     /** 用户确认收货管理员短信提醒 */
     public static final String SMS_CONFIG_ADMIN_REFUND_SWITCH = "adminRefundSwitch";
-    /** 用户确认收货管理员短信提醒模版ID */
-    public static final Integer SMS_CONFIG_ADMIN_REFUND_SWITCH_TEMP_ID = 520422;
-
     /** 用户发起退款管理员短信提醒 */
     public static final String SMS_CONFIG_ADMIN_CONFIRM_TAKE_OVER_SWITCH = "adminConfirmTakeOverSwitch";
-    /** 用户发起退款管理员短信提醒模版ID */
-    public static final Integer SMS_CONFIG_ADMIN_CONFIRM_TAKE_OVER_SWITCH_TEMP_ID = 520274;
-
     /** 改价短信提醒 */
     public static final String SMS_CONFIG_PRICE_REVISION_SWITCH = "priceRevisionSwitch";
-    /** 改价短信提醒模版ID */
-    public static final Integer SMS_CONFIG_PRICE_REVISION_SWITCH_TEMP_ID = 528288;
-
     /** 订单未支付 */
     public static final String SMS_CONFIG_ORDER_PAY_FALSE = "orderPayFalse";
-    /** 订单未支付模版ID */
-    public static final Integer SMS_CONFIG_ORDER_PAY_FALSE_TEMP_ID = 528116;
 
-    /**
-     * 短信类型
-     * 短信模版配置开关常量
-     */
     /** 验证码 */
     public static final int SMS_CONFIG_TYPE_VERIFICATION_CODE = 1;
     /** 支付成功短信提醒 */
@@ -104,7 +56,4 @@ public class SmsConstants {
     public static final int SMS_CONFIG_TYPE_PRICE_REVISION_SWITCH = 9;
     /** 订单未支付 */
     public static final int SMS_CONFIG_TYPE_ORDER_PAY_FALSE = 10;
-
-    /** 发送短信参数模板 */
-    public static final String SMS_COMMON_PARAM_FORMAT = "param[{}]";
 }

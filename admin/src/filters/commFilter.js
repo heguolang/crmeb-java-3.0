@@ -200,19 +200,6 @@ export function groupColorFilter(status) {
 }
 
 /**
- * @description 一号通tab值
- */
-export function onePassTypeFilter(status) {
-  const statusMap = {
-    sms: '短信',
-    copy: '商品采集',
-    expr_query: '物流查询',
-    expr_dump: '电子面单打印',
-  };
-  return statusMap[status];
-}
-
-/**
  * @description 视频号商品草稿状态
  */
 export function editStatusFilter(status) {

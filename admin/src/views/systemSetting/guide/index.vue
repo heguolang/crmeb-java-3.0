@@ -7,7 +7,6 @@
           <el-step title="应用配置" />
           <el-step title="支付配置" />
           <el-step title="站点配置" />
-          <!-- <el-step title="一号通" /> -->
         </el-steps>
       </div>
       <div class="install" v-show="currentTab === 0">
@@ -90,63 +89,6 @@
           </el-tab-pane>
         </el-tabs>
       </div>
-      <!-- <div class="application flex-center" v-show="currentTab === 4">
-        <div class="sms_reg">
-          <el-form ref="formInline" :model="formInline" :rules="ruleInline" label-position="right" label-width="100px">
-            <div>
-              <p class="title mb20">一号通账户注册</p>
-            </div>
-            <el-form-item prop="phone" label="手机号码">
-              <el-input v-model="formInline.phone" placeholder="请输入您的手机号" style="width: 340px" />
-            </el-form-item>
-            <el-form-item prop="password" label="登录密码">
-              <el-input
-                :key="passwordType"
-                v-model="formInline.password"
-                :type="passwordType"
-                placeholder="密码"
-                tabindex="2"
-                auto-complete="off"
-                style="width: 340px"
-              />
-            </el-form-item>
-            <el-form-item prop="domain" label="网址域名">
-              <el-input v-model="formInline.domain" placeholder="请输入网址域名" style="width: 340px" />
-            </el-form-item>
-            <el-form-item prop="code" class="captcha" label="验证码">
-              <div class="acea-row" style="flex-wrap: nowrap">
-                <el-input
-                  v-model="formInline.code"
-                  placeholder="验证码"
-                  type="text"
-                  tabindex="1"
-                  style="width: 240px; margin-right: 10px"
-                />
-                <el-button
-                  :disabled="!this.canClick"
-                  @click="cutDown"
-                  type="primary"
-                  plain
-                  v-hasPermi="['admin:pass:send:code']"
-                  >{{ cutNUm }}</el-button
-                >
-              </div>
-            </el-form-item>
-            <div class="flex-center mb20">
-              <el-button
-                :loading="loading"
-                type="primary"
-                @click="formSubmit('formInline')"
-                v-hasPermi="['admin:pass:register']"
-                >注册</el-button
-              >
-            </div>
-            <div class="flex-center go_login">
-              <router-link to="/operation/onePass">已有帐号 去登录</router-link>
-            </div>
-          </el-form>
-        </div>
-      </div> -->
       <div :class="currentTab != 0 ? 'step_btn_box' : ''">
         <el-button class="step_btn" v-show="currentTab > 0" @click="beforeStep()">上一步</el-button>
         <el-button
@@ -167,19 +109,9 @@ import parser from '@/components/FormGenerator/components/parser/Parser';
 import * as categoryApi from '@/api/categoryApi.js';
 import * as systemFormConfigApi from '@/api/systemFormConfig.js';
 import * as systemSettingApi from '@/api/systemSetting.js';
-import { captchaApi, registerApi } from '@/api/sms';
 import { Debounce } from '@/utils/validate';
 export default {
   data() {
-    const validatePhone = (rule, value, callback) => {
-      if (!value) {
-        return callback(new Error('请填写手机号'));
-      } else if (!/^1[3456789]\d{9}$/.test(value)) {
-        callback(new Error('手机号格式不正确!'));
-      } else {
-        callback();
-      }
-    };
     return {
       currentTab: 0,
       cTab: 0,
@@ -200,22 +132,6 @@ export default {
       currentEditData: {},
       loading: false,
       disabled: true,
-      passwordType: 'password',
-      cutNUm: '获取验证码',
-      canClick: true,
-      formInline: {
-        account: '',
-        code: '',
-        domain: '',
-        phone: '',
-        password: '',
-      },
-      ruleInline: {
-        password: [{ required: true, message: '请输入短信平台密码/token', trigger: 'blur' }],
-        domain: [{ required: true, message: '请输入网址域名', trigger: 'blur' }],
-        phone: [{ required: true, validator: validatePhone, trigger: 'blur' }],
-        code: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
-      },
     };
   },
   components: { parser },
@@ -377,47 +293,9 @@ export default {
           this.loading = false;
         });
     },
-    formSubmit: Debounce(function (name) {
-      this.formInline.account = this.formInline.phone;
-      this.$refs[name].validate((valid) => {
-        if (valid) {
-          this.loading = true;
-          registerApi(this.formInline)
-            .then(async (res) => {
-              this.$message.success('注册成功');
-              this.loading = false;
-            })
-            .catch(() => {
-              this.loading = false;
-            });
-        } else {
-          return false;
-        }
-      });
-    }),
     complate() {
       this.$cache.local.remove('step');
       this.$router.push('/');
-    },
-    cutDown() {
-      if (this.formInline.phone) {
-        if (!this.canClick) return;
-        this.canClick = false;
-        this.cutNUm = 60;
-        captchaApi({ phone: this.formInline.phone, types: 0 }).then(async (res) => {
-          this.$message.success('发送成功');
-        });
-        const time = setInterval(() => {
-          this.cutNUm--;
-          if (this.cutNUm === 0) {
-            this.cutNUm = '获取验证码';
-            this.canClick = true;
-            clearInterval(time);
-          }
-        }, 1000);
-      } else {
-        this.$message.warning('请填写手机号!');
-      }
     },
   },
 };
@@ -501,24 +379,6 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.sms_reg {
-  width: 550px;
-  height: 380px;
-}
-
-.title {
-  font-size: 16px;
-  text-align: center;
-  font-weight: 600;
-  color: #333333;
-}
-
-.go_login {
-  font-size: 12px;
-  font-weight: 400;
-  color: #1890ff;
 }
 .active {
   border: none !important;

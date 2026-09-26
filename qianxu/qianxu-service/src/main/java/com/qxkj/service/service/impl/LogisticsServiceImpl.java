@@ -1,7 +1,6 @@
 package com.qxkj.service.service.impl;
 
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
@@ -9,11 +8,8 @@ import com.qxkj.common.constants.Constants;
 import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.utils.RedisUtil;
 import com.qxkj.common.utils.RestTemplateUtil;
-import com.qxkj.common.vo.LogisticsResultListVo;
 import com.qxkj.common.vo.LogisticsResultVo;
-import com.qxkj.common.vo.OnePassLogisticsQueryVo;
 import com.qxkj.service.service.LogisticService;
-import com.qxkj.service.service.OnePassService;
 import com.qxkj.service.service.SystemConfigService;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
@@ -21,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
@@ -50,9 +45,6 @@ public class LogisticsServiceImpl implements LogisticService {
     @Autowired
     private RedisUtil redisUtil;
 
-    @Autowired
-    private OnePassService onePassService;
-
     private String redisKey = Constants.LOGISTICS_KEY;
     private Long redisCacheSeconds = 1800L;
 
@@ -69,70 +61,34 @@ public class LogisticsServiceImpl implements LogisticService {
      */
     @Override
     public LogisticsResultVo info(String expressNo, String type, String com, String phone) {
-        LogisticsResultVo resultVo = new LogisticsResultVo();
+        LogisticsResultVo resultVo;
         setExpressNo(expressNo);
         JSONObject result = getCache();
         if (ObjectUtil.isNotNull(result)) {
             return JSONObject.toJavaObject(result, LogisticsResultVo.class);
         }
-        String logisticsType = systemConfigService.getValueByKeyException("logistics_type");
-        if (logisticsType.equals("1")) {// 平台查询
-            OnePassLogisticsQueryVo queryVo = onePassService.exprQuery(expressNo, com, phone);
-            if (ObjectUtil.isNull(queryVo)) {
-                resultVo.setNumber(expressNo);
-                resultVo.setExpName(com);
-                return resultVo;
-            }
-            // 一号通vo转公共返回vo
-            resultVo = queryToResultVo(queryVo);
-            String jsonString = JSONObject.toJSONString(resultVo);
-            saveCache(JSONObject.parseObject(jsonString));
+
+        // 统一使用阿里云物流查询
+        String appCode = systemConfigService.getValueByKey(Constants.CONFIG_KEY_LOGISTICS_APP_CODE);
+
+        // 顺丰请输入单号 : 收件人或寄件人手机号后四位。例如：123456789:1234
+        if (StrUtil.isNotBlank(com) && com.equals("shunfengkuaiyun")) {
+            expressNo = expressNo.concat(":").concat(StrUtil.sub(phone, 7, -1));
         }
-        if (logisticsType.equals("2")) {// 阿里云查询
-            String appCode = systemConfigService.getValueByKey(Constants.CONFIG_KEY_LOGISTICS_APP_CODE);
-
-            // 顺丰请输入单号 : 收件人或寄件人手机号后四位。例如：123456789:1234
-            if (StrUtil.isNotBlank(com) && com.equals("shunfengkuaiyun")) {
-                expressNo = expressNo.concat(":").concat(StrUtil.sub(phone, 7, -1));
-            }
-            String url = Constants.LOGISTICS_API_URL + "?no=" + expressNo;
-            if(StringUtils.isNotBlank(type)){
-                url += "&type=" + type;
-            }
-
-            HashMap<String, String> header = new HashMap<>();
-            header.put("Authorization", "APPCODE " + appCode);
-
-            JSONObject data = restTemplateUtil.getData(url, header);
-            checkResult(data);
-            //把数据解析成对象返回到前端
-            result = data.getJSONObject("result");
-            saveCache(result);
-            resultVo = JSONObject.toJavaObject(result, LogisticsResultVo.class);
+        String url = Constants.LOGISTICS_API_URL + "?no=" + expressNo;
+        if (StringUtils.isNotBlank(type)) {
+            url += "&type=" + type;
         }
-        return resultVo;
-    }
 
-    /**
-     * 一号通vo转公共返回vo
-     */
-    private LogisticsResultVo queryToResultVo(OnePassLogisticsQueryVo queryVo) {
-        LogisticsResultVo resultVo = new LogisticsResultVo();
-        resultVo.setNumber(queryVo.getNum());
-        resultVo.setExpName(queryVo.getCom());
-        resultVo.setIsSign(queryVo.getIscheck());
-        resultVo.setDeliveryStatus(queryVo.getStatus());
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Authorization", "APPCODE " + appCode);
 
-        if (CollUtil.isNotEmpty(queryVo.getContent())) {
-            List<LogisticsResultListVo> list = CollUtil.newArrayList();
-            queryVo.getContent().forEach(i -> {
-                LogisticsResultListVo listVo = new LogisticsResultListVo();
-                listVo.setTime(i.getTime());
-                listVo.setStatus(i.getStatus());
-                list.add(listVo);
-            });
-            resultVo.setList(list);
-        }
+        JSONObject data = restTemplateUtil.getData(url, header);
+        checkResult(data);
+        //把数据解析成对象返回到前端
+        result = data.getJSONObject("result");
+        saveCache(result);
+        resultVo = JSONObject.toJavaObject(result, LogisticsResultVo.class);
         return resultVo;
     }
 
@@ -143,8 +99,8 @@ public class LogisticsServiceImpl implements LogisticService {
      */
     private JSONObject getCache() {
         Object data = redisUtil.get(getRedisKey() + getExpressNo());
-        if(null != data){
-         return JSONObject.parseObject(data.toString());
+        if (null != data) {
+            return JSONObject.parseObject(data.toString());
         }
         return null;
     }
@@ -164,9 +120,8 @@ public class LogisticsServiceImpl implements LogisticService {
      * @since 2020-07-06
      */
     private void checkResult(JSONObject data) {
-        if (!data.getString("status").equals("0")){
+        if (!data.getString("status").equals("0")) {
             throw new QianxuException(data.getString("msg"));
         }
     }
 }
-

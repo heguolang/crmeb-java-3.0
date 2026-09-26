@@ -456,7 +456,7 @@ public class Constants {
     public static final String ORDER_STATUS_STR_SPIKE_KEY = "send"; //待收货 KEY
     public static final String ORDER_LOG_REFUND_PRICE = "refund_price"; //退款
     public static final String ORDER_LOG_EXPRESS = "express"; //快递
-    public static final String ORDER_LOG_SHIPMENT = "shipment"; //一号通商家发货
+    public static final String ORDER_LOG_SHIPMENT = "shipment"; //商家发货（历史字段）
     public static final String ORDER_LOG_DELIVERY = "delivery"; //送货
     public static final String ORDER_LOG_DELIVERY_GOODS = "delivery_goods"; //送货
     public static final String ORDER_LOG_REFUND_REFUSE = "refund_refuse"; //不退款

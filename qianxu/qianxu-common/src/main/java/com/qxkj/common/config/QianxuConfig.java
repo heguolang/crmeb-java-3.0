@@ -44,9 +44,6 @@ public class QianxuConfig {
     // 活动边框参加 指定商品参加上限
     private Integer selectProductLimit;
 
-    /** 开放平台（短信/物流等）API 根地址，建议通过环境变量 ONE_PASS_API_URL 注入 */
-    private String onePassApiUrl;
-
     // 不过滤任何数据的url配置
     private List<String> ignored;
 
@@ -145,14 +142,6 @@ public class QianxuConfig {
 
     public void setSelectProductLimit(Integer selectProductLimit) {
         this.selectProductLimit = selectProductLimit;
-    }
-
-    public String getOnePassApiUrl() {
-        return onePassApiUrl;
-    }
-
-    public void setOnePassApiUrl(String onePassApiUrl) {
-        this.onePassApiUrl = onePassApiUrl;
     }
 
     @Override

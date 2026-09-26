@@ -210,26 +210,6 @@ export function savehomeStyleApi(data) {
 }
 
 /**
- * @description 一号通 应用保存
- */
-export function passAppSaveApi(data) {
-  return request({
-    url: '/admin/pass/appsave',
-    method: 'post',
-    data,
-  });
-}
-
-/**
- * @description 一号通 应用详情获取
- */
-export function passAppInfoApi() {
-  return request({
-    url: '/admin/pass/appget',
-    method: 'get',
-  });
-}
-/**
  * @description 获取移动端域名
  */
 export function frontDomainApi(data) {

@@ -1,6 +1,5 @@
 package com.qxkj.common.request;
 
-import com.qxkj.common.request.onepass.OnePassShipmentCreateOrderRequest;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -48,27 +47,12 @@ public class StoreOrderSendRequest {
     @ApiModelProperty(value = "快递单号,发货类型必传")
     private String expressNumber;
 
-    @ApiModelProperty(value = "发货记录类型，1快递发货、2电子面单, 3一号通-商家发货")
+    @ApiModelProperty(value = "发货记录类型，1=手动填写快递单号")
     private String expressRecordType;
-
-    @ApiModelProperty(value = "电子面单模板,电子面单必传")
-    private String expressTempId;
-
-    @ApiModelProperty(value = "寄件人姓名,电子面单必传")
-    private String toName;
-
-    @ApiModelProperty(value = "寄件人电话,电子面单必传")
-    private String toTel;
-
-    @ApiModelProperty(value = "寄件人地址,电子面单必传")
-    private String toAddr;
 
     @ApiModelProperty(value = "送货人姓名,送货类型必传")
     private String deliveryName;
 
     @ApiModelProperty(value = "送货人电话,送货类型必传")
     private String deliveryTel;
-
-    @ApiModelProperty(value = "商家发货一号通内置功能")
-    private OnePassShipmentCreateOrderRequest shipment;
 }

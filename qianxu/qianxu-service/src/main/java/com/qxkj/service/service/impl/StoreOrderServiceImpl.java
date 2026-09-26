@@ -6,7 +6,6 @@ import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
 import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -21,7 +20,6 @@ import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.model.combination.StorePink;
 import com.qxkj.common.model.express.Express;
 import com.qxkj.common.model.order.StoreOrder;
-import com.qxkj.common.model.order.StoreOrderInfo;
 import com.qxkj.common.model.sms.SmsTemplate;
 import com.qxkj.common.model.system.SystemAdmin;
 import com.qxkj.common.model.system.SystemNotification;
@@ -33,7 +31,6 @@ import com.qxkj.common.model.wechat.video.PayComponentDeliveryCompany;
 import com.qxkj.common.model.wechat.video.PayComponentOrder;
 import com.qxkj.common.page.CommonPage;
 import com.qxkj.common.request.*;
-import com.qxkj.common.request.onepass.OnePassShipmentCreateOrderRequest;
 import com.qxkj.common.response.*;
 import com.qxkj.common.result.CommonResultCode;
 import com.qxkj.common.utils.QianxuDateUtil;
@@ -121,9 +118,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
 
     @Autowired
     private TransactionTemplate transactionTemplate;
-
-    @Autowired
-    private OnePassService onePassService;
 
     @Autowired
     private UserTokenService userTokenService;
@@ -1239,7 +1233,7 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
             if (StrUtil.isNotBlank(user.getPhone())) {
                 SmsTemplate smsTemplate = smsTemplateService.getDetail(notification.getSmsId());
                 // 发送改价短信提醒
-                smsService.sendOrderEditPriceNotice(user.getPhone(), existOrder.getOrderId(), request.getPayPrice(), Integer.valueOf(smsTemplate.getTempId()));
+                smsService.sendOrderEditPriceNotice(user.getPhone(), existOrder.getOrderId(), request.getPayPrice(), smsTemplate.getTempId());
             }
         }
 
@@ -1784,97 +1778,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
 
 
 
-    /**
-     *  一号通商家寄件
-     * @param request 订单发货请求对象
-     * @param storeOrder 主订单请求对象
-     */
-    @Override
-    public void expressForOnePassShipment(StoreOrderSendRequest request, StoreOrder storeOrder) {
-        // 校验快递发货参数
-//        validateExpressSend(request);
-        OnePassShipmentCreateOrderRequest shipment = request.getShipment();
-        shipment.setManName(storeOrder.getRealName());
-        shipment.setPhone(storeOrder.getUserPhone());
-        shipment.setAddress(storeOrder.getUserAddress());
-
-        if(ObjectUtil.isNotNull(shipment.getKuaidicom()) &&
-                (shipment.getKuaidicom().equalsIgnoreCase("jd") || shipment.getKuaidicom().equalsIgnoreCase("yuantong"))){
-            List<StoreOrderInfo> listByOrderNo = storeOrderInfoService.getListByOrderNo(storeOrder.getOrderId());
-            shipment.setCargo(listByOrderNo.get(0).getProductName().substring(0,10));
-        }
-        JSONObject jsonObject = onePassService.shipmentCreateOrder(shipment);
-        // 任务订单号（需要在系统回调中使用
-        String orderId = jsonObject.getString("order_id");
-        // 任务ID（需要在系统回调中使用）
-        String taskId = jsonObject.getString("task_id");
-        // 物流单号
-        String kuaidinum = jsonObject.getString("kuaidinum");
-
-        logger.info("一号通-商家寄件结果:{}", jsonObject);
-        storeOrder.setShipmentTaskId(taskId);
-        storeOrder.setShipmentOrderId(orderId);
-        storeOrder.setShipmentPic(kuaidinum);
-        storeOrder.setDeliveryCode(request.getShipment().getKuaidicom());
-        storeOrder.setDeliveryName(request.getShipment().getSendRealName());
-        // 更新商家发货结果到数据库，再根据任务订单id在回调中更新最终的发货状态
-        storeOrder.setUpdateTime(DateUtil.date());
-        updateById(storeOrder);
-    }
-
-    /**
-     * 商家寄件 取件 回调方法
-     * @param jsonObject 回调数据
-     */
-    @Override
-    public void expressForOnePassShipmentTakeCallBack(JSONObject jsonObject){
-        String orderId = jsonObject.getString("id");
-        StoreOrder currentStoreOrder = getByOderId(orderId);
-        currentStoreOrder.setStatus(1);
-        currentStoreOrder.setDeliveryType(Constants.ORDER_LOG_SHIPMENT);
-
-        String message = Constants.ORDER_LOG_MESSAGE_EXPRESS.replace("{deliveryName}", currentStoreOrder.getShipmentNum()).replace("{deliveryCode}", currentStoreOrder.getShipmentNum());
-
-        Boolean execute = transactionTemplate.execute(i -> {
-            currentStoreOrder.setUpdateTime(DateUtil.date());
-            updateById(currentStoreOrder);
-            //订单记录增加
-            storeOrderStatusService.createLog(currentStoreOrder.getId(), Constants.ORDER_LOG_SHIPMENT, message);
-            return Boolean.TRUE;
-        });
-
-        if (!execute) throw new QianxuException("一号通-商家寄件 发货失败！");
-
-        sendGoodsNotify(currentStoreOrder);
-    }
-
-    /**
-     * 一号通商家寄件 取消寄件回调
-     *
-     * @param jsonObject 回调结果
-     */
-    @Override
-    public void expressForOnePassShipmentCancelCallBack(JSONObject jsonObject) {
-        String orderId = jsonObject.getString("id");
-        StoreOrder currentStoreOrder = getByOderId(orderId);
-        currentStoreOrder.setStatus(0);
-        currentStoreOrder.setDeliveryType("");
-        currentStoreOrder.setShipmentPic("");
-        currentStoreOrder.setShipmentOrderId("");
-        currentStoreOrder.setShipmentNum("");
-        currentStoreOrder.setShipmentTaskId("");
-
-        Boolean execute = transactionTemplate.execute(i -> {
-            currentStoreOrder.setUpdateTime(DateUtil.date());
-            updateById(currentStoreOrder);
-            //订单记录增加
-            storeOrderStatusService.createLog(currentStoreOrder.getId(), Constants.ORDER_LOG_SHIPMENT, "一号通 商家寄件 取消寄件");
-            return Boolean.TRUE;
-        });
-
-        if (!execute) throw new QianxuException("一号通-商家寄件 取消失败！");
-    }
-
     ///////////////////////////////////////////////////////////////////////////////////////////////////// 以下为自定义方法
 
     /**
@@ -1903,21 +1806,14 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
      * @param storeOrder StoreOrder 订单信息
      */
     private String express(StoreOrderSendRequest request, StoreOrder storeOrder) {
-        String mianDianResult = "";
+        // 电子面单、商家寄件已停用
+        if ("2".equals(request.getExpressRecordType()) || "3".equals(request.getExpressRecordType())) {
+            throw new QianxuException("该发货方式已停用，请使用手动填写快递单号");
+        }
         //快递公司信息
         Express express = expressService.getByCode(request.getExpressCode());
-        if (request.getExpressRecordType().equals("1")) { // 正常发货
-            validateExpressSend(request); // 校验快递发货参数
-            deliverGoods(request, storeOrder);
-        }
-        if (request.getExpressRecordType().equals("2")) { // 电子面单
-            request.setExpressName(express.getName());
-            validateExpressSend(request); // 校验快递发货参数
-            mianDianResult = expressDump(request, storeOrder, express);
-        }
-        if(request.getExpressRecordType().equals("3")){ // 一号通-商家发货
-            expressForOnePassShipment(request, storeOrder);
-        }
+        validateExpressSend(request); // 校验快递发货参数
+        deliverGoods(request, storeOrder);
 
         storeOrder.setDeliveryCode(express.getCode());
         storeOrder.setDeliveryName(express.getName());
@@ -1946,7 +1842,7 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
                 wechatOrderShippingService.uploadShippingInfo(storeOrder.getOrderId());
             }
         }
-        return mianDianResult;
+        return "";
     }
 
     /**
@@ -1966,7 +1862,7 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
                 if (voList.size() > 1) {
                     proName = proName.concat("等");
                 }
-                smsService.sendOrderDeliverNotice(user.getPhone(), user.getNickname(), proName, storeOrder.getOrderId(), Integer.valueOf(smsTemplate.getTempId()));
+                smsService.sendOrderDeliverNotice(user.getPhone(), user.getNickname(), proName, storeOrder.getOrderId(), smsTemplate.getTempId());
             }
         }
 
@@ -2027,60 +1923,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     }
 
     /**
-     * 电子面单
-     * @param request
-     * @param storeOrder
-     * @param express
-     */
-    private String expressDump(StoreOrderSendRequest request, StoreOrder storeOrder, Express express) {
-        String configExportOpen = systemConfigService.getValueByKeyException("config_export_open");
-        if (!configExportOpen.equals("1")) {// 电子面单未开启
-            throw new QianxuException("请先开启电子面单");
-        }
-        MyRecord record = new MyRecord();
-        record.set("com", express.getCode());// 快递公司编码
-        record.set("to_name", storeOrder.getRealName());// 收件人
-        record.set("to_tel", storeOrder.getUserPhone());// 收件人电话
-        record.set("to_addr", storeOrder.getUserAddress());// 收件人详细地址
-        record.set("from_name", request.getToName());// 寄件人
-        record.set("from_tel", request.getToTel());// 寄件人电话
-        record.set("from_addr", request.getToAddr());// 寄件人详细地址
-        record.set("temp_id", request.getExpressTempId());// 电子面单模板ID
-        String siid = systemConfigService.getValueByKeyException("config_export_siid");
-        record.set("siid", "");// 云打印机编号
-        record.set("print_type", "IMAGE");// 打印图片
-        record.set("count", storeOrder.getTotalNum());// 商品数量
-
-        //获取购买商品名称
-        List<Integer> orderIdList = new ArrayList<>();
-        orderIdList.add(storeOrder.getId());
-        HashMap<Integer, List<StoreOrderInfoOldVo>> orderInfoMap = StoreOrderInfoService.getMapInId(orderIdList);
-        if (orderInfoMap.isEmpty() || !orderInfoMap.containsKey(storeOrder.getId())) {
-            throw new QianxuException("没有找到购买的商品信息");
-        }
-        List<String> productNameList = new ArrayList<>();
-        for (StoreOrderInfoOldVo storeOrderInfoVo : orderInfoMap.get(storeOrder.getId())) {
-            productNameList.add(storeOrderInfoVo.getInfo().getProductName());
-        }
-
-        record.set("cargo", String.join(",", productNameList));// 物品名称
-        if (express.getPartnerId()) {
-            record.set("partner_id", express.getAccount());// 电子面单月结账号(部分快递公司必选)
-        }
-        if (express.getPartnerKey()) {
-            record.set("partner_key", express.getPassword());// 电子面单密码(部分快递公司必选)
-        }
-        if (express.getNet()) {
-            record.set("net", express.getNetName());// 收件网点名称(部分快递公司必选)
-        }
-
-        MyRecord myRecord = onePassService.expressDump(record);
-        logger.info("电子面单的返回数据:{}", JSONObject.toJSONString(myRecord));
-        storeOrder.setDeliveryId(myRecord.getStr("kuaidinum"));
-        return myRecord.getStr("label");
-    }
-
-    /**
      * 正常发货
      */
     private void deliverGoods(StoreOrderSendRequest request, StoreOrder storeOrder) {
@@ -2088,19 +1930,11 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     }
 
     /**
-     * 校验快递发货参数
+     * 校验快递发货参数（仅支持手动填写单号）
      */
     private void validateExpressSend(StoreOrderSendRequest request) {
-        if (request.getExpressRecordType().equals("1")) {
-            if (StrUtil.isBlank(request.getExpressNumber())) throw new QianxuException("请填写快递单号");
-            return;
-        }
         if (StrUtil.isBlank(request.getExpressCode())) throw new QianxuException("请选择快递公司");
-        if (StrUtil.isBlank(request.getExpressRecordType())) throw new QianxuException("请选择发货记录类型");
-        if (StrUtil.isBlank(request.getExpressTempId())) throw new QianxuException("请选择电子面单");
-        if (StrUtil.isBlank(request.getToName())) throw new QianxuException("请填写寄件人姓名");
-        if (StrUtil.isBlank(request.getToTel())) throw new QianxuException("请填写寄件人电话");
-        if (StrUtil.isBlank(request.getToAddr())) throw new QianxuException("请填写寄件人地址");
+        if (StrUtil.isBlank(request.getExpressNumber())) throw new QianxuException("请填写快递单号");
     }
 
     /** 送货上门

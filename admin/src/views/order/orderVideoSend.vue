@@ -69,7 +69,7 @@ export default {
           sessionStorage.setItem('videoExpress', JSON.stringify(res));
         })
         .catch(() => {
-          // 依赖一号通/视频号配置，未开通时静默降级，快递公司留空
+          // 视频号快递公司未配置时静默降级，列表留空
           this.express = [];
         });
     },

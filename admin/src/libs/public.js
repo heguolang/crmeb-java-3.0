@@ -38,18 +38,10 @@ export function modalSure(title) {
 }
 
 /**
- * @description 短信是否登录
+ * @description 短信平台登录态已废弃（兼容旧调用）
  */
 export function isLogin() {
-  return new Promise((resolve, reject) => {
-    isLoginApi()
-      .then(async (res) => {
-        resolve(res);
-      })
-      .catch((res) => {
-        reject(res);
-      });
-  });
+  return Promise.resolve({ status: false, isLogin: false });
 }
 
 /**

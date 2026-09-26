@@ -1,7 +1,6 @@
 package com.qxkj.service.delete;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.ObjectUtil;
 import com.alibaba.fastjson.JSON;
 import com.qxkj.common.constants.Constants;
 import com.qxkj.common.exception.QianxuException;
@@ -9,14 +8,10 @@ import com.qxkj.common.model.bargain.StoreBargain;
 import com.qxkj.common.model.combination.StoreCombination;
 import com.qxkj.common.model.product.StoreProduct;
 import com.qxkj.common.model.product.StoreProductAttr;
-import com.qxkj.common.model.product.StoreProductAttrOption;
 import com.qxkj.common.model.seckill.StoreSeckill;
 import com.qxkj.common.model.seckill.StoreSeckillManger;
 import com.qxkj.common.request.StoreProductRequest;
-import com.qxkj.common.response.AttrValueResponse;
-import com.qxkj.common.response.CopyProductResponse;
 import com.qxkj.common.response.ProductActivityItemResponse;
-import com.qxkj.common.result.CommonResultCode;
 import com.qxkj.common.utils.QianxuUtil;
 import com.qxkj.common.utils.QianxuDateUtil;
 import com.qxkj.common.utils.UrlUtil;
@@ -512,151 +507,6 @@ public class ProductUtils {
         List<Integer> activityList = QianxuUtil.stringToArrayInt(storeProduct.getActivity());
 
         return currentActivityList.get(activityList.get(0));
-    }
-
-    /**
-     * 一号通复制商品转公共商品参数
-     *
-     * @param jsonObject 一号通复制商品
-     */
-    public static CopyProductResponse onePassCopyTransition(com.alibaba.fastjson.JSONObject jsonObject) {
-//        if (null == jsonObject) return null;
-//
-//        StoreProductRequest productRequest = new StoreProductRequest();
-//        StoreProduct product = new StoreProduct();
-//
-//        product.setStoreName(jsonObject.getString("store_name"));
-////        product.setStoreInfo(jsonObject.getString("store_info"));
-//        product.setSliderImage(jsonObject.getString("slider_image"));
-//        product.setImage(jsonObject.getString("image").replace("[", "").replace("\"", ""));
-//        product.setKeyword(jsonObject.getString("store_name"));
-//        product.setCost(jsonObject.getBigDecimal("cost"));
-//        product.setPrice(jsonObject.getBigDecimal("price"));
-//        product.setOtPrice(jsonObject.getBigDecimal("ot_price"));
-//        product.setUnitName(jsonObject.getString("unit_name"));
-//        BeanUtils.copyProperties(product, productRequest);
-//
-//        productRequest.setContent(jsonObject.getString("description"));
-//        productRequest.setSpecType(true);
-//
-//        com.alibaba.fastjson.JSONArray props = jsonObject.getJSONArray("items");
-//        if (null == props || props.size() < 1) {
-//            // 无规格商品
-//            productRequest.setSpecType(false);
-//            return productRequest;
-//        }
-//
-//        List<StoreProductAttr> spaAttes = new ArrayList<>();
-//        for (int i = 0; i < props.size(); i++) {
-//            com.alibaba.fastjson.JSONObject pItem = props.getJSONObject(i);
-//            StoreProductAttr spattr = new StoreProductAttr();
-//            spattr.setAttrName(pItem.getString("value"));
-//            com.alibaba.fastjson.JSONArray values = pItem.getJSONArray("detail");
-//            List<String> attrValues = new ArrayList<>();
-//            for (int j = 0; j < values.size(); j++) {
-//                String value = values.getString(j);
-//                attrValues.add(value);
-//            }
-//            spattr.setAttrValues(JSON.toJSONString(attrValues));
-//            spaAttes.add(spattr);
-//        }
-//        productRequest.setAttr(spaAttes);
-//        return productRequest;
-        log.error("一号通复制商品返回json：");
-        log.error(jsonObject.toJSONString());
-        if (ObjectUtil.isNull(jsonObject)) {
-            throw new QianxuException(CommonResultCode.NOT_FOUND, "商品资源不存在");
-        }
-
-        CopyProductResponse  copyProductResponse = new CopyProductResponse ();
-        copyProductResponse.setStoreName(jsonObject.getString("store_name"));
-        copyProductResponse.setStoreInfo(jsonObject.getString("store_info"));
-        copyProductResponse.setSliderImage(jsonObject.getString("slider_image"));
-        copyProductResponse.setImage(jsonObject.getString("image").replace("[", "").replace("\"", ""));
-        copyProductResponse.setKeyword(jsonObject.getString("store_name"));
-        copyProductResponse.setCost(jsonObject.getBigDecimal("cost"));
-        copyProductResponse.setPrice(jsonObject.getBigDecimal("price"));
-        copyProductResponse.setOtPrice(jsonObject.getBigDecimal("ot_price"));
-        copyProductResponse.setUnitName(jsonObject.getString("unit_name"));
-        copyProductResponse.setContent(jsonObject.getString("description"));
-        copyProductResponse.setSpecType(true);
-        com.alibaba.fastjson.JSONArray props = jsonObject.getJSONArray("items");
-        if (null == props || props.size() < 1) {
-            // 无规格商品
-            copyProductResponse.setSpecType(false);
-            return copyProductResponse;
-        }
-        copyProductResponse.setAttr(getAttrListByJsonArray(props));
-        com.alibaba.fastjson.JSONArray attrValueJsonArray = jsonObject.getJSONObject("info").getJSONArray("value");
-        List<AttrValueResponse> attrValueList = getAttrValueListByOnePassData(attrValueJsonArray);
-        copyProductResponse.setAttrValue(attrValueList);
-        return copyProductResponse;
-    }
-
-    private static List<StoreProductAttr> getAttrListByJsonArray(com.alibaba.fastjson.JSONArray items) {
-        List<StoreProductAttr> spaAttes = new ArrayList<>();
-        for (int i = 0; i < items.size(); i++) {
-            com.alibaba.fastjson.JSONObject pItem = items.getJSONObject(i);
-            StoreProductAttr spattr = new StoreProductAttr();
-            spattr.setAttrName(pItem.getString("value"));
-            com.alibaba.fastjson.JSONArray values = pItem.getJSONArray("detail");
-
-            List<StoreProductAttrOption> optionList = new ArrayList<>();
-            List<String> attrValues = new ArrayList<>();
-            for (int j = 0; j < values.size(); j++) {
-                String value = values.getString(j);
-                StoreProductAttrOption option = new StoreProductAttrOption();
-                option.setOptionName(value);
-                optionList.add(option);
-                attrValues.add(value);
-            }
-            spattr.setAttrValues(JSON.toJSONString(attrValues));
-            spattr.setOptionList(optionList);
-            spaAttes.add(spattr);
-        }
-        return spaAttes;
-    }
-
-
-    private static List<AttrValueResponse> getAttrValueListByOnePassData(com.alibaba.fastjson.JSONArray attrValueJsonArray) {
-        List<AttrValueResponse> attrValueList = new ArrayList<>();
-        for (int i = 0; i < attrValueJsonArray.size(); i++) {
-            com.alibaba.fastjson.JSONObject attrValueJSONObject = attrValueJsonArray.getJSONObject(i);
-            AttrValueResponse productAttrValue = new AttrValueResponse();
-            com.alibaba.fastjson.JSONObject detailJsonObject = attrValueJSONObject.getJSONObject("detail");
-            List<String> keyList = new ArrayList<>();
-            for (String key : detailJsonObject.keySet()) {
-                keyList.add(key);
-            }
-            int attrSize = keyList.size();
-            List<String> valueStrList = new ArrayList<>();
-            StringBuilder sku = new StringBuilder();
-            for (int j = 0; j < attrSize; j++) {
-                if (j == 0) {
-                    sku = new StringBuilder(attrValueJSONObject.getString("value" + (j + 1)));
-                } else {
-                    sku.append(",").append(attrValueJSONObject.getString("value" + (j + 1)));
-                }
-                valueStrList.add(attrValueJSONObject.getString("value" + (j + 1)));
-            }
-            Map<String, String> valueMap = new HashMap<>();
-            for (String valueStr : valueStrList) {
-                for (String key : detailJsonObject.keySet()) {
-                    String value = detailJsonObject.getString(key);
-                    if (value.equals(valueStr)) {
-                        valueMap.put(key, value);
-                        continue;
-                    }
-                }
-            }
-            productAttrValue.setSuk(sku.toString());
-            productAttrValue.setAttrArr(sku.toString().split(","));
-            productAttrValue.setImage(attrValueJSONObject.getString("pic"));
-            productAttrValue.setAttrValue(com.alibaba.fastjson.JSONObject.toJSONString(valueMap));
-            productAttrValue.setIsShow(Boolean.TRUE);
-            attrValueList.add(productAttrValue);
-        }
-        return attrValueList;
     }
 
 }

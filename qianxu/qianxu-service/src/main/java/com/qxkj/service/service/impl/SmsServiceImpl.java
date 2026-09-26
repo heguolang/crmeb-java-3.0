@@ -1,60 +1,48 @@
 package com.qxkj.service.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.qxkj.common.constants.AliyunSmsConstants;
+import com.qxkj.common.constants.Constants;
+import com.qxkj.common.constants.SmsConstants;
+import com.qxkj.common.exception.QianxuException;
+import com.qxkj.common.model.sms.SmsTemplate;
+import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.request.SmsApplyTempRequest;
 import com.qxkj.common.request.SmsModifySignRequest;
 import com.qxkj.common.utils.QianxuUtil;
 import com.qxkj.common.utils.RedisUtil;
-import com.qxkj.common.utils.RestTemplateUtil;
 import com.qxkj.common.utils.ValidateFormUtil;
 import com.qxkj.common.vo.MyRecord;
-import com.qxkj.common.request.PageParamRequest;
-import com.qxkj.common.constants.Constants;
-import com.qxkj.common.constants.OnePassConstants;
-import com.qxkj.common.constants.SmsConstants;
-import com.qxkj.common.exception.QianxuException;
-import com.qxkj.common.vo.OnePassLoginVo;
-import com.qxkj.common.vo.SendSmsVo;
-import com.qxkj.service.service.*;
-import com.qxkj.service.util.OnePassUtil;
+import com.qxkj.service.service.AliyunSmsClient;
+import com.qxkj.service.service.SmsService;
+import com.qxkj.service.service.SmsTemplateService;
+import com.qxkj.service.service.SystemConfigService;
+import com.qxkj.service.service.UserService;
+import com.github.pagehelper.PageHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- *
- *  +----------------------------------------------------------------------
- *  | 黔序商城 [ 黔序科技，助力企业发展 ]
- *  +----------------------------------------------------------------------
- *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
- *  +----------------------------------------------------------------------
- *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
- *  +----------------------------------------------------------------------
- *  | Author: 贵州黔序科技有限公司
- *  +----------------------------------------------------------------------
+ * 短信服务实现 —— 阿里云短信（支持模拟发送）
  */
 @Service
 public class SmsServiceImpl implements SmsService {
 
-    @Autowired
-    private SystemConfigService systemConfigService;
+    private static final Logger logger = LoggerFactory.getLogger(SmsServiceImpl.class);
 
     @Autowired
-    private RestTemplateUtil restTemplateUtil;
+    private SystemConfigService systemConfigService;
 
     @Autowired
     private RedisUtil redisUtil;
@@ -63,535 +51,171 @@ public class SmsServiceImpl implements SmsService {
     private UserService userService;
 
     @Autowired
-    private OnePassUtil onePassUtil;
+    private AliyunSmsClient aliyunSmsClient;
 
     @Autowired
-    private OnePassService onePassService;
+    private SmsTemplateService smsTemplateService;
 
-    private static final Logger logger = LoggerFactory.getLogger(SmsServiceImpl.class);
-
-    /**
-     * 发送短信
-     * @param phone 手机号
-     * @param tag 短信标识
-     * @param msgTempId 短信模板id
-     * @param pram 参数
-     * @return Boolean
-     */
-    private Boolean sendMessages(String phone, Integer tag, Integer msgTempId, HashMap<String, Object> pram) {
-        //发送手机验证码， 记录到redis  sms_validate_code_手机号
-        switch (tag) {
-            case SmsConstants.SMS_CONFIG_TYPE_VERIFICATION_CODE: // 验证码 特殊处理 code
-                //获取短信验证码过期时间
-                String codeExpireStr = systemConfigService.getValueByKey(Constants.CONFIG_KEY_SMS_CODE_EXPIRE);
-                if (StrUtil.isBlank(codeExpireStr) || Integer.parseInt(codeExpireStr) == 0) {
-                    codeExpireStr = Constants.NUM_FIVE + "";// 默认5分钟过期
-                }
-                Integer code = QianxuUtil.randomCount(111111, 999999);
-                HashMap<String, Object> justPram = new HashMap<>();
-                justPram.put("code", code);
-                justPram.put("time", codeExpireStr);
-                push(phone, SmsConstants.SMS_CONFIG_VERIFICATION_CODE,
-                        SmsConstants.SMS_CONFIG_VERIFICATION_CODE_TEMP_ID, justPram);
-
-                // 将验证码存入redis
-                redisUtil.set(userService.getValidateCodeRedisKey(phone), code, Long.valueOf(codeExpireStr), TimeUnit.MINUTES);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_LOWER_ORDER_SWITCH: // 支付成功短信提醒 pay_price order_id
-                push(phone, msgTempId, pram);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_DELIVER_GOODS_SWITCH: // 发货短信提醒 nickname store_name
-                push(phone, msgTempId, pram);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_CONFIRM_TAKE_OVER_SWITCH: // 确认收货短信提醒 order_id store_name
-                push(phone, SmsConstants.SMS_CONFIG_CONFIRM_TAKE_OVER_SWITCH,
-                        SmsConstants.SMS_CONFIG_CONFIRM_TAKE_OVER_SWITCH_TEMP_ID, pram);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_ADMIN_LOWER_ORDER_SWITCH: // 用户下单管理员短信提醒 admin_name order_id
-                push(phone, msgTempId, pram);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_ADMIN_PAY_SUCCESS_SWITCH: // 支付成功管理员短信提醒 admin_name order_id
-                push(phone, msgTempId, pram);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_ADMIN_REFUND_SWITCH: // 用户确认收货管理员短信提醒 admin_name order_id
-                push(phone, msgTempId, pram);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_ADMIN_CONFIRM_TAKE_OVER_SWITCH: // 用户发起退款管理员短信提醒 admin_name order_id
-                push(phone, msgTempId, pram);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_PRICE_REVISION_SWITCH: // 改价短信提醒 order_id pay_price
-                push(phone, SmsConstants.SMS_CONFIG_PRICE_REVISION_SWITCH,
-                        SmsConstants.SMS_CONFIG_PRICE_REVISION_SWITCH_TEMP_ID, pram);
-                break;
-        }
-        return true;
-    }
-
-    /**
-     * 发送短信
-     * @param sendSmsVo 短信参数
-     */
-    private Boolean sendCode(SendSmsVo sendSmsVo) {
-        String result;
-        try {
-            String token = onePassUtil.getToken();
-            HashMap<String, String> header = onePassUtil.getCommonHeader(token);
-
-            Map<String, Object> map = (Map<String, Object>) JSONObject.parseObject(sendSmsVo.getParam());
-            MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
-            param.add("phone", sendSmsVo.getMobile());
-            param.add("temp_id", sendSmsVo.getTemplate());
-            map.entrySet().stream().forEach(entry -> param.add(StrUtil.format(SmsConstants.SMS_COMMON_PARAM_FORMAT, entry.getKey()), entry.getValue()));
-            System.out.println("============发送短信=========header = " + header);
-            result = restTemplateUtil.postFromUrlencoded(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_API_SEND_URI, param, header);
-            checkResult(result);
-        } catch (Exception e) {
-            //接口请求异常，需要重新发送
-            e.printStackTrace();
-            logger.error(e.getMessage());
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * 组装发送对象
-     *
-     * @param phone     手机号
-     * @param msgTempId 模板id
-     * @param mapPram   参数map
-     */
-    private Boolean push(String phone, Integer msgTempId, HashMap<String, Object> mapPram) {
-        if (StrUtil.isBlank(phone) || msgTempId <= 0) {
-            return false;
-        }
-        OnePassLoginVo loginVo = onePassUtil.getLoginVo();
-        SendSmsVo smsVo = new SendSmsVo();
-        smsVo.setUid(loginVo.getAccessKey());
-        smsVo.setToken(loginVo.getSecretKey());
-        smsVo.setMobile(phone);
-        smsVo.setTemplate(msgTempId);
-        smsVo.setParam(JSONObject.toJSONString(mapPram));
-        return sendCode(smsVo);
-    }
-
-    /**
-     * 组装发送对象
-     *
-     * @param phone     手机号
-     * @param tempKey   模板key
-     * @param msgTempId 模板id
-     * @param mapPram   参数map
-     */
-    private Boolean push(String phone, String tempKey, Integer msgTempId, HashMap<String, Object> mapPram) {
-        if (StrUtil.isBlank(phone) || StrUtil.isBlank(tempKey) || msgTempId <= 0) {
-            return false;
-        }
-        OnePassLoginVo loginVo = onePassUtil.getLoginVo();
-        SendSmsVo smsVo = new SendSmsVo();
-        smsVo.setUid(loginVo.getAccessKey());
-        smsVo.setToken(loginVo.getSecretKey());
-        smsVo.setMobile(phone);
-        smsVo.setTemplate(msgTempId);
-        smsVo.setParam(JSONObject.toJSONString(mapPram));
-        return sendCode(smsVo);
-    }
-
-    /**
-     * 修改签名
-     */
     @Override
     public Boolean modifySign(SmsModifySignRequest request) {
         ValidateFormUtil.isPhoneException(request.getPhone());
-        String token = onePassUtil.getToken();
-        HashMap<String, String> header = onePassUtil.getCommonHeader(token);
-
-        MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
-        map.add("sign", request.getSign());
-        map.add("phone", request.getPhone());
-        map.add("verify_code", request.getCode());
-
-        onePassUtil.postFrom(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_SMS_MODIFY_URI, map, header);
+        if (StrUtil.isBlank(request.getSign())) {
+            throw new QianxuException("签名不能为空");
+        }
+        systemConfigService.updateOrSaveValueByName(AliyunSmsConstants.CONFIG_SIGN_NAME, request.getSign());
         return Boolean.TRUE;
     }
 
-    /**
-     * 短信模板
-     */
     @Override
     public MyRecord temps(PageParamRequest pageParamRequest) {
-        String token = onePassUtil.getToken();
-        HashMap<String, String> header = onePassUtil.getCommonHeader(token);
-        MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
-        param.add("page", pageParamRequest.getPage());
-        param.add("limit", pageParamRequest.getLimit());
-        param.add("temp_type", 0);// 查询所有类型模板
-        JSONObject post = postFrom(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_TEMP_LIST_URI, param, header);
-        JSONObject jsonObject = post.getJSONObject("data");
-        logger.warn("短信模板响应JsonObject = {}", jsonObject);
-        JSONArray jsonArray = jsonObject.getJSONArray("data");
+        PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
+        List<SmsTemplate> list = smsTemplateService.list(new LambdaQueryWrapper<SmsTemplate>()
+                .orderByDesc(SmsTemplate::getId));
         MyRecord myRecord = new MyRecord();
-        if (CollUtil.isEmpty(jsonArray)) {
-            return myRecord.set("count", 0);
+        if (CollUtil.isEmpty(list)) {
+            return myRecord.set("count", 0).set("data", CollUtil.newArrayList());
         }
-        List<MyRecord> recordList = jsonArray.stream().map(i -> {
+        List<MyRecord> recordList = list.stream().map(t -> {
             MyRecord record = new MyRecord();
-            record.setColums((JSONObject) i);
-            switch (record.getInt("temp_type")) {
-                case 1:
-                    record.set("type", "验证码");
-                    break;
-                case 2:
-                    record.set("type", "通知");
-                    break;
-                case 3:
-                    record.set("type", "营销短信");
-                    break;
-            }
+            record.set("id", t.getId());
+            record.set("temp_id", t.getTempId());
+            record.set("title", t.getTitle());
+            record.set("content", t.getContent());
+            record.set("temp_type", t.getTempType());
+            record.set("status", t.getStatus());
+            record.set("type", resolveTempTypeName(t.getTempType()));
             return record;
         }).collect(Collectors.toList());
-
-        myRecord.set("count", jsonObject.getInteger("count"));
-        myRecord.set("data", recordList);
-        return myRecord;
+        return myRecord.set("count", recordList.size()).set("data", recordList);
     }
 
-    /**
-     * 申请模板消息
-     */
     @Override
     public Boolean applyTempMessage(SmsApplyTempRequest request) {
-        String token = onePassUtil.getToken();
-        HashMap<String, String> header = onePassUtil.getCommonHeader(token);
-        MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
-        param.add("title", request.getTitle());
-        param.add("content", request.getContent());
-        param.add("type", request.getType());
-
-        onePassUtil.postFrom(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_TEMP_APPLY_URI, param, header);
-        return Boolean.TRUE;
+        throw new QianxuException("请前往阿里云短信控制台申请模板，审核通过后将模板 CODE 写入本地短信模板配置");
     }
 
-    /**
-     * 模板申请记录
-     *
-     * @param type (1=验证码 2=通知 3=推广)
-     */
     @Override
     public MyRecord applys(Integer type, PageParamRequest pageParamRequest) {
-        String token = onePassUtil.getToken();
-        HashMap<String, String> header = onePassUtil.getCommonHeader(token);
-        MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
-        param.add("page", pageParamRequest.getPage());
-        param.add("limit", pageParamRequest.getLimit());
-        if (ObjectUtil.isNotNull(type)) {
-            param.add("temp_type", type);
-        }
-
-        JSONObject post = onePassUtil.postFrom(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_APPLYS_LIST_URI, param, header);
-        JSONObject jsonObject = post.getJSONObject("data");
-        JSONArray jsonArray = jsonObject.getJSONArray("data");
         MyRecord myRecord = new MyRecord();
-        if (CollUtil.isEmpty(jsonArray)) {
-            return myRecord.set("count", 0);
-        }
-        List<MyRecord> recordList = jsonArray.stream().map(i -> {
-            MyRecord record = new MyRecord();
-            record.setColums((JSONObject) i);
-            switch (record.getInt("temp_type")) {
-                case 1:
-                    record.set("type", "验证码");
-                    break;
-                case 2:
-                    record.set("type", "通知");
-                    break;
-                case 3:
-                    record.set("type", "营销短信");
-                    break;
-            }
-            return record;
-        }).collect(Collectors.toList());
-
-        myRecord.set("count", recordList.size());
-        myRecord.set("data", recordList);
+        myRecord.set("count", 0);
+        myRecord.set("data", CollUtil.newArrayList());
+        myRecord.set("msg", "模板申请请在阿里云短信控制台完成");
         return myRecord;
     }
 
-    /**
-     * 发送公共验证码
-     *
-     * @param phone 手机号
-     * @return Boolean
-     * 1.校验后台是否配置一号通
-     * 2.一号通是否剩余短信条数
-     * 3.发送短信
-     */
     @Override
     public Boolean sendCommonCode(String phone) {
-        ValidateFormUtil.isPhone(phone,"手机号码错误");
-        Boolean checkAccount = onePassService.checkAccount();
-        if (!checkAccount) {
-            throw new QianxuException("发送短信请先登录一号通账号");
-        }
-        JSONObject info = onePassService.info();
-        JSONObject smsObject = info.getJSONObject("sms");
-        Integer open = smsObject.getInteger("open");
-        if (!open.equals(1)) {
-            throw new QianxuException("发送短信请先开通一号通账号服务");
-        }
-        if (smsObject.getInteger("num") <= 0) {
-            throw new QianxuException("一号通账号服务余量不足");
-        }
+        ValidateFormUtil.isPhone(phone, "手机号码错误");
         if (redisUtil.exists(SmsConstants.SMS_VALIDATE_PHONE_NUM + phone)) {
             throw new QianxuException("您的短信发送过于频繁，请稍后再试");
         }
-        return sendSms(phone, SmsConstants.SMS_CONFIG_TYPE_VERIFICATION_CODE, null);
+        String codeExpireStr = systemConfigService.getValueByKey(Constants.CONFIG_KEY_SMS_CODE_EXPIRE);
+        if (StrUtil.isBlank(codeExpireStr) || Integer.parseInt(codeExpireStr) == 0) {
+            codeExpireStr = Constants.NUM_FIVE + "";
+        }
+        Integer code = QianxuUtil.randomCount(111111, 999999);
+        JSONObject param = new JSONObject();
+        param.put("code", String.valueOf(code));
+        param.put("time", codeExpireStr);
+
+        String templateCode = systemConfigService.getValueByKey(AliyunSmsConstants.CONFIG_VERIFY_TEMPLATE_CODE);
+        if (StrUtil.isBlank(templateCode)) {
+            templateCode = AliyunSmsConstants.DEFAULT_VERIFY_TEMPLATE;
+        }
+        try {
+            aliyunSmsClient.send(phone, templateCode, param);
+        } catch (Exception e) {
+            logger.error("发送验证码失败: {}", e.getMessage());
+            throw new QianxuException("发送短信失败，请联系后台管理员");
+        }
+        redisUtil.set(userService.getValidateCodeRedisKey(phone), code, Long.valueOf(codeExpireStr), TimeUnit.MINUTES);
+        redisUtil.set(SmsConstants.SMS_VALIDATE_PHONE_NUM + phone, 1, 60L);
+        return Boolean.TRUE;
     }
 
-    /**
-     * 发送支付成功短信
-     *
-     * @param phone    手机号
-     * @param orderNo  订单编号
-     * @param payPrice 支付金额
-     * @param msgTempId 短信模板id
-     * @return Boolean
-     */
     @Override
-    public Boolean sendPaySuccess(String phone, String orderNo, BigDecimal payPrice, Integer msgTempId) {
+    public Boolean sendPaySuccess(String phone, String orderNo, BigDecimal payPrice, String templateCode) {
         HashMap<String, Object> map = CollUtil.newHashMap();
-        map.put("pay_price", payPrice);
+        map.put("pay_price", String.valueOf(payPrice));
         map.put("order_id", orderNo);
-        return sendMessages(phone, SmsConstants.SMS_CONFIG_TYPE_LOWER_ORDER_SWITCH, msgTempId, map);
+        return sendByTemplate(phone, templateCode, map);
     }
 
-    /**
-     * 发送管理员下单短信提醒
-     *
-     * @param phone    手机号
-     * @param orderNo  订单编号
-     * @param realName 管理员名称
-     * @param msgTempId 短信模板id
-     * @return Boolean
-     */
     @Override
-    public Boolean sendCreateOrderNotice(String phone, String orderNo, String realName, Integer msgTempId) {
-        HashMap<String, Object> map = CollUtil.newHashMap();
-        map.put("admin_name", realName);
-        map.put("order_id", orderNo);
-        return sendMessages(phone, SmsConstants.SMS_CONFIG_TYPE_ADMIN_LOWER_ORDER_SWITCH, msgTempId, map);
-    }
-
-    /**
-     * 发送订单支付成功管理员提醒短信
-     *
-     * @param phone    手机号
-     * @param orderNo  订单编号
-     * @param realName 管理员名称
-     * @param msgTempId 短信模板id
-     * @return Boolean
-     */
-    @Override
-    public Boolean sendOrderPaySuccessNotice(String phone, String orderNo, String realName, Integer msgTempId) {
+    public Boolean sendCreateOrderNotice(String phone, String orderNo, String realName, String templateCode) {
         HashMap<String, Object> map = CollUtil.newHashMap();
         map.put("admin_name", realName);
         map.put("order_id", orderNo);
-        return sendMessages(phone, SmsConstants.SMS_CONFIG_TYPE_ADMIN_PAY_SUCCESS_SWITCH, msgTempId, map);
+        return sendByTemplate(phone, templateCode, map);
     }
 
-    /**
-     * 发送用户退款管理员提醒短信
-     *
-     * @param phone    手机号
-     * @param orderNo  订单编号
-     * @param realName 管理员名称
-     * @param msgTempId 短信模板id
-     * @return Boolean
-     */
     @Override
-    public Boolean sendOrderRefundApplyNotice(String phone, String orderNo, String realName, Integer msgTempId) {
+    public Boolean sendOrderPaySuccessNotice(String phone, String orderNo, String realName, String templateCode) {
         HashMap<String, Object> map = CollUtil.newHashMap();
         map.put("admin_name", realName);
         map.put("order_id", orderNo);
-        return sendMessages(phone, SmsConstants.SMS_CONFIG_TYPE_ADMIN_CONFIRM_TAKE_OVER_SWITCH, msgTempId, map);
+        return sendByTemplate(phone, templateCode, map);
     }
 
-    /**
-     * 发送用户确认收货管理员提醒短信
-     * @param phone 手机号
-     * @param orderNo 订单编号
-     * @param realName 管理员名称
-     * @param msgTempId 短信模板id
-     */
     @Override
-    public Boolean sendOrderReceiptNotice(String phone, String orderNo, String realName, Integer msgTempId) {
+    public Boolean sendOrderRefundApplyNotice(String phone, String orderNo, String realName, String templateCode) {
         HashMap<String, Object> map = CollUtil.newHashMap();
         map.put("admin_name", realName);
         map.put("order_id", orderNo);
-        return sendMessages(phone, SmsConstants.SMS_CONFIG_TYPE_ADMIN_REFUND_SWITCH, msgTempId, map);
+        return sendByTemplate(phone, templateCode, map);
     }
 
-    /**
-     * 发送订单改价提醒短信
-     *
-     * @param phone   手机号
-     * @param orderNo 订单编号
-     * @param price   修改后的支付金额
-     * @param msgTempId 短信模板id
-     * @return Boolean
-     */
     @Override
-    public Boolean sendOrderEditPriceNotice(String phone, String orderNo, BigDecimal price, Integer msgTempId) {
+    public Boolean sendOrderReceiptNotice(String phone, String orderNo, String realName, String templateCode) {
+        HashMap<String, Object> map = CollUtil.newHashMap();
+        map.put("admin_name", realName);
+        map.put("order_id", orderNo);
+        return sendByTemplate(phone, templateCode, map);
+    }
+
+    @Override
+    public Boolean sendOrderEditPriceNotice(String phone, String orderNo, BigDecimal price, String templateCode) {
         HashMap<String, Object> map = CollUtil.newHashMap();
         map.put("order_id", orderNo);
-        map.put("pay_price", price);
-        return sendMessages(phone, SmsConstants.SMS_CONFIG_TYPE_PRICE_REVISION_SWITCH, msgTempId, map);
+        map.put("pay_price", String.valueOf(price));
+        return sendByTemplate(phone, templateCode, map);
     }
 
-    /**
-     * 发送订单发货提醒短信
-     *
-     * @param phone     手机号
-     * @param nickName  用户昵称
-     * @param storeName 商品名称
-     * @param orderNo   订单编号
-     * @param msgTempId 短信模板id
-     */
     @Override
-    public Boolean sendOrderDeliverNotice(String phone, String nickName, String storeName, String orderNo, Integer msgTempId) {
+    public Boolean sendOrderDeliverNotice(String phone, String nickName, String storeName, String orderNo, String templateCode) {
         HashMap<String, Object> map = CollUtil.newHashMap();
         map.put("nickname", nickName);
         map.put("store_name", storeName);
         map.put("order_id", orderNo);
-        return sendMessages(phone, SmsConstants.SMS_CONFIG_TYPE_DELIVER_GOODS_SWITCH, msgTempId, map);
+        return sendByTemplate(phone, templateCode, map);
     }
 
-    /**
-     * post请求from表单模式提交
-     */
-    private JSONObject postFrom(String url, MultiValueMap<String, Object> param, Map<String, String> header) {
-        String result = restTemplateUtil.postFromUrlencoded(url, param, header);
-        return checkResult(result);
-    }
-
-    /**
-     * 检测结构请求返回的数据
-     *
-     * @param result 接口返回的结果
-     * @return JSONObject
-     * @author Mr.Zhang
-     * @since 2020-04-16
-     */
-    private JSONObject checkResult(String result) {
-        if (StrUtil.isBlank(result)) {
-            throw new QianxuException("短信平台接口异常，没任何数据返回！");
-        }
-
-        JSONObject jsonObject;
-        try {
-            jsonObject = JSONObject.parseObject(result);
-        } catch (Exception e) {
-            throw new QianxuException("短信平台接口异常！");
-        }
-        if (SmsConstants.SMS_ERROR_CODE.equals(jsonObject.getInteger("status"))) {
-            throw new QianxuException("短信平台接口" + jsonObject.getString("msg"));
-        }
-        return jsonObject;
-    }
-
-    /**
-     * 发送短信
-     * 验证码特殊处理其他的参数自行根据要求处理
-     * 参数处理逻辑 {code:value,code1:value1}
-     *
-     * @param phone String 手机号码
-     * @return boolean
-     */
-    private Boolean sendSms(String phone, Integer tag, HashMap<String, Object> pram) {
-        SendSmsVo sendSmsVo = new SendSmsVo();
-        sendSmsVo.setMobile(phone);
-        if (tag.equals(SmsConstants.SMS_CONFIG_TYPE_VERIFICATION_CODE)) {// 验证码 特殊处理 code
-            //获取短信验证码过期时间
-            String codeExpireStr = systemConfigService.getValueByKey(Constants.CONFIG_KEY_SMS_CODE_EXPIRE);
-            if (StrUtil.isBlank(codeExpireStr) || Integer.parseInt(codeExpireStr) == 0) {
-                codeExpireStr = Constants.NUM_FIVE + "";// 默认5分钟过期
-            }
-            Integer code = QianxuUtil.randomCount(111111, 999999);
-            HashMap<String, Object> justPram = new HashMap<>();
-            justPram.put("code", code);
-            justPram.put("time", codeExpireStr);
-
-            sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_VERIFICATION_CODE_TEMP_ID);
-            sendSmsVo.setContent(JSONObject.toJSONString(justPram));
-            Boolean aBoolean = commonSendSms(sendSmsVo);
-            if (!aBoolean) {
-                throw new QianxuException("发送短信失败，请联系后台管理员");
-            }
-            // 将验证码存入redis
-            redisUtil.set(userService.getValidateCodeRedisKey(phone), code, Long.valueOf(codeExpireStr), TimeUnit.MINUTES);
-            redisUtil.set(SmsConstants.SMS_VALIDATE_PHONE_NUM + phone, 1, 60L);
-            return aBoolean;
-        }
-        // 以下部分实时性不高暂时还是使用队列发送
-        sendSmsVo.setContent(JSONObject.toJSONString(pram));
-        switch (tag) {
-            case SmsConstants.SMS_CONFIG_TYPE_LOWER_ORDER_SWITCH: // 支付成功短信提醒 pay_price order_id
-                sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_LOWER_ORDER_SWITCH_TEMP_ID);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_DELIVER_GOODS_SWITCH: // 发货短信提醒 nickname store_name
-                sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_DELIVER_GOODS_SWITCH_TEMP_ID);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_CONFIRM_TAKE_OVER_SWITCH: // 确认收货短信提醒 order_id store_name
-                sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_CONFIRM_TAKE_OVER_SWITCH_TEMP_ID);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_ADMIN_LOWER_ORDER_SWITCH: // 用户下单管理员短信提醒 admin_name order_id
-                sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_ADMIN_LOWER_ORDER_SWITCH_TEMP_ID);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_ADMIN_PAY_SUCCESS_SWITCH: // 支付成功管理员短信提醒 admin_name order_id
-                sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_ADMIN_PAY_SUCCESS_SWITCH_TEMP_ID);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_ADMIN_REFUND_SWITCH: // 用户确认收货管理员短信提醒 admin_name order_id
-                sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_ADMIN_REFUND_SWITCH_TEMP_ID);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_ADMIN_CONFIRM_TAKE_OVER_SWITCH: // 用户发起退款管理员短信提醒 admin_name order_id
-                sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_ADMIN_CONFIRM_TAKE_OVER_SWITCH_TEMP_ID);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_PRICE_REVISION_SWITCH: // 改价短信提醒 order_id pay_price
-                sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_PRICE_REVISION_SWITCH_TEMP_ID);
-                break;
-            case SmsConstants.SMS_CONFIG_TYPE_ORDER_PAY_FALSE: // 订单未支付 order_id
-                sendSmsVo.setTemplate(SmsConstants.SMS_CONFIG_ORDER_PAY_FALSE_TEMP_ID);
-                break;
-        }
-        return commonSendSms(sendSmsVo);
-    }
-
-    /**
-     * 公共发送短信
-     *
-     * @param sendSmsVo 发送短信对象
-     * @return 是否发送成功
-     */
-    private Boolean commonSendSms(SendSmsVo sendSmsVo) {
-        try {
-            String result;
-            String token = onePassUtil.getToken();
-            HashMap<String, String> header = onePassUtil.getCommonHeader(token);
-
-            Map<String, Object> map = (Map<String, Object>) JSONObject.parseObject(sendSmsVo.getContent());
-            MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
-            param.add("phone", sendSmsVo.getMobile());
-            param.add("temp_id", sendSmsVo.getTemplate());
-
-            map.forEach((key, value) -> param.add(StrUtil.format(SmsConstants.SMS_COMMON_PARAM_FORMAT, key), value));
-            logger.info("============发送短信=========header = " + header);
-            result = restTemplateUtil.postFromUrlencoded(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_API_SEND_URI, param, header);
-            checkResult(result);
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("发送短信失败：" + e.getMessage());
+    private Boolean sendByTemplate(String phone, String templateCode, HashMap<String, Object> map) {
+        if (StrUtil.isBlank(phone) || StrUtil.isBlank(templateCode)) {
             return false;
         }
-        return true;
+        try {
+            aliyunSmsClient.send(phone, templateCode, new JSONObject(map));
+            return true;
+        } catch (Exception e) {
+            logger.error("发送短信失败 phone={}, template={}, err={}", phone, templateCode, e.getMessage());
+            return false;
+        }
+    }
+
+    private String resolveTempTypeName(Integer tempType) {
+        if (tempType == null) {
+            return "通知";
+        }
+        switch (tempType) {
+            case 1:
+                return "验证码";
+            case 2:
+                return "通知";
+            case 3:
+                return "营销短信";
+            default:
+                return "通知";
+        }
     }
 }

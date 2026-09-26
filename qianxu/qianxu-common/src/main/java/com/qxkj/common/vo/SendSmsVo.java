@@ -3,31 +3,18 @@ package com.qxkj.common.vo;
 import lombok.Data;
 
 /**
- *
- *  +----------------------------------------------------------------------
- *  | 黔序商城 [ 黔序科技，助力企业发展 ]
- *  +----------------------------------------------------------------------
- *  | Copyright (c) 2021~2026 https://www.qianxutec.com All rights reserved.
- *  +----------------------------------------------------------------------
- *  | Licensed 黔序商城系统软件V1.0（软著登记号2025SR2146980），未经许可不得去除版权声明
- *  +----------------------------------------------------------------------
- *  | Author: 贵州黔序科技有限公司
- *  +----------------------------------------------------------------------
+ * 短信发送参数
  */
 @Data
 public class SendSmsVo {
-    private String uid;
-    private String token;
-
-    // 待发送短信手机号
+    /** 待发送短信手机号 */
     private String mobile;
 
-    // 模版id
-    private Integer template;
+    /** 阿里云模板 CODE */
+    private String template;
 
-    // 发送参数
+    /** 模板参数 JSON */
     private String param;
 
     private String content;
-
 }

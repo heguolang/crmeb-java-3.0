@@ -1,68 +1,47 @@
 <template>
-  <div class="divBox">
-    <el-card class="box-card">
-      <zb-parser
-        :form-id="formId"
-        :is-create="isCreate"
-        :edit-data="editData"
-        @submit="handlerSubmit"
-        @resetForm="resetForm"
-        v-if="isShow && checkPermi(['admin:pass:appget'])"
-      />
-    </el-card>
+  <div class="sms-config-placeholder">
+    <div class="tips-card">
+      <h3>阿里云短信设置</h3>
+      <p>短信相关密钥请在「系统设置 → 第三方接口」中配置（aliyun_sms_* 系列配置项）。</p>
+      <p>验证码与业务通知模板请在阿里云控制台申请，并在「消息通知」中绑定本地模板 CODE。</p>
+      <p>开发联调可开启 <code>aliyun_sms_mock</code>，开启后不真实调用阿里云发送。</p>
+      <el-button type="primary" class="mt16" @click="goConfig">前往短信配置说明</el-button>
+    </div>
   </div>
 </template>
 
 <script>
-import zbParser from '@/components/FormGenerator/components/parser/ZBParser';
-import { passAppSaveApi, configInfo, passAppInfoApi } from '@/api/systemConfig.js';
-import { checkPermi } from '@/utils/permission'; // 权限判断函数
 export default {
-  name: 'onePassConfig',
-  components: { zbParser },
-  data() {
-    return {
-      isShow: true,
-      isCreate: 0,
-      editData: {},
-      formId: 144, //一号通配置
-    };
-  },
-  mounted() {
-    if (checkPermi(['admin:pass:appget'])) this.getPassAppInfo();
-  },
+  name: 'SmsAliyunConfigNote',
   methods: {
-    checkPermi,
-    resetForm(formValue) {
-      this.isShow = false;
-    },
-    handlerSubmit(data) {
-      passAppSaveApi(data).then((res) => {
-        this.getPassAppInfo();
-        this.$message.success('操作成功');
-      });
-    },
-    //获取配置详情
-    getPassAppInfo() {
-      passAppInfoApi().then((res) => {
-        this.isShow = false;
-        this.editData = res;
-        this.isCreate = 1;
-        setTimeout(() => {
-          // 让表单重复渲染待编辑数据
-          this.isShow = true;
-        }, 80);
-      });
+    goConfig() {
+      this.$router.push('/operation/systemSms/config');
     },
   },
 };
 </script>
 
-<style scoped lang="scss">
-::v-deep .closeBtn {
-  display: none;
+<style scoped>
+.sms-config-placeholder {
+  padding: 24px;
 }
-::v-deep .dialog-footer-inner {
-  float: left !important;
+.tips-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 40px;
+  line-height: 2;
+  color: #303133;
+}
+.tips-card h3 {
+  margin-bottom: 12px;
+}
+.tips-card code {
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+.mt16 {
+  margin-top: 16px;
 }
 </style>

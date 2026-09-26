@@ -11,7 +11,6 @@
 import { login, logout, getInfo } from '@/api/user';
 import { getToken, setToken, removeToken } from '@/utils/auth';
 import router, { resetRouter } from '@/router';
-import { isLoginApi } from '@/api/sms';
 import Cookies from 'js-cookie';
 import { Loading } from 'element-ui';
 import * as roleApi from '@/api/roleApi.js';
@@ -99,18 +98,11 @@ const actions = {
     });
   },
 
-  // 短信是否登录
-  isLogin({ commit }, userInfo) {
-    return new Promise((resolve, reject) => {
-      isLoginApi()
-        .then(async (res) => {
-          commit('SET_ISLOGIN', res.isLogin);
-          resolve(res);
-        })
-        .catch((res) => {
-          commit('SET_ISLOGIN', false);
-          reject(res);
-        });
+  // 兼容旧页面：短信平台登录态已废弃，固定返回未登录
+  isLogin({ commit }) {
+    return new Promise((resolve) => {
+      commit('SET_ISLOGIN', false);
+      resolve({ status: false, isLogin: false });
     });
   },
 

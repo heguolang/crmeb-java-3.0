@@ -1,36 +1,24 @@
 package com.qxkj.service.service.impl;
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qxkj.common.request.PageParamRequest;
-import com.qxkj.common.constants.OnePassConstants;
 import com.qxkj.common.exception.QianxuException;
 import com.github.pagehelper.PageHelper;
-import com.qxkj.common.utils.RedisUtil;
 import com.qxkj.common.model.express.Express;
 import com.qxkj.common.request.ExpressSearchRequest;
 import com.qxkj.common.request.ExpressUpdateRequest;
 import com.qxkj.common.request.ExpressUpdateShowRequest;
 import com.qxkj.service.dao.ExpressDao;
 import com.qxkj.service.service.ExpressService;
-import com.qxkj.service.util.OnePassUtil;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 
 import javax.annotation.Resource;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -49,12 +37,6 @@ public class ExpressServiceImpl extends ServiceImpl<ExpressDao, Express> impleme
 
     @Resource
     private ExpressDao dao;
-
-    @Autowired
-    private RedisUtil redisUtil;
-
-    @Autowired
-    private OnePassUtil onePassUtil;
 
     /**
      * 分页显示快递公司表
@@ -113,16 +95,10 @@ public class ExpressServiceImpl extends ServiceImpl<ExpressDao, Express> impleme
     }
 
     /**
-     * 同步物流公司
+     * 同步物流公司（本地库维护，不再远程同步）
      */
     @Override
     public Boolean syncExpress() {
-        if (redisUtil.exists(OnePassConstants.ONE_PASS_EXPRESS_CACHE_KEY)) {
-            return Boolean.TRUE;
-        }
-        getExpressList();
-
-        redisUtil.set(OnePassConstants.ONE_PASS_EXPRESS_CACHE_KEY, 1, 3600L, TimeUnit.SECONDS);
         return Boolean.TRUE;
     }
 
@@ -143,22 +119,23 @@ public class ExpressServiceImpl extends ServiceImpl<ExpressDao, Express> impleme
     }
 
     /**
-     * 查询物流公司面单模板
+     * 查询物流公司面单模板（电子面单已停用）
      * @param com 快递公司编号
      */
     @Override
     public JSONObject template(String com) {
-        String token = onePassUtil.getToken();
-        HashMap<String, String> header = onePassUtil.getCommonHeader(token);
-        return onePassUtil.getData(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_API_EXPRESS_TEMP_URI
-                +"?com="+com+"&is_shipment=1", header);
+        JSONObject result = new JSONObject();
+        result.put("data", new com.alibaba.fastjson.JSONArray());
+        result.put("status", 200);
+        return result;
     }
 
     @Override
     public JSONObject templateFor(String com, String type, String is_shipment, String page, String limit) {
-        String token = onePassUtil.getToken();
-        HashMap<String, String> header = onePassUtil.getCommonHeader(token);
-        return onePassUtil.getData(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_API_EXPRESS_DUMP_RECORD_URI +"?com="+com+"&type="+type+"&is_shipment="+is_shipment+"&page="+page+"&limit="+limit, header);
+        JSONObject result = new JSONObject();
+        result.put("data", new com.alibaba.fastjson.JSONArray());
+        result.put("status", 200);
+        return result;
     }
 
     /**
@@ -196,72 +173,4 @@ public class ExpressServiceImpl extends ServiceImpl<ExpressDao, Express> impleme
         }
         return express;
     }
-
-    /**
-     * 从平台获取物流公司
-     * 并存入数据库
-     */
-    private void getExpressList() {
-        String token = onePassUtil.getToken();
-        HashMap<String, String> header = onePassUtil.getCommonHeader(token);
-        MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
-        //        param.add("type", 1);// 快递类型：1，国内运输商；2，国际运输商；3，国际邮政 不传获取全部
-        param.add("page", 0);
-        param.add("limit", 9999);
-
-        JSONObject post = onePassUtil.getFrom(OnePassConstants.ONE_PASS_API_URL + OnePassConstants.ONE_PASS_API_EXPRESS_URI, param, header);
-        System.out.println("OnePass Express ALL post = " + post);
-        JSONObject jsonObject = post.getJSONObject("data");
-        JSONArray jsonArray = jsonObject.getJSONArray("data");
-        if (CollUtil.isEmpty(jsonArray)) return;
-
-        List<Express> expressList = CollUtil.newArrayList();
-        List<String> codeList = getAllCode();
-        for (int i = 0; i < jsonArray.size(); i++) {
-            JSONObject object = jsonArray.getJSONObject(i);
-            if (StrUtil.isNotBlank(object.getString("code")) && !codeList.contains(object.getString("code"))) {
-                Express express = new Express();
-                express.setName(Optional.ofNullable(object.getString("name")).orElse(""));
-                express.setCode(Optional.ofNullable(object.getString("code")).orElse(""));
-                express.setPartnerId(false);
-                express.setPartnerKey(false);
-                express.setNet(false);
-                if (ObjectUtil.isNotNull(object.getInteger("partner_id"))) {
-                    express.setPartnerId(object.getInteger("partner_id") == 1);
-                }
-                if (ObjectUtil.isNotNull(object.getInteger("partner_key"))) {
-                    express.setPartnerKey(object.getInteger("partner_key") == 1);
-                }
-                if (ObjectUtil.isNotNull(object.getInteger("net"))) {
-                    express.setNet(object.getInteger("net") == 1);
-                }
-                express.setIsShow(true);
-                express.setStatus(false);
-                if (!express.getPartnerId() && !express.getPartnerKey() && !express.getNet()) {
-                    express.setStatus(true);
-                }
-                expressList.add(express);
-            }
-        }
-
-
-        if (CollUtil.isNotEmpty(expressList)) {
-            boolean saveBatch = saveBatch(expressList);
-            if (!saveBatch) throw new QianxuException("同步物流公司失败");
-        }
-    }
-
-    /**
-     * 获取所有物流公司code
-     */
-    private List<String> getAllCode() {
-        LambdaQueryWrapper<Express> lqw = new LambdaQueryWrapper<>();
-        lqw.select(Express::getCode);
-        List<Express> expressList = dao.selectList(lqw);
-        if (CollUtil.isEmpty(expressList)) {
-            return CollUtil.newArrayList();
-        }
-        return expressList.stream().map(Express::getCode).collect(Collectors.toList());
-    }
 }
-

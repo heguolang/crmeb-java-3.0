@@ -13,7 +13,7 @@
         </span>
         <div class="tips-bottom">
           商品采集设置：设置 > 系统设置 > 第三方接口设置 >
-          采集商品配置（如配置一号通采集，请先登录一号通账号，无一号通，请选择99Api设置）
+          采集商品配置（请选择 99Api 导入）
         </div>
       </div>
       <div :span="24" v-if="copyConfig.copyType">

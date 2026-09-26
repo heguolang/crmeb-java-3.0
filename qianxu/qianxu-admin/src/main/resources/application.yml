@@ -10,8 +10,6 @@ qianxu:
   imagePath: D:/qianxu-java-3.0/qianxu/ # 服务器图片路径配置 斜杠结尾（qianxuimage 的上级目录）
   demoSite: false # 是否演示站点 所有手机号码都会掩码
   activityStyleCachedTime: 10 #活动边框缓存周期 秒为单位，生产环境适当5-10分钟即可
-  # 开放平台 API（短信/物流等），勿写入源码；用环境变量 ONE_PASS_API_URL 注入，须以 / 结尾
-  one-pass-api-url: ${ONE_PASS_API_URL:}
   ignored: #安全路径白名单
     - swagger-ui/
     - swagger-resources/**

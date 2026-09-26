@@ -1,6 +1,5 @@
 package com.qxkj.service.service;
 
-import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.github.pagehelper.PageInfo;
 import com.qxkj.common.page.CommonPage;
@@ -398,24 +397,4 @@ public interface StoreOrderService extends IService<StoreOrder> {
      * 更改订单运单号
      */
     Boolean updateTrackingNumber(StoreOrderSendRequest request);
-
-    /**
-     * 一号通商家寄件 寄件
-     * @param request 寄件请求数据
-     * @param storeOrder 当前操作订单数据
-     */
-    void expressForOnePassShipment(StoreOrderSendRequest request, StoreOrder storeOrder);
-
-    /**
-     * 一号通商家寄件 快递揽件回调
-     * @param jsonObject 回调结果
-     */
-    void expressForOnePassShipmentTakeCallBack(JSONObject jsonObject);
-
-
-    /**
-     * 一号通商家寄件 取消寄件回调
-     * @param jsonObject 回调结果
-     */
-    void expressForOnePassShipmentCancelCallBack(JSONObject jsonObject);
 }

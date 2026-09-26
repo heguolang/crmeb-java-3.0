@@ -10,7 +10,6 @@ qianxu:
   imagePath: /www/wwwroot/api.qianxutec.com/ # 服务器图片路径配置 斜杠结尾（qianxuimage 的上级目录）
   captchaOn: false # 是否开启行为验证码
   demoSite: false # 是否演示站点 所有手机号码都会掩码
-  one-pass-api-url: ${ONE_PASS_API_URL:}
 
 server:
   port: 21700

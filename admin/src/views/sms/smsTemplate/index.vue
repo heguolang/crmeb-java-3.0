@@ -1,175 +1,47 @@
 <template>
-  <!--v-if="isLogin"-->
-  <div class="divBox" v-if="isLogin">
-    <el-card v-loading="fullscreenLoading" class="box-card">
-      <div slot="header" class="clearfix">
-        <div class="container">
-          <router-link :to="{ path: '/operation/onePass' }">
-            <el-button class="mb35" icon="el-icon-arrow-left">返回</el-button>
-          </router-link>
-        </div>
-        <div class="acea-row">
-          <el-button type="primary" @click="add" class="mr20">添加短信模板</el-button>
-          <el-alert style="width: 80%" title="短信模板申请后通过审核才能看到，审核时间3-5个工作日。" type="warning" :closable="false"
-            effect="dark">
-          </el-alert>
-        </div>
-      </div>
-      <el-table v-loading="listLoading" :data="tableData.data" style="width: 100%" size="mini" highlight-current-row>
-        <el-table-column prop="temp_id" label="模板ID" min-width="80" />
-        <el-table-column prop="title" label="模板名称" min-width="120" />
-        <el-table-column prop="content" label="模板内容" min-width="500" />
-        <el-table-column label="模板类型" min-width="100">
-          <template slot-scope="{ row }">
-            <span>{{ row.temp_type | typesFilter }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="模板状态">
-          <template slot-scope="{ row }">
-            <span>{{ row.status | statusFilter }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="mark" label="审核结果" min-width="100" />
-      </el-table>
-      <div class="block">
-        <el-pagination :page-sizes="[20, 40, 60, 80]" :page-size="tableFrom.limit" :current-page="tableFrom.page"
-          layout="total, sizes, prev, pager, next, jumper" :total="tableData.total" @size-change="handleSizeChange"
-          @current-change="pageChange" />
-      </div>
-    </el-card>
-
-    <!--编辑-->
-    <el-dialog title="添加模板" :visible.sync="dialogVisible" width="500px" :before-close="handleClose">
-      <zb-parser v-if="dialogVisible" :form-id="110" :is-create="isCreate" :edit-data="editData" @submit="handlerSubmit"
-        @resetForm="resetForm" />
-    </el-dialog>
+  <div class="sms-config-placeholder">
+    <div class="tips-card">
+      <h3>短信模板说明</h3>
+      <p>请在阿里云控制台申请短信模板，并在「消息通知」中配置本地模板 CODE。</p>
+      <p>验证码模板对应配置项：<code>aliyun_sms_verify_template_code</code>。</p>
+      <p>其他业务通知模板请在系统设置 / 消息通知中按场景绑定阿里云模板 CODE。</p>
+      <el-button type="primary" class="mt16" @click="goNotification">前往消息通知</el-button>
+    </div>
   </div>
 </template>
 
 <script>
-import { smsTempLstApi, tempCreateApi } from '@/api/sms';
-import { roterPre } from '@/settings';
-import { mapGetters } from 'vuex';
-import zbParser from '@/components/FormGenerator/components/parser/ZBParser';
-import { Debounce } from '@/utils/validate';
 export default {
   name: 'SmsTemplate',
-  components: { zbParser },
-  filters: {
-    statusFilter(status) {
-      const statusMap = {
-        0: '不可用',
-        1: '可用',
-      };
-      return statusMap[status];
-    },
-    typesFilter(status) {
-      const statusMap = {
-        1: '验证码',
-        2: '通知',
-        3: '推广',
-      };
-      return statusMap[status];
-    },
-  },
-  data() {
-    return {
-      isCreate: 0,
-      editData: {},
-      dialogVisible: false,
-      fullscreenLoading: false,
-      listLoading: false,
-      tableData: {
-        data: [],
-        total: 0,
-      },
-      tableFrom: {
-        page: 1,
-        limit: 20,
-      },
-    };
-  },
-  computed: {
-    ...mapGetters(['isLogin']),
-  },
-  mounted() {
-    if (!this.isLogin) {
-      this.$router.push('/operation/onePass?url=' + this.$route.path);
-    } else {
-      this.getList();
-    }
-  },
   methods: {
-    resetForm(formValue) {
-      this.handleClose();
-    },
-    handleClose() {
-      this.dialogVisible = false;
-      this.editData = {};
-    },
-    handlerSubmit: Debounce(function (formValue) {
-      tempCreateApi(formValue).then((data) => {
-        this.$message.success('新增成功');
-        this.dialogVisible = false;
-        this.editData = {};
-        this.getList();
-      });
-    }),
-    add() {
-      this.dialogVisible = true;
-    },
-    // 查看是否登录
-    onIsLogin() {
-      this.fullscreenLoading = true;
-      this.$store
-        .dispatch('user/isLogin')
-        .then(async (res) => {
-          const data = res;
-          if (!data.status) {
-            this.$message.warning('请先登录');
-            this.$router.push('/operation/onePass?url=' + this.$route.path);
-          } else {
-            this.getList();
-          }
-          this.fullscreenLoading = false;
-        })
-        .catch((res) => {
-          this.$router.push('/operation/onePass?url=' + this.$route.path);
-          this.fullscreenLoading = false;
-        });
-    },
-    // 列表
-    getList() {
-      this.listLoading = true;
-      smsTempLstApi(this.tableFrom)
-        .then((res) => {
-          this.tableData.data = res.data;
-          this.tableData.total = res.count;
-          this.listLoading = false;
-        })
-        .catch((res) => {
-          this.listLoading = false;
-        });
-    },
-    pageChange(page) {
-      this.tableFrom.page = page;
-      this.getList();
-    },
-    handleSizeChange(val) {
-      this.tableFrom.limit = val;
-      this.getList();
-    },
-    // 表格搜索
-    userSearchs() {
-      this.tableFrom.page = 1;
-      this.getList();
+    goNotification() {
+      this.$router.push('/operation/notification');
     },
   },
 };
 </script>
 
-<style scoped lang="scss">
-.selWidth {
-  width: 350px !important;
+<style scoped>
+.sms-config-placeholder {
+  padding: 24px;
+}
+.tips-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 40px;
+  line-height: 2;
+  color: #303133;
+}
+.tips-card h3 {
+  margin-bottom: 12px;
+}
+.tips-card code {
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+.mt16 {
+  margin-top: 16px;
 }
 </style>
