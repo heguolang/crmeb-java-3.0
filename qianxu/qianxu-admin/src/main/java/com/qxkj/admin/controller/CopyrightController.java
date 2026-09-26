@@ -38,14 +38,14 @@ public class CopyrightController {
     private CopyrightService copyrightService;
 
     @PreAuthorize("hasAuthority('admin:copyright:get:info')")
-    @ApiOperation(value = "获取版权信息")
+    @ApiOperation(value = "获取公司版权信息")
     @RequestMapping(value = "/get/info", method = RequestMethod.GET)
     public CommonResult<CopyrightInfoResponse> getInfo() {
         return CommonResult.success(copyrightService.getInfo());
     }
 
     @PreAuthorize("hasAuthority('admin:copyright:update:company:info')")
-    @ApiOperation(value = "编辑公司版权信息")
+    @ApiOperation(value = "编辑公司名称与图片")
     @RequestMapping(value = "/update/company/info", method = RequestMethod.POST)
     public CommonResult<Object> updateCompanyInfo(@RequestBody @Validated CopyrightUpdateInfoRequest request) {
         if (copyrightService.updateCompanyInfo(request)) {

@@ -25,7 +25,7 @@ export function isLogin() {
 }
 
 /**
- * @description 获取授权
+ * @description 获取公司版权信息
  */
 export function getCopyrightInfo() {
   return new Promise((resolve, reject) => {

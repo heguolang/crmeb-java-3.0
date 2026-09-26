@@ -18,17 +18,17 @@ import com.qxkj.admin.copyright.CopyrightUpdateInfoRequest;
 public interface CopyrightService {
 
     /**
-     * 获取版权信息
+     * 获取公司名称与图片
      */
     CopyrightInfoResponse getInfo();
 
     /**
-     * 编辑公司版权信息
+     * 编辑公司名称与图片
      */
     Boolean updateCompanyInfo(CopyrightUpdateInfoRequest request);
 
     /**
-     * 获取商户版权信息
+     * 获取公司名称
      */
     String getCompanyInfo();
 }

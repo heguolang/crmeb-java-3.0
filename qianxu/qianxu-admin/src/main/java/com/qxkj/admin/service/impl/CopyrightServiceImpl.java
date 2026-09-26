@@ -4,8 +4,6 @@ import cn.hutool.core.util.StrUtil;
 import com.qxkj.admin.copyright.CopyrightInfoResponse;
 import com.qxkj.admin.copyright.CopyrightUpdateInfoRequest;
 import com.qxkj.admin.service.CopyrightService;
-import com.qxkj.common.config.QianxuConfig;
-import com.qxkj.common.constants.Constants;
 import com.qxkj.common.constants.SysConfigConstants;
 import com.qxkj.service.service.SystemConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,24 +27,13 @@ public class CopyrightServiceImpl implements CopyrightService {
 
     @Autowired
     private SystemConfigService systemConfigService;
-    @Autowired
-    private QianxuConfig qianxuConfig;
 
     /**
-     * 获取版权信息（本地返回，不请求任何第三方接口）
+     * 获取公司版权信息（仅本地配置，无授权校验/外网请求）
      */
     @Override
     public CopyrightInfoResponse getInfo() {
         CopyrightInfoResponse response = new CopyrightInfoResponse();
-        String domainName = systemConfigService.getValueByKey(Constants.CONFIG_KEY_API_URL);
-        response.setDomainUrl(domainName);
-        String label = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_COPYRIGHT_LABEL);
-        response.setLabel(StrUtil.isBlank(label) ? 1 : Integer.parseInt(label));
-        String version = qianxuConfig.getVersion();
-        response.setVersion(version);
-        response.setStatus(1);
-        response.setCopyright("贵州黔序科技有限公司");
-        response.setAuthCode("");
         response.setCompanyName(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_COPYRIGHT_COMPANY_INFO));
         response.setCompanyImage(systemConfigService.getValueByKey(SysConfigConstants.CONFIG_COPYRIGHT_COMPANY_IMAGE));
         return response;
@@ -65,7 +52,7 @@ public class CopyrightServiceImpl implements CopyrightService {
     }
 
     /**
-     * 获取商户版权信息
+     * 获取商户公司名称
      */
     @Override
     public String getCompanyInfo() {
