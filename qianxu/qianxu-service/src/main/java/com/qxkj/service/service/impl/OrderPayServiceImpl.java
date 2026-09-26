@@ -218,15 +218,56 @@ public class OrderPayServiceImpl implements OrderPayService {
         String payWxOpen = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_PAY_WEIXIN_OPEN);
         String yuePayStatus = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_YUE_PAY_STATUS);
         String aliPayStatus = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_ALI_PAY_STATUS);
+        String routinePayStatus = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_ROUTINE_PAY_STATUS);
+        String payWeixinAppStatus = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_PAY_WEIXIN_APP_STATUS);
         PayConfigResponse response = new PayConfigResponse();
         response.setYuePayStatus(Constants.CONFIG_FORM_SWITCH_OPEN.equals(yuePayStatus));
         response.setPayWechatOpen(Constants.CONFIG_FORM_SWITCH_OPEN.equals(payWxOpen));
         response.setAliPayStatus(Constants.CONFIG_FORM_SWITCH_OPEN.equals(aliPayStatus));
+        // 小程序/APP 微信支付分渠道开关；未配置时默认跟随总开关（兼容老数据）
+        response.setRoutinePayStatus(routinePayStatus == null || routinePayStatus.isEmpty()
+                ? response.getPayWechatOpen() : Constants.CONFIG_FORM_SWITCH_OPEN.equals(routinePayStatus));
+        response.setPayWeixinAppStatus(payWeixinAppStatus == null || payWeixinAppStatus.isEmpty()
+                ? response.getPayWechatOpen() : Constants.CONFIG_FORM_SWITCH_OPEN.equals(payWeixinAppStatus));
         if (Constants.CONFIG_FORM_SWITCH_OPEN.equals(yuePayStatus)) {
             User user = userService.getInfo();
             response.setUserBalance(user.getNowMoney());
         }
         return response;
+    }
+
+    /**
+     * 支付方式开关校验：后台配置关闭的支付方式直接拒绝发起支付
+     * 规则：仅当开关明确为关闭(0)时拦截；未配置或为 1 均视为开启（兼容老数据）
+     */
+    private void checkPaySwitch(String payType, String payChannel) {
+        String key = null;
+        if (PayConstants.PAY_TYPE_YUE.equals(payType)) {
+            key = SysConfigConstants.CONFIG_YUE_PAY_STATUS;
+        } else if (PayConstants.PAY_TYPE_WE_CHAT.equals(payType)) {
+            if (PayConstants.PAY_CHANNEL_WE_CHAT_PROGRAM.equals(payChannel)) {
+                key = SysConfigConstants.CONFIG_ROUTINE_PAY_STATUS;
+            } else if (PayConstants.PAY_CHANNEL_WE_CHAT_APP_IOS.equals(payChannel)
+                    || PayConstants.PAY_CHANNEL_WE_CHAT_APP_ANDROID.equals(payChannel)) {
+                key = SysConfigConstants.CONFIG_PAY_WEIXIN_APP_STATUS;
+            } else {
+                key = SysConfigConstants.CONFIG_PAY_WEIXIN_OPEN;
+            }
+            // 微信总开关关闭则全渠道拒绝
+            String wxOpen = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_PAY_WEIXIN_OPEN);
+            if ("0".equals(wxOpen)) {
+                throw new QianxuException("微信支付暂未开启，请联系管理员");
+            }
+        } else if (PayConstants.PAY_TYPE_ALI_PAY.equals(payType)) {
+            key = SysConfigConstants.CONFIG_ALI_PAY_STATUS;
+        }
+        if (key == null) {
+            return;
+        }
+        String value = systemConfigService.getValueByKey(key);
+        if ("0".equals(value)) {
+            throw new QianxuException("该支付方式暂未开启，请联系管理员");
+        }
     }
 
     /**
@@ -1033,6 +1074,8 @@ public class OrderPayServiceImpl implements OrderPayService {
 //        }
         // 根据支付类型进行校验,更换支付类型
         storeOrder.setPayType(orderPayRequest.getPayType());
+        // 支付方式开关校验：后台关闭的支付方式直接拒绝（不接入）
+        checkPaySwitch(orderPayRequest.getPayType(), orderPayRequest.getPayChannel());
         // 余额支付
         if (orderPayRequest.getPayType().equals(PayConstants.PAY_TYPE_YUE)) {
             if (user.getNowMoney().compareTo(storeOrder.getPayPrice()) < 0) {

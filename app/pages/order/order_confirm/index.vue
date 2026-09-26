@@ -188,6 +188,8 @@
 	} from '@/utils/validate.js'
 	// 开关值兼容：后端/历史脏数据可能给到 1 / '1' / "'1'" / true
 	const paySwitchOn = (v) => v === true || v === 1 || Number(String(v).replace(/[^0-9]/g, '')) === 1;
+	// 分渠道支付开关容错：老后端无该字段（undefined/null/空串）视为开启
+	const payChannelSwitchOn = (v) => v === undefined || v === null || v === '' || paySwitchOn(v);
 	let app = getApp();
 	export default {
 		components: {
@@ -379,7 +381,16 @@
 					this.orderProNum = orderInfoVo.orderProNum;
 					this.cartArr[1].title = '可用余额:' + orderInfoVo.userBalance;
 					this.cartArr[1].payStatus = paySwitchOn(res.data.yuePayStatus) ? 1 : 2;
+					// 微信支付：总开关 + 当前渠道开关（小程序看 routinePayStatus / APP 看 payWeixinAppStatus）
+					// #ifdef MP
+					this.cartArr[0].payStatus = (paySwitchOn(res.data.payWeixinOpen) && payChannelSwitchOn(res.data.routinePayStatus)) ? 1 : 0;
+					// #endif
+					// #ifdef APP-PLUS
+					this.cartArr[0].payStatus = (paySwitchOn(res.data.payWeixinOpen) && payChannelSwitchOn(res.data.payWeixinAppStatus)) ? 1 : 0;
+					// #endif
+					// #ifdef H5
 					this.cartArr[0].payStatus = paySwitchOn(res.data.payWeixinOpen) ? 1 : 0;
+					// #endif
 					this.getaddressInfo();
 					// #ifdef H5
 					if (this.$wechat.isWeixin()) this.cartArr.pop();

@@ -35,6 +35,8 @@
 	} from "vuex";
 	// 开关值兼容：后端/历史脏数据可能给到 1 / '1' / "'1'" / true
 	const paySwitchOn = (v) => v === true || v === 1 || Number(String(v).replace(/[^0-9]/g, '')) === 1;
+	// 分渠道支付开关容错：老后端无该字段（undefined/null/空串）视为开启
+	const payChannelSwitchOn = (v) => v === undefined || v === null || v === '' || paySwitchOn(v);
 	export default {
 		props: {
 			pay_close: {
@@ -93,12 +95,25 @@
 					action: 'payClose'
 				});
 			},
-			payConfig(){
-				getPayConfig().then(res=>{
-					this.payMode[1].payStatus = paySwitchOn(res.data.yuePayStatus) ? 1 : 2;
-					this.payMode[0].payStatus = paySwitchOn(res.data.payWeixinOpen) ? 1 : 0;
-				})
-			},
+		payConfig(){
+			getPayConfig().then(res=>{
+				this.payMode[1].payStatus = paySwitchOn(res.data.yuePayStatus) ? 1 : 2;
+				// 微信支付：总开关 + 当前渠道开关（小程序看 routinePayStatus / APP 看 payWeixinAppStatus / H5 只看总开关）
+				// #ifdef MP
+				this.payMode[0].payStatus = (paySwitchOn(res.data.payWeixinOpen) && payChannelSwitchOn(res.data.routinePayStatus)) ? 1 : 0;
+				// #endif
+				// #ifdef H5
+				this.payMode[0].payStatus = paySwitchOn(res.data.payWeixinOpen) ? 1 : 0;
+				// #endif
+				// #ifdef APP-PLUS
+				this.payMode[0].payStatus = (paySwitchOn(res.data.payWeixinOpen) && payChannelSwitchOn(res.data.payWeixinAppStatus)) ? 1 : 0;
+				// #endif
+				// 支付宝支付开关（小程序端无支付宝，payMode[2] 仅 H5/APP 存在）
+				// #ifndef MP
+				this.payMode[2].payStatus = paySwitchOn(res.data.aliPayStatus) ? 1 : 0;
+				// #endif
+			})
+		},
 			goPay: function(number, paytype) {
 				let that = this;
 				let goPages = '/pages/order/order_pay_status/index?order_id=' + that.order_id;

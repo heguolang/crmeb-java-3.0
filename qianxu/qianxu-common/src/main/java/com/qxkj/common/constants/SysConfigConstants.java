@@ -158,6 +158,10 @@ public class SysConfigConstants {
     public static final String CONFIG_YUE_PAY_STATUS  = "yue_pay_status";
     /** 支付宝支付状态 */
     public static final String CONFIG_ALI_PAY_STATUS = "ali_pay_status";
+    /** 小程序微信支付开关（关闭后小程序端不显示微信支付且不可发起） */
+    public static final String CONFIG_ROUTINE_PAY_STATUS = "routine_pay_status";
+    /** 微信APP支付开关（关闭后APP端不显示微信支付且不可发起） */
+    public static final String CONFIG_PAY_WEIXIN_APP_STATUS = "pay_weixin_app_status";
 
     /** 版权-授权标签 */
     public static final String CONFIG_COPYRIGHT_LABEL = "copyright_label";

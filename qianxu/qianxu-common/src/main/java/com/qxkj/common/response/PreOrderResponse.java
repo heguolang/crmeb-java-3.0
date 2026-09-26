@@ -47,4 +47,10 @@ public class PreOrderResponse implements Serializable {
     @ApiModelProperty(value = "支付宝支付 1 开启 0 关闭")
     private String aliPayStatus;
 
+    @ApiModelProperty(value = "小程序微信支付 1 开启 0 关闭")
+    private String routinePayStatus;
+
+    @ApiModelProperty(value = "微信APP支付 1 开启 0 关闭")
+    private String payWeixinAppStatus;
+
 }

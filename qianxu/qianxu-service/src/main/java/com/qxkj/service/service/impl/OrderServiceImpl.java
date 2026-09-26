@@ -947,10 +947,17 @@ public class OrderServiceImpl implements OrderService {
         PreOrderResponse preOrderResponse = new PreOrderResponse();
         preOrderResponse.setOrderInfoVo(orderInfoVo);
         String payWeixinOpen = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_PAY_WEIXIN_OPEN);
+        String routinePayStatus = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_ROUTINE_PAY_STATUS);
+        String payWeixinAppStatus = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_PAY_WEIXIN_APP_STATUS);
+        // 未配置的新开关默认跟随微信支付总开关（兼容老数据）
+        String routineVal = (routinePayStatus == null || routinePayStatus.isEmpty()) ? payWeixinOpen : routinePayStatus;
+        String appVal = (payWeixinAppStatus == null || payWeixinAppStatus.isEmpty()) ? payWeixinOpen : payWeixinAppStatus;
         if (orderInfoVo.getIsVideo()) {
             // 关闭余额支付和到店自提
             preOrderResponse.setYuePayStatus("0");
             preOrderResponse.setPayWeixinOpen(payWeixinOpen);
+            preOrderResponse.setRoutinePayStatus(routineVal);
+            preOrderResponse.setPayWeixinAppStatus(appVal);
             preOrderResponse.setStoreSelfMention("false");
             preOrderResponse.setAliPayStatus("0");
             return preOrderResponse;
@@ -960,6 +967,8 @@ public class OrderServiceImpl implements OrderService {
         String aliPayStatus = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_ALI_PAY_STATUS);// 1开启
         preOrderResponse.setYuePayStatus(yuePayStatus);
         preOrderResponse.setPayWeixinOpen(payWeixinOpen);
+        preOrderResponse.setRoutinePayStatus(routineVal);
+        preOrderResponse.setPayWeixinAppStatus(appVal);
         preOrderResponse.setStoreSelfMention(storeSelfMention);
         preOrderResponse.setAliPayStatus(aliPayStatus);
         return preOrderResponse;

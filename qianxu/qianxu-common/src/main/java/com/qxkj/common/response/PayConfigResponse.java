@@ -32,11 +32,17 @@ public class PayConfigResponse implements Serializable {
     @ApiModelProperty(value = "余额支付")
     private Boolean yuePayStatus;
 
-    @ApiModelProperty(value = "微信支付")
+    @ApiModelProperty(value = "微信支付（公众号/H5总开关）")
     private Boolean payWechatOpen;
 
     @ApiModelProperty(value = "支付宝支付")
     private Boolean aliPayStatus;
+
+    @ApiModelProperty(value = "小程序微信支付开关")
+    private Boolean routinePayStatus;
+
+    @ApiModelProperty(value = "微信APP支付开关")
+    private Boolean payWeixinAppStatus;
 
     @ApiModelProperty(value = "用户余额")
     private BigDecimal userBalance;

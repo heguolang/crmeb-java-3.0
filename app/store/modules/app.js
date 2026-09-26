@@ -26,6 +26,10 @@ import Cache from '../../utils/cache';
 import {
 	USER_INFO
 } from '../../config/cache';
+// 开关值兼容：后端/历史脏数据可能给到 1 / '1' / "'1'" / true
+const paySwitchOn = (v) => v === true || v === 1 || Number(String(v).replace(/[^0-9]/g, '')) === 1;
+// 分渠道支付开关容错：老后端无该字段（undefined/null/空串）视为开启
+const payChannelSwitchOn = (v) => v === undefined || v === null || v === '' || paySwitchOn(v);
 let cartArr = [{
 		name: "微信支付",
 		icon: "icon-weixinzhifu1",
@@ -145,7 +149,16 @@ const actions = {
 		return new Promise(reslove => {
 			getOrderPayConfig().then(res => {
 				let data = res.data;
-				cartArr[0].payStatus = data.payWechatOpen ? 1 : 0;
+				// 微信支付：总开关 + 当前渠道开关（小程序看 routinePayStatus / APP 看 payWeixinAppStatus / H5 只看总开关）
+				// #ifdef MP
+				cartArr[0].payStatus = (paySwitchOn(data.payWechatOpen) && payChannelSwitchOn(data.routinePayStatus)) ? 1 : 0;
+				// #endif
+				// #ifdef H5
+				cartArr[0].payStatus = paySwitchOn(data.payWechatOpen) ? 1 : 0;
+				// #endif
+				// #ifdef APP-PLUS
+				cartArr[0].payStatus = (paySwitchOn(data.payWechatOpen) && payChannelSwitchOn(data.payWeixinAppStatus)) ? 1 : 0;
+				// #endif
 				cartArr[1].payStatus = data.yuePayStatus ? 1 : 0;
 				cartArr[1].userBalance = data.userBalance ? data.userBalance : 0;
 				// #ifdef H5
