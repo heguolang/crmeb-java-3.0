@@ -29,8 +29,7 @@
     "ignore": [],
     "include": []
   },
-  "appid": "wx2ce61fcc6fc5f952",
+  "appid": "wx358fa681886f60cc",
   "editorSetting": {},
-  "libVersion": "3.10.3",
-	"miniprogramRoot": "./unpackage/dist/dev/mp-weixin"
+  "libVersion": "3.10.3"
 }
