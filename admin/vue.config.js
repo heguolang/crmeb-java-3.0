@@ -39,7 +39,7 @@ module.exports = {
     },
     // 本地开发：图片等静态资源由后端(8080)提供，避免走 SPA 回退返回 index.html
     proxy: {
-      '/crmebimage': {
+      '/qianxuimage': {
         target: 'http://127.0.0.1:8080',
         changeOrigin: true,
       },

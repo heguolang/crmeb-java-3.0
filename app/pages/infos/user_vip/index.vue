@@ -38,31 +38,31 @@
 				<view class="vipList acea-row">
 					<view class="item">
 						<view class="pictrue">
-							<image :src="urlDomain+'crmebimage/perset/usersImg/vip01.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/usersImg/vip01.png'"></image>
 						</view>
 						<view class="name">会员折扣</view>
 					</view>
 					<view class="item">
 						<view class="pictrue">
-							<image :src="urlDomain+'crmebimage/perset/usersImg/vip02.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/usersImg/vip02.png'"></image>
 						</view>
 						<view class="name">专属徽章</view>
 					</view>
 					<view class="item">
 						<view class="pictrue">
-							<image :src="urlDomain+'crmebimage/perset/usersImg/vip03.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/usersImg/vip03.png'"></image>
 						</view>
 						<view class="name">会员升级</view>
 					</view>
 					<view class="item">
 						<view class="pictrue">
-							<image :src="urlDomain+'crmebimage/perset/usersImg/vip04.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/usersImg/vip04.png'"></image>
 						</view>
 						<view class="name">经验积累</view>
 					</view>
 					<view class="item">
 						<view class="pictrue">
-							<image :src="urlDomain+'crmebimage/perset/usersImg/vip05.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/usersImg/vip05.png'"></image>
 						</view>
 						<view class="name">更多特权</view>
 					</view>

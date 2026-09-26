@@ -94,7 +94,7 @@ public class SystemAttachmentServiceImpl extends ServiceImpl<SystemAttachmentDao
     @Override
     public String prefixUploadf(String path) {
         // 如果那些域名不需要加，则跳过
-        return prefixRelativePath(path, "crmebimage/" + UploadConstants.UPLOAD_AFTER_FILE_KEYWORD + "/", getCdnUrl());
+        return prefixRelativePath(path, UploadConstants.UPLOAD_FILE_KEYWORD + "/" + UploadConstants.UPLOAD_AFTER_FILE_KEYWORD + "/", getCdnUrl());
     }
 
     /**
@@ -106,13 +106,13 @@ public class SystemAttachmentServiceImpl extends ServiceImpl<SystemAttachmentDao
     public String prefixFile(String path) {
         if (path.contains(Constants.WECHAT_SOURCE_CODE_FILE_NAME)) {
             String cdnUrl = systemConfigService.getValueByKey("local" + "UploadUrl");
-            return prefixRelativePath(path, "crmebimage/", cdnUrl);
+            return prefixRelativePath(path, UploadConstants.UPLOAD_FILE_KEYWORD + "/", cdnUrl);
         }
         if (path.contains("downloadf/excel")) {
             String cdnUrl = systemConfigService.getValueByKey("local" + "UploadUrl");
-            return prefixRelativePath(path, "crmebimage/downloadf/", cdnUrl);
+            return prefixRelativePath(path, UploadConstants.UPLOAD_FILE_KEYWORD + "/downloadf/", cdnUrl);
         }
-        return prefixRelativePath(path, "crmebimage/file/", getCdnUrl());
+        return prefixRelativePath(path, UploadConstants.UPLOAD_FILE_KEYWORD + "/file/", getCdnUrl());
     }
 
     private String prefixRelativePath(String data, String pathKeyword, String prefix) {

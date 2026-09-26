@@ -15,7 +15,7 @@ package com.qxkj.common.constants;
 public class UploadConstants {
 
     /** 文件上传关键字 */
-    public static final String UPLOAD_FILE_KEYWORD = "crmebimage";
+    public static final String UPLOAD_FILE_KEYWORD = "qianxuimage";
 
     /** 文件导出下载拦截关键字 */
     public static final String DOWNLOAD_FILE_KEYWORD = "downloadf";

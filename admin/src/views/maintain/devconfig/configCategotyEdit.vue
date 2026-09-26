@@ -56,7 +56,7 @@
 
 <script>
 import * as categoryApi from '@/api/categoryApi.js';
-import * as selfUtil from '@/utils/ZBKJIutil.js';
+import * as selfUtil from '@/utils/QXKJUtil.js';
 import { Debounce } from '@/utils/validate';
 export default {
   // name: "configCategotyEdit"

@@ -1008,7 +1008,7 @@ import { marketingSendApi } from '@/api/marketing';
 import { shippingTemplatesList } from '@/api/logistics';
 import { goodDesignList } from '@/api/systemGroup';
 import { arraysEqual } from '@/utils';
-import { clearTreeData } from '@/utils/ZBKJIutil';
+import { clearTreeData } from '@/utils/QXKJUtil';
 import CreatTemplates from '@/views/systemSetting/deliverGoods/freightSet/creatTemplates';
 import creatAttr from '../components/creatAttr';
 import Templates from '../../appSetting/wxAccount/wxTemplate/index';

@@ -26,9 +26,9 @@ public class GetJSConfig {
     @Autowired
     private SystemConfigService systemConfigService;
 
-    @PreAuthorize("hasAuthority('public:jsconfig:getcrmebchatconfig')")
+    @PreAuthorize("hasAuthority('public:jsconfig:getqianxuchatconfig')")
     @ApiOperation(value = "客服统计")
-    @RequestMapping(value = "/getcrmebchatconfig", method = RequestMethod.GET)
+    @RequestMapping(value = "/getqianxuchatconfig", method = RequestMethod.GET)
     public String set(){
         return systemConfigService.getValueByKey(Constants.JS_CONFIG_QIANXU_CHAT_TONGJI);
     }

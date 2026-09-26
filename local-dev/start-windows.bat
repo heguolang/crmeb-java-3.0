@@ -3,7 +3,7 @@ REM ============================================================
 REM  QIANXU Java 3.0  -  Windows local dev launcher
 REM  Starts: MySQL 8.0(3306) -> Redis(6379) -> Admin API(8080)
 REM          -> Front API(8081) -> Admin Web(9527)
-REM  DB     : Windows service "MySQL80" (auto-start), root/123456, db crmeb
+REM  DB     : Windows service "MySQL80" (auto-start), root/123456, db qianxu
 REM  Logs   : D:\qianxu-java-3.0\local-dev\logs
 REM ============================================================
 setlocal
@@ -20,7 +20,13 @@ set "SERVER_PORT="
 REM Force UTF-8: on Chinese Windows Java 8 defaults to GBK, which garbles all JSON output
 set "JAVA_OPTS=-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
 REM demoSite=false -> show full phone numbers (true masks them as 139****0004)
-set "DEMO_FLAG=--crmeb.demoSite=false"
+set "DEMO_FLAG=--qianxu.demoSite=false"
+REM 可选：加载本地开放平台地址（文件不入库）
+if exist "%PROJ%\local-dev\one-pass.local.env" (
+  for /f "usebackq eol=# tokens=1,* delims==" %%a in ("%PROJ%\local-dev\one-pass.local.env") do (
+    if not "%%a"=="" set "%%a=%%b"
+  )
+)
 
 if not exist "%LOGS%" mkdir "%LOGS%"
 
@@ -75,7 +81,7 @@ echo ================= Service URLs =================
 echo Admin web      : http://127.0.0.1:9527   (admin / 123456)
 echo Admin API      : http://127.0.0.1:8080   docs http://127.0.0.1:8080/doc.html
 echo Front API      : http://127.0.0.1:8081
-echo MySQL 8.0      : 127.0.0.1:3306  root / 123456  db crmeb   (service %MYSQL_SVC%)
+echo MySQL 8.0      : 127.0.0.1:3306  root / 123456  db qianxu   (service %MYSQL_SVC%)
 echo Redis          : 127.0.0.1:6379  password 123456
 echo Logs           : %LOGS%
 echo ===============================================

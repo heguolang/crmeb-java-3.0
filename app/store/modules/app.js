@@ -14,8 +14,7 @@ import {
 	getOrderPayConfig
 } from '../../api/order.js';
 import {
-	getUserInfo,
-	computeUser
+	getUserInfo
 } from "../../api/user.js";
 import {
 	LOGIN_STATUS,

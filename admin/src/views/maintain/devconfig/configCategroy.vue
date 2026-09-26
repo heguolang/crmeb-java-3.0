@@ -98,7 +98,7 @@
 <script>
 import * as categoryApi from '@/api/categoryApi.js';
 import edit from '@/views/maintain/devconfig/configCategotyEdit.vue';
-import * as selfUtil from '@/utils/ZBKJIutil.js';
+import * as selfUtil from '@/utils/QXKJUtil.js';
 import configList from './configList';
 import formConfigList from '@/views/maintain/formConfig';
 export default {

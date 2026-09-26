@@ -5,10 +5,10 @@
 		<!-- #ifdef MP -->
 		<view class="title-bar" style="height: 43px;">
 			<view class="icon" @click="back" v-if="!isHome">
-				<image class="img" :src="urlDomain+'crmebimage/perset/usersImg/left.png'"></image>
+				<image class="img" :src="urlDomain+'qianxuimage/perset/usersImg/left.png'"></image>
 			</view>
 			<view class="icon" @click="home" v-else>
-				<image class="img" :src="urlDomain+'crmebimage/perset/usersImg/home.png'"></image>
+				<image class="img" :src="urlDomain+'qianxuimage/perset/usersImg/home.png'"></image>
 			</view>
 			账户登录
 		</view>

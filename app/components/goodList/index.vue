@@ -14,7 +14,7 @@
 						<view class='line1'>{{item.storeName}}</view>
 						<view class='money'>￥<text class='num'>{{item.price}}</text></view>
 						<view class='vip-money acea-row row-middle' v-if="item.vip_price && item.vip_price > 0">￥{{item.vip_price || 0}}
-							<image :src="urlDomain+'crmebimage/perset/staticImg/vip.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/vip.png'"></image>
 							<text class='num' v-if="status == 0">已售{{Number(item.sales) || 0}}{{item.unitName}}</text>
 							<text class="num line_thr" v-if="status == 1">{{item.otPrice}}</text>
 						</view>

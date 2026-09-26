@@ -51,8 +51,8 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${swagger.basic.check}")
     private Boolean check;
 
-    /** 服务器图片根路径（crmebimage 的上级目录，斜杠结尾） */
-    @Value("${crmeb.imagePath}")
+    /** 服务器图片根路径（qianxuimage 的上级目录，斜杠结尾） */
+    @Value("${qianxu.imagePath}")
     private String imagePath;
 
 
@@ -141,7 +141,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/webjars/**")
                 .addResourceLocations("classpath:/META-INF/resources/webjars/");
 
-        /** 本地文件上传路径 crmebimage */
+        /** 本地文件上传路径 qianxuimage */
         registry.addResourceHandler(UploadConstants.UPLOAD_FILE_KEYWORD + "/**")
                 .addResourceLocations("file:" + imagePath + "/" + UploadConstants.UPLOAD_FILE_KEYWORD + "/");
 

@@ -43,7 +43,7 @@ public class SwaggerConfig{
     @Value("${server.port}")
     private String port;
 
-    @Value("${crmeb.domain}")
+    @Value("${qianxu.domain}")
     private String domain;
 
     @Bean("admin")

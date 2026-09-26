@@ -1,7 +1,7 @@
 -- ============================================================
 -- 本地开发：把「图片上传域名」切到本机局域网 IP
 -- 用法：改下面一行 @LOCAL_IP 即可（ipconfig 查 IPv4）
--- 执行：D:/env/mysql-8.0.29-winx64/bin/mysql.exe -uroot -p123456 crmeb < local_upload_domain.sql
+-- 执行：D:/env/mysql-8.0.29-winx64/bin/mysql.exe -uroot -p123456 qianxu < local_upload_domain.sql
 --
 -- ⚠️ 必须做第二步：清 Redis 配置缓存，否则接口仍返回旧域名
 --    redis-cli -a 123456 -n 7  DEL config_list

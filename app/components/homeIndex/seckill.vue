@@ -101,7 +101,7 @@
 				return {
 					borderRadius: this.dataConfig.bgStyle.val * 2 + 'rpx' + ' ' + this.dataConfig.bgStyle.val * 2 + 'rpx' +
 						' ' + 0 + ' ' + 0,
-					backgroundImage: `url(${this.urlDomain}crmebimage/presets/seckill_bg_pic.png),linear-gradient(${this.dataConfig.bgColor.color[0].item}, ${this.dataConfig.bgColor.color[1].item})`
+					backgroundImage: `url(${this.urlDomain}qianxuimage/presets/seckill_bg_pic.png),linear-gradient(${this.dataConfig.bgColor.color[0].item}, ${this.dataConfig.bgColor.color[1].item})`
 				}
 			},
 			//最外层盒子的样式

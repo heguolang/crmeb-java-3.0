@@ -1,7 +1,7 @@
 <template>
 	<view :data-theme="theme">
 		<view class='line'>
-			<image :src="urlDomain+'crmebimage/perset/staticImg/line.jpg'" v-if="addressList.length"></image>
+			<image :src="urlDomain+'qianxuimage/perset/staticImg/line.jpg'" v-if="addressList.length"></image>
 		</view>
 		<view class='address-management' :class='addressList.length < 1 && page > 1 ? "fff":""'>
 			<radio-group class="radio-group" @change="radioChange" v-if="addressList.length">
@@ -33,7 +33,7 @@
 			</view>
 			<view class='noCommodity' v-if="addressList.length < 1 && page > 1">
 				<view class='pictrue'>
-					<image :src="urlDomain+'crmebimage/perset/staticImg/noAddress.png'"></image>
+					<image :src="urlDomain+'qianxuimage/perset/staticImg/noAddress.png'"></image>
 				</view>
 			</view>
 			<view style='height:120rpx;'></view>

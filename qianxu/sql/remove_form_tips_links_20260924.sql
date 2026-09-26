@@ -5,7 +5,7 @@
 --
 -- 说明：
 -- 1) 关闭 tips / tipsIsLink，并清空「点击查看详细」文案
--- 2) tipsLink（help.crmeb.net）需配合脚本 _clean_tips_links.ps1 清空
+-- 2) tipsLink（www.qianxutec.com）需配合脚本 _clean_tips_links.ps1 清空
 --    或依赖前端 Parser.vue 已不再渲染 tipsIsLink 链接
 -- ============================================================
 

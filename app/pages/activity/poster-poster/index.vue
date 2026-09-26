@@ -33,7 +33,7 @@
 				from:'',
 				storeCombination: {},
 				qrcodeSize: 600,
-				posterbackgd: `${this.$Cache.get("imgHost")}crmebimage/perset/staticImg/canbj.png`,
+				posterbackgd: `${this.$Cache.get("imgHost")}qianxuimage/perset/staticImg/canbj.png`,
 				PromotionCode: '',//二维码
 				canvasStatus: false,
 				imgTop: '' //商品图base64位

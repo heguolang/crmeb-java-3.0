@@ -30,18 +30,10 @@ build/
 
 ### VS Code ###
 .vscode/
-/crmeb_log/log_debug.log
-/crmeb_log/log_error.log
-/crmeb_log/log_info.log
-/crmeb_log/log_warn.log
-/crmeb_log/
+/qianxu_log/log_debug.log
+/qianxu_log/log_error.log
+/qianxu_log/log_info.log
+/qianxu_log/log_warn.log
+/qianxu_log/
 /.idea/
-src/main/java/com/zbkj/.DS_Store
-src/main/java/com/.DS_Store
-src/main/java/.DS_Store
-src/main/.DS_Store
 .DS_Store
-
-
-
-xx

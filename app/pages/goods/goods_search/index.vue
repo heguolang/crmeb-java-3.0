@@ -36,7 +36,7 @@
 		</view>
 		<view class='noCommodity'>
 			<view class='pictrue'  v-if="bastList.length == 0 && isbastList">
-				<image :src="urlDomain+'crmebimage/perset/staticImg/noSearch.png'"></image>
+				<image :src="urlDomain+'qianxuimage/perset/staticImg/noSearch.png'"></image>
 			</view>
 			<recommend ref="recommendIndex" v-if="bastList.length == 0"></recommend>
 		</view>

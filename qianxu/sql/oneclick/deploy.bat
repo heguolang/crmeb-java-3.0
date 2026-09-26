@@ -17,9 +17,9 @@ REM ------ 请按服务器修改 ------
 set MYSQL_BIN=mysql
 set MYSQL_HOST=127.0.0.1
 set MYSQL_PORT=3306
-set MYSQL_USER=crmeb_java3
+set MYSQL_USER=qianxu_java3
 set MYSQL_PWD=ktXMTiAxTTyMyPKk
-set DB_NAME=crmeb_java3
+set DB_NAME=qianxu_java3
 set MODE=all
 REM ----------------------------
 

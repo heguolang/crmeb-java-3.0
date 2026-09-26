@@ -447,14 +447,6 @@ export function getuserDalance()
 	return request.get("user/balance");
 }
 
-/*
-统计（原 QIANXU 官方统计上报接口已移除）
-*
-*/
-export function computeUser(){
-	// 黔序商城：不再向任何第三方上报站点信息
-}
-
 /**
  * 账单记录；
  * 

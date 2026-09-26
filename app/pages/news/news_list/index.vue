@@ -41,7 +41,7 @@
 		</view>
 		<view class='noCommodity' v-if="articleList.length == 0 && (page != 1 || active== 0) && isShow">
 			<view class='pictrue'>
-				<image :src="urlDomain+'crmebimage/perset/staticImg/noNews.png'"></image>
+				<image :src="urlDomain+'qianxuimage/perset/staticImg/noNews.png'"></image>
 			</view>
 		</view>
 	</view>

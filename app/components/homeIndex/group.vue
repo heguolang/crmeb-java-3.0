@@ -161,7 +161,7 @@
 					</view>
 				</scroll-view>
 			</view>
-			<emptyPage :mTop="'0'" v-if="groupProductList.length==0" title="暂无拼团商品，去看看其他商品吧~～" :imgSrc="urlDomain+'crmebimage/presets/noActivity.png'"></emptyPage>
+			<emptyPage :mTop="'0'" v-if="groupProductList.length==0" title="暂无拼团商品，去看看其他商品吧~～" :imgSrc="urlDomain+'qianxuimage/presets/noActivity.png'"></emptyPage>
 		</view>
 	</view>
 </template>

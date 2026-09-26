@@ -101,7 +101,7 @@
 <script>
 import * as articleApi from '@/api/article.js';
 import * as categoryApi from '@/api/categoryApi.js';
-import * as selfUtil from '@/utils/ZBKJIutil.js';
+import * as selfUtil from '@/utils/QXKJUtil.js';
 import edit from './edit';
 export default {
   // name: "list",

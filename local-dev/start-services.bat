@@ -8,7 +8,7 @@ set "SERVER_PORT="
 if not exist "%LOGS%" mkdir "%LOGS%"
 
 set "JAVA_OPTS=-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"
-set "DEMO_FLAG=--crmeb.demoSite=false"
+set "DEMO_FLAG=--qianxu.demoSite=false"
 
 echo [1/3] Redis 6379 ...
 netstat -ano | findstr /C:":6379 " | findstr LISTENING >nul

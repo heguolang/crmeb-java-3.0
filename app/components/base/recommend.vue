@@ -2,9 +2,9 @@
 	<view class='recommend'>
 		<block v-if="tempArr.length">
 			<view v-if="isShowTitle" class="flex-center recommend-box mt-20 mb-24">
-				<image :src="`${urlDomain}crmebimage/presets/haowuzuo.png`"></image>
+				<image :src="`${urlDomain}qianxuimage/presets/haowuzuo.png`"></image>
 				<view class="f-s-32 lh-44rpx ml-4">热门推荐</view>
-				<image class="ml-6" :src="`${urlDomain}crmebimage/presets/haowuyou.png`"></image>
+				<image class="ml-6" :src="`${urlDomain}qianxuimage/presets/haowuyou.png`"></image>
 			</view>
 			<view class='recommendList borderPad' :class="isShowTitle?'':'mt30'">
 				<WaterfallsFlow :wfList='tempArr' :type="1" :isStore="1">

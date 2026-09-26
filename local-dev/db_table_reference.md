@@ -1,6 +1,6 @@
 # QIANXU Java 3.0 数据库表清单
 
-> 库名 `qianxu`（线上 `crmeb_java3`），共 150 张基础表，全部已带中文备注。
+> 库名 `qianxu`（线上 `qianxu_java3`），共 150 张基础表，全部已带中文备注。
 > 表备注由 `qianxu/sql/table_comments_20260923.sql` 幂等维护，已并入 `qianxu/sql/oneclick/02_patches_all.sql`。
 
 ## 模块索引

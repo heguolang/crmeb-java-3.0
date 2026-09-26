@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""对 ALL_IN_ONE 建出的库与基线库（本地 crmeb = 线上快照）做结构级 diff。
+"""对 ALL_IN_ONE 建出的库与基线库（本地 qianxu = 线上快照）做结构级 diff。
 
 四级：
   ① 表清单
@@ -49,8 +49,8 @@ def counts(db, tbls):
 
 
 def main():
-    tgt = sys.argv[1] if len(sys.argv) > 1 else "crmeb_java3"
-    base = sys.argv[2] if len(sys.argv) > 2 else "crmeb"
+    tgt = sys.argv[1] if len(sys.argv) > 1 else "qianxu_java3"
+    base = sys.argv[2] if len(sys.argv) > 2 else "qianxu"
 
     tb_t, tb_b = tables(tgt), tables(base)
     print("=" * 74)

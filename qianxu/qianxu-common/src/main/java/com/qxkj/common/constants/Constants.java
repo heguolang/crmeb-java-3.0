@@ -60,7 +60,7 @@ public class Constants {
 
 
     //用户登录密码加密混淆字符串
-    public static final String USER_LOGIN_PASSWORD_MD5_KEYWORDS = "crmeb";
+    public static final String USER_LOGIN_PASSWORD_MD5_KEYWORDS = "qianxu";
 
     //用户登token redis存储前缀
     public static final String USER_TOKEN_REDIS_KEY_PREFIX = "TOKEN_USER:";
@@ -582,7 +582,7 @@ public class Constants {
 
     /** 公共JS配置 */
     // QIANXU chat 统计
-    public  static final String JS_CONFIG_QIANXU_CHAT_TONGJI = "crmeb_tongji_js";
+    public  static final String JS_CONFIG_QIANXU_CHAT_TONGJI = "qianxu_tongji_js";
 
     /** 小程序源码包文件名 */
     public static final String WECHAT_SOURCE_CODE_FILE_NAME = "/mp-weixin-target.zip";

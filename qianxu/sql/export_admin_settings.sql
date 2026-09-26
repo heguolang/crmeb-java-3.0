@@ -617,10 +617,10 @@ INSERT INTO `eb_system_menu` (`id`,`pid`,`name`,`icon`,`perms`,`component`,`menu
 SELECT '631','0','admin:upload:image',NULL,'admin:upload:image',NULL,'A','99999','1','0','2026-09-16 02:00:35','2026-09-16 02:00:35' FROM DUAL
   WHERE NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `menu_type`='A' AND COALESCE(`component`,'')=NULL AND COALESCE(`perms`,'')='admin:upload:image' AND `id`<>'631') g)
   ON DUPLICATE KEY UPDATE `pid`=VALUES(`pid`), `name`=VALUES(`name`), `icon`=VALUES(`icon`), `perms`=VALUES(`perms`), `component`=VALUES(`component`), `menu_type`=VALUES(`menu_type`), `sort`=VALUES(`sort`), `is_show`=VALUES(`is_show`), `is_delte`=VALUES(`is_delte`), `create_time`=VALUES(`create_time`), `update_time`=VALUES(`update_time`);
--- [新增] id=632 public:jsconfig:getcrmebchatconfig
+-- [新增] id=632 public:jsconfig:getqianxuchatconfig
 INSERT INTO `eb_system_menu` (`id`,`pid`,`name`,`icon`,`perms`,`component`,`menu_type`,`sort`,`is_show`,`is_delte`,`create_time`,`update_time`)
-SELECT '632','0','public:jsconfig:getcrmebchatconfig',NULL,'public:jsconfig:getcrmebchatconfig',NULL,'A','99999','1','0','2026-09-16 02:00:35','2026-09-16 02:00:35' FROM DUAL
-  WHERE NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `menu_type`='A' AND COALESCE(`component`,'')=NULL AND COALESCE(`perms`,'')='public:jsconfig:getcrmebchatconfig' AND `id`<>'632') g)
+SELECT '632','0','public:jsconfig:getqianxuchatconfig',NULL,'public:jsconfig:getqianxuchatconfig',NULL,'A','99999','1','0','2026-09-16 02:00:35','2026-09-16 02:00:35' FROM DUAL
+  WHERE NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `menu_type`='A' AND COALESCE(`component`,'')=NULL AND COALESCE(`perms`,'')='public:jsconfig:getqianxuchatconfig' AND `id`<>'632') g)
   ON DUPLICATE KEY UPDATE `pid`=VALUES(`pid`), `name`=VALUES(`name`), `icon`=VALUES(`icon`), `perms`=VALUES(`perms`), `component`=VALUES(`component`), `menu_type`=VALUES(`menu_type`), `sort`=VALUES(`sort`), `is_show`=VALUES(`is_show`), `is_delte`=VALUES(`is_delte`), `create_time`=VALUES(`create_time`), `update_time`=VALUES(`update_time`);
 -- [新增] id=633 团队
 INSERT INTO `eb_system_menu` (`id`,`pid`,`name`,`icon`,`perms`,`component`,`menu_type`,`sort`,`is_show`,`is_delte`,`create_time`,`update_time`)

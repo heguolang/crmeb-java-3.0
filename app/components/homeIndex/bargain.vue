@@ -152,7 +152,7 @@
 				</scroll-view>
 			</view>
 			<emptyPage :mTop="'0'" v-if="groupProductList.length==0" title="暂无砍价商品，去看看其他商品吧~～"
-				:imgSrc="urlDomain+'crmebimage/presets/noActivity.png'"></emptyPage>
+				:imgSrc="urlDomain+'qianxuimage/presets/noActivity.png'"></emptyPage>
 		</view>
 	</view>
 </template>

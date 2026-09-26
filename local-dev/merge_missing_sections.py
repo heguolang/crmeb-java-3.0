@@ -10,7 +10,7 @@ import shutil
 import sys
 import time
 
-ROOT = r"D:\qianxu-java-3.0\crmeb\sql\oneclick"
+ROOT = r"D:\qianxu-java-3.0\qianxu\sql\oneclick"
 SRC_02 = ROOT + r"\02_patches_all.sql"
 DST = ROOT + r"\ALL_IN_ONE.sql"
 

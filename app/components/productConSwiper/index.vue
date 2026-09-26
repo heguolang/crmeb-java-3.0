@@ -13,7 +13,7 @@
 						<image class="image" :src="imgUrls[0]"></image>
 					</view>
 					<view class="stop" v-show="controls" @tap="bindPause">
-						<image class="image" :src="urlDomain+'crmebimage/perset/staticImg/stop.png'"></image>
+						<image class="image" :src="urlDomain+'qianxuimage/perset/staticImg/stop.png'"></image>
 					</view>
 				</view>
 			</swiper-item>
@@ -25,7 +25,7 @@
 						<image class="image" :src="imgUrls[0]"></image>
 					</view>
 					<view class="stop" v-show="controls" @tap="bindPause">
-						<image class="image" :src="urlDomain+'crmebimage/perset/staticImg/stop.png'"></image>
+						<image class="image" :src="urlDomain+'qianxuimage/perset/staticImg/stop.png'"></image>
 					</view>
 				</view>
 			</swiper-item>

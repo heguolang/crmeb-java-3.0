@@ -2,7 +2,7 @@
 	<view :data-theme="theme">
 		<view class='my-promotion'>
 			<view class="header">
-				<image class="head_img" :src="urlDomain+'crmebimage/maintain/2021/07/13/48e81e3e2e374d48820b7a9a56905365k2qa9yj8n5.png'"></image>
+				<image class="head_img" :src="urlDomain+'qianxuimage/maintain/2021/07/13/48e81e3e2e374d48820b7a9a56905365k2qa9yj8n5.png'"></image>
 				<navigator :url="'/pages/promoter/user_spread_money/index?type=1&extractCount='+spreadInfo.extractCount"  hover-class="none" class='record'>提现记录<text class='iconfont icon-xiangyou'></text></navigator>
 				<view class="head_box">
 					<view class='name acea-row row-center-wrapper'>

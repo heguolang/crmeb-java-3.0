@@ -26,32 +26,32 @@
 				<view class='list'>
 					<view class="sortNav acea-row row-middle">
 						<view class="sortItem" @click='setSort("childCount","ASC")' v-if="sort == 'childCountDESC'">团队排序
-							<image :src="urlDomain+'crmebimage/perset/staticImg/sort1.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/sort1.png'"></image>
 						</view>
 						<view class="sortItem" @click='setSort("childCount")' v-else-if="sort == 'childCountASC'">团队排序
-							<image :src="urlDomain+'crmebimage/perset/staticImg/sort3.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/sort3.png'"></image>
 						</view>
 						<view class="sortItem" @click='setSort("childCount","DESC")' v-else>团队排序
-							<image :src="urlDomain+'crmebimage/perset/staticImg/sort2.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/sort2.png'"></image>
 						</view>
 						<view class="sortItem" @click='setSort("numberCount","ASC")' v-if="sort == 'numberCountDESC'">
 							金额排序
-							<image :src="urlDomain+'crmebimage/perset/staticImg/sort1.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/sort1.png'"></image>
 						</view>
 						<view class="sortItem" @click='setSort("numberCount")' v-else-if="sort == 'numberCountASC'">金额排序
-							<image :src="urlDomain+'crmebimage/perset/staticImg/sort3.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/sort3.png'"></image>
 						</view>
 						<view class="sortItem" @click='setSort("numberCount","DESC")' v-else>金额排序
-							<image :src="urlDomain+'crmebimage/perset/staticImg/sort2.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/sort2.png'"></image>
 						</view>
 						<view class="sortItem" @click='setSort("orderCount","ASC")' v-if="sort == 'orderCountDESC'">订单排序
-							<image :src="urlDomain+'crmebimage/perset/staticImg/sort1.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/sort1.png'"></image>
 						</view>
 						<view class="sortItem" @click='setSort("orderCount")' v-else-if="sort == 'orderCountASC'">订单排序
-							<image :src="urlDomain+'crmebimage/perset/staticImg/sort3.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/sort3.png'"></image>
 						</view>
 						<view class="sortItem" @click='setSort("orderCount","DESC")' v-else>订单排序
-							<image :src="urlDomain+'crmebimage/perset/staticImg/sort2.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/sort2.png'"></image>
 						</view>
 					</view>
 					<block v-for="(item,index) in recordList" :key="index">

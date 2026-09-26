@@ -1,6 +1,6 @@
 -- ============================================================
 -- 线上库修复脚本（2026-09-19）  fix_online_20260919.sql
--- 依据线上导出 crmeb_java3_2026-09-19_16-04-51 与本地库逐项比对结果生成
+-- 依据线上导出 qianxu_java3_2026-09-19_16-04-51 与本地库逐项比对结果生成
 -- 幂等：可重复执行
 --
 -- 修复内容：
@@ -9,7 +9,7 @@
 --   3. 统一排序规则为 utf8mb4_general_ci（现为 0900_ai_ci / utf8_general_ci 混用）
 --   4. 修正订货模块菜单排序（sort 重复导致菜单顺序乱）
 --
--- 执行：mysql -uroot -p密码 --default-character-set=utf8mb4 crmeb_java3 < fix_online_20260919.sql
+-- 执行：mysql -uroot -p密码 --default-character-set=utf8mb4 qianxu_java3 < fix_online_20260919.sql
 -- 执行完重启 jar，并清一次 Redis 配置缓存
 -- ============================================================
 

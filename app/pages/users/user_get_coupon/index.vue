@@ -35,7 +35,7 @@
 		  </view>
 		<view class='noCommodity' v-if="!couponsList.length && isShow && !loading">
 			<view class='pictrue'>
-				<image :src="urlDomain+'crmebimage/perset/staticImg/noCoupon.png'"></image>
+				<image :src="urlDomain+'qianxuimage/perset/staticImg/noCoupon.png'"></image>
 			</view>
 		</view>
 	</view>	

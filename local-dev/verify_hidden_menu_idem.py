@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """验证 ALL_IN_ONE.sql 的 hidden_menu 段幂等性。
 
-口径：把该段从脚本里原样抽出来，在临时库 crmeb_java3 上连跑两次，
+口径：把该段从脚本里原样抽出来，在临时库 qianxu_java3 上连跑两次，
 每次前后对 eb_system_menu 全表做快照（md5），要求 diff 恒为 0；
 同时检查 hidden 两行的 id 是否漂移、eb_system_role_menu 是否新增孤儿。
 """
@@ -11,8 +11,8 @@ import subprocess
 import sys
 
 MYSQL = r"D:\env\mysql-8.0.29-winx64\bin\mysql.exe"
-DB = "crmeb_java3"
-SQL_FILE = r"D:\qianxu-java-3.0\crmeb\sql\oneclick\ALL_IN_ONE.sql"
+DB = "qianxu_java3"
+SQL_FILE = r"D:\qianxu-java-3.0\qianxu\sql\oneclick\ALL_IN_ONE.sql"
 TMP = r"D:\qianxu-java-3.0\local-dev\_tmp_hidden_menu.sql"
 
 

@@ -20,7 +20,7 @@
 						<text v-if="count!=0">{{loadtitle}}</text>
 		    </view>
 				<view class="flex-column-center" v-if="count==0">
-					<img class="no-sign-img" :src="urlDomain+'crmebimage/perset/staticImg/noSign.png'" alt="" />
+					<img class="no-sign-img" :src="urlDomain+'qianxuimage/perset/staticImg/noSign.png'" alt="" />
 					<text class="no-sign-text">暂无签到记录~</text>
 				</view>
 		</view>

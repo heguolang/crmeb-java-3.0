@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # ==================================================================
-#  线上库 crmeb_java3  →  本地库 crmeb   整库单向同步
+#  线上库 qianxu_java3  →  本地库 qianxu   整库单向同步
 #
 #  ⛔ 单向！只允许 线上→本地。绝不允许把本地推回线上。
 #     线上是生产，本地是开发，反向覆盖 = 删生产数据。
 #
 #  用法：
 #    bash /d/qianxu-java-3.0/local-dev/sync-from-online.sh --dry-run   # 只预演，不动任何东西
-#    bash /d/qianxu-java-3.0/local-dev/sync-from-online.sh --yes       # 真执行（会覆盖本地 crmeb）
+#    bash /d/qianxu-java-3.0/local-dev/sync-from-online.sh --yes       # 真执行（会覆盖本地 qianxu）
 #
-#  执行前会自动把本地 crmeb 全量备份到 /d/env/backup/，可整库回滚。
+#  执行前会自动把本地 qianxu 全量备份到 /d/env/backup/，可整库回滚。
 #
 #  凭据可用环境变量覆盖：
 #    ONLINE_HOST / ONL_DB_PASS / LOCAL_DB_PASS / REDIS_PASS
@@ -20,10 +20,10 @@ set -u
 export PATH="/usr/bin:/bin:/c/Windows/System32:$PATH"
 
 HOST="${ONLINE_HOST:-root@8.163.105.182}"
-ONL_DB="${ONL_DB:-crmeb_java3}"
-ONL_USER="${ONL_USER:-crmeb_java3}"
+ONL_DB="${ONL_DB:-qianxu_java3}"
+ONL_USER="${ONL_USER:-qianxu_java3}"
 ONL_PASS="${ONL_DB_PASS:-ktXMTiAxTTyMyPKk}"
-LOCAL_DB="${LOCAL_DB:-crmeb}"
+LOCAL_DB="${LOCAL_DB:-qianxu}"
 MY="D:/env/mysql-8.0.29-winx64/bin/mysql.exe"
 DUMP="D:/env/mysql-8.0.29-winx64/bin/mysqldump.exe"
 RCLI="D:/env/redis/redis-cli.exe"

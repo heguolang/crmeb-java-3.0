@@ -1,6 +1,6 @@
 # 分销商升级条件 / 团队奖 / 订货商升级条件 — 检查与接入清单
 
-> 日期：2026-09-23　代码根：`D:\qianxu-java-3.0\crmeb`
+> 日期：2026-09-23　代码根：`D:\qianxu-java-3.0\qianxu`
 > 本次改动：分销商等级全链路接入 + 团队等级幂等/并发加固 + 订货商统计口径修正
 
 ---
@@ -122,7 +122,7 @@
 
 ```bash
 # 1) 建表与配置（幂等，可重复执行）
-mysql -uroot -p123456 crmeb < qianxu/sql/distributor_level_upgrade_20260923.sql
+mysql -uroot -p123456 qianxu < qianxu/sql/distributor_level_upgrade_20260923.sql
 # 或走一键补丁：cd qianxu/sql/oneclick && ./deploy.sh patch
 
 # 2) 重算某个用户的分销商等级统计（后台接口，需 admin token）

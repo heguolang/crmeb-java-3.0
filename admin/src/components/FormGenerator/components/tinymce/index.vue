@@ -6,7 +6,7 @@
 import loadTinymce from '@/components/FormGenerator/utils/loadTinymce';
 import { plugins, toolbar } from './config';
 import { debounce } from 'throttle-debounce';
-import { uploadImage } from '@/utils/ZBKJIutil';
+import { uploadImage } from '@/utils/QXKJUtil';
 let num = 1;
 
 export default {

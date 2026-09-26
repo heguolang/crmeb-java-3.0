@@ -111,11 +111,11 @@
 		</view>
 		<view class="footer acea-row row-between-wrapper">
 			<view class="cartIcon acea-row row-center-wrapper" @click="getCartLists(0)" v-if="cartData.cartList.length">
-				<image :src="urlDomain+'crmebimage/perset/staticImg/cart.png'"></image>
+				<image :src="urlDomain+'qianxuimage/perset/staticImg/cart.png'"></image>
 				<view class="num">{{cartCount}}</view>
 			</view>
 			<view class="cartIcon acea-row row-center-wrapper noCart" v-else>
-				<image :src="urlDomain+'crmebimage/perset/staticImg/no_cart.png'"></image>
+				<image :src="urlDomain+'qianxuimage/perset/staticImg/no_cart.png'"></image>
 			</view>
 			<view class="money acea-row row-middle">
 				<view>￥<text class="num">{{totalPrice}}</text></view>

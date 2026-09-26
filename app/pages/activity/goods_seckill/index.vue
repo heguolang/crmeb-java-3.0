@@ -22,7 +22,7 @@
 				</view>
 				<view class="seckillList acea-row row-between-wrapper">
 					<view class="priceTag skeleton-rect">
-						<image :src="urlDomain+'crmebimage/perset/staticImg/priceTag.png'"></image>
+						<image :src="urlDomain+'qianxuimage/perset/staticImg/priceTag.png'"></image>
 					</view>
 					<view class='timeLsit'>
 						<scroll-view class="scroll-view_x" scroll-x scroll-with-animation :scroll-left="scrollLeft"
@@ -64,7 +64,7 @@
 			</view>
 			<view class='noCommodity' v-if="seckillList.length == 0 && (page != 1 || active== 0)">
 				<view class='pictrue'>
-					<image :src="urlDomain+'crmebimage/perset/staticImg/noShopper.png'"></image>
+					<image :src="urlDomain+'qianxuimage/perset/staticImg/noShopper.png'"></image>
 				</view>
 			</view>
 		</view>	

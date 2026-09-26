@@ -145,7 +145,7 @@
 import * as categoryApi from '@/api/categoryApi.js';
 import info from './info';
 import edit from './edit';
-import * as selfUtil from '@/utils/ZBKJIutil.js';
+import * as selfUtil from '@/utils/QXKJUtil.js';
 import { checkPermi, checkRole } from '@/utils/permission';
 export default {
   // name: "list"

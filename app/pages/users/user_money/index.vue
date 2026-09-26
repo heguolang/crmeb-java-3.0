@@ -59,7 +59,7 @@
 							<view>赚积分抵现金</view>
 						</view>
 						<view class='pictrue'>
-							<image :src="urlDomain+'crmebimage/perset/staticImg/gift.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/gift.png'"></image>
 						</view>
 					</navigator>
 					<navigator class='item on acea-row row-between-wrapper' hover-class='none' url='/pages/users/user_get_coupon/index'>
@@ -68,7 +68,7 @@
 							<view>满减享优惠</view>
 						</view>
 						<view class='pictrue'>
-							<image :src="urlDomain+'crmebimage/perset/staticImg/money.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/money.png'"></image>
 						</view>
 					</navigator>
 				</view>
@@ -76,7 +76,7 @@
 			<recommend ref="recommendIndex" @getRecommendLength="getRecommendLength"></recommend>
 			<view class='noCommodity' v-if="isNoCommodity">
 				<view class='pictrue'>
-					<image :src="urlDomain+'crmebimage/perset/staticImg/noSearch.png'"></image>
+					<image :src="urlDomain+'qianxuimage/perset/staticImg/noSearch.png'"></image>
 				</view>
 			</view>
 		</view>

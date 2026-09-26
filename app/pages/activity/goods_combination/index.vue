@@ -28,7 +28,7 @@
 							</swiper>
 						</view>
 						<view class="nav acea-row row-between-wrapper" v-if="avatarList.length > 0">
-							<image :src="urlDomain+'crmebimage/perset/activityImg/zuo.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/activityImg/zuo.png'"></image>
 							<view class="title acea-row row-center">
 								<view class="spike-bd">
 									<view class="activity_pic">
@@ -43,7 +43,7 @@
 								</view>
 								<text class="pic_count">{{totalPeople}}人参与</text>
 							</view>
-							<image :src="urlDomain+'crmebimage/perset/activityImg/you.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/activityImg/you.png'"></image>
 						</view>
 						<view class='list'>
 							<block v-for="(item,index) in combinationList" :key='index'>
@@ -60,7 +60,7 @@
 											<view class="bnt acea-row row-center-wrapper" v-if="item.stock>0">
 												<view class="light">
 													<image
-														:src="urlDomain+'crmebimage/perset/activityImg/shandian1.png'">
+														:src="urlDomain+'qianxuimage/perset/activityImg/shandian1.png'">
 													</image>
 												</view>
 												<view class="num">{{item.people}}人团</view>
@@ -77,7 +77,7 @@
 							</view>
 						</view>
 						<view v-if="combinationList.length == 0" class="no_shop flex-center">
-							<image :src="urlDomain+'crmebimage/perset/staticImg/noShopper.png'" mode="aspectFit"
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/noShopper.png'" mode="aspectFit"
 								style="width: 400rpx;"></image>
 						</view>
 					</view>

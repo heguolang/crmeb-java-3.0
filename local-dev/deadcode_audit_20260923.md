@@ -202,7 +202,7 @@
    本次报出来的都是**连引用都没有**的，不存在误删。
 4. **`admin/src/views/**/index.vue` 里内容完全相同的路由容器**（`<template><router-view/></template>`）：
    共 7 个文件哈希一致，但每个都被各自路由 `import()` 引用，属**正常设计**，不是冗余。
-5. **图片资源重复**（`crmebimage` 与 `db-data/qianxu_image` 大量同哈希文件）：运行时静态资源，不属代码。
+5. **图片资源重复**（`qianxuimage` 与 `db-data/qianxu_image` 大量同哈希文件）：运行时静态资源，不属代码。
 
 ---
 

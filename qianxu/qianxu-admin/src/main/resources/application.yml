@@ -1,5 +1,5 @@
 # 黔序商城相关配置
-crmeb:
+qianxu:
   version: qianxu-java5.0 # 当前代码版本
   domain: #配合swagger使用 # 待部署域名
   wechat-api-url:  #请求微信接口中专服务器
@@ -7,9 +7,11 @@ crmeb:
   wechat-js-api-beta: true #微信js api是否是beta版本
   asyncConfig: false #是否同步config表数据到redis
   asyncWeChatProgramTempList: false #是否同步小程序公共模板库
-  imagePath: D:/qianxu-java-3.0/qianxu/ # 服务器图片路径配置 斜杠结尾（crmebimage 的上级目录）
+  imagePath: D:/qianxu-java-3.0/qianxu/ # 服务器图片路径配置 斜杠结尾（qianxuimage 的上级目录）
   demoSite: false # 是否演示站点 所有手机号码都会掩码
   activityStyleCachedTime: 10 #活动边框缓存周期 秒为单位，生产环境适当5-10分钟即可
+  # 开放平台 API（短信/物流等），勿写入源码；用环境变量 ONE_PASS_API_URL 注入，须以 / 结尾
+  one-pass-api-url: ${ONE_PASS_API_URL:}
   ignored: #安全路径白名单
     - swagger-ui/
     - swagger-resources/**
@@ -54,7 +56,7 @@ spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/crmeb?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    url: jdbc:mysql://127.0.0.1:3306/qianxu?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: root
     password: 123456
   # quartz
@@ -73,7 +75,7 @@ spring:
             isClustered: false
             clusterCheckinInterval: 10000
             useProperties: false
-          #            dataSource: crmeb_java_beta
+          #            dataSource: qianxu_java_beta
           threadPool:
             class: org.quartz.simpl.SimpleThreadPool
             threadCount: 10

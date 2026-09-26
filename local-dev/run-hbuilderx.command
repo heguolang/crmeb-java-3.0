@@ -3,7 +3,7 @@
 # 用法：双击本文件，或在终端执行  ./run-hbuilderx.command
 # 说明：macOS 首次运行会弹「辅助功能」授权，允许即可（系统设置 → 隐私与安全性 → 辅助功能）
 
-PROJECT_DIR="/Users/qianxu/WorkBuddy/java/crmeb-java-3.0/app"
+PROJECT_DIR="/Users/qianxu/WorkBuddy/java/qianxu-java-3.0/app"
 
 echo "==> 激活 HBuilderX 并打开项目"
 open -a HBuilderX "$PROJECT_DIR"

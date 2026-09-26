@@ -39,7 +39,7 @@ if port_open 8080; then
   echo "    8080 已被占用，跳过"
 else
   nohup "$JAVA_HOME/bin/java" -jar "$PROJECT_DIR/qianxu/qianxu-admin/target/Qianxu-admin.jar" \
-    --server.port=8080 --crmeb.imagePath="$PROJECT_DIR/qianxu/" \
+    --server.port=8080 --qianxu.imagePath="$PROJECT_DIR/qianxu/" \
     > "$LOG_DIR/qianxu-admin.log" 2>&1 &
 fi
 
@@ -48,7 +48,7 @@ if port_open 8081; then
   echo "    8081 已被占用，跳过"
 else
   nohup "$JAVA_HOME/bin/java" -jar "$PROJECT_DIR/qianxu/qianxu-front/target/Qianxu-front.jar" \
-    --server.port=8081 --crmeb.imagePath="$PROJECT_DIR/qianxu/" \
+    --server.port=8081 --qianxu.imagePath="$PROJECT_DIR/qianxu/" \
     > "$LOG_DIR/qianxu-front.log" 2>&1 &
 fi
 
@@ -78,7 +78,7 @@ echo "管理后台前端 : http://127.0.0.1:9527   (账号 admin / 123456)"
 echo "会员端 H5    : http://127.0.0.1:8083   (HBuilderX 运行，见 run-hbuilderx.command)"
 echo "后台接口     : http://127.0.0.1:8080   接口文档 http://127.0.0.1:8080/doc.html"
 echo "前台接口     : http://127.0.0.1:8081   (会员端调用此接口)"
-echo "MySQL        : 127.0.0.1:3306  root/root  库名 crmeb"
+echo "MySQL        : 127.0.0.1:3306  root/root  库名 qianxu"
 echo "Redis        : 127.0.0.1:6379  密码 123456"
 echo "日志目录     : $LOG_DIR"
 echo "=========================================="

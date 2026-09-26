@@ -15,7 +15,7 @@
 				<view class="list">
 					<view class="item acea-row row-between-wrapper" v-for="(item,index) in rankList" :key="index">
 						<view class="num" v-if="index <= 2">
-							<image :src="urlDomain+'crmebimage/perset/staticImg/medal0'+(index+1)+'.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/medal0'+(index+1)+'.png'"></image>
 						</view>
 						<view class="num" v-else>
 							{{index+1}}

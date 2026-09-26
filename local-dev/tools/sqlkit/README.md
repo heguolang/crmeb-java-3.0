@@ -12,7 +12,7 @@ cd /d/qianxu-java-3.0
 PY=/c/Users/Administrator/.workbuddy/binaries/python/versions/3.13.12/python
 
 # 1) 从库导出快照（配置 / 菜单 / 表名+备注+行数）
-D:/env/mysql-8.0.29-winx64/bin/mysql.exe -uroot -p123456 --default-character-set=utf8mb4 -N -B crmeb \
+D:/env/mysql-8.0.29-winx64/bin/mysql.exe -uroot -p123456 --default-character-set=utf8mb4 -N -B qianxu \
   -e "SELECT ... " > local-dev/tmp/xxx.tsv      # 见各 gen_*.py 头部注释
 
 # 2) 生成源脚本

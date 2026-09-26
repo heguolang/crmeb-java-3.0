@@ -58,7 +58,7 @@
 						</view>
 					</view>
 					<view class="gear">
-						<image :src="urlDomain+'crmebimage/perset/staticImg/writeOff.jpg'"></image>
+						<image :src="urlDomain+'qianxuimage/perset/staticImg/writeOff.jpg'"></image>
 					</view>
 					<view class="num">{{orderInfo.verifyCode}}</view>
 					<view class="rules" v-if='orderInfo.systemStore'>
@@ -80,7 +80,7 @@
 				</view>
 				<view class="refund borRadius14" v-if="orderInfo.refundReason">
 					<view class="title">
-						<image :src="urlDomain+'crmebimage/perset/staticImg/shuoming.png'" mode=""></image>
+						<image :src="urlDomain+'qianxuimage/perset/staticImg/shuoming.png'" mode=""></image>
 						商家拒绝退款
 					</view>
 					<view class="con">拒绝原因：{{orderInfo.refundReason}}</view>

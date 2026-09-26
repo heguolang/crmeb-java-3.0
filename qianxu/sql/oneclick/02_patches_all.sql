@@ -2351,7 +2351,7 @@ WHERE `name` IN ('distributor_level_enabled','distributor_level_brokerage_enable
 --   redis-cli -a 123456 -n 7  HSET config_list <key> <val>   (仅当改了 eb_system_config 时)
 --   菜单为实时查库，无需重启；但前端需重新登录/刷新以拉取新菜单。
 -- ==================================================================
--- 注意：不写 USE `库名` —— 目标库由连接/命令行决定（本地 crmeb、线上 crmeb_java3）。
+-- 注意：不写 USE `库名` —— 目标库由连接/命令行决定（本地 qianxu、线上 qianxu_java3）。
 --       写死库名会让线上 deploy.sh 打到错库或 ERROR 1049 中断后续语句。
 
 -- ----------------------------------------------------------------
@@ -2420,7 +2420,7 @@ SELECT 'product_group_level_source done' AS result;
 --
 -- 幂等，可重复执行。
 -- ==================================================================
--- 注意：不写 USE `库名` —— 目标库由连接/命令行决定（本地 crmeb、线上 crmeb_java3）。
+-- 注意：不写 USE `库名` —— 目标库由连接/命令行决定（本地 qianxu、线上 qianxu_java3）。
 --       写死库名会让线上 deploy.sh 打到错库或 ERROR 1049 中断后续语句。
 
 -- ----------------------------------------------------------------
@@ -2472,7 +2472,7 @@ SELECT 'product_group_theme done' AS result;
 --
 -- 幂等，可重复执行。
 -- ==================================================================
--- 注意：不写 USE `库名` —— 目标库由连接/命令行决定（本地 crmeb、线上 crmeb_java3）。
+-- 注意：不写 USE `库名` —— 目标库由连接/命令行决定（本地 qianxu、线上 qianxu_java3）。
 --       写死库名会让线上 deploy.sh 打到错库或 ERROR 1049 中断后续语句。
 
 -- ----------------------------------------------------------------
@@ -2664,19 +2664,19 @@ SELECT 'QIANXU fix_duplicate_data done' AS result;
 --   copyright_company_name           黔序科技
 --   copyright_internet_record        Copyright@2026 贵州黔序科技有限公司
 --   copyright_internet_record_url    www.qianxutec.com
---   crmeb_tongji_js                  (空)
+--   qianxu_tongji_js                  (空)
 --   front_api_url                    http://api.qianxutec.com  →  生产地址
 --   integral_ratio                   0
 --   localUploadUrl                   http://api.qianxutec.com  →  生产地址
 --   logistics_type                   2
---   mobile_login_logo                crmebimage/public/product/2026/09/16/d2882dd
+--   mobile_login_logo                qianxuimage/public/product/2026/09/16/d2882dd
 --   order_give_integral              0
 --   routine_name                     黔序科技
 --   routine_phone_verification       ,1
 --   seo_title                        黔序科技
---   site_logo_lefttop                crmebimage/public/theme/2026/09/19/ce5ce8255
---   site_logo_login                  crmebimage/public/product/2026/09/16/a83b057
---   site_logo_square                 crmebimage/public/theme/2026/09/19/ce5ce8255
+--   site_logo_lefttop                qianxuimage/public/theme/2026/09/19/ce5ce8255
+--   site_logo_login                  qianxuimage/public/product/2026/09/16/a83b057
+--   site_logo_square                 qianxuimage/public/theme/2026/09/19/ce5ce8255
 --   site_name                        黔序科技-Java
 --   site_url                         http://api.qianxutec.com  →  生产地址
 --   splash_ad_switch                 0
@@ -2772,19 +2772,19 @@ INSERT INTO `tmp_cfg_sync` (`name`, `title`, `value`) VALUES
 ('copyright_company_name', 'copyright_company_name', '黔序科技'),
 ('copyright_internet_record', 'copyright_internet_record', 'Copyright@2026 贵州黔序科技有限公司'),
 ('copyright_internet_record_url', 'copyright_internet_record_url', 'www.qianxutec.com'),
-('crmeb_tongji_js', 'crmeb_tongji_js', ''),
+('qianxu_tongji_js', 'qianxu_tongji_js', ''),
 ('front_api_url', 'front_api_url', 'http://api.qianxutec.com'),
 ('integral_ratio', 'integral_ratio', '0'),
 ('localUploadUrl', 'localUploadUrl', 'http://api.qianxutec.com'),
 ('logistics_type', 'logistics_type', '2'),
-('mobile_login_logo', '', 'crmebimage/public/product/2026/09/16/d2882dd292ad4b33bca2d30d0405721acvq09gfro4.png'),
+('mobile_login_logo', '', 'qianxuimage/public/product/2026/09/16/d2882dd292ad4b33bca2d30d0405721acvq09gfro4.png'),
 ('order_give_integral', 'order_give_integral', '0'),
 ('routine_name', 'routine_name', '黔序科技'),
 ('routine_phone_verification', 'routine_phone_verification', ',1'),
 ('seo_title', '', '黔序科技'),
-('site_logo_lefttop', 'site_logo_lefttop', 'crmebimage/public/theme/2026/09/19/ce5ce8255be549acb35c7c219e674606ynq35htpg0.png'),
-('site_logo_login', 'site_logo_login', 'crmebimage/public/product/2026/09/16/a83b057c809745a7a295be94cf10275brxadtc506f.png'),
-('site_logo_square', 'site_logo_square', 'crmebimage/public/theme/2026/09/19/ce5ce8255be549acb35c7c219e674606ynq35htpg0.png'),
+('site_logo_lefttop', 'site_logo_lefttop', 'qianxuimage/public/theme/2026/09/19/ce5ce8255be549acb35c7c219e674606ynq35htpg0.png'),
+('site_logo_login', 'site_logo_login', 'qianxuimage/public/product/2026/09/16/a83b057c809745a7a295be94cf10275brxadtc506f.png'),
+('site_logo_square', 'site_logo_square', 'qianxuimage/public/theme/2026/09/19/ce5ce8255be549acb35c7c219e674606ynq35htpg0.png'),
 ('site_name', '', '黔序科技-Java'),
 ('site_url', '', 'http://app.qianxutec.com'),
 ('splash_ad_switch', '', '0'),
@@ -2813,7 +2813,7 @@ DROP TEMPORARY TABLE `tmp_cfg_sync`;
 
 -- 3) 自检：下列各项必须全部存在（数量应与本次同步项数一致）
 SELECT 'QIANXU system_settings done' AS result, COUNT(*) AS ensured_rows
-  FROM eb_system_config WHERE `name` IN ('team_brokerage_credit_timing', 'register_default_is_promoter', 'register_default_user_level', 'team_brokerage_status', 'team_brokerage_max_depth', 'brokerage_credit_timing', 'integral_credit_timing', 'agent_func_status', 'agent_apply_status', 'agent_credit_timing', 'stock_order_audit', 'stock_diff_reward_status', 'stock_exchange_diff', 'stock_ladder_status', 'stock_ladder_cycle', 'stock_peer_status', 'stock_peer_rate', 'stock_peer_generations', 'stock_parent_deliver', 'stock_up_search_hours', 'user_extract_switch', 'user_extract_multiple', 'user_extract_fee_type', 'user_extract_fee', 'user_extract_weekdays', 'user_extract_time_start', 'user_extract_time_end', 'login_notice_text', 'login_notice_switch', 'stock_wait_pay_hours', 'stock_virtual_audit', 'stock_exchange_single', 'stock_exchange_diff_parent_rate', 'stock_exchange_diff_wechat', 'agent_apply_regions', 'stock_exchange_hq_audit', 'stock_exchange_return_address', 'product_group_other_visible', 'product_group_deny_tip_enable', 'product_group_deny_tip', 'distributor_level_enabled', 'distributor_level_brokerage_enabled', 'team_level_cycle_reset', 'distributor_level_cycle_reset', 'distributor_level_max_depth', 'sys_switch_team_reward', 'sys_switch_stock', 'sys_switch_store', 'sys_switch_daili', 'sys_switch_spread', 'sys_switch_integral', 'sys_switch_seckill', 'sys_switch_bargain', 'sys_switch_combination', 'sys_switch_coupon', 'api_url', 'brokerage_func_status', 'change_color_config', 'config_export_open', 'copyright_company_name', 'copyright_internet_record', 'copyright_internet_record_url', 'crmeb_tongji_js', 'front_api_url', 'integral_ratio', 'localUploadUrl', 'logistics_type', 'mobile_login_logo', 'order_give_integral', 'routine_name', 'routine_phone_verification', 'seo_title', 'site_logo_lefttop', 'site_logo_login', 'site_logo_square', 'site_name', 'site_url', 'splash_ad_switch', 'store_brokerage_is_bubble', 'system_product_copy_type', 'telephone_service_switch', 'user_extract_min_price', 'wechat_routine_shipping_switch');
+  FROM eb_system_config WHERE `name` IN ('team_brokerage_credit_timing', 'register_default_is_promoter', 'register_default_user_level', 'team_brokerage_status', 'team_brokerage_max_depth', 'brokerage_credit_timing', 'integral_credit_timing', 'agent_func_status', 'agent_apply_status', 'agent_credit_timing', 'stock_order_audit', 'stock_diff_reward_status', 'stock_exchange_diff', 'stock_ladder_status', 'stock_ladder_cycle', 'stock_peer_status', 'stock_peer_rate', 'stock_peer_generations', 'stock_parent_deliver', 'stock_up_search_hours', 'user_extract_switch', 'user_extract_multiple', 'user_extract_fee_type', 'user_extract_fee', 'user_extract_weekdays', 'user_extract_time_start', 'user_extract_time_end', 'login_notice_text', 'login_notice_switch', 'stock_wait_pay_hours', 'stock_virtual_audit', 'stock_exchange_single', 'stock_exchange_diff_parent_rate', 'stock_exchange_diff_wechat', 'agent_apply_regions', 'stock_exchange_hq_audit', 'stock_exchange_return_address', 'product_group_other_visible', 'product_group_deny_tip_enable', 'product_group_deny_tip', 'distributor_level_enabled', 'distributor_level_brokerage_enabled', 'team_level_cycle_reset', 'distributor_level_cycle_reset', 'distributor_level_max_depth', 'sys_switch_team_reward', 'sys_switch_stock', 'sys_switch_store', 'sys_switch_daili', 'sys_switch_spread', 'sys_switch_integral', 'sys_switch_seckill', 'sys_switch_bargain', 'sys_switch_combination', 'sys_switch_coupon', 'api_url', 'brokerage_func_status', 'change_color_config', 'config_export_open', 'copyright_company_name', 'copyright_internet_record', 'copyright_internet_record_url', 'qianxu_tongji_js', 'front_api_url', 'integral_ratio', 'localUploadUrl', 'logistics_type', 'mobile_login_logo', 'order_give_integral', 'routine_name', 'routine_phone_verification', 'seo_title', 'site_logo_lefttop', 'site_logo_login', 'site_logo_square', 'site_name', 'site_url', 'splash_ad_switch', 'store_brokerage_is_bubble', 'system_product_copy_type', 'telephone_service_switch', 'user_extract_min_price', 'wechat_routine_shipping_switch');
 -- ========== END: system_settings_20260923.sql ==========
 
 -- ========== BEGIN: menu_sync_20260923.sql ==========

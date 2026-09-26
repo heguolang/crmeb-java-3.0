@@ -4,10 +4,10 @@
 		<!-- #ifdef MP -->
 		<view class="title-bar" style="height: 43px;">
 			<view class="icon" @click="back" v-if="!isHome">
-				<image :src="urlDomain+'crmebimage/perset/usersImg/left.png'"></image>
+				<image :src="urlDomain+'qianxuimage/perset/usersImg/left.png'"></image>
 			</view>
 			<view class="icon" @click="home" v-else>
-				<image :src="urlDomain+'crmebimage/perset/usersImg/home.png'"></image>
+				<image :src="urlDomain+'qianxuimage/perset/usersImg/home.png'"></image>
 			</view>
 			账户登录
 		</view>
@@ -105,19 +105,19 @@
 			//背景图片
 			switch (app.globalData.theme) {
 				case 'theme1':
-					this.backBg = `${this.urlDomain}crmebimage/perset/usersImg/wxbj1.png`;
+					this.backBg = `${this.urlDomain}qianxuimage/perset/usersImg/wxbj1.png`;
 					break;
 				case 'theme2':
-					this.backBg = `${this.urlDomain}crmebimage/perset/usersImg/wxbj2.png`;
+					this.backBg = `${this.urlDomain}qianxuimage/perset/usersImg/wxbj2.png`;
 					break;
 				case 'theme3':
-					this.backBg = `${this.urlDomain}crmebimage/perset/usersImg/wxbj3.png`;
+					this.backBg = `${this.urlDomain}qianxuimage/perset/usersImg/wxbj3.png`;
 					break;
 				case 'theme4':
-					this.backBg = `${this.urlDomain}crmebimage/perset/usersImg/wxbj4.png`;
+					this.backBg = `${this.urlDomain}qianxuimage/perset/usersImg/wxbj4.png`;
 					break;
 				case 'theme5':
-					this.backBg = `${this.urlDomain}crmebimage/perset/usersImg/wxbj5.png`;
+					this.backBg = `${this.urlDomain}qianxuimage/perset/usersImg/wxbj5.png`;
 					break;
 			}
 

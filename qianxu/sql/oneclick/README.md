@@ -19,7 +19,7 @@ qianxu/sql/oneclick/ALL_IN_ONE_TEST.sql
 
 ```bash
 # 1) 建议先备份 / 空库重建
-mysql -uroot -p -e "DROP DATABASE IF EXISTS crmeb_java3; CREATE DATABASE crmeb_java3 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+mysql -uroot -p -e "DROP DATABASE IF EXISTS qianxu_java3; CREATE DATABASE qianxu_java3 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
 
 # 2) 导入（在 oneclick 目录下）
 mysql -uroot -p密码 --default-character-set=utf8mb4 --max_allowed_packet=512M < ALL_IN_ONE_TEST.sql
@@ -29,7 +29,7 @@ mysql -uroot -p密码 --default-character-set=utf8mb4 --max_allowed_packet=512M 
 
 1. 重启 **admin**、**front** jar  
 2. Redis：`redis-cli -a 密码 -n 8 FLUSHDB`  
-3. 无痕打开 H5，确认图片为 `http://api.qianxutec.com/crmebimage/...`
+3. 无痕打开 H5，确认图片为 `http://api.qianxutec.com/qianxuimage/...`
 
 > ⚠️ 会 `DROP + 重建` 同名表，**有要保留的业务数据不要用**。
 
@@ -66,5 +66,5 @@ node build_test_sql.js
 
 ## 默认连接（与 application-prod.yml 一致）
 
-- 库名：`crmeb_java3`，字符集 `utf8mb4 / utf8mb4_general_ci`
+- 库名：`qianxu_java3`，字符集 `utf8mb4 / utf8mb4_general_ci`
 - 域名：`http://api.qianxutec.com`

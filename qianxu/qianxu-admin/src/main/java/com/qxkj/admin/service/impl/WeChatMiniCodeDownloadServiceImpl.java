@@ -44,12 +44,12 @@ public class WeChatMiniCodeDownloadServiceImpl implements WeChatMiniCodeDownload
     @Override
     public String WeChatMiniCodeDownload() {
         // 获取 需要运行微信小程序的必备配置
-        String crmebWeixinAppid = systemConfigService.getValueByKey(WeChatConstants.WECHAT_MINI_APPID);
-        if (StrUtil.isBlank(crmebWeixinAppid)) {
+        String qianxuWeixinAppid = systemConfigService.getValueByKey(WeChatConstants.WECHAT_MINI_APPID);
+        if (StrUtil.isBlank(qianxuWeixinAppid)) {
             throw new QianxuException("应用设置中 微信小程序数据配置 或者 支付回调地址以及网站地址 配置不全");
         }
-        String crmebName = systemConfigService.getValueByKey(WeChatConstants.WECHAT_MINI_NAME);
-        if (StrUtil.isBlank(crmebName)) {
+        String qianxuName = systemConfigService.getValueByKey(WeChatConstants.WECHAT_MINI_NAME);
+        if (StrUtil.isBlank(qianxuName)) {
             throw new QianxuException("应用设置中 微信小程序数据配置 或者 支付回调地址以及网站地址 配置不全");
         }
         String apiPath = systemConfigService.getValueByKey(Constants.CONFIG_KEY_FRONT_API_URL);
@@ -87,16 +87,16 @@ public class WeChatMiniCodeDownloadServiceImpl implements WeChatMiniCodeDownload
         String vendorJsReplaceApi = "https://api";
 //        String vendorJsReplaceAdminApi = "https://adminapi";
         String vendorJsReplaceApp = "https://app";
-        String projectConfigJsonQianxuName = "crmebName";
-        String projectConfigJsonAppId = "crmebWeixinAppid";
+        String projectConfigJsonQianxuName = "qianxuName";
+        String projectConfigJsonAppId = "qianxuWeixinAppid";
         // 读取文件并替换
         FileReader vendorJsR = new FileReader(vendorJs);
         FileReader projectConfigJsonR = new FileReader(projectConfigJson);
         String vendorResult = vendorJsR.readString().replace(vendorJsReplaceApi, apiPath)
                 .replace(vendorJsReplaceApp, appPath);
 //                .replace(vendorJsReplaceAdminApi, adminApiPath);
-        String projectConfigJsonResult = projectConfigJsonR.readString().replace(projectConfigJsonQianxuName, crmebName)
-                .replace(projectConfigJsonAppId, crmebWeixinAppid);
+        String projectConfigJsonResult = projectConfigJsonR.readString().replace(projectConfigJsonQianxuName, qianxuName)
+                .replace(projectConfigJsonAppId, qianxuWeixinAppid);
         FileWriter vendorJsW = new FileWriter(vendorJs);
         FileWriter projectConfigJsonW = new FileWriter(projectConfigJson);
         vendorJsW.write(vendorResult);

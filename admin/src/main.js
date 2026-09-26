@@ -78,7 +78,7 @@ import * as filters from './filters'; // global filters
 import { parseQuery } from '@/utils';
 import * as Auth from '@/libs/wechat';
 import * as constants from '@/utils/constants.js';
-import * as selfUtil from '@/utils/ZBKJIutil.js';
+import * as selfUtil from '@/utils/QXKJUtil.js';
 import SettingMer from '@/utils/settingMer';
 import plugins from './plugins';
 import directive from './directive'; //directive

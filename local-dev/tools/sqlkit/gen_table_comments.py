@@ -16,7 +16,7 @@ import os, re, sys
 
 ROOT = r'D:\qianxu-java-3.0'
 TMP = os.path.join(ROOT, 'local-dev', 'tmp')
-OUT = os.path.join(ROOT, 'crmeb', 'sql', 'table_comments_20260923.sql')
+OUT = os.path.join(ROOT, 'qianxu', 'sql', 'table_comments_20260923.sql')
 
 # ---- 人工修正：库中注释写错 / 乱码 / 英文 ----
 OVERRIDE = {
@@ -71,7 +71,7 @@ CJK = re.compile(r'[\u4e00-\u9fff]')
 
 def java_descriptions():
     m = {}
-    for dp, dns, fs in os.walk(os.path.join(ROOT, 'crmeb')):
+    for dp, dns, fs in os.walk(os.path.join(ROOT, 'qianxu')):
         if 'sql' in dns:
             dns.remove('sql')
         for f in fs:

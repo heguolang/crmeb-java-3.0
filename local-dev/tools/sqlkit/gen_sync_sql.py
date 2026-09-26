@@ -14,7 +14,7 @@
 import re, os, datetime
 
 TMP = r'D:\qianxu-java-3.0\local-dev\tmp'
-SQLDIR = r'D:\qianxu-java-3.0\crmeb\sql'
+SQLDIR = r'D:\qianxu-java-3.0\qianxu\sql'
 BASE_SQL = os.path.join(SQLDIR, 'Qianxu_v3.0.sql')
 
 PROD_API = 'http://api.qianxutec.com'
@@ -32,7 +32,7 @@ CRED_HINTS = ('secret', 'key', 'keyid', 'pwd', 'password', 'token', 'mchid',
 
 CHANGED_NAMES = ['api_url', 'brokerage_func_status', 'change_color_config', 'config_export_open',
                  'copyright_company_name', 'copyright_internet_record', 'copyright_internet_record_url',
-                 'crmeb_tongji_js', 'front_api_url', 'integral_ratio', 'localUploadUrl',
+                 'qianxu_tongji_js', 'front_api_url', 'integral_ratio', 'localUploadUrl',
                  'logistics_type', 'mobile_login_logo', 'order_give_integral', 'routine_name',
                  'routine_phone_verification', 'seo_title', 'site_logo_lefttop', 'site_logo_login',
                  'site_logo_square', 'site_name', 'site_url', 'splash_ad_switch',

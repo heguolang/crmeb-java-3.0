@@ -100,21 +100,21 @@
 					</view>
 					<view v-if="startBargainUid != uid && bargainStatus==4 && parseFloat(bargainUserInfo.surplusPrice) == 0" >
 						<view class='bargainSuccess'>
-							<image :src="urlDomain+'crmebimage/perset/activityImg/cheng.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/activityImg/cheng.png'"></image>
 							好友已砍成功
 						</view>
 						<view class='bargainBnt' @tap='currentBargainUser'>我也要参与</view>
 					</view>
 					<view v-if="startBargainUid != uid && bargainStatus==7">
 						<view class='bargainSuccess'>
-							<image :src="urlDomain+'crmebimage/perset/activityImg/cheng.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/activityImg/cheng.png'"></image>
 							您已帮其他好友砍过此商品
 						</view>
 						<view class='bargainBnt' @tap='currentBargainUser'>我也要参与</view>
 					</view>
 					<view v-if="startBargainUid != uid && bargainStatus==6">
 						<view class='bargainSuccess'>
-							<image :src="urlDomain+'crmebimage/perset/activityImg/chengh.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/activityImg/chengh.png'"></image>
 							已成功帮助好友砍价
 						</view>
 						<view class='bargainBnt' @tap='currentBargainUser'>我也要参与</view>
@@ -122,7 +122,7 @@
 					<view
 						v-if="parseFloat(bargainUserInfo.surplusPrice) == 0 &&  startBargainUid == uid && (bargainStatus==4 || bargainStatus==8)">
 						<view class='bargainSuccess'>
-							<image :src="urlDomain+'crmebimage/perset/activityImg/chengh.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/activityImg/chengh.png'"></image>
 							恭喜您砍价成功，快去支付吧~
 						</view>
 						<view class="acea-row row-between buyBox pad30">
@@ -134,7 +134,7 @@
 					<view
 						v-if="parseFloat(bargainUserInfo.surplusPrice) == 0 &&  startBargainUid == uid && bargainStatus==9">
 						<view class='bargainSuccess'>
-							<image :src="urlDomain+'crmebimage/perset/activityImg/chengh.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/activityImg/chengh.png'"></image>
 							恭喜您砍价成功，去看看别的商品吧~
 						</view>
 						<view class="buyBox pad30">
@@ -169,14 +169,14 @@
 				<!-- 砍价记录 -->
 				<view class='title font-color acea-row row-center-wrapper skeleton-rect'>
 					<view class='pictrue'>
-						<image :src="urlDomain+'crmebimage/perset/activityImg/zuo2.png'"></image>
+						<image :src="urlDomain+'qianxuimage/perset/activityImg/zuo2.png'"></image>
 					</view>
 					<view class="tits">
 						<view class='titleCon'>砍价记录</view>
 						<view class="line"></view>
 					</view>
 					<view class='pictrue on'>
-						<image :src="urlDomain+'crmebimage/perset/activityImg/you2.png'"></image>
+						<image :src="urlDomain+'qianxuimage/perset/activityImg/you2.png'"></image>
 					</view>
 				</view>
 				<view class='bargainGang borRadius14 skeleton-rect'>
@@ -213,14 +213,14 @@
 				<!-- 商品详情 -->
 				<view class='title font-color acea-row row-center-wrapper'>
 					<view class='pictrue'>
-						<image :src="urlDomain+'crmebimage/perset/activityImg/zuo2.png'"></image>
+						<image :src="urlDomain+'qianxuimage/perset/activityImg/zuo2.png'"></image>
 					</view>
 					<view class="tits">
 						<view class='titleCon'>商品详情</view>
 						<view class="line"></view>
 					</view>
 					<view class='pictrue on'>
-						<image :src="urlDomain+'crmebimage/perset/activityImg/you2.png'"></image>
+						<image :src="urlDomain+'qianxuimage/perset/activityImg/you2.png'"></image>
 					</view>
 				</view>
 				<view class='goodsDetails borRadius14'>
@@ -303,7 +303,7 @@
 
 		<!-- 发送给朋友图片 -->
 		<view class="share-box" v-if="H5ShareBox">
-			<image :src="urlDomain+'crmebimage/perset/staticImg/share-info.png'" @click="H5ShareBox = false"></image>
+			<image :src="urlDomain+'qianxuimage/perset/staticImg/share-info.png'" @click="H5ShareBox = false"></image>
 		</view>
 
 		<!-- 海报展示 -->
@@ -441,8 +441,8 @@
 				imagePath: '', // 海报图片
 				theme:app.globalData.theme,
 				imgHost:'',
-				backBg:'crmebimage/perset/bargain_header_bg/bargain_header_bg1.jpg',
-				backHead:'crmebimage/perset/bargain_tip/bargain_tip1.png'
+				backBg:'qianxuimage/perset/bargain_header_bg/bargain_header_bg1.jpg',
+				backHead:'qianxuimage/perset/bargain_tip/bargain_tip1.png'
 			}
 
 		},
@@ -461,28 +461,28 @@
 			})
 			switch (that.theme) {
 				case 'theme1':
-					that.backBg = 'crmebimage/perset/bargain_header_bg/bargain_header_bg1.jpg';
-					that.backHead = 'crmebimage/perset/bargain_tip/bargain_tip1.png';
+					that.backBg = 'qianxuimage/perset/bargain_header_bg/bargain_header_bg1.jpg';
+					that.backHead = 'qianxuimage/perset/bargain_tip/bargain_tip1.png';
 					that.posterbackgd = require('../images/bargain_post1.png') // 因为跨域不能使用网络图片，
 					break;
 				case 'theme2':
-					that.backBg = 'crmebimage/perset/bargain_header_bg/bargain_header_bg2.jpg';
-					that.backHead = 'crmebimage/perset/bargain_tip/bargain_tip2.png';
+					that.backBg = 'qianxuimage/perset/bargain_header_bg/bargain_header_bg2.jpg';
+					that.backHead = 'qianxuimage/perset/bargain_tip/bargain_tip2.png';
 					that.posterbackgd = require('../images/bargain_post2.png') 
 					break;
 				case 'theme3':
-					that.backBg = 'crmebimage/perset/bargain_header_bg/bargain_header_bg3.jpg';
-					that.backHead = 'crmebimage/perset/bargain_tip/bargain_tip3.png';
+					that.backBg = 'qianxuimage/perset/bargain_header_bg/bargain_header_bg3.jpg';
+					that.backHead = 'qianxuimage/perset/bargain_tip/bargain_tip3.png';
 					that.posterbackgd = require('../images/bargain_post3.png') 
 					break;
 				case 'theme4':
-					that.backBg = 'crmebimage/perset/bargain_header_bg/bargain_header_bg4.jpg';
-					that.backHead = 'crmebimage/perset/bargain_tip/bargain_tip4.png';
+					that.backBg = 'qianxuimage/perset/bargain_header_bg/bargain_header_bg4.jpg';
+					that.backHead = 'qianxuimage/perset/bargain_tip/bargain_tip4.png';
 					that.posterbackgd = require('../images/bargain_post4.png') 
 					break;
 				case 'theme5':
-					that.backBg = 'crmebimage/perset/bargain_header_bg/bargain_header_bg5.jpg';
-					that.backHead = 'crmebimage/perset/bargain_tip/bargain_tip5.png';
+					that.backBg = 'qianxuimage/perset/bargain_header_bg/bargain_header_bg5.jpg';
+					that.backHead = 'qianxuimage/perset/bargain_tip/bargain_tip5.png';
 					that.posterbackgd = require('../images/bargain_post5.png') 
 					break;
 			}

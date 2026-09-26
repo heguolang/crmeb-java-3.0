@@ -13,9 +13,9 @@ set -euo pipefail
 MYSQL_BIN="${MYSQL_BIN:-mysql}"
 MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
-MYSQL_USER="${MYSQL_USER:-crmeb_java3}"
+MYSQL_USER="${MYSQL_USER:-qianxu_java3}"
 MYSQL_PWD="${MYSQL_PWD:-ktXMTiAxTTyMyPKk}"
-DB_NAME="${DB_NAME:-crmeb_java3}"
+DB_NAME="${DB_NAME:-qianxu_java3}"
 MODE="${1:-all}"
 # ----------------------------
 

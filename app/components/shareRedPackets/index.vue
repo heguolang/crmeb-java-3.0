@@ -27,7 +27,7 @@
 		data() {
 			return {
 				imgHost:'',
-				picBg:'crmebimage/perset/share_tip/share_tip1.png',
+				picBg:'qianxuimage/perset/share_tip/share_tip1.png',
 				top: "260",
 			};
 		},
@@ -38,19 +38,19 @@
 			    success: function (res) {
 					switch (res.data) {
 						case 'theme1':
-							that.picBg = 'crmebimage/perset/share_tip/share_tip1.png';
+							that.picBg = 'qianxuimage/perset/share_tip/share_tip1.png';
 							break;
 						case 'theme2':
-							that.picBg = 'crmebimage/perset/share_tip/share_tip2.png';
+							that.picBg = 'qianxuimage/perset/share_tip/share_tip2.png';
 							break;
 						case 'theme3':
-							that.picBg = 'crmebimage/perset/share_tip/share_tip3.png';
+							that.picBg = 'qianxuimage/perset/share_tip/share_tip3.png';
 							break;
 						case 'theme4':
-							that.picBg = 'crmebimage/perset/share_tip/share_tip4.png';
+							that.picBg = 'qianxuimage/perset/share_tip/share_tip4.png';
 							break;
 						case 'theme5':
-							that.picBg = 'crmebimage/perset/share_tip/share_tip5.png';
+							that.picBg = 'qianxuimage/perset/share_tip/share_tip5.png';
 							break;
 					}
 			    }

@@ -16,15 +16,15 @@
 				<view class='item' :class='title ? "font_color":""' @click='set_where(1)'>{{title ? title:'默认'}}</view>
 				<view class='item' @click='set_where(2)'>
 					价格
-					<image v-if="price==1" :src="urlDomain+'crmebimage/perset/staticImg/up.png'"></image>
-					<image v-else-if="price==2" :src="urlDomain+'crmebimage/perset/staticImg/down.png'"></image>
-					<image v-else :src="urlDomain+'crmebimage/perset/staticImg/horn.png'"></image>
+					<image v-if="price==1" :src="urlDomain+'qianxuimage/perset/staticImg/up.png'"></image>
+					<image v-else-if="price==2" :src="urlDomain+'qianxuimage/perset/staticImg/down.png'"></image>
+					<image v-else :src="urlDomain+'qianxuimage/perset/staticImg/horn.png'"></image>
 				</view>
 				<view class='item' @click='set_where(3)'>
 					销量
-					<image v-if="stock==1" :src="urlDomain+'crmebimage/perset/staticImg/up.png'"></image>
-					<image v-else-if="stock==2" :src="urlDomain+'crmebimage/perset/staticImg/down.png'"></image>
-					<image v-else :src="urlDomain+'crmebimage/perset/staticImg/horn.png'"></image>
+					<image v-if="stock==1" :src="urlDomain+'qianxuimage/perset/staticImg/up.png'"></image>
+					<image v-else-if="stock==2" :src="urlDomain+'qianxuimage/perset/staticImg/down.png'"></image>
+					<image v-else :src="urlDomain+'qianxuimage/perset/staticImg/horn.png'"></image>
 				</view>
 				<!-- down -->
 				<view class='item' :class='nows ? "font_color":""' @click='set_where(4)'>新品</view>
@@ -52,7 +52,7 @@
 									class='num'>{{item.price}}</text></view>
 							<view class='vip acea-row row-between-wrapper' :class='is_switch==true?"":"on"'>
 								<view class='vip-money' v-if="item.vip_price && item.vip_price > 0">￥{{item.vip_price}}
-									<image :src="urlDomain+'crmebimage/perset/staticImg/vip.png'"></image>
+									<image :src="urlDomain+'qianxuimage/perset/staticImg/vip.png'"></image>
 								</view>
 								<view>已售{{Number(item.sales)}}{{item.unitName}}</view>
 							</view>
@@ -66,7 +66,7 @@
 		</view>
 		<view class='noCommodity' v-if="productList.length==0 && where.page > 1">
 			<view class='pictrue'>
-				<image :src="urlDomain+'crmebimage/perset/staticImg/noShopper.png'"></image>
+				<image :src="urlDomain+'qianxuimage/perset/staticImg/noShopper.png'"></image>
 			</view>
 			<recommend ref="recommendIndex"></recommend>
 		</view>

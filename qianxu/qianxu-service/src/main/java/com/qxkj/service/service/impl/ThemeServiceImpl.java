@@ -1194,7 +1194,7 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
      *
      * 判断依据：
      * 1. 包含图片文件扩展名（png/jpg/jpeg/gif/webp/svg/bmp）
-     * 2. 包含已知的上传路径关键字（crmebimage/uploads/attach/uploadf）
+     * 2. 包含已知的上传路径关键字（qianxuimage/uploads/attach/uploadf）
      *
      * @param value 字符串值
      * @return 是否可能是图片路径
@@ -1209,7 +1209,7 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
                 return true;
             }
         }
-        if (lower.contains("crmebimage")
+        if (lower.contains(UploadConstants.UPLOAD_FILE_KEYWORD)
                 || lower.contains("uploads/attach")
                 || lower.contains("uploadf")) {
             return true;
@@ -3178,7 +3178,7 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
                 }
                 break;
             case "category":
-                String categoryImage = "/crmebimage/theme-cate/cate" + getCategoryImageValue(rawValue) + ".png";
+                String categoryImage = "/" + UploadConstants.UPLOAD_FILE_KEYWORD + "/theme-cate/cate" + getCategoryImageValue(rawValue) + ".png";
                 theme.setCategoryData(value);
                 theme.setCategoryDataUpdateTime(nowTime);
                 theme.setCategoryImage(categoryImage);

@@ -90,7 +90,7 @@
 import Tinymce from '@/components/Tinymce/index';
 import * as categoryApi from '@/api/categoryApi.js';
 import * as articleApi from '@/api/article.js';
-import * as selfUtil from '@/utils/ZBKJIutil.js';
+import * as selfUtil from '@/utils/QXKJUtil.js';
 import { fileImageApi } from '@/api/systemSetting';
 import { getToken } from '@/utils/auth';
 import { Debounce } from '@/utils/validate';

@@ -7,10 +7,10 @@
 #   bash local-dev/rebuild-db.sh --no-backup      # 跳过备份
 #   bash local-dev/rebuild-db.sh --with-migration # 额外跑 qianxu/sql/migration/*
 #
-# ⚠️ 会 DROP 整个 crmeb 库！默认执行前会自动备份。
+# ⚠️ 会 DROP 整个 qianxu 库！默认执行前会自动备份。
 #
 # 执行顺序严格对齐上游官方文档 db-data/导入说明.txt 的 14 步，
-# 之后追加第 15 步：把 db-data/qianxu_image 的图片合并进 qianxu/crmebimage。
+# 之后追加第 15 步：把 db-data/qianxu_image 的图片合并进 qianxu/qianxuimage。
 #
 # 【为什么不跑 qianxu/sql/migration/*】
 #   官方 14 步里没有它们。add_missing_team_level_tables.sql +
@@ -37,11 +37,11 @@ MYSQL_BIN="/opt/homebrew/opt/mysql@8.0/bin"
 MYSQL="$MYSQL_BIN/mysql"
 DUMP="$MYSQL_BIN/mysqldump"
 SOCKET="/tmp/mysql.sock"
-DB="crmeb"
+DB="qianxu"
 DBUSER="root"
 DBPASS="root"
-IMAGE_ROOT="$PROJECT_DIR/qianxu"          # crmeb.imagePath 指向这里
-IMAGE_DIR="$IMAGE_ROOT/crmebimage"
+IMAGE_ROOT="$PROJECT_DIR/qianxu"          # qianxu.imagePath 指向这里
+IMAGE_DIR="$IMAGE_ROOT/qianxuimage"
 
 DO_BACKUP=1
 WITH_MIGRATION=0
@@ -80,8 +80,8 @@ if [ "$DO_BACKUP" = "1" ]; then
     > "$BK/qianxu_before.sql" 2>/dev/null
   echo "    DB 备份: $(ls -lh "$BK/qianxu_before.sql" | awk '{print $5}')"
   if [ -d "$IMAGE_DIR" ]; then
-    tar -czf "$BK/crmebimage_before.tar.gz" -C "$IMAGE_ROOT" crmebimage 2>/dev/null
-    echo "    图片备份: $(ls -lh "$BK/crmebimage_before.tar.gz" 2>/dev/null | awk '{print $5}')"
+    tar -czf "$BK/qianxuimage_before.tar.gz" -C "$IMAGE_ROOT" qianxuimage 2>/dev/null
+    echo "    图片备份: $(ls -lh "$BK/qianxuimage_before.tar.gz" 2>/dev/null | awk '{print $5}')"
   fi
 fi
 
@@ -151,7 +151,7 @@ done
 
 # ---------- 3. 图片合并 ----------
 echo "==> [3/4] 合并图片到 $IMAGE_DIR"
-IMG_SRC="$DBDATA/qianxu_image/crmebimage"
+IMG_SRC="$DBDATA/qianxu_image/qianxuimage"
 if [ -d "$IMG_SRC" ]; then
   BEFORE=$(find "$IMAGE_DIR" -type f 2>/dev/null | wc -l | tr -d ' ')
   mkdir -p "$IMAGE_DIR"

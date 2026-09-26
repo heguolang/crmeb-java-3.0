@@ -5,7 +5,7 @@
 			@load="handleImgLoad" @error="handleImgError">
 		</image>
 		<view class="loadfail-img" v-else-if="isLoadError"
-			:style="{'background-image': `url(${urlDomain}crmebimage/presets/loadfail.png) no-repeat center`}"></view>
+			:style="{'background-image': `url(${urlDomain}qianxuimage/presets/loadfail.png) no-repeat center`}"></view>
 		<view :class="['loading-img',loadingMode]" v-show="!showImg&&!isLoadError"></view>
 	</view>
 </template>

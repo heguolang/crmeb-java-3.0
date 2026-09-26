@@ -15,7 +15,7 @@ QIANXU Java 3.0 —— 线上（宝塔 Linux）部署辅助脚本
     CRM_REDIS_PASS  Redis 密码      探针用；不设则跳过 keyspace 扫描
     CRM_DB_USER     数据库用户      默认 root
     CRM_DB_PASS     数据库密码      backup / sql 用；不设则跳过
-    CRM_DB_NAME     库名            默认 crmeb_java3
+    CRM_DB_NAME     库名            默认 qianxu_java3
 
 用法：
     python online_deploy.py probe           # 只读探测，不改任何东西
@@ -51,7 +51,7 @@ KEY = os.path.expanduser(os.environ.get("CRM_SSH_KEY", "~/.ssh/id_ed25519"))
 REDIS_PASS = os.environ.get("CRM_REDIS_PASS")          # 探针用，不设则跳过
 DB_USER = os.environ.get("CRM_DB_USER", "root")
 DB_PASS = os.environ.get("CRM_DB_PASS")                # 执行 SQL 用
-DB_NAME = os.environ.get("CRM_DB_NAME", "crmeb_java3")
+DB_NAME = os.environ.get("CRM_DB_NAME", "qianxu_java3")
 
 ONLINE_ADMIN = "/www/wwwroot/api.qianxutec.com"        # admin/front jar 所在
 ONLINE_WEB = "/www/wwwroot/admin.qianxutec.com"        # 后台前端 dist 所在
@@ -136,7 +136,7 @@ def cmd_probe(cli):
     run(cli, "ps -ef | grep java | grep -v grep | cut -c1-260")
 
     log("\n[3] 服务管理方式（systemd / 宝塔 / 脚本）")
-    run(cli, "systemctl list-units --type=service --no-pager 2>/dev/null | grep -iE 'crmeb|java' | head -10")
+    run(cli, "systemctl list-units --type=service --no-pager 2>/dev/null | grep -iE 'qianxu|java' | head -10")
     run(cli, "ls -la /www/server/panel/vhost/ 2>/dev/null | head -5")
     run(cli, "ls -d /www/server/panel/plugin/*java* 2>/dev/null; ls /www/wwwroot 2>/dev/null")
 
@@ -150,8 +150,8 @@ def cmd_probe(cli):
              "grep -rnE 'server_name|root ' /www/server/panel/vhost/nginx/*.conf 2>/dev/null | head -40")
 
     log("\n[6] 图片资源")
-    run(cli, "ls /www/wwwroot/api.qianxutec.com/crmebimage/ 2>/dev/null | head; "
-             "find /www/wwwroot/api.qianxutec.com/crmebimage -type f 2>/dev/null | wc -l")
+    run(cli, "ls /www/wwwroot/api.qianxutec.com/qianxuimage/ 2>/dev/null | head; "
+             "find /www/wwwroot/api.qianxutec.com/qianxuimage -type f 2>/dev/null | wc -l")
 
     log("\n[7] 磁盘与内存")
     run(cli, "df -h / /www 2>/dev/null; free -m | head -3")

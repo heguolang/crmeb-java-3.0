@@ -3,7 +3,7 @@
 		<view class="accredit_model">
 			<view class="model_container">
 				<view class="model_top">
-					<image class="model_icon" :src="urlDomain+'crmebimage/perset/staticImg/model_img.png'"></image>
+					<image class="model_icon" :src="urlDomain+'qianxuimage/perset/staticImg/model_img.png'"></image>
 				</view>
 				<view class="model_content">
 					<view class="model_title">授权提示</view>

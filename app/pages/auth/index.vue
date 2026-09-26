@@ -1,7 +1,7 @@
 <template>
 	<view class="lottie-bg">
 		<view id="lottie">
-			<image :src="urlDomain+'crmebimage/perset/staticImg/live-logo.gif'" rel="preload" />
+			<image :src="urlDomain+'qianxuimage/perset/staticImg/live-logo.gif'" rel="preload" />
 		</view>
 	</view>
 </template>

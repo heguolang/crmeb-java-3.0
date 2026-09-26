@@ -70,7 +70,7 @@
 <!--创建和编辑公用一个组件-->
 <script>
 import * as categoryApi from '@/api/categoryApi.js';
-import * as selfUtil from '@/utils/ZBKJIutil.js';
+import * as selfUtil from '@/utils/QXKJUtil.js';
 export default {
   // name: "edit"
   props: {

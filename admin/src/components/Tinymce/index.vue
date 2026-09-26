@@ -16,7 +16,7 @@
 // +----------------------------------------------------------------------
 import plugins from './plugins';
 import toolbar from './toolbar';
-import { uploadImage } from '@/utils/ZBKJIutil';
+import { uploadImage } from '@/utils/QXKJUtil';
 
 export default {
   name: 'Tinymce',

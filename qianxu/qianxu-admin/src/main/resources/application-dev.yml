@@ -1,5 +1,5 @@
 # 黔序商城相关配置
-crmeb:
+qianxu:
   version: qianxu-java5.0 # 当前代码版本
   domain: #配合swagger使用 # 待部署域名
   wechat-api-url:  #请求微信接口中专服务器

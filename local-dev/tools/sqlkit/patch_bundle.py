@@ -4,7 +4,7 @@
 import io, os
 
 ROOT = r'D:\qianxu-java-3.0'
-SQL = os.path.join(ROOT, 'crmeb', 'sql')
+SQL = os.path.join(ROOT, 'qianxu', 'sql')
 PATCH = os.path.join(SQL, 'oneclick', '02_patches_all.sql')
 
 NEW_SECTIONS = ['system_settings_20260923.sql', 'menu_sync_20260923.sql', 'table_comments_20260923.sql']

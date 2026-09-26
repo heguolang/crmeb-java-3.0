@@ -45,14 +45,14 @@
 				<view class='list2' :hidden='current!=1'>
 					<navigator class='item acea-row row-between-wrapper' open-type='switchTab' hover-class='none' url='/pages/index/index'>
 						<view class='pictrue'>
-							<image :src="urlDomain+'crmebimage/perset/staticImg/score.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/score.png'"></image>
 						</view>
 						<view class='name'>购买商品可获得积分奖励</view>
 						<view class='earn'>赚积分</view>
 					</navigator>
 					<navigator class='item acea-row row-between-wrapper' hover-class='none' url='/pages/users/user_sgin/index'>
 						<view class='pictrue'>
-							<image :src="urlDomain+'crmebimage/perset/staticImg/score.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/score.png'"></image>
 						</view>
 						<view class='name'>每日签到可获得积分奖励</view>
 						<view class='earn'>赚积分</view>

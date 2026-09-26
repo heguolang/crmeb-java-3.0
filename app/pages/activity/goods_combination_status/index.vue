@@ -38,7 +38,7 @@
 					<div class="pictrue" v-for="(item, index) in pinkAll" :key="index"><image :src="item.avatar" /></div>
 				</block>
 				<div class="pictrue" v-for="index in count" :key="index">
-					<image class="img-none" :src="urlDomain+'crmebimage/perset/activityImg/vacancy.png'" />
+					<image class="img-none" :src="urlDomain+'qianxuimage/perset/activityImg/vacancy.png'" />
 				</div>
 			</div>
 			<div v-if="(pinkBool === 1 || pinkBool === -1) && count > 9" class="lookAll acea-row row-center-wrapper"
@@ -108,7 +108,7 @@
 		<view class="mask" v-if="posters || canvasStatus" @click="listenerActionClose"></view>
 		<!-- 发送给朋友图片 -->
 		<view class="share-box" v-if="H5ShareBox">
-			<image :src="urlDomain+'crmebimage/perset/staticImg/share-info.png'" @click="H5ShareBox = false"></image>
+			<image :src="urlDomain+'qianxuimage/perset/staticImg/share-info.png'" @click="H5ShareBox = false"></image>
 		</view>
 		<!-- 海报展示 -->
 		<view class='poster-pop' v-if="canvasStatus">

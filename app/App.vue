@@ -51,7 +51,7 @@
 			routinePhoneVerification: '', //小程序手机号校验类型（多选）1微信小程序验证 2短信验证
 			companyName: uni.getStorageSync('companyName') ? uni.getStorageSync('companyName') : '欢迎你', //公司名称
 			tokenIsExist: false, //登录是否失效 false 失效，true没失效
-			mobileLoginLogo: uni.getStorageSync('mobileLoginLogo') || `${Cache.get("imgHost")}crmebimage/perset/staticImg/logo2.png` //登录页logo
+			mobileLoginLogo: uni.getStorageSync('mobileLoginLogo') || `${Cache.get("imgHost")}qianxuimage/perset/staticImg/logo2.png` //登录页logo
 		},
 		onLaunch: function(option) {
 			option = option || {};

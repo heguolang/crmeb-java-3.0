@@ -79,7 +79,7 @@
 			</view>
 			<view class='noCart' v-if="orderList.length == 0 && isShow && !loading">
 				<view class='pictrue'>
-					<image :src="urlDomain+'crmebimage/perset/staticImg/noOrder.png'"></image>
+					<image :src="urlDomain+'qianxuimage/perset/staticImg/noOrder.png'"></image>
 				</view>
 			</view>
 		</view>

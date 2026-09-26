@@ -50,7 +50,7 @@
 <script>
 import parser from '@/components/FormGenerator/components/parser/Parser';
 import * as categoryApi from '@/api/categoryApi.js';
-import * as selfUtil from '@/utils/ZBKJIutil.js';
+import * as selfUtil from '@/utils/QXKJUtil.js';
 import * as systemFormConfigApi from '@/api/systemFormConfig.js';
 import * as systemSettingApi from '@/api/systemSetting.js';
 import * as systemConfigApi from '@/api/systemConfig.js';

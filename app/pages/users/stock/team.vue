@@ -201,7 +201,7 @@
 			onAvatarErr(id) {
 				this.$set(this.avatarErr, id, true);
 			},
-			// 头像为相对路径（crmebimage/...）时补全为可访问地址；已是 http(s) 直接返回
+			// 头像为相对路径（qianxuimage/...）时补全为可访问地址；已是 http(s) 直接返回
 			avatarUrl(a) {
 				if (!a || !a.avatar) return '';
 				if (/^https?:\/\//i.test(a.avatar)) return a.avatar;

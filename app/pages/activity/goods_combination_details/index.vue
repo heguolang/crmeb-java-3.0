@@ -188,9 +188,9 @@
 
 					<view class='product-intro' id="past2">
 						<view class='title'>
-							<image :src="urlDomain+'crmebimage/perset/staticImg/xzuo.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/xzuo.png'"></image>
 							<span class="sp">产品详情</span>
-							<image :src="urlDomain+'crmebimage/perset/staticImg/xyou.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/xyou.png'"></image>
 						</view>
 						<view class='conter'>
 							<jyf-parser :html="storeInfo.content" ref="article" :tag-style="tagStyle"></jyf-parser>
@@ -277,7 +277,7 @@
 					<!-- #ifdef H5 || MP -->
 					<view class="item" @click="getpreviewImage">
 						<view class="pictrue">
-							<image :src="urlDomain+'crmebimage/perset/staticImg/changan.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/changan.png'"></image>
 						</view>
 						<view class="">预览发图</view>
 					</view>
@@ -479,7 +479,7 @@
 				storeImage: '', //海报产品图
 				PromotionCode: '', //二维码图片
 				posterImage: '', //海报路径
-				posterbackgd: `${this.$Cache.get("imgHost")}crmebimage/perset/staticImg/posterbackgd.png`,
+				posterbackgd: `${this.$Cache.get("imgHost")}qianxuimage/perset/staticImg/posterbackgd.png`,
 				navActive: 0,
 				actionSheetHidden: false,
 				attrTxt: '',

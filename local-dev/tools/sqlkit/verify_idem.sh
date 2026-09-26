@@ -4,7 +4,7 @@ set -u
 export PATH="/usr/bin:/bin:/c/Windows/System32:$PATH"
 MYSQL="D:/env/mysql-8.0.29-winx64/bin/mysql.exe"
 DUMP="D:/env/mysql-8.0.29-winx64/bin/mysqldump.exe"
-DB=crmeb
+DB=qianxu
 PATCH=/d/qianxu-java-3.0/qianxu/sql/oneclick/02_patches_all.sql
 TMP=/d/qianxu-java-3.0/local-dev/tmp
 

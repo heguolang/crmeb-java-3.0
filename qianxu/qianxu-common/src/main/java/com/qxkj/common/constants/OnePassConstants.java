@@ -23,9 +23,11 @@ public class OnePassConstants {
     // 用户token前缀
     public static final String ONE_PASS_USER_TOKEN_PREFIX = "Bearer-";
 
-    // 一号通请求地址
-    public static final String ONE_PASS_API_URL = "https://sms.crmeb.net/api/";// 正式环境
-//    public static final String ONE_PASS_API_URL = "http://plat.crmeb.net/api/";// 测试环境
+    /**
+     * 开放平台 API 根地址（须以 / 结尾）。
+     * 由配置项 qianxu.one-pass-api-url / 环境变量 ONE_PASS_API_URL 注入，源码不内置第三方域名。
+     */
+    public static String ONE_PASS_API_URL = "";
 
     // 验证码地址
     public static final String REGISTER_CAPTCHA_URI = "v2/user/code";
@@ -97,7 +99,7 @@ public class OnePassConstants {
     public static final String ONE_PASS_API_EXPRESS_QUEARY_URI = "v2/expr/query";
 
 
-    /** 商家寄件 START  文档链接 https://api.crmeb.com/docs/%E5%95%86%E5%AE%B6%E5%AF%84%E4%BB%B6/API/%E5%88%9B%E5%BB%BA%E5%95%86%E5%AE%B6%E5%AF%84%E4%BB%B6%E8%AE%A2%E5%8D%95.html */
+    /** 商家寄件 START */
     public static final String ONE_PASS_API_SHIPMENT_CREATE_ORDER_URI = "v2/shipment/create_order";
     public static final String ONE_PASS_API_SHIPMENT_CANCEL_ORDER_URI = "v2/shipment/cancel_order";
     public static final String ONE_PASS_API_SHIPMENT_INDEX_URI = "v2/shipment/index";

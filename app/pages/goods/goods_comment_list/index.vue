@@ -28,7 +28,7 @@
 			</view>
 			<view class='noCommodity' v-if="!replyData.sumCount && page > 1">
 				<view class='pictrue'>
-					<image :src="urlDomain+'crmebimage/perset/usersImg/noEvaluate.png'"></image>
+					<image :src="urlDomain+'qianxuimage/perset/usersImg/noEvaluate.png'"></image>
 				</view>
 			</view>
 		</view>

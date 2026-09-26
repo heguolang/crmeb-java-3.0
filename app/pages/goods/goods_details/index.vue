@@ -82,7 +82,7 @@
 									<view class='x-money skeleton-rect flex align-baseline' v-if="!productInfo.activityStyle">￥
 										<text class='num font-44'>{{attr.productSelect.price}}</text>
 										<view class="flex  pl-2" v-if="attr.productSelect.vipPrice && attr.productSelect.vipPrice > 0">
-											<image :src="urlDomain+'crmebimage/perset/staticImg/vip_badge.png'" class="vip_icon"></image>
+											<image :src="urlDomain+'qianxuimage/perset/staticImg/vip_badge.png'" class="vip_icon"></image>
 											<text class='vip_money skeleton-rect'>￥{{attr.productSelect.vipPrice}}</text>
 										</view>
 									</view>
@@ -177,9 +177,9 @@
 							<!-- 优品推荐 -->
 							<view class="superior borRadius14" if='good_list.length' id="past2">
 								<view class="title acea-row row-center-wrapper">
-									<image :src="urlDomain+'crmebimage/perset/staticImg/xzuo.png'"></image>
+									<image :src="urlDomain+'qianxuimage/perset/staticImg/xzuo.png'"></image>
 									<view class="titleTxt">优品推荐</view>
-									<image :src="urlDomain+'crmebimage/perset/staticImg/xyou.png'"></image>
+									<image :src="urlDomain+'qianxuimage/perset/staticImg/xyou.png'"></image>
 								</view>
 								<view class="slider-banner banner">
 									<swiper indicator-dots="true" :autoplay="autoplay" :circular="circular" :interval="interval"
@@ -210,9 +210,9 @@
 					</view>
 					<view class='product-intro' id="past3">
 						<view class='title'>
-							<image :src="urlDomain+'crmebimage/perset/staticImg/xzuo.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/xzuo.png'"></image>
 							<span class="sp">产品详情</span>
-							<image :src="urlDomain+'crmebimage/perset/staticImg/xyou.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/xyou.png'"></image>
 						</view>
 						<view class='conter'>
 							<jyf-parser :html="description" ref="article" :tag-style="tagStyle"></jyf-parser>
@@ -318,7 +318,7 @@
 					<!-- #ifndef MP -->
 					<button class="item" hover-class="none" v-if="weixinStatus === true" @click="H5ShareBox = true">
 						<view class="pictrue">
-							<image :src="urlDomain+'crmebimage/perset/staticImg/weixin.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/weixin.png'"></image>
 						</view>
 						<view class="">分享给好友</view>
 					</button>
@@ -326,7 +326,7 @@
 					<!-- #ifdef MP -->
 					<button class="item" open-type="share" hover-class="none">
 						<view class="pictrue">
-							<image :src="urlDomain+'crmebimage/perset/staticImg/weixin.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/weixin.png'"></image>
 						</view>
 						<view class="">分享给好友</view>
 					</button>
@@ -344,7 +344,7 @@
 					<!-- #ifdef H5 || MP -->
 					<view class="item" @click="getpreviewImage">
 						<view class="pictrue">
-							<image :src="urlDomain+'crmebimage/perset/staticImg/changan.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/changan.png'"></image>
 						</view>
 						<view class="">预览发图</view>
 					</view>
@@ -352,7 +352,7 @@
 					<!-- #ifdef MP  -->
 					<button class="item" hover-class="none" @click="savePosterPath">
 						<view class="pictrue">
-							<image :src="urlDomain+'crmebimage/perset/staticImg/haibao.png'"></image>
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/haibao.png'"></image>
 						</view>
 						<view class="">保存海报</view>
 					</button>
@@ -374,7 +374,7 @@
 			</view>
 			<!-- 发送给朋友图片 -->
 			<view class="share-box" v-if="H5ShareBox">
-				<image :src="urlDomain+'crmebimage/perset/staticImg/share-info.png'" @click="H5ShareBox = false"></image>
+				<image :src="urlDomain+'qianxuimage/perset/staticImg/share-info.png'" @click="H5ShareBox = false"></image>
 			</view>
 			<!-- 保障服务弹窗 -->
 			<view class="guarantee-pop-box">
@@ -455,9 +455,6 @@
 		silenceBindingSpread
 	} from "@/utils";
 	import parser from "@/components/jyf-parser/jyf-parser";
-	import {
-		computeUser
-	} from "@/api/user.js";
 	// #ifdef MP
 	import {
 		base64src
@@ -526,7 +523,7 @@
 				actionSheetHidden: true,
 				storeImage: '', //海报产品图
 				PromotionCode: '', //二维码图片
-				posterbackgd: `${this.$Cache.get("imgHost")}crmebimage/perset/staticImg/posterbackgd.png`,
+				posterbackgd: `${this.$Cache.get("imgHost")}qianxuimage/perset/staticImg/posterbackgd.png`,
 				sharePacket: {
 					isState: true, //默认不显示
 					touchstart: false
@@ -766,9 +763,6 @@
 			this.$store.commit("PRODUCT_TYPE", this.type);
 			// 客服配置
 			this.$set(this, 'chatConfig', this.$Cache.getItem('chatConfig'));
-			// #ifdef H5
-			computeUser();
-			// #endif
 
 			if (options.spread) this.$Cache.set('spread', options.spread);
 

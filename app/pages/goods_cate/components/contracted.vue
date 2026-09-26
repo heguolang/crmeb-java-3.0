@@ -29,7 +29,7 @@
 		</view>
 		<view class='noCommodity' :style="{top: iStatusBarHeight + 'px'}" v-if="productList.length== 0 && page > 1">
 			<view class='pictrue'>
-				<image :src="urlDomain+'crmebimage/perset/staticImg/noShopper.png'"></image>
+				<image :src="urlDomain+'qianxuimage/perset/staticImg/noShopper.png'"></image>
 			</view>
 			<recommend ref="recommendIndex"></recommend>
 		</view>

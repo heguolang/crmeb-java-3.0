@@ -10,8 +10,8 @@
 				<view class="pictrue">
 					<image :src="
               homeActive === true
-                ? `${urlDomain}crmebimage/perset/staticImg/close.gif`
-                : `${urlDomain}/crmebimage/perset/staticImg/open.gif`
+                ? `${urlDomain}qianxuimage/perset/staticImg/close.gif`
+                : `${urlDomain}/qianxuimage/perset/staticImg/open.gif`
             "
 					 class="image" />
 				</view>
