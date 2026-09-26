@@ -56,8 +56,8 @@ const themeConfigModule = {
       isBreadcrumb: false,
       // 是否开启 Breadcrumb 图标
       isBreadcrumbIcon: false,
-      // 是否开启 Tagsview
-      isTagsview: true,
+      // 是否开启 Tagsview（顶部标签栏功能已删除，固定关闭）
+      isTagsview: false,
       // 是否开启 Tagsview 图标
       isTagsviewIcon: false,
       // 是否开启 TagsView 缓存

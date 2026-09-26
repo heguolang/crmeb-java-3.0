@@ -1,25 +1,16 @@
 <template>
   <div class="layout-navbars-container">
     <BreadcrumbIndex />
-    <TagsView v-if="setShowTagsView" />
   </div>
 </template>
 
 <script>
 import BreadcrumbIndex from '@/layout/navBars/breadcrumb/index.vue';
-import TagsView from '@/layout/navBars/tagsView/tagsView.vue';
 export default {
   name: 'layoutNavBars',
-  components: { BreadcrumbIndex, TagsView },
+  components: { BreadcrumbIndex },
   data() {
     return {};
-  },
-  computed: {
-    // 设置是否显示 tagsView
-    setShowTagsView() {
-      let { layout, isTagsview } = this.$store.state.themeConfig.themeConfig;
-      return layout !== 'classic' && isTagsview;
-    },
   },
 };
 </script>

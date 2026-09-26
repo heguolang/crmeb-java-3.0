@@ -1,5 +1,6 @@
 <template>
-  <div :class="isTagHistory ? 'h100' : 'h101'">
+  <!-- 顶部标签栏（tagsView）已删除，固定使用 h101 高度 -->
+  <div class="h101">
     <keep-alive :include="keepAliveNameList">
       <router-view :key="refreshRouterViewKey" />
     </keep-alive>
@@ -20,9 +21,6 @@ export default {
     // 设置主界面切换动画
     setTransitionName() {
       return this.$store.state.themeConfig.themeConfig.animation;
-    },
-    isTagHistory() {
-      return this.$store.state.themeConfig.themeConfig.isTagsview;
     },
   },
   created() {

@@ -50,9 +50,8 @@ export default {
     // 设置 main 的高度
     initHeaderHeight() {
       if (this.isFullScreen) return (this.headerHeight = '0px');
-      let { isTagsview } = this.$store.state.themeConfig.themeConfig;
-      if (isTagsview) return (this.headerHeight = `84px`);
-      else return (this.headerHeight = `50px`);
+      // 顶部标签栏（tagsView）已删除，固定高度
+      return (this.headerHeight = `50px`);
     },
     // 子组件触发更新
     onGetCurrentRouteMeta() {
@@ -67,7 +66,7 @@ export default {
           this.headerHeight = '0px';
           return;
         }
-        this.headerHeight = val.isTagsview ? '84px' : '50px';
+        this.headerHeight = '50px';
         if (val.isFixedHeaderChange !== val.isFixedHeader) {
           if (!this.$refs.layoutScrollbarRef) return false;
           this.$refs.layoutScrollbarRef.update();

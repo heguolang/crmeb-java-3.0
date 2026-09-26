@@ -165,12 +165,6 @@
           </div>
         </div>
         <div class="layout-breadcrumb-seting-bar-flex mt15">
-          <div class="layout-breadcrumb-seting-bar-flex-label">历史菜单</div>
-          <div class="layout-breadcrumb-seting-bar-flex-value">
-            <el-switch v-model="getThemeConfig.isTagsview" :width="35" @change="setLocalThemeConfig"> </el-switch>
-          </div>
-        </div>
-        <div class="layout-breadcrumb-seting-bar-flex mt15">
           <div class="layout-breadcrumb-seting-bar-flex-label">Footer</div>
           <div class="layout-breadcrumb-seting-bar-flex-value">
             <el-switch v-model="getThemeConfig.isFooter" :width="35" @change="setLocalThemeConfig"> </el-switch>
@@ -191,21 +185,6 @@
         </div>
         <!-- 其它设置 -->
         <el-divider :content-position="contentPosotion">其它设置</el-divider>
-        <div class="layout-breadcrumb-seting-bar-flex mt15">
-          <div class="layout-breadcrumb-seting-bar-flex-label">历史菜单风格</div>
-          <div class="layout-breadcrumb-seting-bar-flex-value">
-            <el-radio-group
-              v-model="getThemeConfig.tagsStyle"
-              :disabled="!getThemeConfig.isTagsview"
-              size="mini"
-              @change="setLocalThemeConfig"
-            >
-              <el-radio-button label="tags-style-one">卡片</el-radio-button>
-              <el-radio-button label="tags-style-four">灵动</el-radio-button>
-              <el-radio-button label="tags-style-five">圆滑</el-radio-button>
-            </el-radio-group>
-          </div>
-        </div>
         <div class="layout-breadcrumb-seting-bar-flex mt15">
           <div class="layout-breadcrumb-seting-bar-flex-label">主页面切换动画</div>
           <div class="layout-breadcrumb-seting-bar-flex-value">

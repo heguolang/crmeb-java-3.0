@@ -4,7 +4,6 @@
     <el-container class="layout-mian-height-50">
       <Asides />
       <div class="flex-center layout-backtop">
-        <TagsView v-if="getThemeConfig.isTagsview" />
         <Mains />
       </div>
     </el-container>
@@ -16,10 +15,9 @@
 import Asides from '@/layout/component/aside.vue';
 import Headers from '@/layout/component/header.vue';
 import Mains from '@/layout/component/main.vue';
-import TagsView from '@/layout/navBars/tagsView/tagsView.vue';
 export default {
   name: 'layoutClassic',
-  components: { Asides, Headers, Mains, TagsView },
+  components: { Asides, Headers, Mains },
   computed: {
     // 获取布局配置信息
     getThemeConfig() {
