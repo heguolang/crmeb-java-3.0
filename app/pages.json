@@ -309,7 +309,7 @@
 				{
 					"path": "user_cash/index",
 					"style": {
-						"navigationBarTitleText": "userCash",
+						"navigationBarTitleText": "提现",
 						"app-plus": {
 							// #ifdef APP-PLUS
 							"titleNView": {

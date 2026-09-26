@@ -384,7 +384,8 @@ export default {
   methods: {
     getProductList() {
       this.lodingList = true;
-      productLstApi(this.params).then((res) => {
+      // 后端 StoreProductSearchRequest 要求 type 为 1-5（1 出售中），缺失会被 @Range 校验拒绝「未知的商品类型」
+      productLstApi({ ...this.params, type: 1 }).then((res) => {
         this.tableList = this.normalizeTableList(res);
         this.lodingList = false;
       });

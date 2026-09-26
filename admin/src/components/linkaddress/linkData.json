@@ -372,6 +372,54 @@
         "status": 1,
         "sort": 0,
         "add_time": 1626837579
+      },
+      {
+        "id": 201,
+        "cate_id": 5,
+        "type": 1,
+        "name": "待付款",
+        "url": "/pages/users/order_list/index?status=0",
+        "param": " ",
+        "example": "/pages/users/order_list/index?status=0",
+        "status": 1,
+        "sort": 0,
+        "add_time": 1626837579
+      },
+      {
+        "id": 202,
+        "cate_id": 5,
+        "type": 1,
+        "name": "待发货",
+        "url": "/pages/users/order_list/index?status=1",
+        "param": " ",
+        "example": "/pages/users/order_list/index?status=1",
+        "status": 1,
+        "sort": 0,
+        "add_time": 1626837579
+      },
+      {
+        "id": 203,
+        "cate_id": 5,
+        "type": 1,
+        "name": "待收货",
+        "url": "/pages/users/order_list/index?status=2",
+        "param": " ",
+        "example": "/pages/users/order_list/index?status=2",
+        "status": 1,
+        "sort": 0,
+        "add_time": 1626837579
+      },
+      {
+        "id": 204,
+        "cate_id": 5,
+        "type": 1,
+        "name": "待评价",
+        "url": "/pages/users/order_list/index?status=3",
+        "param": " ",
+        "example": "/pages/users/order_list/index?status=3",
+        "status": 1,
+        "sort": 0,
+        "add_time": 1626837579
       }
     ]
   }

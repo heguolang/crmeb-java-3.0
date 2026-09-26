@@ -123,22 +123,22 @@ export default {
         {
           img: "icon-daifukuan",
           title: "待付款",
-          url: "/pages/goods/order_list/index?status=0",
+          url: "/pages/users/order_list/index?status=0",
         },
         {
           img: "icon-daifahuo",
           title: "待发货",
-          url: "/pages/goods/order_list/index?status=1",
+          url: "/pages/users/order_list/index?status=1",
         },
         {
           img: "icon-daishouhuo",
           title: "待收货",
-          url: "/pages/goods/order_list/index?status=2",
+          url: "/pages/users/order_list/index?status=2",
         },
         {
           img: "icon-daipingjia",
           title: "待评价",
-          url: "/pages/goods/order_list/index?status=3",
+          url: "/pages/users/order_list/index?status=3",
         },
         {
           img: "icon-a-shouhoutuikuan",
