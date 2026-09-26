@@ -134,8 +134,9 @@ export default {
     handlerGetSettingInfo(id, level) {
       systemSettingApi.systemConfigInfo({ id: id }).then((data) => {
         // 小程序登录配置，此处返回字符串，表单组件是数组，需要字符串转为数组
+        // filter(Boolean) 兜底：历史脏值 ",1"（空段）会导致提交时再次写入空段，永远自愈不了
         if (data.routine_phone_verification)
-          data.routine_phone_verification = data.routine_phone_verification.split(',').map(Number);
+          data.routine_phone_verification = data.routine_phone_verification.split(',').filter(Boolean).map(Number);
         this.currentEditData = data;
         if (level === 1) {
           this.formConf.isEdit = this.currentEditData !== null;
