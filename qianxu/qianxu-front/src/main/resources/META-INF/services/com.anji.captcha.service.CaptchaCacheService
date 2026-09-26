@@ -1,1 +1,1 @@
-com.zbkj.front.service.impl.CaptchaCacheServiceRedisImpl
+com.qxkj.front.service.impl.CaptchaCacheServiceRedisImpl

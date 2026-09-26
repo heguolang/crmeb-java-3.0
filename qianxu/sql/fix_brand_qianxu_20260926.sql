@@ -36,10 +36,27 @@ UPDATE `eb_system_group_data`
 UPDATE `eb_category` SET `url` = 'qianxu_tongji'
  WHERE `url` = 'crmeb_tongji';
 
--- 7) 复查（应返回 0 行）
+-- 7) Quartz 持久化类名修复（2026-09-26 生产部署现场补录，本地/线上都要跑）
+--    背景：QRTZ_JOB_DETAILS.JOB_CLASS_NAME 列 + JOB_DATA/TRIGGERS.JOB_DATA 序列化 BLOB 内
+--    嵌旧包名 com.zbkj.*，admin 启动 job recovery 报 ClassNotFoundException。
+--    com.zbkj 与 com.qxkj 等长（4 字符），字节级 REPLACE 不破坏序列化流结构。
+UPDATE `QRTZ_JOB_DETAILS` SET `JOB_CLASS_NAME` = 'com.qxkj.admin.quartz.QuartzJob'
+ WHERE `JOB_CLASS_NAME` = 'com.zbkj.admin.quartz.QuartzJob';
+
+UPDATE `QRTZ_JOB_DETAILS` SET `JOB_DATA` = REPLACE(`JOB_DATA`, 'com.zbkj.', 'com.qxkj.')
+ WHERE `JOB_DATA` LIKE '%com.zbkj.%';
+
+UPDATE `QRTZ_TRIGGERS` SET `JOB_DATA` = REPLACE(`JOB_DATA`, 'com.zbkj.', 'com.qxkj.')
+ WHERE `JOB_DATA` LIKE '%com.zbkj.%';
+
+--    停机期间的运行时残留（FIRE_STATE 也是序列化 blob），停机状态下清空安全
+DELETE FROM `QRTZ_FIRED_TRIGGERS`;
+
+-- 8) 复查（应返回 0 行）
 SELECT name FROM `eb_system_config`
  WHERE `value` LIKE '%crmeb.net%' AND `value` NOT LIKE '%crmebimage%' LIMIT 10;
 SELECT id FROM `eb_article` WHERE `content` LIKE '%crmeb.%' LIMIT 10;
+SELECT COUNT(*) FROM `QRTZ_JOB_DETAILS` WHERE `JOB_DATA` LIKE '%com.zbkj%';
 
 -- 执行完成后：
 --   redis-cli -n 8 DEL config_list （及其他配置缓存库）
