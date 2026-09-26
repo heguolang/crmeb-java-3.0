@@ -193,11 +193,13 @@
 			bindPhoneClose(data) {
 				if (data.isStatus) {
 					this.isPhoneBox = false
+					//绑定手机号成功后直接进入头像昵称授权页面
 					this.$util.Tips({
 						title: '登录成功',
 						icon: 'success'
 					}, {
-						tab: 3
+						tab: 4,
+						url: '/pages/users/profile_setup/index'
 					})
 				} else {
 					this.isPhoneBox = false

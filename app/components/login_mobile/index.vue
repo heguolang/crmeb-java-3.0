@@ -164,7 +164,7 @@
 						phone: that.account
 					}).then(res => {
 						that.isApp = 0;
-						that.onSuccess();
+						that.onSuccess(false);
 						that.getUserInfo();
 					}).catch(error => {
 						uni.hideLoading()
@@ -192,7 +192,7 @@
 							token: res.data.token
 						});
 						that.$store.commit("SETUID", res.data.uid);
-						that.onSuccess();
+						that.onSuccess(true);
 						that.getUserInfo();
 					}).catch(error => {
 						uni.hideLoading()
@@ -204,8 +204,9 @@
 			},
 			/**
 			 * 登录成功后的方法
+			 * @param {Boolean} isRegister 是否为新用户绑定手机号(注册链路),是则进入头像昵称授权页
 			 */
-			onSuccess(){
+			onSuccess(isRegister){
 				uni.hideLoading();
 				let backUrl = this.$Cache.get(BACK_URL) || "/pages/index/index";
 				// #ifdef MP
@@ -213,7 +214,7 @@
 					title: '绑定手机号成功'
 				}, {
 					tab: 4,
-					url: backUrl
+					url: isRegister ? '/pages/users/profile_setup/index' : backUrl
 				});
 				this.close();
 				// #endif

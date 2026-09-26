@@ -430,6 +430,12 @@
 							// #endif
 						}
 					}
+				},
+				{
+					"path": "profile_setup/index",
+					"style": {
+						"navigationBarTitleText": "完善个人信息"
+					}
 				}, {
 					"path": "alipay_return/alipay_return",
 					"style": {
