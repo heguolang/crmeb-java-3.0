@@ -295,11 +295,15 @@ export default {
       // #ifdef MP
       let messageTmplIds = wx.getStorageSync(SUBSCRIBE_MESSAGE);
       if (!messageTmplIds) {
-        getTempIds().then((res) => {
-          if (res.data) {
-            wx.setStorageSync(SUBSCRIBE_MESSAGE, JSON.stringify(res.data));
-          }
-        });
+        getTempIds()
+          .then((res) => {
+            if (res.data) {
+              wx.setStorageSync(SUBSCRIBE_MESSAGE, JSON.stringify(res.data));
+            }
+          })
+          .catch(() => {
+            // 后端暂未提供 wechat/temp_ids（HTTP 404），静默处理，避免未捕获异常
+          });
       }
       // #endif
     },

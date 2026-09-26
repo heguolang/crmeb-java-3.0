@@ -205,7 +205,7 @@
       <!-- 下级换货：下级发起、经我（上级）处理的全部换货单 -->
       <template v-else>
       <view v-if="subList.length" class="ex-list">
-        <view v-for="e in subList" :key="'s' + e.id" class="ex-card sub-ex-card">
+        <view v-for="e in subList" :key="e.id" class="ex-card sub-ex-card">
           <view class="row-1">
             <text class="ex-no">{{ e.exchangeNo }}</text>
             <text class="ex-status" :class="'st' + e.status">{{ statusText(e.status, true) }}</text>

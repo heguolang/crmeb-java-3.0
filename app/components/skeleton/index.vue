@@ -1,11 +1,11 @@
 <template>
 	<view v-if="show"
 		:style="{width: systemInfo.width + 'px', height: systemInfo.height + 'px', backgroundColor: bgcolor, position: 'absolute', left: 0, top: 0, zIndex: 9998}">
-		<view v-for="(item,rect_idx) in skeletonRectLists" :key="rect_idx + 'rect'"
+		<view v-for="(item,rect_idx) in skeletonRectLists" :key="rect_idx"
 			:class="[loading == 'chiaroscuro' ? 'chiaroscuro' : '']"
 			:style="{width: item.width + 'px', height: item.height + 'px', backgroundColor: 'rgb(194, 207, 214,.3)', position: 'absolute', left: item.left + 'px', top: item.top + 'px'}">
 		</view>
-		<view v-for="(item,circle_idx) in skeletonCircleLists" :key="circle_idx + 'circle'"
+		<view v-for="(item,circle_idx) in skeletonCircleLists" :key="circle_idx"
 			:class="loading == 'chiaroscuro' ? 'chiaroscuro' : ''"
 			:style="{width: item.width + 'px', height: item.height + 'px', backgroundColor: 'rgb(194, 207, 214,.3)', borderRadius: item.width + 'px', position: 'absolute', left: item.left + 'px', top: item.top + 'px'}">
 		</view>

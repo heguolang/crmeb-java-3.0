@@ -72,7 +72,7 @@
     <view v-if="tabType === 'audit'" class="card-list">
       <!-- 下级提交的换货申请：换货单在独立表里，必须单独带出来，否则上级永远看不到 -->
       <!-- 覆盖待我处理的三种状态：0 待我审核 / 2 旧品待入库 / 3 待发新品 -->
-      <view v-for="e in exList" :key="'ex' + e.id" class="order-card ex-card">
+      <view v-for="e in exList" :key="e.id" class="order-card ex-card">
         <view class="row-1">
           <text class="order-no">{{ e.exchangeNo }}</text>
           <view class="pill-group">
@@ -186,7 +186,7 @@
     <view v-if="tabType === 'send'" class="card-list">
       <!-- 待发货 -->
       <view v-if="sendWaitList.length" class="send-group-title">待发货（{{ sendWaitList.length }}）</view>
-      <view v-for="o in sendWaitList" :key="'w' + o.id" class="order-card send-card">
+      <view v-for="o in sendWaitList" :key="o.id" class="order-card send-card">
         <view class="row-1">
           <text class="order-no">{{ o.orderNo }}</text>
           <text class="st-pill stsend">待我发货</text>
@@ -228,7 +228,7 @@
 
       <!-- 已发货（待收货，可修改物流） -->
       <view v-if="sendSentList.length" class="send-group-title">已发货 · 待下级收货（{{ sendSentList.length }}）</view>
-      <view v-for="o in sendSentList" :key="'s' + o.id" class="order-card send-card is-sent">
+      <view v-for="o in sendSentList" :key="o.id" class="order-card send-card is-sent">
         <view class="row-1">
           <text class="order-no">{{ o.orderNo }}</text>
           <text class="st-pill st0">已发货</text>
@@ -273,7 +273,7 @@
 
       <!-- 已完成（只读记录） -->
       <view v-if="sendDoneList.length" class="send-group-title">已完成（{{ sendDoneList.length }}）</view>
-      <view v-for="o in sendDoneList" :key="'d' + o.id" class="order-card send-card is-done">
+      <view v-for="o in sendDoneList" :key="o.id" class="order-card send-card is-done">
         <view class="row-1">
           <text class="order-no">{{ o.orderNo }}</text>
           <text class="st-pill st4">已完成</text>
