@@ -61,6 +61,7 @@
 					// #endif
 				},
 				"mp-weixin": {
+					"navigationStyle": "custom",
 					"componentPlaceholder": {
 						"page-design": "view"
 					}
