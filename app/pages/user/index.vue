@@ -433,17 +433,9 @@ export default {
               .map((c) => c && c.item)
               .filter(Boolean);
             if (!colors.length) continue;
-            if (colors.length > 1) {
-              // 与 commonWrapper 渐变方向映射保持一致，通栏与会员卡渐变完全连续
-              let deg = "90deg";
-              let dir = bg.colorDirection && bg.colorDirection.tabVal;
-              if (dir === 1) deg = "180deg";
-              else if (dir === 2) deg = "135deg";
-              else if (dir === 3) deg = "200deg";
-              this.sysHeadBg = `linear-gradient(${deg}, ${colors[0]} 0%, ${colors[1]} 100%)`;
-            } else {
-              this.sysHeadBg = colors[0];
-            }
+            // 通栏取会员卡背景的起始色纯色拉伸：头部=卡片顶部色，与卡片自然衔接；
+            // 不复刻整条渐变（渐变尾色与卡片顶部色相接会产生断层感）
+            this.sysHeadBg = colors[0];
           }
           break;
         }
