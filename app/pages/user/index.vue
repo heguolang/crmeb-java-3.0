@@ -40,6 +40,7 @@
       :isScrolled="isScrolled"
       :isFixed="isFixed"
       :belongIndex="belongIndex"
+      :immersive="headImmersive"
       @bindSortId="bindSortId"
       @bindHeight="bindHeighta"
       @storeTap="storeTap"
@@ -134,6 +135,7 @@ export default {
   data() {
     return {
       currentDiyData: {},
+      headImmersive: false,
       isPhoneBox: false, //手机号授权弹框（会员中心）
       logoUrl: "",
       storeMenu: [], // 商家管理
@@ -220,6 +222,10 @@ export default {
   },
   onLoad(option) {
     uni.hideTabBar();
+    // 沉浸式头部延展仅 MP/APP 生效（H5 无自绘头部）
+    // #ifdef MP || APP-PLUS
+    this.headImmersive = true;
+    // #endif
     applyTheme(uni.getStorageSync("previewThemeId") || "").catch(() => {});
     let that = this;
     // #ifdef MP

@@ -1,5 +1,5 @@
 <template>
-  <view class="page-design" :class="bgClass">
+  <view class="page-design" :class="[bgClass, wrapClass]">
     <view v-if="!errorNetwork" :style="colorStyle">
       <!-- #ifdef MP -->
       <view
@@ -415,6 +415,11 @@ export default {
       type: Boolean,
       default: false,
     },
+    // 沉浸式头延展（会员中心）：关闭容器裁剪，让会员卡背景能上移进头部区域
+    immersive: {
+      type: Boolean,
+      default: false,
+    },
     // 是否固定（用于吸顶）
     isFixed: {
       type: Boolean,
@@ -539,6 +544,11 @@ export default {
       if (this.bgTabVal == 2) return "fullsize noRepeat";
       if (this.bgTabVal == 1) return "repeat ysize";
       return "noRepeat ysize";
+    },
+    wrapClass() {
+      // 沉浸式：放开 overflow 裁剪（默认 .page-design 的 overflow-y:scroll
+      // 会把延展上移的会员卡背景剪掉，头部仍是白底）
+      return this.immersive ? "pd-immersive" : "";
     },
     pdHeights() {
       let H = `${this.pdHeight * 2 + 100}rpx`;
@@ -729,6 +739,11 @@ export default {
   overflow-y: scroll;
   overflow-x: hidden;
   min-height: 100vh;
+}
+
+/* 沉浸式延展：放开裁剪，允许会员卡背景上移进头部透明浮层区域 */
+.pd-immersive {
+  overflow: visible;
 }
 
 .myApplet {
