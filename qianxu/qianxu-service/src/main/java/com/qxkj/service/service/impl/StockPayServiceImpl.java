@@ -99,11 +99,11 @@ public class StockPayServiceImpl implements StockPayService {
             }
             transactionTemplate.executeWithoutResult(status -> {
                 userService.updateNowMoney(user, order.getTotalPrice(), "sub");
-                // 余额账单
+                // 余额账单（资金监控「订单号」展示真实订货单号，勿写主键 id）
                 UserBill bill = new UserBill();
                 bill.setPm(0);
                 bill.setUid(uid);
-                bill.setLinkId(order.getId().toString());
+                bill.setLinkId(order.getOrderNo());
                 bill.setTitle("购买商品");
                 bill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
                 bill.setType(Constants.USER_BILL_TYPE_PAY_ORDER);

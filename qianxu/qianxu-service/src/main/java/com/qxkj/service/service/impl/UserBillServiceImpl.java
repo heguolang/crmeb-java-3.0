@@ -389,6 +389,18 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
                             "获得推广佣金", "获得自购返佣", "获得团队极差奖",
                             "获得团队平级奖", "获得区域代理奖励"));
                     break;
+                case "orderDistribution":
+                    map.put("titleList", CollUtil.newArrayList("获得推广佣金", "获得自购返佣"));
+                    break;
+                case "orderRegion":
+                    map.put("titleList", CollUtil.newArrayList("获得区域代理奖励"));
+                    break;
+                case "orderTeamGap":
+                    map.put("titleList", CollUtil.newArrayList("获得团队极差奖"));
+                    break;
+                case "orderTeamPeer":
+                    map.put("titleList", CollUtil.newArrayList("获得团队平级奖"));
+                    break;
                 case "withdraw":
                     map.put("titleList", CollUtil.newArrayList("提现申请", "提现申请拒绝"));
                     break;
@@ -515,6 +527,19 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
                     map.put("titleList", CollUtil.newArrayList(
                             "获得推广佣金", "获得自购返佣", "获得团队极差奖",
                             "获得团队平级奖", "获得区域代理奖励"));
+                    break;
+                case "orderDistribution":
+                    // 分销佣金（原"推广佣金"）：推广佣金 + 自购返佣
+                    map.put("titleList", CollUtil.newArrayList("获得推广佣金", "获得自购返佣"));
+                    break;
+                case "orderRegion":
+                    map.put("titleList", CollUtil.newArrayList("获得区域代理奖励"));
+                    break;
+                case "orderTeamGap":
+                    map.put("titleList", CollUtil.newArrayList("获得团队极差奖"));
+                    break;
+                case "orderTeamPeer":
+                    map.put("titleList", CollUtil.newArrayList("获得团队平级奖"));
                     break;
                 case "withdraw":
                     map.put("titleList", CollUtil.newArrayList("提现申请", "提现申请拒绝"));

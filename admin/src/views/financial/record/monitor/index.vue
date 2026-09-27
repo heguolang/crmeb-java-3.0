@@ -1,12 +1,8 @@
 <template>
   <div class="financial-flow">
-    <!-- 顶部面包屑 + 操作 -->
+    <!-- 顶部：页标题 + 操作 -->
     <div class="page-head">
-      <div class="page-head__crumbs">
-        <span class="page-head__crumb">首页</span>
-        <span class="page-head__sep">-</span>
-        <span class="page-head__crumb page-head__crumb--current">资金流水</span>
-      </div>
+      <div class="page-head__title">资金流水</div>
       <div class="page-head__actions">
         <el-button
           type="primary"
@@ -19,14 +15,49 @@
       </div>
     </div>
 
-    <!-- 筛选区 -->
-    <el-card class="filter-card" :bordered="false" shadow="never">
-      <div class="filter-head">
-        <span class="filter-head__title">条件筛选</span>
-      </div>
-      <el-form :model="tableFrom" size="small" label-width="90px" class="filter-form">
-        <!-- 第一组：时间 + 用户 -->
-        <div class="filter-group">
+    <!-- 筛选区：第一行=高频条件（账户类型/项目类型）+ 操作按钮；第二行=等宽栅格 -->
+    <el-card class="filter-card" :bordered="false" shadow="never" :body-style="{ padding: 0 }">
+      <el-form :model="tableFrom" size="small" label-position="top" class="filter-form">
+        <!-- 第一行：高频维度 + 操作同排，动线不中断 -->
+        <div class="filter-top">
+          <div class="filter-top__main">
+            <span class="filter-top__label">账户类型</span>
+            <el-radio-group
+              v-model="tableFrom.category"
+              size="small"
+              class="filter-segment"
+              @change="onChangeCategory"
+            >
+              <el-radio-button label="all">不限</el-radio-button>
+              <el-radio-button label="brokerage_price">佣金</el-radio-button>
+              <el-radio-button label="integral">积分</el-radio-button>
+              <el-radio-button label="now_money">余额</el-radio-button>
+            </el-radio-group>
+          </div>
+
+          <div class="filter-top__side">
+            <!-- 项目类型紧随账户类型：先选账户，再选该账户下的项目 -->
+            <el-form-item label="项目类型" class="filter-type-item">
+              <el-select
+                v-model="tableFrom.title"
+                size="small"
+                clearable
+                placeholder="全部"
+                @change="onChangeTitle"
+              >
+                <el-option v-for="item in titleOptions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </el-form-item>
+
+            <div class="filter-actions">
+              <el-button type="primary" size="small" icon="el-icon-search" @click="getList(1)">搜索</el-button>
+              <el-button size="small" icon="el-icon-refresh-left" @click="handleReset">重置</el-button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 第二行：低频条件等宽三列，标签统一在控件上方左对齐 -->
+        <div class="filter-group filter-group--grid">
           <div class="filter-grid">
             <el-form-item label="创建时间">
               <el-date-picker
@@ -51,33 +82,6 @@
                 placeholder="订单号 / 换货单号"
                 @keyup.enter.native="getList(1)"
               />
-            </el-form-item>
-            <el-form-item label-width="0">
-              <el-button type="primary" size="small" icon="el-icon-search" @click="getList(1)">搜索</el-button>
-              <el-button size="small" icon="el-icon-refresh-left" @click="handleReset">重置</el-button>
-            </el-form-item>
-          </div>
-        </div>
-        <!-- 第二组：账户类型 tab + 项目类型下拉 -->
-        <div class="filter-group">
-          <el-tabs v-model="tableFrom.category" class="filter-tabs" @tab-click="onChangeCategory">
-            <el-tab-pane label="不限" name="all" />
-            <el-tab-pane label="佣金" name="brokerage_price" />
-            <el-tab-pane label="积分" name="integral" />
-            <el-tab-pane label="余额" name="now_money" />
-          </el-tabs>
-          <div class="filter-grid filter-grid--single">
-            <el-form-item label="项目类型">
-              <el-select
-                v-model="tableFrom.title"
-                size="small"
-                clearable
-                placeholder="全部"
-                class="full-width"
-                @change="onChangeTitle"
-              >
-                <el-option v-for="item in titleOptions" :key="item.value" :label="item.label" :value="item.value" />
-              </el-select>
             </el-form-item>
           </div>
         </div>
@@ -230,7 +234,10 @@ export default {
           { value: 'transferIn', label: '佣金转入' },
           { value: 'exchange', label: '换货差价' },
           { value: 'stock', label: '订货奖金' },
-          { value: 'order', label: '订单佣金' },
+          { value: 'orderDistribution', label: '分销佣金' },
+          { value: 'orderRegion', label: '区域代理佣金' },
+          { value: 'orderTeamGap', label: '团队级差奖' },
+          { value: 'orderTeamPeer', label: '团队平级奖' },
           { value: 'withdraw', label: '佣金提现' },
           { value: 'yue', label: '佣金转余额' },
           { value: 'sign', label: '签到奖励' },
@@ -247,7 +254,10 @@ export default {
         ],
         brokerage_price: [
           { value: 'stock', label: '订货奖金' },
-          { value: 'order', label: '订单佣金' },
+          { value: 'orderDistribution', label: '分销佣金' },
+          { value: 'orderRegion', label: '区域代理佣金' },
+          { value: 'orderTeamGap', label: '团队级差奖' },
+          { value: 'orderTeamPeer', label: '团队平级奖' },
           { value: 'withdraw', label: '佣金提现' },
           { value: 'yue', label: '佣金转余额' },
           { value: 'admin', label: '后台操作' },
@@ -372,7 +382,7 @@ export default {
   padding: 14px;
 }
 
-/* 顶部面包屑 + 操作按钮 */
+/* 顶部：页标题 + 操作按钮 */
 .page-head {
   display: flex;
   align-items: center;
@@ -380,49 +390,128 @@ export default {
   margin-bottom: 14px;
   padding: 0 4px;
 
-  &__crumbs {
-    font-size: 14px;
-    color: #909399;
-  }
-
-  &__crumb {
-    &--current {
-      color: #303133;
-      font-weight: 600;
-    }
-  }
-
-  &__sep {
-    margin: 0 8px;
-    color: #c0c4cc;
+  &__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #303133;
+    line-height: 24px;
   }
 }
 
-/* 筛选卡：贴近基座风格 */
+/* 筛选卡：贴近基座风格（body padding 已置 0，各层自带内边距） */
 .filter-card {
   margin-bottom: 14px;
 }
 
-.filter-tabs {
-  margin: 0 0 12px;
-
-  ::v-deep .el-tabs__header {
-    margin-bottom: 0;
-  }
-
-  ::v-deep .el-tabs__item {
-    height: 36px;
-    line-height: 36px;
-    font-size: 14px;
+/* 标签与输入框间距：本页 12px。
+   ⚠️ 必须 !important：theme/element.scss 433 行有
+   `.el-form-item__label { padding: 0 6px 0 0 !important }`，
+   不带 !important 的覆盖会被它压掉（2026-09-27 实测踩坑） */
+.filter-form {
+  ::v-deep .el-form-item__label {
+    padding-bottom: 12px !important;
   }
 }
 
-.filter-grid--single {
-  grid-template-columns: 1fr;
+/* 网格改 3 列：筛选项只剩 3 个（创建时间/用户搜索/订单号），
+   继续用基线的 4 列会在右侧空出一格，项与项之间被拉得很远 */
+.filter-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* UserSearchInput 内部输入框带全局 .selWidth（styles.scss 272 行，width:260px !important），
+     会把这一列锁死 260px、不随栅格拉伸，右侧留出缺口。
+     全站几十处在用 selWidth 不能动，只在本页覆盖为撑满列宽（特异性 2 类 > 全局 1 类） */
+  ::v-deep .selWidth {
+    width: 100% !important;
+  }
 }
 
-.full-width {
-  width: 100%;
+/* 第一行：高频条件（账户类型 / 项目类型）与操作按钮同排 */
+.filter-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0f2f5;
+
+  @media (max-width: 980px) {
+    flex-wrap: wrap;
+    gap: 12px;
+
+    &__side {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  &__main {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  /* 行内标签：默认 14px（未进 .filter-grid，不吃基座 13px 灰字规则） */
+  &__label {
+    flex-shrink: 0;
+    padding-right: 12px;
+    color: #606266;
+    line-height: 32px;
+  }
+
+  &__side {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+}
+
+/* 账户类型：分段控件。原 el-tabs 自带下划线且占位整行，
+   与同排的下拉、按钮不是同一种控件语汇，视觉权重也过重 */
+.filter-segment {
+  ::v-deep .el-radio-button__inner {
+    min-width: 76px;
+    text-align: center;
+  }
+}
+
+/* 项目类型：与账户类型同排，标签拉回控件左侧。
+   外层 el-form 是 label-position="top"，所以用 flex 把 label 与 content 拉回同一行 */
+.filter-type-item {
+  display: flex;
+  align-items: center;
+  /* element.scss 424 行 .el-form-item { margin-bottom: 20px !important }，压它需要同等 !important */
+  margin-bottom: 0 !important;
+
+  ::v-deep .el-form-item__label {
+    flex-shrink: 0;
+    padding: 0 8px 0 0 !important;
+    line-height: 32px;
+  }
+
+  ::v-deep .el-form-item__content {
+    line-height: 32px;
+  }
+
+  ::v-deep .el-select {
+    width: 220px;
+  }
+}
+
+/* 操作按钮：收进第一行右端，去掉基座的独立分隔线与外边距。
+   ⚠️ 基座 .filter-actions 自带 border-top + padding 16px 0，scoped 选择器特异性更高，可直接覆盖 */
+.filter-actions {
+  padding: 0;
+  border-top: none;
+}
+
+/* 第二行栅格：与第一行只用留白分隔，不再叠第二条线 */
+.filter-group--grid {
+  margin-top: 14px;
 }
 
 /* 列表 */
@@ -476,6 +565,14 @@ export default {
 .type-tag {
   display: inline-block;
   margin-top: 6px;
+}
+
+/* 键值行：标签紧贴值。
+   ⚠️ theme/styles.scss 1238 行有全局 .kv { gap: 8px }（那是给 kv-k/kv-v 旧命名准备的），
+   会误伤本页的 kv__k/kv__v，把标签和值撑开 8px+2px=10px —— 本页归零，
+   只留 list-page.scss 里 kv__k 自带的 2px 右边距 */
+.kv {
+  gap: 0;
 }
 
 /* 长备注允许换行，避免撑破单元格 */

@@ -96,24 +96,30 @@ public class AdminLoginServiceImpl implements AdminLoginService {
      */
     @Override
     public SystemLoginResponse login(SystemAdminLoginRequest systemAdminLoginRequest, String ip) {
-        // 图形验证码校验（常驻，替代原「错误超3次弹行为验证码」逻辑）
-        String captchaKey = systemAdminLoginRequest.getCaptchaKey();
-        String captchaCode = systemAdminLoginRequest.getCaptchaCode();
-        if (StrUtil.isBlank(captchaKey) || StrUtil.isBlank(captchaCode)) {
-            recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "未输入验证码");
-            throw new QianxuException("请输入验证码");
-        }
-        String captchaRedisKey = StrUtil.format(Constants.ADMIN_IMAGE_CAPTCHA_KEY, captchaKey);
-        if (!redisUtil.exists(captchaRedisKey)) {
-            recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "验证码已过期");
-            throw new QianxuException("验证码已过期，请重新获取");
-        }
-        String redisCode = redisUtil.get(captchaRedisKey);
-        // 无论成功失败均一次性失效，防止重放
-        redisUtil.delete(captchaRedisKey);
-        if (!captchaCode.trim().equalsIgnoreCase(redisCode)) {
-            recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "验证码错误");
-            throw new QianxuException("验证码错误");
+        // 图形验证码校验：受「后台登录数字验证码」开关控制（未配置/值为1=开启）
+        // 开关关闭时跳过校验，登录页也不再展示验证码输入项
+        String captchaSwitch = adminLoginCaptchaSwitch();
+        if (StrUtil.isNotBlank(captchaSwitch) && "0".equals(captchaSwitch)) {
+            logger.info("后台登录验证码开关已关闭，跳过验证码校验，account = {}", systemAdminLoginRequest.getAccount());
+        } else {
+            String captchaKey = systemAdminLoginRequest.getCaptchaKey();
+            String captchaCode = systemAdminLoginRequest.getCaptchaCode();
+            if (StrUtil.isBlank(captchaKey) || StrUtil.isBlank(captchaCode)) {
+                recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "未输入验证码");
+                throw new QianxuException("请输入验证码");
+            }
+            String captchaRedisKey = StrUtil.format(Constants.ADMIN_IMAGE_CAPTCHA_KEY, captchaKey);
+            if (!redisUtil.exists(captchaRedisKey)) {
+                recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "验证码已过期");
+                throw new QianxuException("验证码已过期，请重新获取");
+            }
+            String redisCode = redisUtil.get(captchaRedisKey);
+            // 无论成功失败均一次性失效，防止重放
+            redisUtil.delete(captchaRedisKey);
+            if (!captchaCode.trim().equalsIgnoreCase(redisCode)) {
+                recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "验证码错误");
+                throw new QianxuException("验证码错误");
+            }
         }
         // 用户验证
         Authentication authentication = null;
@@ -150,6 +156,20 @@ public class AdminLoginServiceImpl implements AdminLoginService {
         accountErrorNumClear(systemAdminLoginRequest.getAccount());
         recordLoginLog(systemAdmin.getAccount(), systemAdmin.getId(), ip, 1, "登录成功");
         return systemAdminResponse;
+    }
+
+    /**
+     * 后台登录数字验证码开关：返回 "1" 开启 / "0" 关闭。
+     * 配置缺失或读取异常时一律返回 "1"（保持原有「登录必须验证码」的行为，避免误关造成裸奔）。
+     */
+    private String adminLoginCaptchaSwitch() {
+        try {
+            String value = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_ADMIN_LOGIN_CAPTCHA_SWITCH);
+            return "0".equals(value) ? "0" : "1";
+        } catch (Exception e) {
+            logger.error("读取后台登录验证码开关失败，按开启处理，{}", e.getMessage());
+            return "1";
+        }
     }
 
     /**
@@ -220,6 +240,8 @@ public class AdminLoginServiceImpl implements AdminLoginService {
         map.put("banner", bannerList);
 
         map.put("siteName", systemConfigService.getValueByKey(SysConfigConstants.CONFIG_KEY_SITE_NAME));
+        // 后台登录数字验证码开关，登录页据此决定是否展示验证码输入项
+        map.put("captchaSwitch", adminLoginCaptchaSwitch());
         return map;
     }
 

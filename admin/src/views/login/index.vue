@@ -58,7 +58,7 @@
           </span>
         </el-form-item>
 
-        <el-form-item prop="captchaCode">
+        <el-form-item v-if="captchaSwitch" prop="captchaCode">
           <div class="captcha-row">
             <el-input
               v-model="loginForm.captchaCode"
@@ -115,6 +115,8 @@ export default {
       fullWidth: document.body.clientWidth,
       rememberAccount: false,
       captchaImage: '',
+      // 后台登录数字验证码开关（系统设置-系统配置-基础配置），默认开启，以接口返回为准
+      captchaSwitch: true,
       loginForm: {
         account: '',
         pwd: '',
@@ -122,17 +124,25 @@ export default {
         captchaCode: '',
         captchaVO: {},
       },
-      loginRules: {
-        account: [{ required: true, trigger: 'blur', message: '请输入用户名' }],
-        pwd: [{ required: true, trigger: 'blur', message: '请输入密码' }],
-        captchaCode: [{ required: true, trigger: 'blur', message: '请输入验证码' }],
-      },
       passwordType: 'password',
       loading: false,
       redirect: undefined,
       otherQuery: {},
       disabled: false,
     };
+  },
+  computed: {
+    // 验证码开关关闭时不校验验证码字段
+    loginRules() {
+      const rules = {
+        account: [{ required: true, trigger: 'blur', message: '请输入用户名' }],
+        pwd: [{ required: true, trigger: 'blur', message: '请输入密码' }],
+      };
+      if (this.captchaSwitch) {
+        rules.captchaCode = [{ required: true, trigger: 'blur', message: '请输入验证码' }];
+      }
+      return rules;
+    },
   },
   watch: {
     fullWidth(val) {
@@ -207,8 +217,9 @@ export default {
     document.getElementsByTagName('canvas')[0].removeAttribute('class', 'index_bg');
   },
   methods: {
-    // 获取图形验证码
+    // 获取图形验证码（开关关闭时不需要加载）
     loadCaptcha() {
+      if (!this.captchaSwitch) return;
       getImageCaptchaApi()
         .then((res) => {
           this.captchaImage = res.image;
@@ -242,6 +253,14 @@ export default {
         this.backgroundImages = res.backgroundImage;
         if (res.siteName) {
           localStorage.setItem('singleAdminSiteName', res.siteName);
+        }
+        // 数字验证码开关：'1' 开启 / '0' 关闭，接口未下发时保持开启
+        const sw = res.captchaSwitch;
+        if (sw !== undefined && sw !== null && String(sw) !== '1') {
+          this.captchaSwitch = false;
+          this.captchaImage = '';
+          this.loginForm.captchaKey = '';
+          this.loginForm.captchaCode = '';
         }
       });
     },

@@ -97,3 +97,13 @@ local-dev/audit_skills.py
 # ±¾µØ¿ª·ÅÆ½Ì¨µØÖ·£¨ÎğÌá½»£©
 local-dev/one-pass.local.env
 
+
+# 2026-09-27: local build artifacts & runtime leftovers
+# Anchored at repo root so we do NOT hit the already-tracked theme packs
+# under qianxu/qianxuimage/public/theme/ nor qianxuimage/theme-cate/
+/mp-weixin_wx*.zip
+/qianxu/qianxuimage/theme/
+local-dev/backup/
+
+# 2026-09-28: æœ¬åœ°è°ƒè¯•æ¢æµ‹è„šæœ¬ä¸å…¥åº“
+local-dev/tools/probe_*.js

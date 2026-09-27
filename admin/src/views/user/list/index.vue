@@ -50,11 +50,8 @@
                 <el-option value="5" label="5+"></el-option>
               </el-select>
             </el-form-item>
-          </div>
-        </div>
-        <div class="filter-group" v-show="collapse">
-          <div class="filter-group__title">更多筛选</div>
-          <div class="filter-grid">
+            <!-- 用户分组原在「更多筛选」组：这一组 4 列网格只放了 3 项，空出一格导致列线与第二组对不上，
+                 把它提上来凑满 4 格，同时它属于高频筛选条件，常驻更符合使用习惯 -->
             <el-form-item label="用户分组">
               <el-select
                 v-model="groupData"
@@ -74,6 +71,11 @@
                 ></el-option>
               </el-select>
             </el-form-item>
+          </div>
+        </div>
+        <div class="filter-group" v-show="collapse">
+          <div class="filter-group__title">更多筛选</div>
+          <div class="filter-grid">
             <el-form-item label="国家">
               <el-select
                 v-model="userFrom.country"
@@ -111,9 +113,6 @@
                 <el-option :value="3" label="时间段未访问"></el-option>
               </el-select>
             </el-form-item>
-            <el-form-item label="时间选择" v-if="userFrom.accessType">
-              <optionDatePicker v-model="timeVal" @changeOptTime="onchangeTime"></optionDatePicker>
-            </el-form-item>
             <el-form-item label="性别">
               <el-select v-model="userFrom.sex" @visible-change="userSearchs" @clear="userSearchs" placeholder="请选择性别">
                 <el-option :value="0" label="未知"></el-option>
@@ -133,11 +132,17 @@
                 <el-option :value="0" label="普通用户"></el-option>
               </el-select>
             </el-form-item>
+            <!-- 时间选择只在选了「访问情况」后出现，固定排在第二组行尾：
+                 插在条件中间会把后面的条件整体往后推，视觉跳动大 -->
+            <el-form-item label="时间选择" v-if="userFrom.accessType">
+              <optionDatePicker v-model="timeVal" @changeOptTime="onchangeTime"></optionDatePicker>
+            </el-form-item>
           </div>
         </div>
         <div class="filter-actions">
-          <el-button type="primary" icon="ios-search" @click="userSearchs">搜索</el-button>
-          <el-button class="ResetSearch" @click="reset('userFrom')">一键重置</el-button>
+          <!-- ⚠️ 原来是 icon="ios-search"，那是 iView 图标名，Element 里没有该字形，会渲染成空白/方框 -->
+          <el-button type="primary" icon="el-icon-search" @click="userSearchs">搜索</el-button>
+          <el-button class="ResetSearch" icon="el-icon-refresh-left" @click="reset('userFrom')">一键重置</el-button>
         </div>
       </el-form>
     </el-card>
@@ -1446,6 +1451,15 @@ export default {
 /* 说明：筛选区、列表表格、键值行、状态标签等通用样式已提取到
    src/theme/list-page.scss（全站列表页基座），本文件只保留业务特有样式。 */
 
+/* 用户搜索 / 时间选择组件内部输入框带全局 .selWidth（styles.scss 272 行，width:260px !important），
+   会把所在列锁死 260px、不随 4 列网格拉伸，右侧拖出缺口。
+   全站几十处在用 selWidth 不能动，只在本页筛选网格内覆盖为撑满列宽 */
+.filter-grid {
+  ::v-deep .selWidth {
+    width: 100% !important;
+  }
+}
+
 /* 分类 tab 所在的卡片头内边距 */
 ::v-deep .box-card > .el-card__header {
   padding: 0 20px;
@@ -1500,6 +1514,14 @@ export default {
 }
 
 /* .kv（键值行）、.list-empty（空态）、.inline-status（状态文字）均见全局 list-page.scss */
+
+/* 键值行：标签紧贴值。
+   ⚠️ theme/styles.scss 1238 行有全局 .kv { gap: 8px }（那是给 kv-k/kv-v 旧命名准备的），
+   会误伤本页的 kv__k/kv__v，把标签和值撑开 8px+2px=10px —— 本页归零，
+   只留 list-page.scss 里 kv__k 自带的 2px 右边距（与 financial/record/monitor 同款修法） */
+.kv {
+  gap: 0;
+}
 
 .mi-status {
   display: flex;

@@ -2489,10 +2489,12 @@ public class StockOrderServiceImpl implements StockOrderService {
                 || order.getTotalPrice() == null || order.getTotalPrice().signum() <= 0) {
             return;
         }
+        // 幂等：兼容历史数字主键 link_id 与现行的真实单号 link_id，避免迁移数据后重复退款
         int refunded = userBillService.count(new LambdaQueryWrapper<UserBill>()
-                .eq(UserBill::getLinkId, order.getId().toString())
                 .eq(UserBill::getType, Constants.USER_BILL_TYPE_PAY_PRODUCT_REFUND)
-                .eq(UserBill::getCategory, Constants.USER_BILL_CATEGORY_MONEY));
+                .eq(UserBill::getCategory, Constants.USER_BILL_CATEGORY_MONEY)
+                .and(w -> w.eq(UserBill::getLinkId, order.getId().toString())
+                        .or().eq(UserBill::getLinkId, order.getOrderNo())));
         if (refunded > 0) {
             return;
         }
@@ -2504,7 +2506,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         UserBill bill = new UserBill();
         bill.setPm(1);
         bill.setUid(order.getUid());
-        bill.setLinkId(order.getId().toString());
+        bill.setLinkId(order.getOrderNo());
         bill.setTitle("订货退款");
         bill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
         bill.setType(Constants.USER_BILL_TYPE_PAY_PRODUCT_REFUND);
@@ -2523,11 +2525,13 @@ public class StockOrderServiceImpl implements StockOrderService {
                 || exchange.getDiffPrice() == null || exchange.getDiffPrice().signum() <= 0) {
             return;
         }
+        // 幂等：兼容历史数字主键 link_id 与现行的真实换货单号 link_id
         int refunded = userBillService.count(new LambdaQueryWrapper<UserBill>()
-                .eq(UserBill::getLinkId, exchange.getId().toString())
                 .eq(UserBill::getType, Constants.USER_BILL_TYPE_PAY_PRODUCT_REFUND)
                 .eq(UserBill::getCategory, Constants.USER_BILL_CATEGORY_MONEY)
-                .like(UserBill::getMark, exchange.getExchangeNo()));
+                .like(UserBill::getMark, exchange.getExchangeNo())
+                .and(w -> w.eq(UserBill::getLinkId, exchange.getId().toString())
+                        .or().eq(UserBill::getLinkId, exchange.getExchangeNo())));
         if (refunded > 0) {
             return;
         }
@@ -2539,7 +2543,7 @@ public class StockOrderServiceImpl implements StockOrderService {
         UserBill bill = new UserBill();
         bill.setPm(1);
         bill.setUid(exchange.getUid());
-        bill.setLinkId(exchange.getId().toString());
+        bill.setLinkId(exchange.getExchangeNo());
         bill.setTitle("换货差价退款");
         bill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
         bill.setType(Constants.USER_BILL_TYPE_PAY_PRODUCT_REFUND);
@@ -2847,7 +2851,8 @@ public class StockOrderServiceImpl implements StockOrderService {
                 UserBill bill = new UserBill();
                 bill.setPm(0);
                 bill.setUid(uid);
-                bill.setLinkId(exchange.getId().toString());
+                // 资金监控「订单号」展示真实换货单号，勿写主键 id
+                bill.setLinkId(exchange.getExchangeNo());
                 bill.setTitle("换货差价");
                 bill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
                 bill.setType(Constants.USER_BILL_TYPE_PAY_ORDER);

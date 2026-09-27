@@ -1,52 +1,53 @@
 <template>
   <div class="divBox relative">
     <el-card :bordered="false" shadow="never" class="ivu-mt" :body-style="{ padding: 0 }">
-      <div class="padding-add">
-        <el-form inline size="small" label-width="75px">
-          <el-form-item label="订单号码：">
-            <el-input
-              v-model="tableFrom.orderNo"
-              @blur="seachList"
-              @clear="seachList"
-              placeholder="请输入订单号"
-              class="selWidth"
-              size="small"
-              clearable
-            >
-            </el-input>
-          </el-form-item>
-          <el-form-item label="用户搜索：" label-for="nickname">
-            <UserSearchInput v-model="tableFrom" @searchList="seachList" />
-          </el-form-item>
-          <el-form-item label="创建时间：">
-            <optionDatePicker v-model="timeVal" @changeOptTime="onchangeTime"></optionDatePicker>
-          </el-form-item>
-          <el-form-item label="订单类型：">
-            <el-select v-model="tableFrom.type" placeholder="状态" class="selWidth" @change="seachList">
-              <el-option v-for="(item, i) in options" :key="i" :label="item.label" :value="item.value"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="物流单号：">
-            <el-input
-              v-model="tableFrom.deliveryId"
-              @blur="seachList"
-              @clear="seachList"
-              placeholder="请输入物流单号"
-              class="selWidth"
-              size="small"
-              clearable
-            >
-            </el-input>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" size="small" @click="seachList">搜索</el-button>
-            <el-button size="small" @click="handleReset">重置</el-button>
-          </el-form-item>
-        </el-form>
-      </div>
+      <el-form size="small" label-position="top" class="filter-form">
+        <div class="filter-group">
+          <div class="filter-grid">
+            <el-form-item label="订单号">
+              <el-input
+                v-model="tableFrom.orderNo"
+                size="small"
+                clearable
+                placeholder="请输入订单号"
+                @blur="seachList"
+                @clear="seachList"
+              >
+              </el-input>
+            </el-form-item>
+            <el-form-item label="用户搜索">
+              <UserSearchInput v-model="tableFrom" @searchList="seachList" />
+            </el-form-item>
+            <el-form-item label="创建时间">
+              <optionDatePicker v-model="timeVal" @changeOptTime="onchangeTime"></optionDatePicker>
+            </el-form-item>
+            <el-form-item label="订单类型">
+              <el-select v-model="tableFrom.type" placeholder="全部" @change="seachList">
+                <el-option v-for="(item, i) in options" :key="i" :label="item.label" :value="item.value"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="物流单号">
+              <el-input
+                v-model="tableFrom.deliveryId"
+                size="small"
+                clearable
+                placeholder="请输入物流单号"
+                @blur="seachList"
+                @clear="seachList"
+              >
+              </el-input>
+            </el-form-item>
+            <!-- 搜索 / 重置固定在网格最后一列行尾，不再夹在条件中间漂移 -->
+            <div class="filter-grid__actions">
+              <el-button type="primary" size="small" icon="el-icon-search" @click="seachList">搜索</el-button>
+              <el-button size="small" icon="el-icon-refresh-left" @click="handleReset">重置</el-button>
+            </div>
+          </div>
+        </div>
+      </el-form>
     </el-card>
     <el-card class="box-card mt14">
-      <div slot="header" class="clearfix">
+      <div slot="header" class="list-toolbar">
         <el-tabs
           v-model="tableFrom.status"
           @tab-click="seachList"
@@ -69,7 +70,9 @@
           <el-tab-pane name="refunded" :label="`已退款(${orderChartType.refunded ? orderChartType.refunded : 0})`" />
           <el-tab-pane name="deleted" :label="`已删除(${orderChartType.deleted ? orderChartType.deleted : 0})`" />
         </el-tabs>
-        <el-button @click="exports" v-hasPermi="['admin:export:excel:order']">导出</el-button>
+        <div class="list-toolbar__actions">
+          <el-button @click="exports" v-hasPermi="['admin:export:excel:order']">导出</el-button>
+        </div>
       </div>
       <!-- 订单卡片列表（复用订货商-订货商订单页样式） -->
       <div v-loading="listLoading" class="order-list">
@@ -1048,5 +1051,53 @@ export default {
 
 .block {
   margin-bottom: 20px;
+}
+
+/* ===== 筛选区（对齐资金流水 / 用户管理：标签上置 + 4 列栅格） =====
+   .filter-form / .filter-group / .filter-grid 见全局 src/theme/list-page.scss */
+.filter-grid {
+  /* UserSearchInput 内部输入框带全局 .selWidth（styles.scss 272 行，width:260px !important），
+     会把所在列锁死 260px、不随 4 列网格拉伸。全站几十处在用 selWidth 不能动，只在本页覆盖 */
+  ::v-deep .selWidth {
+    width: 100% !important;
+  }
+
+  ::v-deep .el-date-editor {
+    width: 100%;
+  }
+}
+
+/* 搜索 / 重置：占网格最后一列并贴底右对齐，与上方控件同一基线 */
+.filter-grid__actions {
+  grid-column: -2 / -1;
+  display: flex;
+  align-self: end;
+  justify-content: flex-end;
+  padding-bottom: 14px;
+  gap: 10px;
+}
+
+/* 状态 tab 与导出同行左右分布（替代原 tab + 按钮散排） */
+/* 卡片头默认 padding 18px 20px 会把 tab 行撑高，与用户管理页统一处理 */
+::v-deep .box-card > .el-card__header {
+  padding: 0 20px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.list-toolbar {
+  /* tab 因权限 / 数据为空整体不渲染时，导出按钮仍靠右 */
+  .list-toolbar__actions {
+    margin-left: auto;
+  }
+
+  ::v-deep .el-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  ::v-deep .el-tabs__item {
+    height: 46px;
+    line-height: 46px;
+  }
 }
 </style>

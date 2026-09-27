@@ -62,12 +62,6 @@ const distributionRouter = {
       name: 'TeamLevelRecord',
       meta: { title: '团队变更记录', icon: '' },
     },
-    {
-      path: 'teamBrokerageRecord',
-      component: () => import('@/views/distribution/teamBrokerageRecord/index'),
-      name: 'TeamBrokerageRecord',
-      meta: { title: '团队奖资金记录', icon: '' },
-    },
   ],
 };
 

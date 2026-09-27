@@ -183,6 +183,9 @@ public class SysConfigConstants {
     /** 未登录访问首页提示登录弹窗文案 */
     public static final String CONFIG_LOGIN_NOTICE_TEXT = "login_notice_text";
 
+    /** 后台登录数字（图形）验证码开关 1-开启 0-关闭，未配置时默认开启 */
+    public static final String CONFIG_ADMIN_LOGIN_CAPTCHA_SWITCH = "admin_login_captcha_switch";
+
     /** 主题测配置 */
     public static final String CONFIG_CHANGE_COLOR = "change_color_config";
 

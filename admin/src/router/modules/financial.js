@@ -68,12 +68,6 @@ const financialRouter = {
         },
       ],
     },
-    {
-      path: 'brokerage',
-      component: () => import('@/views/financial/brokerage/index'),
-      name: 'Brokerage',
-      meta: { title: '佣金记录', icon: '' },
-    },
   ],
 };
 
