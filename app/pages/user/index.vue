@@ -402,15 +402,48 @@ export default {
     // 图片背景不做延展，避免短条区域拉伸变形）
     applyHeaderBg() {
       try {
-        let value = (this.currentDiyData && this.currentDiyData.value) || {};
+        let raw = this.currentDiyData && this.currentDiyData.value;
+        if (typeof raw === "string") {
+          try {
+            raw = JSON.parse(raw);
+          } catch (e) {
+            raw = {};
+          }
+        }
+        let value = raw || {};
         let keys = Object.keys(value).sort();
         for (let i = 0; i < keys.length; i++) {
           let comp = value[keys[i]] || {};
-          if ((comp.name || comp.cname) !== "member") continue;
-          let bg = comp.configObj && comp.configObj.componentBgConfig;
+          if (typeof comp === "string") {
+            try {
+              comp = JSON.parse(comp);
+            } catch (e) {
+              comp = {};
+            }
+          }
+          // DIY 原始数据里组件名可能是 member（装修保存后）或 home_member（服务端原始名）
+          let cname = comp.name || "";
+          if (cname !== "member" && cname !== "home_member") continue;
+          // 背景配置直接挂在组件顶层（configObj 是部分旧数据的包裹层，兼容取）
+          let bg =
+            comp.componentBgConfig ||
+            (comp.configObj && comp.configObj.componentBgConfig);
           if (bg && bg.tabVal === 0 && bg.colorConfig && bg.colorConfig.color) {
-            let c = bg.colorConfig.color[0] && bg.colorConfig.color[0].item;
-            if (c) this.sysHeadBg = c;
+            let colors = bg.colorConfig.color
+              .map((c) => c && c.item)
+              .filter(Boolean);
+            if (!colors.length) continue;
+            if (colors.length > 1) {
+              // 与 commonWrapper 渐变方向映射保持一致，通栏与会员卡渐变完全连续
+              let deg = "90deg";
+              let dir = bg.colorDirection && bg.colorDirection.tabVal;
+              if (dir === 1) deg = "180deg";
+              else if (dir === 2) deg = "135deg";
+              else if (dir === 3) deg = "200deg";
+              this.sysHeadBg = `linear-gradient(${deg}, ${colors[0]} 0%, ${colors[1]} 100%)`;
+            } else {
+              this.sysHeadBg = colors[0];
+            }
           }
           break;
         }
