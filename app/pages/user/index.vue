@@ -391,13 +391,20 @@ export default {
         try {
           let inset = parseInt(this.sysHeight, 10) + 43 || 0;
           let v = this.currentDiyData.value;
-          if (typeof v === "string") v = JSON.parse(v || "{}");
+          // ⚠️ value 可能是 JSON 字符串（带 previewThemeId/部分接口形态）：
+          // 必须 parse 后【写回】currentDiyData.value，否则盖章打在临时副本上，
+          // 渲染用的还是原始字符串，_topInset 全丢（延展失效、头部露白）
+          if (typeof v === "string") {
+            v = JSON.parse(v || "{}");
+            this.currentDiyData.value = v;
+          }
           if (v && typeof v === "object") {
             Object.keys(v).forEach((k) => {
               let c = v[k];
               if (typeof c === "string") {
                 try {
                   c = JSON.parse(c);
+                  v[k] = c; // 组件级字符串同样要写回
                 } catch (e) {
                   return;
                 }
@@ -678,8 +685,10 @@ export default {
   .sys-head {
     position: relative;
     width: 100%;
-    background: #fff;
-    z-index: 50;
+    /* 沉浸式：背景必须透明，露出底下延展上来的会员卡渐变；
+       之前写死 #fff + z-index:50 会把延展背景整个盖住（白头根因） */
+    background: transparent;
+    z-index: 1;
 
     .sys-bar {
       width: 100%;
