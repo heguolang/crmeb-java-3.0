@@ -16,10 +16,7 @@
   >
     <view class="top" :style="colorStyle">
       <!-- #ifdef MP || APP-PLUS -->
-      <view
-        class="sys-head"
-        :style="sysHeadBg ? 'background:' + sysHeadBg : ''"
-      >
+      <view class="sys-head">
         <view class="sys-bar" :style="{ height: sysHeight }"></view>
         <!-- #ifdef MP -->
         <view
@@ -177,7 +174,7 @@ export default {
       userInfo: {},
       MyMenus: [],
       sysHeight: sysHeight,
-      sysHeadBg: "", // 头部（状态栏+标题区）背景，取会员卡组件背景延展
+      sysHeadBg: "", // 已废弃：头部背景由会员卡背景沉浸式延展实现，此字段仅保留兼容
       mpHeight: 0,
       showStatus: 1,
       activeRouter: "",
@@ -387,6 +384,29 @@ export default {
       if (previewThemeId) data.theme_id = previewThemeId;
       getThemeInfo("user", data).then((res) => {
         this.currentDiyData = res.data;
+        // 沉浸式：把头部延展高度戳进每个装修组件配置，会员卡组件(homeUserInfor)
+        // 读取后经 commonWrapper.extendTop 把背景顶到屏幕最顶端（props 链传递，
+        // 不用 provide/inject——uni-app 小程序端跨 Page→深组件注入不可靠）
+        // #ifdef MP || APP-PLUS
+        try {
+          let inset = parseInt(this.sysHeight, 10) + 43 || 0;
+          let v = this.currentDiyData.value;
+          if (typeof v === "string") v = JSON.parse(v || "{}");
+          if (v && typeof v === "object") {
+            Object.keys(v).forEach((k) => {
+              let c = v[k];
+              if (typeof c === "string") {
+                try {
+                  c = JSON.parse(c);
+                } catch (e) {
+                  return;
+                }
+              }
+              if (c && typeof c === "object") c._topInset = inset;
+            });
+          }
+        } catch (e) {}
+        // #endif
         if (this.currentDiyData.is_bg_color) {
           this.bgColor = this.currentDiyData.color_picker || "";
         }
@@ -397,52 +417,9 @@ export default {
         this.applyHeaderBg();
       });
     },
-    // 头部背景延展：取第一个会员卡组件的背景配置，把状态栏+标题区
-    // 渲染成同色背景，与下方会员卡视觉上连成一体（颜色背景取渐变起始色；
-    // 图片背景不做延展，避免短条区域拉伸变形）
-    applyHeaderBg() {
-      try {
-        let raw = this.currentDiyData && this.currentDiyData.value;
-        if (typeof raw === "string") {
-          try {
-            raw = JSON.parse(raw);
-          } catch (e) {
-            raw = {};
-          }
-        }
-        let value = raw || {};
-        let keys = Object.keys(value).sort();
-        for (let i = 0; i < keys.length; i++) {
-          let comp = value[keys[i]] || {};
-          if (typeof comp === "string") {
-            try {
-              comp = JSON.parse(comp);
-            } catch (e) {
-              comp = {};
-            }
-          }
-          // DIY 原始数据里组件名可能是 member（装修保存后）或 home_member（服务端原始名）
-          let cname = comp.name || "";
-          if (cname !== "member" && cname !== "home_member") continue;
-          // 背景配置直接挂在组件顶层（configObj 是部分旧数据的包裹层，兼容取）
-          let bg =
-            comp.componentBgConfig ||
-            (comp.configObj && comp.configObj.componentBgConfig);
-          if (bg && bg.tabVal === 0 && bg.colorConfig && bg.colorConfig.color) {
-            let colors = bg.colorConfig.color
-              .map((c) => c && c.item)
-              .filter(Boolean);
-            if (!colors.length) continue;
-            // 通栏取会员卡背景的起始色纯色拉伸：头部=卡片顶部色，与卡片自然衔接；
-            // 不复刻整条渐变（渐变尾色与卡片顶部色相接会产生断层感）
-            this.sysHeadBg = colors[0];
-          }
-          break;
-        }
-      } catch (e) {
-        this.sysHeadBg = "";
-      }
-    },
+    // 旧「头部取色」方案已废弃：头部背景改为透明浮层，颜色由会员卡背景
+    // 经 commonWrapper extendTop 沉浸式延展直接顶到屏幕顶端（无缝）
+    applyHeaderBg() {},
     getWechatuserinfo() {
       //#ifdef H5
       Auth.isWeixin() && Auth.toAuth("snsapi_userinfo", "/pages/user/index");

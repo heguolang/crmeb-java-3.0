@@ -1,6 +1,6 @@
 <template>
-  <view class="member-wrap">
-    <common-wrapper :config="configData">
+  <view class="member-wrap" :style="immersiveStyle">
+    <common-wrapper :config="configData" :extendTop="extendTopVal">
       <view class="member-card" :class="'style' + (styleConfig + 1)">
         <template v-if="styleConfig == 0">
           <view
@@ -619,6 +619,17 @@ export default {
     },
   },
   computed: {
+    // 沉浸式延展高度：会员中心页在 DIY 数据里戳入 _topInset（px），
+    // 其他页面/组件无此字段则为 0，无任何影响
+    extendTopVal() {
+      return Number(this.dataConfig && this.dataConfig._topInset) || 0;
+    },
+    immersiveStyle() {
+      // 背景向上延展后，卡片盒变高 T，用负下边距抵消，避免下方组件被推低
+      return this.extendTopVal > 0
+        ? `margin-bottom:-${this.extendTopVal}px`
+        : "";
+    },
     ...mapGetters(["userInfo", "isLogin"]),
     configData() {
       return {

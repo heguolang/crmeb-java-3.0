@@ -14,6 +14,12 @@ export default {
       type: Object,
       default: () => ({}),
     },
+    // 沉浸式顶部延展(px)：背景上移 T 顶到屏幕最上方，内容位置不变。
+    // 仅会员中心页通过 provide/inject 注入，其他页面默认 0 无任何影响
+    extendTop: {
+      type: Number,
+      default: 0,
+    },
   },
   computed: {
     boxStyle() {
@@ -178,6 +184,27 @@ export default {
         style["z-index"] = zIndexConfig.val;
         // style["position"] = "relative";
       }
+
+      // 沉浸式顶部延展：整个背景(渐变/纯色/图片)向上顶 T px，
+      // 用 transform 移动绘制盒(不影响文档流、不触发 margin 塌陷)，
+      // padding-top 补回 T 保证内容仍在原位置；背景因此从屏幕最顶端开始渲染
+      if (this.extendTop > 0) {
+        const T = this.extendTop;
+        const baseTopRpx = paddingConfig.isAll
+          ? paddingConfig.valList[0].val * 2
+          : paddingConfig.val * 2;
+        if (style["padding"] !== undefined) {
+          const uniform = `${paddingConfig.val * 2}rpx`;
+          style["padding-top"] = `calc(${baseTopRpx}rpx + ${T}px)`;
+          style["padding-bottom"] = uniform;
+          style["padding-left"] = uniform;
+          style["padding-right"] = uniform;
+          delete style["padding"];
+        } else {
+          style["padding-top"] = `calc(${baseTopRpx}rpx + ${T}px)`;
+        }
+        style["transform"] = `translateY(-${T}px)`;
+      }
       return style;
     },
     bottomBgColor() {
@@ -185,6 +212,10 @@ export default {
       let style = {
         overflow: "hidden",
       };
+      // 延展时外层不能再裁剪内层向上伸出的背景
+      if (this.extendTop > 0) {
+        style.overflow = "visible";
+      }
       if (config.bottomBgColor) {
         style.background = config.bottomBgColor.color
           ? config.bottomBgColor.color[0].item
