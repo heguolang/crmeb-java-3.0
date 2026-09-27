@@ -122,6 +122,9 @@ public class OrderPayServiceImpl implements OrderPayService {
     private TransactionTemplate transactionTemplate;
 
     @Autowired
+    private PingouService pingouService;
+
+    @Autowired
     private RedisUtil redisUtil;
 
     @Autowired
@@ -511,6 +514,9 @@ public class OrderPayServiceImpl implements OrderPayService {
             if (storeOrder.getCombinationId() > 0) {
                 pinkProcessing(storeOrder);
             }
+
+            // 拼购活动参团处理（非拼购商品订单直接跳过；失败回滚支付事务，由支付回调重试兜底）
+            pingouService.onPaySuccess(storeOrder);
             return Boolean.TRUE;
         });
 

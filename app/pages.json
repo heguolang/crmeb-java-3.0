@@ -1065,6 +1065,29 @@
 					"navigationBarTitleText": ""
 				}
 			}]
+		},
+		{
+			"root": "pages/pingou",
+			"name": "pingou",
+			"pages": [{
+					"path": "list/index",
+					"style": {
+						"navigationBarTitleText": "拼购专区"
+					}
+				},
+				{
+					"path": "detail/index",
+					"style": {
+						"navigationBarTitleText": "拼购详情"
+					}
+				},
+				{
+					"path": "my/index",
+					"style": {
+						"navigationBarTitleText": "我的拼购"
+					}
+				}
+			]
 		}
 		// #ifdef H5 
 		,

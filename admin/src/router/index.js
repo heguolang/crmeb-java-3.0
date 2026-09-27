@@ -25,6 +25,7 @@ import distributionRouter from './modules/distribution';
 import dailiRouter from './modules/daili';
 import stockRouter from './modules/stock';
 import merchantStoreRouter from './modules/merchantStore';
+import marketRouter from './modules/market';
 import marketingRouter from './modules/marketing';
 import financialRouter from './modules/financial';
 import contentRouter from './modules/content';
@@ -76,6 +77,8 @@ export const constantRoutes = [
   stockRouter,
   // 门店
   merchantStoreRouter,
+  // 大市场
+  marketRouter,
   // 营销
   marketingRouter,
   // 财务

@@ -97,4 +97,10 @@ public class BrokerageRecordConstants {
 
     /** 佣金记录标题—后台操作 */
     public static final String BROKERAGE_RECORD_TITLE_SYSTEM = "后台操作";
+
+    /** 佣金记录标题—拼购分享奖励 */
+    public static final String BROKERAGE_RECORD_TITLE_PINGOU_SHARE = "拼购分享奖励";
+
+    /** 佣金记录标题—拼购未中奖补贴 */
+    public static final String BROKERAGE_RECORD_TITLE_PINGOU_SUBSIDY = "拼购未中奖补贴";
 }
