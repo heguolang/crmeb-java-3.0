@@ -127,6 +127,10 @@ public class WebConfig implements WebMvcConfigurer {
                 excludePathPatterns("/api/front/combination/header").
                 excludePathPatterns("/api/front/combination/detail/*").
 
+                excludePathPatterns("/api/front/pingou/list").
+                excludePathPatterns("/api/front/pingou/detail/*").
+                excludePathPatterns("/api/front/pingou/teams/*").
+
                 excludePathPatterns("/api/front/splash/ad/info").
                 excludePathPatterns("/api/front/hidden/switches").
 

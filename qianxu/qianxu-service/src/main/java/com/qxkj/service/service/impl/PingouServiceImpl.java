@@ -523,7 +523,12 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
 
         join.setRefundPrice(refundPrice);
         join.setSubsidyPrice(subsidy);
-        joinDao.updateById(join);
+        // 显式按列更新，避免整对象 updateById 把 CAS 抢占置位的 reward_status 覆盖回 0（曾导致兜底任务重复发放）
+        joinDao.update(null, new UpdateWrapper<PingouJoin>()
+                .set("refund_price", refundPrice)
+                .set("subsidy_price", subsidy)
+                .set("reward_status", 1)
+                .eq("id", join.getId()));
     }
 
     /**
