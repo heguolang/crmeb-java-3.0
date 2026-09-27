@@ -48,7 +48,7 @@
 		{
 			"path": "pages/user/index",
 			"style": {
-				"navigationBarTitleText": "个人中心",
+				"navigationBarTitleText": "会员中心",
 				// #ifdef MP || APP-PLUS
 				"navigationBarTextStyle": "black",
 				"navigationBarBackgroundColor": "#fff",

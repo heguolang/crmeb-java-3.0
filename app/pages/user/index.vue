@@ -16,13 +16,16 @@
   >
     <view class="top" :style="colorStyle">
       <!-- #ifdef MP || APP-PLUS -->
-      <view class="sys-head">
+      <view
+        class="sys-head"
+        :style="sysHeadBg ? { background: sysHeadBg } : ''"
+      >
         <view class="sys-bar" :style="{ height: sysHeight }"></view>
         <!-- #ifdef MP -->
         <view
           class="sys-title"
           :style="member_style == 3 ? 'color:#333' : ''"
-          >{{ $t("个人中心") }}</view
+          >会员中心</view
         >
         <!-- #endif -->
         <view
@@ -174,6 +177,7 @@ export default {
       userInfo: {},
       MyMenus: [],
       sysHeight: sysHeight,
+      sysHeadBg: "", // 头部（状态栏+标题区）背景，取会员卡组件背景延展
       mpHeight: 0,
       showStatus: 1,
       activeRouter: "",
@@ -390,7 +394,29 @@ export default {
           this.bgPic = this.currentDiyData.bg_pic || "";
           this.bgTabVal = this.currentDiyData.bg_tab_val || "";
         }
+        this.applyHeaderBg();
       });
+    },
+    // 头部背景延展：取第一个会员卡组件的背景配置，把状态栏+标题区
+    // 渲染成同色背景，与下方会员卡视觉上连成一体（颜色背景取渐变起始色；
+    // 图片背景不做延展，避免短条区域拉伸变形）
+    applyHeaderBg() {
+      try {
+        let value = (this.currentDiyData && this.currentDiyData.value) || {};
+        let keys = Object.keys(value).sort();
+        for (let i = 0; i < keys.length; i++) {
+          let comp = value[keys[i]] || {};
+          if ((comp.name || comp.cname) !== "member") continue;
+          let bg = comp.configObj && comp.configObj.componentBgConfig;
+          if (bg && bg.tabVal === 0 && bg.colorConfig && bg.colorConfig.color) {
+            let c = bg.colorConfig.color[0] && bg.colorConfig.color[0].item;
+            if (c) this.sysHeadBg = c;
+          }
+          break;
+        }
+      } catch (e) {
+        this.sysHeadBg = "";
+      }
     },
     getWechatuserinfo() {
       //#ifdef H5

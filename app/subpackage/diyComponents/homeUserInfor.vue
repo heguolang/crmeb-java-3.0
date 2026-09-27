@@ -709,9 +709,10 @@ export default {
       return this.userInfo.avatar || "";
     },
     menuList() {
-      return (
-        (this.dataConfig.menuConfig && this.dataConfig.menuConfig.list) || []
-      );
+      // 后台「样式设置-图标」每项有独立显示开关（show），关闭的图标不渲染
+      let list =
+        (this.dataConfig.menuConfig && this.dataConfig.menuConfig.list) || [];
+      return list.filter((item) => item.show !== false);
     },
     assetStyle() {
       return this.dataConfig.assetConfig
