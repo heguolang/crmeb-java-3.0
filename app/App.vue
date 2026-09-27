@@ -24,6 +24,9 @@
 		applyTheme,
 		setThemeColor
 	} from "@/utils/theme.js";
+	import {
+		getRoutineConfig
+	} from "@/api/public";
 	var statusBarHeight = uni.getSystemInfoSync().statusBarHeight; //手机端头部手机时间位置高度
 	const legacyThemeColorMap = {
 		1: { theme_color: '#e93323', gradient_color: '#FF7931', sub_color: '#FE960F', light_color: '#FDD9D3' },
@@ -221,13 +224,32 @@
 			// #endif
 
 			// #ifdef MP
-			// 小程序静默授权
+			// 小程序静默授权（后台开启"小程序强制授权开关"后不走静默，由页面弹出授权弹框）
 			if (!isThemePreview && !this.$store.getters.isLogin && !this.globalData.tokenIsExist) {
-				Routine.getCode().then(code => {
-						Routine.authUserInfo(code)
+				getRoutineConfig().then(cfgRes => {
+						const cfg = (cfgRes && cfgRes.data) || {};
+						this.globalData.routineConfig = cfg;
+						if (String(cfg.forceAuth) === '1') {
+							// 强制授权：不静默登录，进首页/会员中心弹授权弹框
+							uni.setStorageSync('ROUTINE_FORCE_AUTH', '1');
+							return;
+						}
+						uni.removeStorageSync('ROUTINE_FORCE_AUTH');
+						Routine.getCode().then(code => {
+								Routine.authUserInfo(code)
+							})
+							.catch(res => {
+								uni.hideLoading();
+							});
 					})
-					.catch(res => {
-						uni.hideLoading();
+					.catch(() => {
+						// 配置读取失败按原静默逻辑兜底
+						Routine.getCode().then(code => {
+								Routine.authUserInfo(code)
+							})
+							.catch(res => {
+								uni.hideLoading();
+							});
 					});
 			}
 			// #endif

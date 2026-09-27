@@ -48,6 +48,15 @@
       @goDetail="goDetail"
     ></PageDesign>
     <pageFooter :style="colorStyle"></pageFooter>
+    <!-- #ifdef MP -->
+    <!-- 手机号授权弹框（后台开关 routine_center_phone_auth 开启且会员未填手机号时弹出） -->
+    <routinePhone
+      mode="bind"
+      :isPhoneBox="isPhoneBox"
+      :logoUrl="logoUrl"
+      @close="phoneBoxClose"
+    ></routinePhone>
+    <!-- #endif -->
   </view>
 </template>
 <script>
@@ -79,6 +88,10 @@ import Loading from "@/components/Loading/index.vue";
 import { goShopDetail } from "@/libs/order.js";
 import { orderData } from "@/api/order.js";
 import PageDesign from "@/subpackage/diyComponents/pageDesign.vue";
+// #ifdef MP
+import routinePhone from "@/components/login_mobile/routine_phone.vue";
+import { getRoutineConfig, getLogo } from "@/api/public.js";
+// #endif
 import { applyTheme } from "@/utils/theme.js";
 
 export default {
@@ -90,6 +103,9 @@ export default {
     waterfallsFlow,
     emptyPage,
     Loading,
+    // #ifdef MP
+    routinePhone,
+    // #endif
   },
   // computed: mapGetters(['isLogin','cartNum']),
   computed: {
@@ -118,6 +134,8 @@ export default {
   data() {
     return {
       currentDiyData: {},
+      isPhoneBox: false, //手机号授权弹框（会员中心）
+      logoUrl: "",
       storeMenu: [], // 商家管理
       orderMenu: [
         {
@@ -405,6 +423,46 @@ export default {
     authColse: function (e) {
       this.isShowAuth = e;
     },
+    // #ifdef MP
+    // 会员中心手机号授权检查：后台开关开启 + 会员未填手机号 → 弹框
+    checkPhoneAuth() {
+      let that = this;
+      const apply = (cfg) => {
+        if (
+          String((cfg && cfg.centerPhoneAuth) || "") === "1" &&
+          that.isLogin &&
+          that.userInfo &&
+          !that.userInfo.phone
+        ) {
+          if (!that.logoUrl) {
+            getLogo().then((res) => {
+              that.logoUrl = res.data.logo_url;
+            });
+          }
+          that.isPhoneBox = true;
+        }
+      };
+      let cfg = getApp().globalData.routineConfig;
+      if (cfg) {
+        apply(cfg);
+        return;
+      }
+      getRoutineConfig()
+        .then((res) => {
+          cfg = (res && res.data) || {};
+          getApp().globalData.routineConfig = cfg;
+          apply(cfg);
+        })
+        .catch(() => {});
+    },
+    // 手机号授权弹框关闭（绑定成功后刷新用户信息）
+    phoneBoxClose(e) {
+      this.isPhoneBox = false;
+      if (e && e.isStatus) {
+        this.getUserInfo();
+      }
+    },
+    // #endif
     // 绑定手机
     bindPhone() {
       uni.navigateTo({
@@ -449,6 +507,10 @@ export default {
         this.$store.commit("UPDATE_USERINFO", res.data);
         that.$store.commit("SETUID", res.data.uid);
         uni.stopPullDownRefresh();
+        // #ifdef MP
+        // 开关开启且会员未填手机号 → 弹微信手机号授权弹框
+        that.checkPhoneAuth();
+        // #endif
       });
       // 订单角标数量走独立接口 /api/front/order/data（字段为驼峰命名）
       orderData()

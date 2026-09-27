@@ -4,8 +4,8 @@
 		<view class="mobile-mask animated" :class="{slideInUp:isUp}">
 			<view class="info-box">
 				<image :src="logoUrl"></image>
-				<view class="title">获取授权</view>
-				<view class="txt">获取手机号授权</view>
+				<view class="title">{{ mode === 'bind' ? '手机号授权' : '获取授权' }}</view>
+				<view class="txt">{{ mode === 'bind' ? '授权微信手机号，便于为您提供订单及售后服务' : '获取手机号授权' }}</view>
 			</view>
 			<button class="sub_btn" open-type="getPhoneNumber" @getphonenumber="getphonenumber">获取手机号</button>
 		</view>
@@ -21,6 +21,7 @@
 		getUserInfo
 	} from "@/api/user";
 	import { getLogo, getUserPhone } from '@/api/public';
+	import { updateUserPhone } from '@/api/user';
 	export default{
 		name:'routine_phone',
 		props:{
@@ -35,6 +36,11 @@
 			authKey:{
 				type:String,
 				default:'',
+			},
+			// bind=已登录会员补绑手机号（会员中心授权弹框）；register=注册流程绑定（默认）
+			mode:{
+				type:String,
+				default:'register',
 			}
 		},
 		data(){
@@ -51,13 +57,44 @@
 			// #ifdef MP
 			// 小程序获取手机号码
 			getphonenumber(e){
+				if (e.detail.errMsg != 'getPhoneNumber:ok' && e.detail.errMsg != 'getphonenumber:ok') {
+					return;
+				}
 				uni.showLoading({ title: '加载中' });
 				Routine.getCode()
 					.then(code => {
-						this.getUserPhoneNumber(e.detail.encryptedData, e.detail.iv, code);
+						if (this.mode === 'bind') {
+							this.bindUserPhone(e.detail.encryptedData, e.detail.iv, code);
+						} else {
+							this.getUserPhoneNumber(e.detail.encryptedData, e.detail.iv, code);
+						}
 					})
 					.catch(error => {
 						uni.hideLoading();
+					});
+			},
+			// 已登录会员绑定手机号（走 /api/front/user/update/phone）
+			bindUserPhone(encryptedData, iv, code) {
+				updateUserPhone({
+					encryptedData: encryptedData,
+					iv: iv,
+					code: code,
+					type: 'routine'
+				})
+					.then(res => {
+						uni.hideLoading();
+						this.isStatus = true;
+						this.$util.Tips({
+							title: '手机号授权成功',
+							icon: 'success'
+						});
+						this.close();
+					})
+					.catch(res => {
+						uni.hideLoading();
+						this.$util.Tips({
+							title: res
+						});
 					});
 			},
 			// 小程序获取手机号码回调

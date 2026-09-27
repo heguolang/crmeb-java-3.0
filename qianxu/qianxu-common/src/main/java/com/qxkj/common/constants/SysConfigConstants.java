@@ -162,6 +162,12 @@ public class SysConfigConstants {
     public static final String CONFIG_ROUTINE_PAY_STATUS = "routine_pay_status";
     /** 微信APP支付开关（关闭后APP端不显示微信支付且不可发起） */
     public static final String CONFIG_PAY_WEIXIN_APP_STATUS = "pay_weixin_app_status";
+    /** 小程序强制授权开关（开启后不走静默授权，强制弹框授权登录） */
+    public static final String CONFIG_ROUTINE_FORCE_AUTH = "routine_force_auth";
+    /** 会员中心是否授权手机号（开启后未填写手机号的会员进会员中心弹微信手机号授权） */
+    public static final String CONFIG_ROUTINE_CENTER_PHONE_AUTH = "routine_center_phone_auth";
+    /** 小程序首页分享图片（上传后小程序端分享展示此图，不上传默认展示首页内容） */
+    public static final String CONFIG_ROUTINE_INDEX_SHARE_IMAGE = "routine_index_share_image";
 
     /** 版权-授权标签 */
     public static final String CONFIG_COPYRIGHT_LABEL = "copyright_label";

@@ -139,6 +139,26 @@ public class IndexServiceImpl implements IndexService {
         map.put("img", info.get(SysConfigConstants.CONFIG_KEY_ADMIN_WECHAT_SHARE_IMAGE));
         map.put("title", info.get(SysConfigConstants.CONFIG_KEY_ADMIN_WECHAT_SHARE_TITLE));
         map.put("synopsis", info.get(SysConfigConstants.CONFIG_KEY_ADMIN_WECHAT_SHARE_SYNOSIS));
+        // 小程序首页分享图片：配置了则小程序端分享优先使用（前端取 mpImg，取不到回退 img）
+        HashMap<String, String> routineInfo = systemConfigService.info(Constants.CONFIG_FORM_ID_ROUTINE);
+        if (routineInfo != null) {
+            String mpImg = routineInfo.get(SysConfigConstants.CONFIG_ROUTINE_INDEX_SHARE_IMAGE);
+            if (StrUtil.isNotBlank(mpImg)) {
+                map.put("mpImg", mpImg);
+            }
+        }
+        return map;
+    }
+
+    /**
+     * 小程序授权/分享配置（noAuth）
+     */
+    @Override
+    public HashMap<String, String> getRoutineConfig() {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("forceAuth", systemConfigService.getValueByKey(SysConfigConstants.CONFIG_ROUTINE_FORCE_AUTH));
+        map.put("centerPhoneAuth", systemConfigService.getValueByKey(SysConfigConstants.CONFIG_ROUTINE_CENTER_PHONE_AUTH));
+        map.put("shareImage", systemConfigService.getValueByKey(SysConfigConstants.CONFIG_ROUTINE_INDEX_SHARE_IMAGE));
         return map;
     }
 

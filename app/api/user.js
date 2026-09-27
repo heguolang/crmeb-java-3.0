@@ -486,6 +486,13 @@ export function mpBindingPhone(data) {
 }
 
 /**
+ * 已登录会员绑定微信手机号（小程序手机号快速验证组件，会员中心授权弹框使用）
+ */
+export function updateUserPhone(data) {
+  return request.post('user/update/phone', data);
+}
+
+/**
  * 版权信息
 */
 export function copyrightApi(){

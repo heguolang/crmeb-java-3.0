@@ -85,6 +85,15 @@ public class IndexController {
     }
 
     /**
+     * 小程序授权/分享配置（强制授权开关、会员中心手机号授权开关、首页分享图片）
+     */
+    @ApiOperation(value = "小程序授权/分享配置")
+    @RequestMapping(value = "/routine/config", method = RequestMethod.GET)
+    public CommonResult<HashMap<String, String>> routineConfig() {
+        return CommonResult.success(indexService.getRoutineConfig());
+    }
+
+    /**
      * 颜色配置
      */
     @ApiOperation(value = "颜色配置")

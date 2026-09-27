@@ -75,6 +75,15 @@ public class UserController {
     }
 
     /**
+     * 已登录会员绑定微信手机号（小程序手机号快速验证组件）
+     */
+    @ApiOperation(value = "已登录会员绑定微信手机号")
+    @RequestMapping(value = "/user/update/phone", method = RequestMethod.POST)
+    public CommonResult<Boolean> updateUserPhone(@RequestBody WxBindingPhoneRequest request) {
+        return CommonResult.success(userCenterService.updateUserPhone(request));
+    }
+
+    /**
      * 个人中心-用户信息
      */
     @ApiOperation(value = "个人中心-用户信息")

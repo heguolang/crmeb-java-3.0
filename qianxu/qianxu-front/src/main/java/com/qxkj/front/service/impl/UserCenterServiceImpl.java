@@ -968,6 +968,47 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
     }
 
     /**
+     * 已登录会员绑定微信手机号（小程序手机号快速验证组件）
+     */
+    @Override
+    public Boolean updateUserPhone(WxBindingPhoneRequest request) {
+        if (!"routine".equals(request.getType())) {
+            throw new QianxuException("未知的用户类型");
+        }
+        if (StrUtil.isBlank(request.getCode()) || StrUtil.isBlank(request.getEncryptedData()) || StrUtil.isBlank(request.getIv())) {
+            throw new QianxuException("小程序获取手机号参数不完整");
+        }
+        String programAppId = systemConfigService.getValueByKey(WeChatConstants.WECHAT_MINI_APPID);
+        if (StrUtil.isBlank(programAppId)) {
+            throw new QianxuException("微信小程序appId未设置");
+        }
+        WeChatMiniAuthorizeVo response = wechatNewService.miniAuthCode(request.getCode());
+        String decrypt = WxUtil.decrypt(programAppId, request.getEncryptedData(), response.getSessionKey(), request.getIv());
+        if (StrUtil.isBlank(decrypt)) {
+            throw new QianxuException("微信小程序获取手机号解密失败");
+        }
+        JSONObject phoneJson = JSONObject.parseObject(decrypt);
+        String phone = phoneJson.getString("phoneNumber");
+        if (StrUtil.isBlank(phone)) {
+            throw new QianxuException("微信小程序获取手机号没有有效的手机号");
+        }
+        if (!ReUtil.isMatch(RegularConstants.PHONE_TWO, phone)) {
+            throw new QianxuException("手机号格式错误，请输入正确得手机号");
+        }
+        User user = userService.getById(userService.getUserIdException());
+        if (ObjectUtil.isNull(user)) {
+            throw new QianxuException("用户不存在");
+        }
+        User exist = userService.getByPhone(phone);
+        if (ObjectUtil.isNotNull(exist) && !exist.getUid().equals(user.getUid())) {
+            throw new QianxuException("该手机号已被其他账号使用");
+        }
+        user.setPhone(phone);
+        user.setAccount(phone);
+        return userService.updateById(user);
+    }
+
+    /**
      * 用户积分记录列表
      *
      * @param pageParamRequest 分页参数

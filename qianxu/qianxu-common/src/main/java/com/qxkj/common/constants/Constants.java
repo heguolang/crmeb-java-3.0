@@ -248,6 +248,7 @@ public class Constants {
     //config配置的formId
     public static final int CONFIG_FORM_ID_INDEX = 133; //首页配置
     public static final int CONFIG_FORM_ID_PUBLIC = 65; //公众号配置
+    public static final int CONFIG_FORM_ID_ROUTINE = 66; //小程序配置
 
 
     //第三方登录token类型

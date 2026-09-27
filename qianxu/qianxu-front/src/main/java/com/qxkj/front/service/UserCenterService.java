@@ -186,6 +186,13 @@ public interface UserCenterService extends IService<User> {
     LoginResponse registerBindingPhone(WxBindingPhoneRequest request);
 
     /**
+     * 已登录会员绑定微信手机号（小程序手机号快速验证组件）
+     * @param request 请求参数（type=routine，code/encryptedData/iv）
+     * @return 是否成功
+     */
+    Boolean updateUserPhone(WxBindingPhoneRequest request);
+
+    /**
      * 用户积分记录列表
      * @param pageParamRequest 分页参数
      * @return List<UserIntegralRecord>

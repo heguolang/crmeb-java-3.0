@@ -111,6 +111,10 @@
     <!-- #ifdef APP -->
     <app-update ref="appUpdate" :force="true" :tabbar="false"></app-update>
     <!-- #endif -->
+    <!-- #ifdef MP -->
+    <!-- 小程序强制授权弹框（后台开关 routine_force_auth 开启后生效） -->
+    <RoutineForceAuth :isShow="isShowForceAuth" @close="forceAuthClose"></RoutineForceAuth>
+    <!-- #endif -->
     <view v-if="isPreview" class="exit-preview" @click="exitPreview">
       退出预览
     </view>
@@ -156,6 +160,9 @@ import Cache from "@/utils/cache";
 import appUpdate from "@/components/update/app-update.vue";
 import { applyTheme } from "@/utils/theme.js";
 import PageDesign from "@/subpackage/diyComponents/pageDesign.vue";
+// #ifdef MP
+import RoutineForceAuth from "@/components/RoutineForceAuth.vue";
+// #endif
 
 export default {
   computed: {
@@ -191,6 +198,9 @@ export default {
     // #ifdef APP
     appUpdate,
     // #endif
+    // #ifdef MP
+    RoutineForceAuth,
+    // #endif
   },
   data() {
     return {
@@ -203,6 +213,7 @@ export default {
       numConfig: 0,
       code: "",
       shareInfo: {},
+      isShowForceAuth: false, //小程序强制授权弹框
       sortList: "",
       sortAll: [],
       goodPage: 1,
@@ -356,6 +367,12 @@ export default {
       this.checkMyApplet();
     } else {
       this.myApplet = true;
+    }
+    // 小程序强制授权：后台开关开启且未登录时弹授权弹框
+    if (!this.isLogin && uni.getStorageSync("ROUTINE_FORCE_AUTH") === "1" && !app.globalData.forceAuthDismissed) {
+      this.isShowForceAuth = true;
+    } else {
+      this.isShowForceAuth = false;
     }
     // #endif
   },
@@ -588,6 +605,13 @@ export default {
     },
     onLoadFun() {
       this.isShowAuth = false;
+    },
+    // 强制授权弹框关闭（点遮罩关闭后本次启动不再弹，登录成功后自动消失）
+    forceAuthClose(e) {
+      this.isShowForceAuth = false;
+      if (e === false && !this.isLogin) {
+        app.globalData.forceAuthDismissed = true;
+      }
     },
     // #ifdef H5
     // 获取url后面的参数
@@ -829,28 +853,29 @@ export default {
   //#ifdef MP
   onShareAppMessage() {
     let uid = this.uid ? this.uid : 0;
-    if (this.shareInfo.img) {
+    // 优先使用后台配置的小程序首页分享图片，未配置回退公众号分享图，都没有则微信默认截取首页内容
+    let shareImg = this.shareInfo.mpImg || this.shareInfo.img || "";
+    if (shareImg) {
       return {
         title: this.shareInfo.title,
         path: "/pages/index/index?spid=" + uid,
-        imageUrl: this.shareInfo.img,
+        imageUrl: shareImg,
         desc: this.shareInfo.synopsis,
       };
     } else {
       return {
         title: this.shareInfo.title,
         path: "/pages/index/index?spid=" + uid,
-        // imageUrl: this.shareInfo.img,
-        // desc: this.shareInfo.synopsis
       };
     }
   },
   //分享到朋友圈
   onShareTimeline: function () {
+    let shareImg = this.shareInfo.mpImg || this.shareInfo.img || "";
     return {
       title: this.shareInfo.title,
       path: "/pages/index/index",
-      imageUrl: this.shareInfo.img,
+      imageUrl: shareImg,
       desc: this.shareInfo.synopsis,
     };
   },

@@ -151,3 +151,10 @@ export function iosBinding(data) {
 export function iosRegisterBinding(data) {
 	return request.post("ios/register/binding/phone", data, { noAuth : true });
 }
+
+/**
+ * 小程序授权/分享配置（强制授权开关、会员中心手机号授权开关、首页分享图片）
+ */
+export function getRoutineConfig() {
+	return request.get("routine/config", {}, { noAuth: true });
+}
