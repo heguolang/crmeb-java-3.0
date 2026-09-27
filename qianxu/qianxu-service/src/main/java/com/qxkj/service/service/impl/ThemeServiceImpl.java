@@ -22,6 +22,7 @@ import com.qxkj.common.constants.DateConstants;
 import com.qxkj.common.constants.SysConfigConstants;
 import com.qxkj.common.constants.UploadConstants;
 import com.qxkj.common.exception.QianxuException;
+import com.qxkj.common.vo.CloudVo;
 import com.qxkj.common.model.bargain.StoreBargain;
 import com.qxkj.common.model.combination.StoreCombination;
 import com.qxkj.common.model.coupon.StoreCoupon;
@@ -52,6 +53,11 @@ import com.qxkj.common.response.theme.ThemeTextFieldItemResponse;
 import com.qxkj.common.response.theme.ThemeTextFieldResponse;
 import com.qxkj.service.dao.ThemeDao;
 import com.qxkj.service.service.ArticleService;
+import com.qxkj.service.service.QiNiuService;
+import com.qiniu.storage.Configuration;
+import com.qiniu.storage.Region;
+import com.qiniu.storage.UploadManager;
+import com.qiniu.util.Auth;
 import com.qxkj.service.service.StoreBargainService;
 import com.qxkj.service.service.StoreProductService;
 import com.qxkj.service.service.StoreProductGroupService;
@@ -227,6 +233,9 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
 
     @Resource
     private SystemAttachmentService systemAttachmentService;
+
+    @Resource
+    private QiNiuService qiNiuService;
 
     @Resource
     private StoreProductService storeProductService;
@@ -1971,11 +1980,63 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
             }
             Files.copy(filePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
             String imageWebPath = uploadWebPath + relativePath;
-            saveThemeImportAttachment(targetPath, imageWebPath);
-            putThemeImportImageMap(imageMap, relativePath, buildThemeImportImageUrl(imageWebPath, baseUrl));
+            // 系统上传类型为七牛云时，主题图片同步上传云存储，主题数据里写云存储绝对 URL；
+            // 上传失败或非云存储时回退原有本地逻辑（本地文件始终保留一份）
+            boolean uploadedToCloud = uploadThemeImportImageToCloud(targetPath.toFile(), imageWebPath);
+            saveThemeImportAttachment(targetPath, imageWebPath, uploadedToCloud ? 2 : 1);
+            String imageUrl = uploadedToCloud
+                    ? buildCloudImportImageUrl(imageWebPath)
+                    : buildThemeImportImageUrl(imageWebPath, baseUrl);
+            if (StrUtil.isNotBlank(imageUrl)) {
+                putThemeImportImageMap(imageMap, relativePath, imageUrl);
+            }
         } catch (IOException e) {
             return;
         }
+    }
+
+    /**
+     * 主题图片上传云存储（系统上传类型为七牛云 uploadType=2 时生效）。
+     * 与常规图片上传保持一致：本地文件已存，云存储按相对路径上传；失败不阻断导入，回退本地 URL。
+     *
+     * @param imageFile    本地图片文件
+     * @param imageWebPath 相对 Web 路径（qianxuimage/public/theme/...）
+     * @return 是否已触发云上传
+     */
+    private boolean uploadThemeImportImageToCloud(File imageFile, String imageWebPath) {
+        try {
+            String uploadType = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_UPLOAD_TYPE);
+            if (!"2".equals(StrUtil.trim(uploadType))) {
+                return false;
+            }
+            CloudVo cloudVo = new CloudVo();
+            cloudVo.setDomain(systemConfigService.getValueByKeyException(SysConfigConstants.CONFIG_QN_UPLOAD_URL));
+            cloudVo.setAccessKey(systemConfigService.getValueByKeyException(SysConfigConstants.CONFIG_QN_ACCESS_KEY));
+            cloudVo.setSecretKey(systemConfigService.getValueByKeyException(SysConfigConstants.CONFIG_QN_SECRET_KEY));
+            cloudVo.setBucketName(systemConfigService.getValueByKeyException(SysConfigConstants.CONFIG_QN_STORAGE_NAME));
+            cloudVo.setRegion(systemConfigService.getValueByKeyException(SysConfigConstants.CONFIG_QN_STORAGE_REGION));
+            UploadManager uploadManager = new UploadManager(new Configuration(Region.autoRegion()));
+            Auth auth = Auth.create(cloudVo.getAccessKey(), cloudVo.getSecretKey());
+            String upToken = auth.uploadToken(cloudVo.getBucketName());
+            qiNiuService.uploadFile(uploadManager, upToken, imageWebPath, imageFile.getAbsolutePath(), imageFile);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * 云存储图片绝对 URL（qnUploadUrl + 相对路径），取不到域名时返回空串走本地回退。
+     *
+     * @param imageWebPath 相对 Web 路径
+     * @return 云存储绝对 URL
+     */
+    private String buildCloudImportImageUrl(String imageWebPath) {
+        String domain = systemConfigService.getValueByKey(SysConfigConstants.CONFIG_QN_UPLOAD_URL);
+        if (StrUtil.isBlank(domain)) {
+            return "";
+        }
+        return removeEndSlash(domain) + "/" + removeStartSlash(imageWebPath);
     }
 
     /**
@@ -1984,7 +2045,7 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
      * @param imagePath 图片文件路径
      * @param imageWebPath 图片Web路径
      */
-    private void saveThemeImportAttachment(Path imagePath, String imageWebPath) {
+    private void saveThemeImportAttachment(Path imagePath, String imageWebPath, Integer imageType) {
         try {
             SystemAttachment attachment = new SystemAttachment();
             String fileName = getUrlFileName(imageWebPath);
@@ -1993,7 +2054,7 @@ public class ThemeServiceImpl extends ServiceImpl<ThemeDao, Theme> implements Th
             attachment.setSattDir(imageWebPath);
             attachment.setAttSize(String.valueOf(Files.size(imagePath)));
             attachment.setAttType(getImageExtension(imageWebPath, ""));
-            attachment.setImageType(1);
+            attachment.setImageType(imageType == null ? 1 : imageType);
             attachment.setPid(THEME_ATTACHMENT_PID);
             Date now = new Date();
             attachment.setCreateTime(now);
