@@ -215,6 +215,12 @@ export default {
       // 延展时外层不能再裁剪内层向上伸出的背景
       if (this.extendTop > 0) {
         style.overflow = "visible";
+        // 外层背景色同步向上延伸 T px（负 margin + 等量 padding，布局不变）。
+        // 必须做：渐变起始色是半透明的，头部段透出的是页面底色、
+        // 卡片段透出的是本层背景色，两者不一致会在交界处形成一条色差纹理
+        const T = this.extendTop;
+        style["margin-top"] = -T + "px";
+        style["padding-top"] = T + "px";
       }
       if (config.bottomBgColor) {
         style.background = config.bottomBgColor.color
