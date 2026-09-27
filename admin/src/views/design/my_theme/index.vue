@@ -134,12 +134,21 @@ export default {
   },
   mounted() {
     this.calcLimit();
-    window.addEventListener('resize', this.calcLimit);
+    this._onResize = this.debounceCalc();
+    window.addEventListener('resize', this._onResize);
   },
   beforeDestroy() {
-    window.removeEventListener('resize', this.calcLimit);
+    window.removeEventListener('resize', this._onResize);
   },
   methods: {
+    // 防抖：滚动条出现/消失会连续触发 resize，抖动期间只算一次
+    debounceCalc() {
+      let timer = null;
+      return () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => this.calcLimit(), 200);
+      };
+    },
     calcLimit() {
       if (!this.$refs.gridContainer) return;
       const width = this.$refs.gridContainer.clientWidth;
@@ -149,7 +158,9 @@ export default {
       const newLimit = n * 2 > 0 ? n * 2 : 2;
       if (this.limit !== newLimit) {
         this.limit = newLimit;
-        this.page = 1;
+        // 翻页中触发 resize（滚动条出现/消失）时保持当前页，仅钳制到最大页
+        const maxPage = Math.max(1, Math.ceil(this.total / newLimit));
+        this.page = Math.min(this.page, maxPage);
         this.getList();
       } else if (this.themeList.length === 0) {
         this.getList();
@@ -160,10 +171,14 @@ export default {
       this.getList();
     },
     getList() {
+      // 请求序号防竞态：resize 抖动可能连发多个请求，只认最新一个的响应
+      const seq = (this._reqSeq = (this._reqSeq || 0) + 1);
       getThemeList({ page: this.page, limit: this.limit, title: this.searchKeyword, pageType: 'theme' }).then((res) => {
+        if (seq !== this._reqSeq) return;
         this.themeList = res.list;
         this.total = res.count;
         this.$nextTick(() => {
+          if (seq !== this._reqSeq) return;
           this.themeList.forEach((item) => {
             if (document.getElementById('qrcode' + item.id)) {
               document.getElementById('qrcode' + item.id).innerHTML = '';
