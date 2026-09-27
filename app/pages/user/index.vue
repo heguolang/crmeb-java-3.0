@@ -18,7 +18,7 @@
       <!-- #ifdef MP || APP-PLUS -->
       <view
         class="sys-head"
-        :style="sysHeadBg ? { background: sysHeadBg } : ''"
+        :style="sysHeadBg ? 'background:' + sysHeadBg : ''"
       >
         <view class="sys-bar" :style="{ height: sysHeight }"></view>
         <!-- #ifdef MP -->
