@@ -34,4 +34,10 @@ public class SystemAdminLoginRequest {
 
     @ApiModelProperty(value = "行为验证码对象")
     private CaptchaVO captchaVO;
+
+    @ApiModelProperty(value = "图形验证码key", example = "uuid")
+    private String captchaKey;
+
+    @ApiModelProperty(value = "图形验证码", example = "3K9Q")
+    private String captchaCode;
 }

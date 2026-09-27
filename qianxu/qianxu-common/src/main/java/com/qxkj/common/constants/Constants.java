@@ -596,4 +596,7 @@ public class Constants {
 
     /** 管理后台账号登录错误数量keu **/
     public static final String ADMIN_ACCOUNT_LOGIN_ERROR_NUM_KEY = "admin:account:login:error:{}";
+
+    /** 管理后台登录图形验证码key **/
+    public static final String ADMIN_IMAGE_CAPTCHA_KEY = "admin:image:captcha:{}";
 }

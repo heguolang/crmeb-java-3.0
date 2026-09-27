@@ -18,6 +18,14 @@ export function login(data) {
   });
 }
 
+// 获取后台登录图形验证码
+export function getImageCaptchaApi() {
+  return request({
+    url: '/public/safety/captcha/image',
+    method: 'post',
+  });
+}
+
 export function getInfo(token) {
   return request({
     url: '/admin/getAdminInfoByToken',

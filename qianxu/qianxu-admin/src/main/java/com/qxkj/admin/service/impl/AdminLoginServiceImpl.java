@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
-import com.anji.captcha.model.common.ResponseModel;
 import com.qxkj.admin.filter.TokenComponent;
 import com.qxkj.admin.service.AdminLoginService;
 import com.qxkj.common.constants.Constants;
@@ -90,9 +89,6 @@ public class AdminLoginServiceImpl implements AdminLoginService {
     private RedisUtil redisUtil;
 
     @Autowired
-    private SafetyService safetyService;
-
-    @Autowired
     private AdminLoginLogService adminLoginLogService;
 
     /**
@@ -100,20 +96,24 @@ public class AdminLoginServiceImpl implements AdminLoginService {
      */
     @Override
     public SystemLoginResponse login(SystemAdminLoginRequest systemAdminLoginRequest, String ip) {
-        Integer errorNum = accountDetection(systemAdminLoginRequest.getAccount());
-        if (errorNum > 3) {
-            if (ObjectUtil.isNull(systemAdminLoginRequest.getCaptchaVO())) {
-                recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "验证码信息不存在");
-                throw new QianxuException("验证码信息不存在");
-            }
-            // 校验验证码
-            ResponseModel responseModel = safetyService.verifySafetyCode(systemAdminLoginRequest.getCaptchaVO());
-            if (!responseModel.getRepCode().equals("0000")) {
-                logger.error("验证码登录失败，repCode = {}, repMsg = {}", responseModel.getRepCode(), responseModel.getRepMsg());
-                accountErrorNumAdd(systemAdminLoginRequest.getAccount());
-                recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "验证码校验失败");
-                throw new QianxuException("验证码校验失败");
-            }
+        // 图形验证码校验（常驻，替代原「错误超3次弹行为验证码」逻辑）
+        String captchaKey = systemAdminLoginRequest.getCaptchaKey();
+        String captchaCode = systemAdminLoginRequest.getCaptchaCode();
+        if (StrUtil.isBlank(captchaKey) || StrUtil.isBlank(captchaCode)) {
+            recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "未输入验证码");
+            throw new QianxuException("请输入验证码");
+        }
+        String captchaRedisKey = StrUtil.format(Constants.ADMIN_IMAGE_CAPTCHA_KEY, captchaKey);
+        if (!redisUtil.exists(captchaRedisKey)) {
+            recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "验证码已过期");
+            throw new QianxuException("验证码已过期，请重新获取");
+        }
+        String redisCode = redisUtil.get(captchaRedisKey);
+        // 无论成功失败均一次性失效，防止重放
+        redisUtil.delete(captchaRedisKey);
+        if (!captchaCode.trim().equalsIgnoreCase(redisCode)) {
+            recordLoginLog(systemAdminLoginRequest.getAccount(), null, ip, 0, "验证码错误");
+            throw new QianxuException("验证码错误");
         }
         // 用户验证
         Authentication authentication = null;
