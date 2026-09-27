@@ -67,6 +67,15 @@
         <if test="status != null and status !='' or status == 0 ">
             and u.`status` = ${status}
         </if>
+        <!-- 分红级别（分销商等级）：0 = 未分级（null 或 0），>0 = 指定等级 id -->
+        <choose>
+            <when test="distributorLevelId != null and distributorLevelId == 0">
+                and (u.distributor_level_id is null or u.distributor_level_id = 0)
+            </when>
+            <when test="distributorLevelId != null">
+                and u.distributor_level_id = #{distributorLevelId}
+            </when>
+        </choose>
         <if test="startTime != null and startTime != '' and accessType != null and accessType != ''">
             <choose>
                 <when test="accessType == 1">

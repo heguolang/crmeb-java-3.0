@@ -38,10 +38,10 @@ public class FundsMonitorRequest extends UserCommonSearchRequest implements Seri
     @ApiModelProperty(value = "添加时间")
     private String dateLimit;
 
-    @ApiModelProperty(value = "明细类型:recharge-充值支付，admin-后台操作，productRefund商品退款，payProduct购买商品，transferIn佣金转入，exchange-换货差价，order-订单佣金，orderDistribution-分销佣金，orderRegion-区域代理佣金，orderTeamGap-团队级差奖，orderTeamPeer-团队平级奖，withdraw-佣金提现，yue-佣金转余额，stock-订货奖金，sign-签到奖励，reward-活动奖励，deduct-消费抵扣")
+    @ApiModelProperty(value = "明细类型:recharge-充值支付，admin-后台操作，productRefund商品退款，payProduct购买商品，transferIn佣金转入，exchange-换货差价，order-订单佣金，orderDistribution-分销佣金，orderRegion-区域代理佣金，orderTeamGap-团队级差奖，orderTeamPeer-团队平级奖，withdraw-佣金提现，yue-佣金转余额，stock-订货奖金，pingouRefund-拼购未中奖退款，pingouSubsidy-拼购未中奖补贴，pingouShare-拼购分享奖励，dividend-全球分红，sign-签到奖励，reward-活动奖励，deduct-消费抵扣")
     @StringContains(limitValues = {"recharge", "admin", "productRefund", "payProduct", "transferIn", "exchange",
             "order", "orderDistribution", "orderRegion", "orderTeamGap", "orderTeamPeer",
-            "withdraw", "yue", "stock", "sign", "reward", "deduct"}, message = "请选择正确的明细类型")
+            "withdraw", "yue", "stock", "pingouRefund", "pingouSubsidy", "pingouShare", "dividend", "sign", "reward", "deduct"}, message = "请选择正确的明细类型")
     private String title;
 
     @ApiModelProperty(value = "账户类型:all-全部（默认），now_money-余额，integral-积分，brokerage_price-佣金")

@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.json.JSONUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
@@ -17,6 +18,8 @@ import com.qxkj.common.model.order.StoreOrder;
 import com.qxkj.common.model.order.StoreOrderInfo;
 import com.qxkj.common.model.pingou.PingouActivity;
 import com.qxkj.common.model.pingou.PingouJoin;
+import com.qxkj.common.model.pingou.PingouLevel;
+import com.qxkj.common.model.pingou.PingouShareTier;
 import com.qxkj.common.model.pingou.PingouTeam;
 import com.qxkj.common.model.product.StoreProduct;
 import com.qxkj.common.model.user.User;
@@ -32,6 +35,7 @@ import com.qxkj.common.response.PingouTeamListResponse;
 import com.qxkj.common.utils.QianxuDateUtil;
 import com.qxkj.service.dao.PingouActivityDao;
 import com.qxkj.service.dao.PingouJoinDao;
+import com.qxkj.service.dao.PingouLevelDao;
 import com.qxkj.service.dao.PingouTeamDao;
 import com.qxkj.service.service.*;
 import org.slf4j.Logger;
@@ -73,6 +77,9 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
 
     @Autowired
     private PingouJoinDao joinDao;
+
+    @Autowired
+    private PingouLevelDao pingouLevelDao;
 
     @Autowired
     private UserService userService;
@@ -124,6 +131,7 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
         PingouActivity activity = request.toEntity();
         activity.setProductName(product.getStoreName());
         activity.setProductPrice(product.getPrice());
+        activity.setShareTiers(serializeTiers(request.getShareTiers()));
         activity.setIsDel(false);
         return save(activity);
     }
@@ -145,6 +153,7 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
         PingouActivity activity = request.toEntity();
         activity.setProductName(product.getStoreName());
         activity.setProductPrice(product.getPrice());
+        activity.setShareTiers(serializeTiers(request.getShareTiers()));
         activity.setIsDel(false);
         return updateById(activity);
     }
@@ -249,6 +258,7 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
         response.setShareRateLow(activity.getShareRateLow());
         response.setShareRateHigh(activity.getShareRateHigh());
         response.setShareRateThreshold(activity.getShareRateThreshold());
+        response.setShareTiers(activity.getShareTiers());
         response.setLimitNum(activity.getLimitNum());
 
         // 累计开团次数
@@ -411,12 +421,13 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
                 .eq(PingouJoin::getActivityId, activity.getId())
                 .eq(PingouJoin::getSpreadUid, spreadUid));
         int count = (spreadCount == null ? 0 : spreadCount.intValue());
-        BigDecimal rate = count >= ObjectUtil.defaultIfNull(activity.getShareRateThreshold(), 10)
-                ? ObjectUtil.defaultIfNull(activity.getShareRateHigh(), BigDecimal.TEN)
-                : ObjectUtil.defaultIfNull(activity.getShareRateLow(), new BigDecimal("5"));
-        BigDecimal sharePrice = join.getPayPrice().multiply(rate)
-                .divide(new BigDecimal("1000"), 2, RoundingMode.DOWN);
-        join.setShareRate(rate);
+        BigDecimal sharePrice = calcShareReward(activity, count, join.getPayPrice());
+        if (sharePrice == null) {
+            // 直推人数未命中任何阶梯
+            join.setShareStatus(SHARE_STATUS_NO_SPREAD);
+            joinDao.updateById(join);
+            return;
+        }
         if (sharePrice.compareTo(BigDecimal.ZERO) <= 0) {
             join.setShareStatus(SHARE_STATUS_NO_SPREAD);
             joinDao.updateById(join);
@@ -424,11 +435,85 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
         }
         grantBrokerage(spreadUid, sharePrice,
                 BrokerageRecordConstants.BROKERAGE_RECORD_TITLE_PINGOU_SHARE,
-                StrUtil.format("拼购分享奖励：被推荐人参与「{}」，按{}‰奖励{}", activity.getName(), rate, sharePrice),
+                StrUtil.format("拼购分享奖励：被推荐人参与「{}」，奖励{}", activity.getName(), sharePrice),
                 join.getOrderNo());
         join.setSharePrice(sharePrice);
         join.setShareStatus(SHARE_STATUS_DONE);
         joinDao.updateById(join);
+    }
+
+    /**
+     * 按分享奖励阶梯计算推荐人奖励金额。
+     * 优先级：活动独立阶梯（share_tiers）→ 拼购等级设置默认阶梯（eb_pingou_level，比例%）→ 旧字段（低/高‰ + 阈值）。
+     * 阶梯命中：直推人数（含本次）达到 minDirectNum 的最高一档；人数未命中任何档返回 null。
+     */
+    private BigDecimal calcShareReward(PingouActivity activity, int directCount, BigDecimal payPrice) {
+        List<PingouShareTier> tiers = parseTiers(activity.getShareTiers());
+        if (CollUtil.isEmpty(tiers)) {
+            // 活动未独立设置阶梯 → 走「拼购等级设置」默认阶梯（比例%）
+            tiers = getDefaultLevelTiers();
+        }
+        if (CollUtil.isNotEmpty(tiers)) {
+            tiers.sort((a, b) -> Integer.compare(
+                    ObjectUtil.defaultIfNull(b.getMinDirectNum(), 0),
+                    ObjectUtil.defaultIfNull(a.getMinDirectNum(), 0)));
+            for (PingouShareTier tier : tiers) {
+                if (directCount >= ObjectUtil.defaultIfNull(tier.getMinDirectNum(), 0)) {
+                    BigDecimal value = ObjectUtil.defaultIfNull(tier.getRewardValue(), BigDecimal.ZERO);
+                    if (Integer.valueOf(2).equals(tier.getRewardType())) {
+                        return value.setScale(2, RoundingMode.DOWN);
+                    }
+                    return payPrice.multiply(value)
+                            .divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
+                }
+            }
+            return null;
+        }
+        // 旧配置兜底：‰ 比例
+        BigDecimal rate = directCount >= ObjectUtil.defaultIfNull(activity.getShareRateThreshold(), 10)
+                ? ObjectUtil.defaultIfNull(activity.getShareRateHigh(), BigDecimal.TEN)
+                : ObjectUtil.defaultIfNull(activity.getShareRateLow(), new BigDecimal("5"));
+        return payPrice.multiply(rate)
+                .divide(new BigDecimal("1000"), 2, RoundingMode.DOWN);
+    }
+
+    /**
+     * 读取「拼购等级设置」作为默认分享奖励阶梯（rewardType=1 比例%）
+     */
+    private List<PingouShareTier> getDefaultLevelTiers() {
+        List<PingouLevel> levels = pingouLevelDao.selectList(new LambdaQueryWrapper<PingouLevel>()
+                .eq(PingouLevel::getIsDel, false));
+        if (CollUtil.isEmpty(levels)) {
+            return new ArrayList<>();
+        }
+        List<PingouShareTier> tiers = new ArrayList<>();
+        for (PingouLevel level : levels) {
+            PingouShareTier tier = new PingouShareTier();
+            tier.setMinDirectNum(ObjectUtil.defaultIfNull(level.getMinDirectNum(), 1));
+            tier.setRewardType(1);
+            tier.setRewardValue(ObjectUtil.defaultIfNull(level.getRewardRate(), BigDecimal.ZERO));
+            tiers.add(tier);
+        }
+        return tiers;
+    }
+
+    private String serializeTiers(List<PingouShareTier> tiers) {
+        if (CollUtil.isEmpty(tiers)) {
+            return null;
+        }
+        return JSONUtil.toJsonStr(tiers);
+    }
+
+    private List<PingouShareTier> parseTiers(String json) {
+        if (StrUtil.isBlank(json)) {
+            return new ArrayList<>();
+        }
+        try {
+            return JSONUtil.parseArray(json).toList(PingouShareTier.class);
+        } catch (Exception e) {
+            logger.warn("拼购分享奖励阶梯解析失败：{}", json, e);
+            return new ArrayList<>();
+        }
     }
 
     /**

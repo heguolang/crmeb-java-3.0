@@ -43,6 +43,7 @@ public class HiddenController {
         SWITCH_KEYS.put("sys_switch_store", "门店");
         SWITCH_KEYS.put("sys_switch_daili", "区域代理");
         SWITCH_KEYS.put("sys_switch_spread", "分销");
+        SWITCH_KEYS.put("sys_switch_pingou", "拼购");
     }
 
     /** 营销开关配置键（顺序即展示顺序） */

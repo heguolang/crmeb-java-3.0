@@ -273,6 +273,7 @@ public class AdminLoginServiceImpl implements AdminLoginService {
         moduleMenuSwitch.put("/daili", "sys_switch_daili");
         moduleMenuSwitch.put("/distribution", "sys_switch_spread");
         moduleMenuSwitch.put("/tuandui", "sys_switch_team_reward");
+        moduleMenuSwitch.put("/market", "sys_switch_pingou");
         // 营销模块开关（营销下的二级分组，任意层级按 component 匹配）
         moduleMenuSwitch.put("/marketing/coupon", "sys_switch_coupon");
         moduleMenuSwitch.put("/marketing/integral", "sys_switch_integral");

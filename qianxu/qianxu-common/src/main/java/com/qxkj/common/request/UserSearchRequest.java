@@ -71,4 +71,7 @@ public class UserSearchRequest extends UserCommonSearchRequest implements Serial
 
     @ApiModelProperty(value = "性别，0未知，1男，2女，3保密")
     private String sex;
+
+    @ApiModelProperty(value = "分红级别（分销商等级ID）：0=未分级，>0=指定等级")
+    private Integer distributorLevelId;
 }

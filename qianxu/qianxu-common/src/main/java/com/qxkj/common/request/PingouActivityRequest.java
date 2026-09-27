@@ -1,6 +1,7 @@
 package com.qxkj.common.request;
 
 import com.qxkj.common.model.pingou.PingouActivity;
+import com.qxkj.common.model.pingou.PingouShareTier;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -13,6 +14,7 @@ import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 拼购活动 新增/修改 请求对象
@@ -66,6 +68,9 @@ public class PingouActivityRequest implements Serializable {
 
     @ApiModelProperty(value = "高比例直推人数阈值")
     private Integer shareRateThreshold;
+
+    @ApiModelProperty(value = "分享奖励阶梯（多档，按直推人数匹配最高一档）")
+    private List<PingouShareTier> shareTiers;
 
     @ApiModelProperty(value = "每人限参与次数（0=不限）")
     private Integer limitNum;

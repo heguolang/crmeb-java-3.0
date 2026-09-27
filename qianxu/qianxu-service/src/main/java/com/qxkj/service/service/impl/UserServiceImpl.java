@@ -196,6 +196,11 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             map.put("status", request.getStatus() ? 1 : 0);
         }
 
+        //分红级别（分销商等级）：null-全部；0-未分级；>0-指定等级
+        if (request.getDistributorLevelId() != null) {
+            map.put("distributorLevelId", request.getDistributorLevelId());
+        }
+
         DateLimitUtilVo dateLimit = QianxuDateUtil.getDateLimit(request.getDateLimit());
 
         if (!StringUtils.isBlank(dateLimit.getStartTime())) {

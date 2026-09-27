@@ -24,6 +24,18 @@ export default {
       component: () => import('@/views/market/pingou/team/index'),
       name: 'PingouTeam',
       meta: { title: '拼购团记录', icon: '' }
+    },
+    {
+      path: 'pingou/level',
+      component: () => import('@/views/market/pingou/level/index'),
+      name: 'PingouLevel',
+      meta: { title: '拼购等级', icon: '' }
+    },
+    {
+      path: 'dividend',
+      component: () => import('@/views/market/dividend/index'),
+      name: 'Dividend',
+      meta: { title: '全球分红', icon: '' }
     }
   ]
 };

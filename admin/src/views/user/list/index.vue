@@ -113,6 +113,24 @@
                 <el-option :value="3" label="时间段未访问"></el-option>
               </el-select>
             </el-form-item>
+            <el-form-item label="分红级别">
+              <el-select
+                v-model="userFrom.distributorLevelId"
+                @visible-change="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择分红级别"
+                clearable
+                filterable
+              >
+                <el-option :value="0" label="未分级"></el-option>
+                <el-option
+                  :value="item.id"
+                  v-for="item in distributorLevelList"
+                  :key="item.id"
+                  :label="item.name"
+                ></el-option>
+              </el-select>
+            </el-form-item>
             <el-form-item label="性别">
               <el-select v-model="userFrom.sex" @visible-change="userSearchs" @clear="userSearchs" placeholder="请选择性别">
                 <el-option :value="0" label="未知"></el-option>
@@ -233,6 +251,7 @@
               </div>
               <div class="kv"><span class="kv__k">手机号：</span><span class="kv__v kv__v--num">{{ item.phone | filterEmpty }}</span></div>
               <div class="kv"><span class="kv__k">注册时间：</span><span class="kv__v kv__v--num">{{ item.createTime | filterEmpty }}</span></div>
+              <div class="kv"><span class="kv__k">分红级别：</span><span class="kv__v">{{ matchDistributorLevelName(item.distributorLevelId) }}</span></div>
               <div class="kv"><span class="kv__k">备注：</span><span class="kv__v">{{ item.mark | filterEmpty }}</span></div>
             </div>
 
@@ -536,6 +555,7 @@ import {
   userUpdateApi,
 } from '@/api/user';
 import { teamLevelAllApi } from '@/api/teamLevel';
+import { distributorLevelListApi } from '@/api/distributorLevel';
 import { spreadClearApi } from '@/api/distribution';
 import editFrom from './edit';
 import userDetails from './userDetails';
@@ -646,6 +666,7 @@ export default {
         page: 1,
         limit: 20,
         groupId: '',
+        distributorLevelId: '',
       },
       grid: {
         xl: 8,
@@ -656,6 +677,7 @@ export default {
       },
       labelLists: [],
       groupList: [],
+      distributorLevelList: [],
       selectedData: [],
       timeVal: [],
       addresData: [],
@@ -700,6 +722,7 @@ export default {
     this.groupLists();
     this.levelLists();
     this.teamLevelLists();
+    this.distributorLevelLists();
     this.getTagList();
     if (checkPermi(['admin:system:city:list:tree'])) this.getCityList();
   },
@@ -1178,6 +1201,23 @@ export default {
         .catch(() => {
           this.teamLevelList = [];
         });
+    },
+    // 分销商等级列表（分红级别）
+    distributorLevelLists() {
+      distributorLevelListApi()
+        .then((res) => {
+          this.distributorLevelList = res || [];
+        })
+        .catch(() => {
+          this.distributorLevelList = [];
+        });
+    },
+    matchDistributorLevelName(levelId) {
+      if (levelId === undefined || levelId === null || Number(levelId) === 0) {
+        return '未分级';
+      }
+      const level = (this.distributorLevelList || []).find((item) => Number(item.id) === Number(levelId));
+      return level ? level.name : '未分级';
     },
     matchTeamLevelName(teamLevelId) {
       if (teamLevelId === undefined || teamLevelId === null || teamLevelId === '' || Number(teamLevelId) === 0) {

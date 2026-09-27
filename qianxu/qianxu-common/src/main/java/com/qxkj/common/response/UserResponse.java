@@ -151,4 +151,7 @@ public class UserResponse {
 
     @ApiModelProperty(value = "是否注销")
     private Boolean isLogoff;
+
+    @ApiModelProperty(value = "分红级别（分销商等级ID）")
+    private Integer distributorLevelId;
 }

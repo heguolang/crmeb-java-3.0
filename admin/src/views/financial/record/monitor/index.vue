@@ -240,6 +240,10 @@ export default {
           { value: 'orderTeamPeer', label: '团队平级奖' },
           { value: 'withdraw', label: '佣金提现' },
           { value: 'yue', label: '佣金转余额' },
+          { value: 'pingouRefund', label: '拼购未中奖退款' },
+          { value: 'pingouSubsidy', label: '拼购未中奖补贴' },
+          { value: 'pingouShare', label: '拼购分享奖励' },
+          { value: 'dividend', label: '全球分红' },
           { value: 'sign', label: '签到奖励' },
           { value: 'reward', label: '活动奖励' },
           { value: 'deduct', label: '消费抵扣' },
@@ -251,6 +255,7 @@ export default {
           { value: 'admin', label: '后台操作' },
           { value: 'transferIn', label: '佣金转入' },
           { value: 'exchange', label: '换货差价' },
+          { value: 'pingouRefund', label: '拼购未中奖退款' },
         ],
         brokerage_price: [
           { value: 'stock', label: '订货奖金' },
@@ -260,6 +265,9 @@ export default {
           { value: 'orderTeamPeer', label: '团队平级奖' },
           { value: 'withdraw', label: '佣金提现' },
           { value: 'yue', label: '佣金转余额' },
+          { value: 'pingouSubsidy', label: '拼购未中奖补贴' },
+          { value: 'pingouShare', label: '拼购分享奖励' },
+          { value: 'dividend', label: '全球分红' },
           { value: 'admin', label: '后台操作' },
         ],
         integral: [

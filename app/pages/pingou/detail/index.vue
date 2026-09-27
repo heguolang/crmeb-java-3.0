@@ -54,8 +54,10 @@
 				<view class="pg-rule-item">
 					<view class="pg-rule-badge">4</view>
 					<view class="pg-rule-txt">
-						分享奖励：被推荐人参与拼购，推荐人获得其参与金额
-						<text class="pg-red">{{ info.shareRateLow }}‰ ~ {{ info.shareRateHigh }}‰</text> 佣金奖励（直推 {{ info.shareRateThreshold }} 人以内享 {{ info.shareRateLow }}‰，满 {{ info.shareRateThreshold }} 人享 {{ info.shareRateHigh }}‰）
+						分享奖励：被推荐人参与拼购，推荐人按直推人数获得佣金奖励
+						<text v-for="(t, i) in shareTiers" :key="i" class="pg-red">
+							{{ i > 0 ? '；' : '' }}直推 {{ t.minDirectNum }} 人及以上享 {{ t.rewardType === 2 ? t.rewardValue + ' 元' : t.rewardValue + '%' }}
+						</text>
 					</view>
 				</view>
 				<view class="pg-rule-item" v-if="info.limitNum > 0">
@@ -121,6 +123,15 @@ export default {
 				return this.info.recentTeams[0];
 			}
 			return null;
+		},
+		shareTiers() {
+			if (!this.info) return [];
+			let tiers = [];
+			if (this.info.shareTiers) {
+				try { tiers = JSON.parse(this.info.shareTiers) || []; } catch (e) { tiers = []; }
+			}
+			tiers.sort((a, b) => (a.minDirectNum || 0) - (b.minDirectNum || 0));
+			return tiers;
 		}
 	},
 	onLoad(options) {

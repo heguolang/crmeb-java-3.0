@@ -165,15 +165,15 @@ export default {
   methods: {
     loadActivities() {
       pingouActivityListApi({ page: 1, limit: 100 }).then((res) => {
-        this.activityOptions = res.data.list || [];
+        this.activityOptions = res.list || [];
       });
     },
     getList() {
       this.loading = true;
       pingouTeamListApi(this.tableFrom)
         .then((res) => {
-          this.tableData = res.data.list || [];
-          this.total = res.data.total || 0;
+          this.tableData = res.list || [];
+          this.total = res.total || 0;
         })
         .finally(() => {
           this.loading = false;
@@ -206,7 +206,7 @@ export default {
       this.detailJoins = [];
       pingouTeamDetailApi(row.id)
         .then((res) => {
-          const team = (res.data || [])[0] || {};
+          const team = (res || [])[0] || {};
           this.detailTeam = team;
           this.detailJoins = team.joins || [];
         })

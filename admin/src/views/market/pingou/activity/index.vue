@@ -54,10 +54,10 @@
         </el-table-column>
         <el-table-column label="分享奖励" min-width="140">
           <template slot-scope="scope">
-            <div class="info-line">
-              {{ scope.row.shareRateLow }}‰ ~ {{ scope.row.shareRateHigh }}‰
+            <div v-for="(t, i) in parseTiers(scope.row.shareTiers, scope.row)" :key="i" class="info-line">
+              {{ tierText(t) }}
             </div>
-            <div class="info-line">直推满{{ scope.row.shareRateThreshold }}人享高比例</div>
+            <div v-if="!parseTiers(scope.row.shareTiers, scope.row).length" class="info-line tier-default">按默认等级比例</div>
           </template>
         </el-table-column>
         <el-table-column label="活动时间" width="300" class-name="time-cell">
@@ -123,17 +123,27 @@
           <el-input-number v-model="editForm.refundSubsidy" :min="0" :precision="2" style="width: 150px" />
           <span class="form-tip">元/人（发放到佣金账户，本金自动退回余额）</span>
         </el-form-item>
-        <el-form-item label="分享奖励(低)">
-          <el-input-number v-model="editForm.shareRateLow" :min="0" :precision="2" style="width: 150px" />
-          <span class="form-tip">‰（直推未达阈值时）</span>
-        </el-form-item>
-        <el-form-item label="分享奖励(高)">
-          <el-input-number v-model="editForm.shareRateHigh" :min="0" :precision="2" style="width: 150px" />
-          <span class="form-tip">‰（直推达到阈值时）</span>
-        </el-form-item>
-        <el-form-item label="高比例阈值">
-          <el-input-number v-model="editForm.shareRateThreshold" :min="1" style="width: 150px" />
-          <span class="form-tip">人（直推参与满 N 人享高比例）</span>
+        <el-form-item label="分享奖励">
+          <div v-for="(t, i) in editForm.shareTiers" :key="i" class="tier-row">
+            <span class="tier-label">直推</span>
+            <el-input-number v-model="t.minDirectNum" :min="1" :precision="0" style="width: 110px" />
+            <span class="tier-label">人（含）以上</span>
+            <el-select v-model="t.rewardType" style="width: 120px">
+              <el-option label="比例（%）" :value="1" />
+              <el-option label="固定金额（元）" :value="2" />
+            </el-select>
+            <el-input-number v-model="t.rewardValue" :min="0" :precision="2" style="width: 120px" />
+            <el-button size="mini" type="danger" plain icon="el-icon-delete" circle @click="removeTier(i)" />
+          </div>
+          <div>
+            <el-button size="mini" type="primary" plain icon="el-icon-plus" @click="addTier">添加阶梯</el-button>
+            <el-button size="mini" type="success" plain icon="el-icon-document-copy" @click="applyDefaultLevels">引用默认等级</el-button>
+            <span class="form-tip">按直推人数匹配最高一档；比例按被推荐人参与金额计算</span>
+            <div class="form-tip" style="margin-top: 4px">
+              <template v-if="editForm.shareTiers.length">本活动已独立设置分享奖励阶梯，结算按上面配置执行</template>
+              <template v-else>未设置阶梯 → 结算自动按「拼购等级」里配置的默认比例发放；点「引用默认等级」可载入后独立调整</template>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item label="限购数量">
           <el-input-number v-model="editForm.limitNum" :min="0" style="width: 150px" />
@@ -190,7 +200,7 @@
 </template>
 
 <script>
-import { pingouActivityListApi, pingouActivitySaveApi, pingouActivityUpdateApi, pingouActivityStatusApi, pingouActivityDeleteApi, pingouProductListApi } from '@/api/pingou';
+import { pingouActivityListApi, pingouActivitySaveApi, pingouActivityUpdateApi, pingouActivityStatusApi, pingouActivityDeleteApi, pingouProductListApi, pingouLevelListApi } from '@/api/pingou';
 import { checkPermi } from '@/utils/permission';
 
 export default {
@@ -244,9 +254,7 @@ export default {
         totalNum: 10,
         winNum: 2,
         refundSubsidy: 0,
-        shareRateLow: 5,
-        shareRateHigh: 10,
-        shareRateThreshold: 10,
+        shareTiers: [],
         limitNum: 0,
         isShow: true,
         sort: 0,
@@ -257,8 +265,8 @@ export default {
       this.loading = true;
       pingouActivityListApi(this.tableFrom)
         .then((res) => {
-          this.tableData = res.data.list || [];
-          this.total = res.data.total || 0;
+          this.tableData = res.list || [];
+          this.total = res.total || 0;
         })
         .finally(() => {
           this.loading = false;
@@ -283,6 +291,10 @@ export default {
         delete form.isDel;
         delete form.productName;
         delete form.productPrice;
+        delete form.shareRateLow;
+        delete form.shareRateHigh;
+        delete form.shareRateThreshold;
+        form.shareTiers = this.parseTiers(row.shareTiers, row);
         this.editForm = form;
         this.pickedProduct = { storeName: row.productName, price: row.productPrice };
         this.dateRange = [row.startTime, row.endTime];
@@ -295,6 +307,50 @@ export default {
       this.$nextTick(() => {
         this.$refs.editForm && this.$refs.editForm.clearValidate();
       });
+    },
+    // ---------- 分享奖励阶梯 ----------
+    parseTiers(json, row) {
+      let tiers = [];
+      if (json) {
+        try {
+          tiers = JSON.parse(json) || [];
+        } catch (e) {
+          tiers = [];
+        }
+      }
+      if (!tiers.length && row && (row.shareRateLow || row.shareRateHigh)) {
+        // 旧数据迁移：低/高‰ + 阈值 → 两档（‰ 换算为 %）
+        if (row.shareRateLow) tiers.push({ minDirectNum: 1, rewardType: 1, rewardValue: +(row.shareRateLow / 10).toFixed(2) });
+        if (row.shareRateHigh) tiers.push({ minDirectNum: row.shareRateThreshold || 10, rewardType: 1, rewardValue: +(row.shareRateHigh / 10).toFixed(2) });
+      }
+      return tiers;
+    },
+    tierText(t) {
+      const unit = t.rewardType === 2 ? '元' : '%';
+      return `直推≥${t.minDirectNum}人：${t.rewardValue}${unit}`;
+    },
+    addTier() {
+      this.editForm.shareTiers.push({ minDirectNum: 1, rewardType: 1, rewardValue: 0.5 });
+    },
+    // 引用「拼购等级设置」的默认等级，一键填充为活动独立阶梯（可再调整）
+    applyDefaultLevels() {
+      pingouLevelListApi()
+        .then((res) => {
+          const levels = Array.isArray(res) ? res : res.list || [];
+          if (!levels.length) {
+            this.$message.warning('还没有默认等级，请先到「大市场 → 拼购等级」添加');
+            return;
+          }
+          this.editForm.shareTiers = levels
+            .slice()
+            .sort((a, b) => a.minDirectNum - b.minDirectNum)
+            .map((l) => ({ minDirectNum: l.minDirectNum, rewardType: 1, rewardValue: Number(l.rewardRate) }));
+          this.$message.success('已载入默认等级，可继续独立调整');
+        })
+        .catch(() => {});
+    },
+    removeTier(i) {
+      this.editForm.shareTiers.splice(i, 1);
     },
     onSave() {
       this.$refs.editForm.validate((valid) => {
@@ -339,10 +395,10 @@ export default {
     loadProducts(page) {
       if (page) this.productFrom.page = page;
       this.productLoading = true;
-      pingouProductListApi({ page: this.productFrom.page, limit: this.productFrom.limit, keywords: this.productKeyword })
+      pingouProductListApi({ page: this.productFrom.page, limit: this.productFrom.limit, type: 1, keywords: this.productKeyword })
         .then((res) => {
-          this.productList = (res.data.list || []).filter((p) => !p.isDel && p.isShow);
-          this.productTotal = res.data.total || 0;
+          this.productList = (res.list || []).filter((p) => !p.isDel && p.isShow);
+          this.productTotal = res.total || 0;
         })
         .finally(() => {
           this.productLoading = false;
@@ -388,6 +444,9 @@ export default {
   color: #909399;
   line-height: 20px;
 }
+.tier-default {
+  color: #1f8dd6;
+}
 .info-v {
   font-size: 13px;
   color: #303133;
@@ -400,5 +459,19 @@ export default {
 .pager {
   margin-top: 16px;
   text-align: right;
+}
+.tier-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  .tier-label {
+    margin: 0 6px;
+    font-size: 13px;
+    color: #606266;
+    white-space: nowrap;  }
+  .el-input-number,
+  .el-select {
+    margin-right: 6px;
+  }
 }
 </style>

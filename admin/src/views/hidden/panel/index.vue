@@ -138,6 +138,7 @@ export default {
         sys_switch_store: false,
         sys_switch_daili: false,
         sys_switch_spread: false,
+        sys_switch_pingou: false,
       },
       modeSwitchItems: [
         { key: 'sys_switch_team_reward', name: '团队奖' },
@@ -145,6 +146,7 @@ export default {
         { key: 'sys_switch_store', name: '门店' },
         { key: 'sys_switch_daili', name: '区域代理' },
         { key: 'sys_switch_spread', name: '分销' },
+        { key: 'sys_switch_pingou', name: '拼购' },
       ],
       marketingSwitches: {
         sys_switch_integral: false,

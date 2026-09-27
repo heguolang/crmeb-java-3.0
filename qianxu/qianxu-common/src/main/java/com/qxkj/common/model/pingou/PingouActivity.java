@@ -68,6 +68,9 @@ public class PingouActivity implements Serializable {
     @ApiModelProperty(value = "高比例直推人数阈值")
     private Integer shareRateThreshold;
 
+    @ApiModelProperty(value = "分享奖励阶梯（JSON：[{minDirectNum,rewardType(1=比例%|2=固定金额),rewardValue}]）")
+    private String shareTiers;
+
     @ApiModelProperty(value = "每人限参与次数（0=不限）")
     private Integer limitNum;
 

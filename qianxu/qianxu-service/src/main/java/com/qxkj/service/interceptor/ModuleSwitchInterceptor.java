@@ -39,6 +39,9 @@ public class ModuleSwitchInterceptor implements HandlerInterceptor {
         RULES.put("/api/front/bargain", "sys_switch_bargain");
         RULES.put("/api/admin/store/combination", "sys_switch_combination");
         RULES.put("/api/front/combination", "sys_switch_combination");
+        // 拼购模块开关
+        RULES.put("/api/admin/pingou", "sys_switch_pingou");
+        RULES.put("/api/front/pingou", "sys_switch_pingou");
     }
 
     public ModuleSwitchInterceptor(SystemConfigService systemConfigService) {

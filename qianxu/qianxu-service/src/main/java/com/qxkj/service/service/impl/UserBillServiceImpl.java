@@ -278,6 +278,12 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
                 case "exchange":
                     titleList.add("换货差价");
                     break;
+                case "pingouRefund":
+                    titleList.add("拼购未中奖退款");
+                    break;
+                case "dividend":
+                    titleList.add("全球分红");
+                    break;
             }
             if (!titleList.isEmpty()) {
                 map.put("titleList", titleList);
@@ -416,6 +422,18 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
                 case "deduct":
                     map.put("titleLikeList", CollUtil.newArrayList("抵扣", "消费", "扣除"));
                     break;
+                case "pingouRefund":
+                    map.put("titleList", CollUtil.newArrayList("拼购未中奖退款"));
+                    break;
+                case "pingouSubsidy":
+                    map.put("titleList", CollUtil.newArrayList("拼购未中奖补贴"));
+                    break;
+                case "pingouShare":
+                    map.put("titleList", CollUtil.newArrayList("拼购分享奖励"));
+                    break;
+                case "dividend":
+                    map.put("titleList", CollUtil.newArrayList("全球分红"));
+                    break;
             }
         }
         return map;
@@ -550,6 +568,15 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
                 case "stock":
                     // 订货商/代理体系奖金（如"订货奖金"），标题由 StockRewardServiceImpl 写入
                     map.put("titleLikeList", CollUtil.newArrayList("订货", "代理奖励"));
+                    break;
+                case "pingouSubsidy":
+                    map.put("titleList", CollUtil.newArrayList("拼购未中奖补贴"));
+                    break;
+                case "pingouShare":
+                    map.put("titleList", CollUtil.newArrayList("拼购分享奖励"));
+                    break;
+                case "dividend":
+                    map.put("titleList", CollUtil.newArrayList("全球分红"));
                     break;
             }
         }

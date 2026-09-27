@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS `eb_pingou_activity` (
   `refund_subsidy` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT '未中奖补贴佣金（每人，元，发放到佣金账户）',
   `share_rate_low` decimal(6,3) NOT NULL DEFAULT 5.000 COMMENT '分享奖励低比例（‰，直推人数未达阈值时）',
   `share_rate_high` decimal(6,3) NOT NULL DEFAULT 10.000 COMMENT '分享奖励高比例（‰，直推人数达到阈值时）',
-  `share_rate_threshold` int(11) NOT NULL DEFAULT 10 COMMENT '高比例直推人数阈值（直推参与满 N 人享高比例）',
+  `share_rate_threshold` int(11) NOT NULL DEFAULT 10 COMMENT '高比例直推人数阈值（直推参与满 N 人享高比例，已废弃，保留兼容）',
+  `share_tiers` text NULL COMMENT '分享奖励阶梯JSON：[{minDirectNum直推人数下限,rewardType(1=比例%|2=固定金额),rewardValue}]，按直推人数匹配最高一档',
   `limit_num` int(11) NOT NULL DEFAULT 0 COMMENT '每人限参与次数（0=不限）',
   `is_show` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否首页/列表展示：1=是 0=否',
   `sort` int(11) NOT NULL DEFAULT 0 COMMENT '排序（越大越靠前）',
@@ -97,7 +98,7 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `eb_schedule_job` WHERE `bean_name` = 
 -- ------------------------------------------------------------
 -- 5.1 顶级大市场
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
-SELECT 0, '大市场', 'goods', '', '/market', 'M', 115, 1, 0
+SELECT 0, '大市场', 'goods', '', '/market', 'M', 65, 1, 0
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/market' AND `pid` = 0 AND `is_delte` = 0);
 
 -- 5.2 拼购系统栏目
@@ -145,3 +146,57 @@ SELECT c.id, '修改拼购活动状态', '', 'admin:pingou:activity:status', NUL
 FROM `eb_system_menu` c
 WHERE c.component = '/market/pingou/activity' AND c.is_delte = 0
   AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `perms` = 'admin:pingou:activity:status' AND `is_delte` = 0);
+
+-- ----------------------------
+-- 拼购模块开关（控制面板·功能开关·模式推广）默认开启
+-- ----------------------------
+INSERT INTO eb_system_config (name, title, form_id, value, status, create_time, update_time)
+SELECT 'sys_switch_pingou', '隐藏面板-拼购开关', 0, '1', 0, NOW(), NOW()
+ WHERE NOT EXISTS (SELECT 1 FROM (SELECT name FROM eb_system_config) x WHERE x.name='sys_switch_pingou');
+
+-- ------------------------------------------------------------
+-- 6. 拼购等级设置（全局默认分享奖励阶梯）
+--    活动未单独设置分享奖励阶梯时，结算按本表等级比例兜底
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `eb_pingou_level` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(64) NOT NULL DEFAULT '' COMMENT '等级名称（如 A级）',
+  `min_direct_num` int(11) NOT NULL DEFAULT 1 COMMENT '直推人数下限（含）',
+  `reward_rate` decimal(6,3) NOT NULL DEFAULT 5.000 COMMENT '分享奖励比例（%，按被推荐人参与金额计算）',
+  `sort` int(11) NOT NULL DEFAULT 0 COMMENT '排序（越大越靠前）',
+  `is_del` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='拼购等级设置表（全局默认分享奖励阶梯）';
+
+-- 默认等级：仅表内无有效数据时插入一条 A 级（直推≥1人 5%）
+INSERT INTO `eb_pingou_level` (`name`, `min_direct_num`, `reward_rate`, `sort`)
+SELECT 'A级', 1, 5.000, 1
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_pingou_level` WHERE `is_del` = 0) t);
+
+-- 6.1 菜单：大市场 → 拼购系统 → 拼购等级
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT p.id, '拼购等级', '', 'admin:pingou:level:list', '/market/pingou/level', 'C', 3, 1, 0
+FROM `eb_system_menu` p
+WHERE p.component = '/market/pingou' AND p.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/market/pingou/level' AND `is_delte` = 0);
+
+-- 6.2 按钮权限
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT c.id, '保存拼购等级', '', 'admin:pingou:level:save', NULL, 'A', 4, 0, 0
+FROM `eb_system_menu` c
+WHERE c.component = '/market/pingou/level' AND c.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `perms` = 'admin:pingou:level:save' AND `is_delte` = 0);
+
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT c.id, '修改拼购等级', '', 'admin:pingou:level:update', NULL, 'A', 5, 0, 0
+FROM `eb_system_menu` c
+WHERE c.component = '/market/pingou/level' AND c.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `perms` = 'admin:pingou:level:update' AND `is_delte` = 0);
+
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT c.id, '删除拼购等级', '', 'admin:pingou:level:delete', NULL, 'A', 6, 0, 0
+FROM `eb_system_menu` c
+WHERE c.component = '/market/pingou/level' AND c.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `perms` = 'admin:pingou:level:delete' AND `is_delte` = 0);
