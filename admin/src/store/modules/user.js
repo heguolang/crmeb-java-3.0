@@ -223,6 +223,9 @@ const actions = {
 };
 
 // 递归函数，用于替换 childList 为 children
+// 新标签页打开的菜单路径（数据大屏类，便于全屏 / LED 投屏观看）
+const NEW_TAB_MENU_PATHS = ['/market/screen/operation', '/market/screen/market'];
+
 function replaceChildListWithChildren(data) {
   return data.map((item) => {
     // 检查是否存在 childList 字段
@@ -232,11 +235,15 @@ function replaceChildListWithChildren(data) {
       // 创建一个新的对象，将 childList 替换为 children
       const title = item.name;
       const path = item.component;
+      // 数据大屏类页面：点击菜单时在【新标签页】打开（便于全屏/LED 投屏）
+      // 由 navMenu/subItem.vue 根据 isLink 渲染 <a target="_blank">
+      const isNewTab = NEW_TAB_MENU_PATHS.some((p) => path === p || (path && path.startsWith(p + '/')));
       return {
         ...item,
         children,
         title,
         path,
+        isLink: isNewTab ? path : item.isLink,
         // 删除原来的 childList 字段
         childList: undefined,
         name: undefined,

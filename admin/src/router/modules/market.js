@@ -13,6 +13,24 @@ export default {
     icon: 'goods'
   },
   children: [
+    // 旧地址兜底：/market/screen 现在是"数据中心大屏"目录，进来自动到运营大数据
+    {
+      path: 'screen',
+      redirect: 'screen/operation'
+    },
+    {
+      path: 'screen/operation',
+      component: () => import('@/views/market/screen/index'),
+      name: 'MarketDataScreen',
+      // 页面自身 position:fixed 全视口铺满（不动后台框架），新标签页打开即全屏投屏
+      meta: { title: '运营大数据', icon: '' }
+    },
+    {
+      path: 'screen/market',
+      component: () => import('@/views/market/bigdata/index'),
+      name: 'MarketBigData',
+      meta: { title: '市场大数据', icon: '' }
+    },
     {
       path: 'pingou/activity',
       component: () => import('@/views/market/pingou/activity/index'),
