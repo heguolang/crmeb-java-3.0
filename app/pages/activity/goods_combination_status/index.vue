@@ -395,18 +395,6 @@
 				this.$set(this.attr, 'cartAttr', false);
 				this.$set(this, 'isOpen', false);
 			},
-			//将父级向子集多次传送的函数合二为一；
-			// changeFun: function(opt) {
-			// 	if (typeof opt !== "object") opt = {};
-			// 	let action = opt.action || "";
-			// 	let value = opt.value === undefined ? "" : opt.value;
-			// 	this[action] && this[action](value);
-			// },
-			// changeattr: function(res) {
-			// 	var that = this;
-			// 	that.attr.cartAttr = res;
-			// },
-			//选择属性；
 			ChangeAttr: function(res) {
 				this.$set(this, 'cart_num', 1);
 				let productSelect = this.productValue[res];
@@ -502,12 +490,6 @@
 						}
 					}
 				}	
-				// for (var key in this.productValue) {
-				// 	if (this.productValue[key].quota > 0) {
-				// 		value = this.attr.productAttr.length ? key.split(',') : [];
-				// 		break;
-				// 	}
-				// }
 				for (let i = 0; i < productAttr.length; i++) {
 					this.$set(productAttr[i], 'index', value[i]);
 				}
@@ -590,7 +572,6 @@
 						mask: true
 					});
 					this.posters = false;
-					let arrImagesUrl = '';
 					let arrImagesUrlTop = '';
 					if (!this.PromotionCode) {
 						uni.hideLoading();

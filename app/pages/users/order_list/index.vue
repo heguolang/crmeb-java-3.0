@@ -94,7 +94,6 @@
 		orderCancel,
 		orderDel
 	} from '@/api/order.js';
-	import {openOrderSubscribe} from '@/utils/SubscribeMessage.js';
 	import payment from '@/components/payment';
 	import navBar from '@/components/navBar';
 	import {
@@ -104,7 +103,6 @@
 		mapGetters
 	} from "vuex";
 	import emptyPage from '@/components/emptyPage.vue'
-	import {setThemeColor} from '@/utils/setTheme.js'
 	import animationType from '@/utils/animationType.js'
 	const app = getApp();
 	export default {
@@ -455,11 +453,6 @@
 	}
 
 	.my-order .nav {
-		// background-color: #fff;
-		// width: 690rpx;
-		// height: 140rpx;
-		// border-radius: 14rpx;
-		// margin: -60rpx auto 0 auto;
 	}
 
 	.my-order .nav .item {

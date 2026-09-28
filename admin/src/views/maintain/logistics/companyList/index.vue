@@ -120,7 +120,6 @@
 
 <script>
 import parser from '@/components/FormGenerator/components/parser/Parser';
-import * as systemFormConfigApi from '@/api/systemFormConfig.js';
 import * as logistics from '@/api/logistics.js';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 import { Debounce } from '@/utils/validate';

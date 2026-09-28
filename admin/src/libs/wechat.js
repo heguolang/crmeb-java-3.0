@@ -10,20 +10,13 @@
 
 import WechatJSSDK from 'wechat-jssdk/dist/client.umd';
 import { getWechatConfig, wechatAuth } from '@/api/wxApi';
-import { getToken, removeToken, setToken } from '@/utils/auth';
-import { parseQuery } from '@/utils';
+import { getToken, setToken } from '@/utils/auth';
 import Cookies from 'js-cookie';
-const STATE_KEY = 'wx_authorize_state';
 import store from '@/store';
 const WX_AUTH = 'wx_auth';
-const BACK_URL = 'login_back_url';
-const LOGINTYPE = 'loginType';
 let instance;
 let wechatObj;
-const LONGITUDE = 'user_longitude';
-const LATITUDE = 'user_latitude';
 
-const WECHAT_SCRIPT_URL = '//res.wx.qq.com/open/js/jweixin-1.6.0.js';
 
 /**
  * 是否是微信

@@ -4,7 +4,6 @@ import Tinymce from '@/components/tinymce';
 
 Vue.component('tinymce', Tinymce);
 
-const $previewApp = document.getElementById('previewApp');
 const childAttrs = {
   file: '',
   dialog: ' width="600px" class="dialog-width" v-if="visible" :visible.sync="visible" :modal-append-to-body="false" ',

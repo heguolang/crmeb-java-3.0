@@ -3,7 +3,6 @@ package com.qxkj.common.vo;
 import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 
-import java.util.List;
 
 /**
  *

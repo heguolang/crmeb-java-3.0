@@ -18,7 +18,6 @@ import {
 import {
 	toLogin
 } from '@/libs/login.js';
-import util from 'utils/util'
 import animationType from '@/utils/animationType.js'
 /**
  * 去商品详情

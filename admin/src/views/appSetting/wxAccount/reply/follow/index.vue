@@ -157,7 +157,7 @@
 
 <script>
 import { getToken } from '@/utils/auth';
-import { replySaveApi, replyEditApi, replyInfoApi, replyListApi, keywordsInfoApi, replyUpdateApi } from '@/api/wxApi';
+import { replySaveApi, replyInfoApi, keywordsInfoApi, replyUpdateApi } from '@/api/wxApi';
 import { wechatUploadApi } from '@/api/systemSetting';
 import { Debounce } from '@/utils/validate';
 export default {

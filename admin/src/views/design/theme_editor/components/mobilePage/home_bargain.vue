@@ -989,15 +989,6 @@ export default {
       imgColorUrl: '',
       titleConfig: 0,
       titleTxtConfig: '',
-      // bottomBgColor: '',
-      // paddingConfig: {
-      //   val: 0,
-      //   valList: [{ val: 0 }, { val: 0 }, { val: 0 }, { val: 0 }],
-      // },
-      // marginConfig: {
-      //   val: 0,
-      //   valList: [{ val: 0 }, { val: 0 }, { val: 0 }, { val: 0 }],
-      // },
       titleText: '',
       titleTabVal: 0,
       checkboxInfo: [],

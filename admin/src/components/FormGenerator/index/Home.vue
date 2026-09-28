@@ -145,7 +145,7 @@ import {
   layoutComponents,
   formConf,
 } from '@/components/FormGenerator/components/generator/config';
-import { exportDefault, beautifierConf, isNumberStr, titleCase } from '../utils/index';
+import { beautifierConf, titleCase } from '../utils/index';
 import { makeUpHtml, vueTemplate, vueScript, cssStyle } from '@/components/FormGenerator/components/generator/html';
 import { makeUpJs } from '@/components/FormGenerator/components/generator/js';
 import { makeUpCss } from '@/components/FormGenerator/components/generator/css';
@@ -153,14 +153,12 @@ import drawingDefalut from '@/components/FormGenerator/components/generator/draw
 // import logo from '@/assets/logo.png'
 import CodeTypeDialog from './CodeTypeDialog';
 import DraggableItem from './DraggableItem';
-import { getDrawingList, saveDrawingList, getIdGlobal, saveIdGlobal, getFormConf, getFormConfSelf } from '../utils/db';
+import { saveDrawingList, getIdGlobal, saveIdGlobal, getFormConf, getFormConfSelf } from '../utils/db';
 import loadBeautifier from '../utils/loadBeautifier';
 import { Debounce } from '@/utils/validate';
 let beautifier;
-const emptyActiveData = { style: {}, autosize: {} };
 let oldActiveId;
 let tempActiveData;
-const drawingListInDB = getDrawingList();
 const formConfInDB = getFormConf();
 const idGlobal = getIdGlobal();
 
@@ -271,11 +269,6 @@ export default {
       delete _content.fields;
       this.formConf = _content;
     }
-    // if (Array.isArray(drawingListInDB) && drawingListInDB.length > 0) {
-    //   this.drawingList = drawingListInDB
-    // } else {
-    //   this.drawingList = drawingDefalut
-    // }
     this.activeFormItem(this.drawingList[0]);
     // if (formConfInDB) {
     //   this.formConf = formConfInDB
@@ -401,13 +394,6 @@ export default {
       this.jsonDrawerVisible = true;
     },
     handlerSaveJSON: Debounce(function (form) {
-      // this.AssembleFormData()
-      // loadBeautifier(btf => {
-      //   beautifier = btf
-      //   let jsonStr = JSON.stringify(this.formData)
-      //   this.beautifierJson = beautifier.js(jsonStr, beautifierConf.js)
-      //
-      // })
       this.$refs[form].validate((result) => {
         if (!result) return;
         const formConfig = getFormConfSelf();

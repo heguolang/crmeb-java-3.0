@@ -31,12 +31,6 @@ public class TaskExecutorConfig {
     private final int taskKeepAliveSecond = 10; //允许的空闲时间
     private final String taskNamePrefix = "task-executor-"; //线程名称前缀
 
-    //发布订阅模式
-//    private final int listenerCorePoolSize = 3;
-//    private final int listenerMaxPoolSize = 20;
-//    private final int listenerQueueCapacity = 200;
-//    private final int listenerKeepAliveSecond = 10;
-//    private final String listenerNamePrefix = "listener-executor-";
 
     //普通模式
     @Bean("taskExecutor")
@@ -50,12 +44,6 @@ public class TaskExecutorConfig {
         );
     }
 
-//    //针对发布订阅（pub listener） 的线程池
-//    @Bean("listenerTaskExecutor")
-//    public ThreadPoolTaskExecutor listenerTaskExecutor(){
-//        return initTaskExecutor(getListenerCorePoolSize(), getListenerMaxPoolSize(),
-//                getListenerQueueCapacity(), getListenerKeepAliveSecond(), getListenerNamePrefix());
-//    }
 
     /**
      *

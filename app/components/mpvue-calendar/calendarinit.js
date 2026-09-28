@@ -479,9 +479,7 @@ var calendar = {
    */
   lunar2solar:function(y,m,d,isLeapMonth) {   //参数区间1900.1.31~2100.12.1
     var isLeapMonth = !!isLeapMonth;
-    var leapOffset  = 0;
     var leapMonth   = calendar.leapMonth(y);
-    var leapDay     = calendar.leapDays(y);
     if(isLeapMonth&&(leapMonth!=m)) {return -1;}//传参要求计算该闰月公历 但该年得出的闰月与传参的月份并不同
     if(y==2100&&m==12&&d>1 || y==1900&&m==1&&d<31) {return -1;}//超出了最大极限值
     var day  = calendar.monthDays(y,m);

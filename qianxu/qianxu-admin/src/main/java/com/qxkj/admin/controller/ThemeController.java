@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.qxkj.common.constants.CategoryConstants;
 import com.qxkj.common.constants.Constants;
 import com.qxkj.common.model.category.Category;
-import com.qxkj.common.model.theme.Theme;
 import com.qxkj.common.page.CommonPage;
 import com.qxkj.common.request.CategorySearchRequest;
 import com.qxkj.common.response.theme.ThemeCategoryTreeResponse;

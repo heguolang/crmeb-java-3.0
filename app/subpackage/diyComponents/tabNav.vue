@@ -48,7 +48,6 @@
 <script>
 import commonWrapper from "./commonWrapper.vue";
 import { getCategoryList } from "@/api/store.js";
-import { getCategoryVersion } from "@/api/api.js";
 export default {
   components: { commonWrapper },
   name: "tabNav",
@@ -178,14 +177,6 @@ export default {
         background: `linear-gradient(90deg, ${this.dataConfig.moduleColor.color[0].item} 0%, ${this.dataConfig.moduleColor.color[1].item} 100%)`,
       };
     },
-    // tabNavStyle() {
-    //   return {
-    //     padding: `${this.dataConfig.topConfig.val * 2}rpx ${
-    //       this.dataConfig.prConfig.val * 2
-    //     }rpx ${this.dataConfig.bottomConfig.val * 2}rpx`,
-    //     "margin-top": `${this.dataConfig.mbConfig.val * 2}rpx`,
-    //   };
-    // },
     tabListConfig() {
       let tabList = this.dataConfig.tabListConfig.list;
       tabList.unshift({

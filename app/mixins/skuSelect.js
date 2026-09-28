@@ -368,10 +368,6 @@ export default {
 					}
 				}else{
 					this.tempArr[index].cart_num = 1;
-					// num表示从门店过来的；
-					// if(num){
-					// 	this.$store.commit('indexData/setCartNum', parseInt(this.cartNum)+1)
-					// }
 					this.$set(this, 'tempArr', this.tempArr);
 					this.goCat(0, item.id, 1);
 				}

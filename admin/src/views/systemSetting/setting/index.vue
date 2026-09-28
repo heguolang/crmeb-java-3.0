@@ -55,7 +55,6 @@ import * as systemFormConfigApi from '@/api/systemFormConfig.js';
 import * as systemSettingApi from '@/api/systemSetting.js';
 import * as systemConfigApi from '@/api/systemConfig.js';
 import Template from '@/views/appSetting/wxAccount/wxTemplate/index';
-import { beautifierConf } from '@/components/FormGenerator/utils';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 import { Debounce } from '@/utils/validate';
 export default {
@@ -152,7 +151,6 @@ export default {
     }),
     handlerSave(formValue) {
       const _pram = this.buildFormPram(formValue);
-      let _formId = 0;
       systemSettingApi.systemConfigSave(_pram).then((data) => {
         this.$message.success('添加数据成功');
       });

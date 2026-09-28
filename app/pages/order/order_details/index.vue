@@ -296,7 +296,6 @@
 	import {toLogin} from '@/libs/login.js';
 	import {mapGetters} from "vuex";
 	// #ifdef MP
-	import uQRCode from '@/js_sdk/Sansnn-uQRCode/uqrcode.js'
 	// #endif
 	import {setThemeColor} from '@/utils/setTheme.js'
 	import {Debounce} from '@/utils/validate.js'

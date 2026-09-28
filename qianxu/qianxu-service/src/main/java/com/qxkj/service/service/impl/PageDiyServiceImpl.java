@@ -105,10 +105,6 @@ public class PageDiyServiceImpl extends ServiceImpl<PageDiyDao, PageDiy> impleme
         }
         // 检查diy模版名称唯一
         checkPageDiyNameUnique(pageDiy.getName(), pageDiy.getId());
-//        DocumentContext jsonContext = JsonPath.parse(pageDiy.getValue());
-//        // 通配符去掉关键子 再存储
-//        jsonContext.delete("$..*[?(@ == '"+ adminApiPath +"')]");
-//        pageDiy.setValue(jsonContext.jsonString());
         pageDiy.setUpdateTime(DateUtil.date());
         return dao.updateById(pageDiy)>0;
     }
@@ -231,18 +227,6 @@ public class PageDiyServiceImpl extends ServiceImpl<PageDiyDao, PageDiy> impleme
         if(ObjectUtil.isNull(pageDiy)) throw new QianxuException(SystemConfigResultCode.PAGE_DIY_NOT_EXIST);
 
 
-        // 优化front比必要的字段 提高diy组件渲染效率
-//        DocumentContext jsonContext = JsonPath.parse(pageDiy.getValue());
-//        jsonContext.delete("$..*[?(@.name == 'goodList')].itemStyle.list");
-//        jsonContext.delete("$..*[?(@.name == 'goodList')].tabConfig.list");
-//        jsonContext.delete("$..*[?(@.name == 'goodList')].typeConfig.list");
-////        jsonContext.delete("$..*[?(@.name == 'goodList')].selectConfig");
-//        jsonContext.delete("$..*[?(@.name == 'goodList')].goodsSort.list");
-//        jsonContext.delete("$..*[?(@.name == 'goodList')].goodsList.list[*].attrValue");
-//        jsonContext.delete("$..*[?(@.name == 'homeTab')].activeValueBrand");
-//        jsonContext.delete("$..*[?(@.name == 'homeTab')].goodsList");
-//        jsonContext.delete("$..*[?(@.name == 'homeTab')].selectConfig");
-//        jsonContext.delete("$..*[?(@.name == 'homeTab')].productList..*.goods[*].attrValue");
 
         PageDiyResponse response = new PageDiyResponse();
         BeanUtils.copyProperties(pageDiy, response);

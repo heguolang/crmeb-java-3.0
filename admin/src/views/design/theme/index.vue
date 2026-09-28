@@ -30,7 +30,6 @@
 </template>
 
 <script>
-import { themeSave } from '@/api/systemGroup';
 import { changeColorApi, saveColorApi } from '@/api/systemConfig';
 import { Debounce } from '@/utils/validate';
 export default {

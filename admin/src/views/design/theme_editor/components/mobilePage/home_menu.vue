@@ -658,12 +658,6 @@ export default {
           isAll: false,
           valList: [{ val: 20 }, { val: 0 }, { val: 0 }, { val: 0 }],
         },
-        // 页面间距
-        // mbConfig: {
-        //   title: '页面上间距',
-        //   val: 0,
-        //   min: 0,
-        // },
         menuConfig: {
           title: '最多可添加1张图片，建议宽度90 * 90px',
           bnt: '添加',
@@ -770,12 +764,6 @@ export default {
             tabVal: 1,
             tabList: [{ icon: 'iconzuoduiqi' }, { icon: 'iconjuzhongduiqi' }, { icon: 'iconyouduiqi' }],
           },
-          // padding: {
-          //   title: '内边距',
-          //   val: 0,
-          //   min: 0,
-          //   max: 50,
-          // },
           rotate: {
             title: '旋转角度',
             val: 0,

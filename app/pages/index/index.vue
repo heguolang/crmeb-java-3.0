@@ -149,7 +149,7 @@ import { getTempIds } from "@/api/api.js";
 import { SUBSCRIBE_MESSAGE } from "@/config/cache";
 // #endif
 import { mapGetters, mapMutations } from "vuex";
-import { getDiy, getDiyVersion, getThemeInfo } from "@/api/api.js";
+import { getThemeInfo } from "@/api/api.js";
 import { getCartCounts } from "@/api/order.js";
 import { getCategoryList, getProductslist } from "@/api/store.js";
 import { goShopDetail } from "@/libs/order.js";
@@ -284,7 +284,7 @@ export default {
         },
       });
     });
-    const { state, scope } = options;
+    const { state } = options;
     let themeId = options.theme_id;
     // #ifdef MP
     if (options.scene) {
@@ -550,7 +550,6 @@ export default {
       }
     },
     getProductList(data) {
-      let tempObj = "";
       this.curSort = 0;
       this.loaded = false;
       if (this.sortAll.length > 0) {
@@ -749,19 +748,6 @@ export default {
         });
     },
     diyData() {
-      // let diyData = uni.getStorageSync('diyData');
-      // if (diyData) {
-      // 	getDiyVersion(0).then((res) => {
-      // 		let diyVersion = uni.getStorageSync('diyVersion');
-      // 		if (res.data.version + '0' === diyVersion) {
-      // 			this.setDiyData(JSON.parse(diyData));
-      // 		} else {
-      // 			uni.setStorageSync('diyVersion', res.data.version + '0');
-      // 			this.getDiyData();
-      // 		}
-      // 	});
-      // } else {
-      // }
       this.getDiyData();
     },
 

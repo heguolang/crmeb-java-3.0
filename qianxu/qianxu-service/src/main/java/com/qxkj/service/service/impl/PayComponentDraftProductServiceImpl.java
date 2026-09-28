@@ -153,11 +153,6 @@ public class PayComponentDraftProductServiceImpl extends ServiceImpl<PayComponen
             throw new QianxuException("第一步，本地保存商品时错误");
         }
 
-//        product.setHeadImg(systemAttachmentService.prefixImage(product.getHeadImg()));
-//        if (StrUtil.isNotBlank(product.getQualificationPics())) {
-//            product.setQualificationPics(systemAttachmentService.prefixImage(product.getQualificationPics()));
-//        }
-        // 第二步，组装商品，发给组件
         ShopSpuAddVo shopSpuAddVo = assembleShopSpuVo(product, skuList, productInfo);
         ShopSpuAddResponseVo spuAddResponseVo;
         try {
@@ -169,13 +164,6 @@ public class PayComponentDraftProductServiceImpl extends ServiceImpl<PayComponen
             throw new QianxuException(e.getMessage());
         }
 
-        // 第三步，保存草稿商品，保存需要给前端展示的数据表
-        // 轮播图
-//        product.setHeadImg(systemAttachmentService.clearPrefix(product.getHeadImg()));
-        // 商品资质图
-//        if (StrUtil.isNotBlank(product.getQualificationPics())) {
-//            product.setQualificationPics(systemAttachmentService.clearPrefix(product.getQualificationPics()));
-//        }
         Integer componentProductId = spuAddResponseVo.getProductId();
         PayComponentDraftProduct draftProduct = new PayComponentDraftProduct();
         BeanUtils.copyProperties(product, draftProduct);
@@ -292,15 +280,6 @@ public class PayComponentDraftProductServiceImpl extends ServiceImpl<PayComponen
         if (ObjectUtil.isNull(draftProduct) || draftProduct.getIsDel()) {
             throw new QianxuException("商品不存在");
         }
-//        List<JSONObject> jsonAttrList = JSONArray.parseArray(draftProduct.getAttrValue(), JSONObject.class);
-//        jsonAttrList.forEach(e -> {
-//            String sku = e.getString("suk");
-//            String[] skus = sku.split(",");
-//            for (int i = 0; i < skus.length; i++) {
-//                e.put("value" + i, skus[i]);
-//            }
-//        });
-//        draftProduct.setAttrValue(JSONArray.toJSONString(jsonAttrList));
 
         // 查询对应类目
         PayComponentCat componentCat = catService.getByThirdCatId(draftProduct.getThirdCatId());

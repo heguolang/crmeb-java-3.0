@@ -81,7 +81,6 @@
 
 <script>
 	import { getSpreadInfo } from '@/api/user.js';
-	import { openExtrctSubscribe } from '@/utils/SubscribeMessage.js';
 	import {toLogin} from '@/libs/login.js';
 	import {mapGetters} from "vuex";
 	import { setThemeColor } from '@/utils/setTheme.js'

@@ -45,10 +45,6 @@ public class StoreProductAttrValueAddRequest implements Serializable {
     @ApiModelProperty(value = "sku|活动商品必传")
     private String suk;
 
-//    @ApiModelProperty(value = "销量", required = true)
-//    @NotNull(message = "销量不能为空")
-//    @Min(value = 0, message = "销量不能小于0")
-//    private Integer sales;
 
     @ApiModelProperty(value = "规格属性金额", required = true)
     @NotNull(message = "规格属性金额不能为空")

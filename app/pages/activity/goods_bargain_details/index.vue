@@ -337,7 +337,6 @@
 	} from '../../../api/activity.js';
 	import {imageBase64} from "@/api/public";
 	import uQRCode from '@/js_sdk/Sansnn-uQRCode/uqrcode.js';
-	import {postCartAdd} from '../../../api/store.js';
 	import util from '../../../utils/util.js';
 	import {toLogin} from '@/libs/login.js';
 	import {mapGetters} from "vuex";
@@ -796,7 +795,6 @@
 					mask: true
 				});
 				this.posters = false;
-				let arrImagesUrl = '';
 				let arrImagesUrlTop = '';
 				if (!this.PromotionCode) {
 					uni.hideLoading();
@@ -1486,10 +1484,6 @@
 			width: 28rpx;
 			height: 36rpx;
 
-			// image{
-			// 	width: 100%;
-			// 	height: 100%;
-			// }
 		}
 
 		.num1 {

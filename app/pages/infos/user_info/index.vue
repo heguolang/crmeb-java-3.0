@@ -135,7 +135,6 @@
 	import {
 		goToAgreement
 	} from "@/libs/order";
-	import dayjs from "@/plugin/dayjs/dayjs.min.js";
 	let app = getApp();
 	export default {
 		data() {

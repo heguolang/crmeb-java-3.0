@@ -50,7 +50,6 @@
 
 <script>
 	import {getCategoryList} from '@/api/store.js';
-	import ClipboardJS from "@/plugin/clipboard/clipboard.js";
 	import animationType from '@/utils/animationType.js'
 	export default {
 		data() {

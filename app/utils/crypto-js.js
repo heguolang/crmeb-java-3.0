@@ -914,14 +914,6 @@
 	         *
 	         *     var shifted = x64Word.shiftL(25);
 	         */
-	        // shiftL: function (n) {
-	            // if (n < 32) {
-	                // var high = (this.high << n) | (this.low >>> (32 - n));
-	                // var low = this.low << n;
-	            // } else {
-	                // var high = this.low << (n - 32);
-	                // var low = 0;
-	            // }
 
 	            // return X64Word.create(high, low);
 	        // },
@@ -937,14 +929,6 @@
 	         *
 	         *     var shifted = x64Word.shiftR(7);
 	         */
-	        // shiftR: function (n) {
-	            // if (n < 32) {
-	                // var low = (this.low >>> n) | (this.high << (32 - n));
-	                // var high = this.high >>> n;
-	            // } else {
-	                // var low = this.high >>> (n - 32);
-	                // var high = 0;
-	            // }
 
 	            // return X64Word.create(high, low);
 	        // },
@@ -990,10 +974,6 @@
 	         *
 	         *     var added = x64Word.add(anotherX64Word);
 	         */
-	        // add: function (word) {
-	            // var low = (this.low + word.low) | 0;
-	            // var carry = (low >>> 0) < (this.low >>> 0) ? 1 : 0;
-	            // var high = (this.high + word.high + carry) | 0;
 
 	            // return X64Word.create(high, low);
 	        // }

@@ -100,27 +100,6 @@ public class StoreProductReplyServiceImpl extends ServiceImpl<StoreProductReplyD
     */
     @Override
     public PageInfo<StoreProductReplyResponse> getList(StoreProductReplySearchRequest request) {
-        ////带 StoreProductReply 类的多条件查询
-        //LambdaQueryWrapper<StoreProductReply> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        //lambdaQueryWrapper.eq(StoreProductReply::getIsDel, false);
-        //if (ObjectUtil.isNotNull(request.getIsReply())) {
-        //    lambdaQueryWrapper.eq(StoreProductReply::getIsReply, request.getIsReply());
-        //}
-        //if (StrUtil.isNotBlank(request.getProductSearch())) {
-        //    List<StoreProduct> storeProducts = storeProductService.likeProductName(request.getProductSearch());
-        //    if (CollUtil.isNotEmpty(storeProducts)) {
-        //        List<Integer> productIds = storeProducts.stream().map(StoreProduct::getId).collect(Collectors.toList());
-        //        lambdaQueryWrapper.in(StoreProductReply::getProductId, productIds);
-        //    }
-        //}
-        //if (StringUtils.isNotBlank(request.getNickname())) {
-        //    lambdaQueryWrapper.like(StoreProductReply::getNickname,request.getNickname());
-        //}
-        //if (StringUtils.isNotBlank(request.getDateLimit())) {
-        //    DateLimitUtilVo dateLimit = QianxuDateUtil.getDateLimit(request.getDateLimit());
-        //    lambdaQueryWrapper.between(StoreProductReply::getCreateTime, dateLimit.getStartTime(), dateLimit.getEndTime());
-        //}
-        //lambdaQueryWrapper.orderByDesc(StoreProductReply::getId);
         Map<String, Object> map = CollUtil.newHashMap();
         if (StrUtil.isNotBlank(request.getContent())) {
             ValidateFormUtil.validatorUserCommonSearch(request);

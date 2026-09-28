@@ -159,12 +159,6 @@
 	// 	background-color: #fff !important;
 	// }
 	.newsDetail {
-		// background-color: #fff;
-		// background-color: #D8EFD2;
-		// background-color: #F9F2E2;
-		// background-color: #D9EBED;
-		// background-color: #131313;
-		// color: #fff !important;
 		padding: 30rpx 0;
 	}
 

@@ -600,10 +600,6 @@ export default {
         // Red handled by inline style
       }
 
-      // &.full-width {
-      //   width: 200px; // Or flex-grow
-      //   border-radius: 18px;
-      // }
     }
 
     // Adjust button style based on design.

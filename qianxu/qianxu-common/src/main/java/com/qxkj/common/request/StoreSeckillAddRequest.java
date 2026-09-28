@@ -54,10 +54,6 @@ public class StoreSeckillAddRequest {
     @Length(max = 255, message = "活动标题长度不能超过255个字符")
     private String title;
 
-//    @ApiModelProperty(value = "简介", required = true)
-//    @NotBlank(message = "简介不能为空")
-//    @Length(max = 255, message = "简介长度不能超过255个字符")
-//    private String info;
 
     @ApiModelProperty(value = "单位名", required = true)
     @NotBlank(message = "单位名不能为空")

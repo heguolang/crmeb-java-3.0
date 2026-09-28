@@ -39,7 +39,6 @@
 // +----------------------------------------------------------------------
 import * as schedule from '@/api/schedule.js';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
-import { Debounce } from '@/utils/validate';
 export default {
   name: 'CompanyList',
   data() {

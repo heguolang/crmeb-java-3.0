@@ -101,19 +101,6 @@ export { getMenuSider };
  * @param {String} currentPath 当前路径
  * @param {Array} menuList 所有路径
  * */
-// function getSiderSubmenu (currentPath, menuList) {
-//     const allMenus = [];
-//     menuList.forEach(menu => {
-//         const menus = transferSubMenu(menu, []);
-//         allMenus.push({
-//             path: menu.path,
-//             openNames: []
-//         });
-//         menus.forEach(item => allMenus.push(item));
-//     });
-//     const currentMenu = allMenus.find(item => item.path === currentPath);
-//     return currentMenu ? currentMenu.openNames : [];
-// }
 
 function getSiderSubmenu(to, menuList) {
   const allMenus = [];

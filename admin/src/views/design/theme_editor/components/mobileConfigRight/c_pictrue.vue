@@ -495,31 +495,9 @@ export default {
           this.rect.style.top = Math.min(this.mouseY2, this.downY) + 'px';
           this.rect.style.width = this.mouseX2 - this.downX + 'px';
           this.rect.style.height = this.mouseY2 - this.downY + 'px';
-          // // A part
-          // if (this.mouseX2 < this.downX && this.mouseY2 < this.downY) {
-          //   this.rect.style.left = this.mouseX2;
-          //   this.rect.style.top = this.mouseY2;
-          // }
 
-          // // B part
-          // if (this.mouseX2 > this.downX && this.mouseY2 < this.downY) {
-          //   this.rect.style.left = this.downX;
-          //   this.rect.style.top = this.mouseY2;
-          // }
 
-          // // C part
-          // if (this.mouseX2 < this.downX && this.mouseY2 > this.downY) {
-          //   this.rect.style.left = this.mouseX2;
-          //   this.rect.style.top = this.downY;
-          // }
 
-          // // D part
-          // if (this.mouseX2 > this.downX && this.mouseY2 > this.downY) {
-          //   this.rect.style.left = this.downX;
-          //   this.rect.style.top = this.downY;
-          // }
-          //   this.rect.style.left = this.downX;
-          //   this.rect.style.top = this.downY;
         });
       }
 

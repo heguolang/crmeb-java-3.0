@@ -43,26 +43,6 @@ public class BargainUserInfoResponse implements Serializable {
     @ApiModelProperty(value = "砍价百分比")
     private Integer bargainPercent;
 
-//    @ApiModelProperty(value = "砍价活动图片")
-//    private String image;
-//
-//    @ApiModelProperty(value = "单位名称")
-//    private String unitName;
-//
-//    @ApiModelProperty(value = "销量")
-//    private Integer sales;
-//
-//    @ApiModelProperty(value = "砍价开启时间")
-//    private Long startTime;
-//
-//    @ApiModelProperty(value = "砍价结束时间")
-//    private Long stopTime;
-//
-//    @ApiModelProperty(value = "砍价金额")
-//    private BigDecimal price;
-//
-//    @ApiModelProperty(value = "砍价商品最低价")
-//    private BigDecimal minPrice;
 
 //    @ApiModelProperty(value = "购买数量限制")
 //    // 单个活动每个用户发起砍价次数限制
@@ -74,17 +54,6 @@ public class BargainUserInfoResponse implements Serializable {
 //    @ApiModelProperty(value = "砍价规则")
 //    private String rule;
 
-//    @ApiModelProperty(value = "限购总数")
-//    private Integer quota;
-//
-//    @ApiModelProperty(value = "限量总数显示")
-//    private Integer quotaShow;
-//
-//    @ApiModelProperty(value = "商品规格sku")
-//    private String sku;
-//
-//    @ApiModelProperty(value = "商品规格属性id")
-//    private Integer attrValueId;
 
 //    @ApiModelProperty(value = "商品详情")
 //    private String content;

@@ -61,7 +61,6 @@
 </template>
 
 <script>
-import { mapState } from 'vuex';
 import uploadPictures from '@/views/design/theme_editor/components/uploadPictures';
 export default {
   name: 'pageTitle',

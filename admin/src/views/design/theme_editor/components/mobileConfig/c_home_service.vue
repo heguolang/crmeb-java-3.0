@@ -21,7 +21,6 @@
 <script>
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
-import { mapMutations } from 'vuex';
 export default {
   name: 'c_home_service',
   componentsName: 'home_service',

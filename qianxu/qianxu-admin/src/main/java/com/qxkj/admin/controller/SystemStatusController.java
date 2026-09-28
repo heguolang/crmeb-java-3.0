@@ -2,16 +2,13 @@ package com.qxkj.admin.controller;
 
 
 import com.qxkj.admin.service.SystemStatusService;
-import com.qxkj.common.response.RoleInfoResponse;
 import com.qxkj.common.response.SystemStatusResponse;
 import com.qxkj.common.result.CommonResult;
-import com.qxkj.service.service.SystemAdminService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;

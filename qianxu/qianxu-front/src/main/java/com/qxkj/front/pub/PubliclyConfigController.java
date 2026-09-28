@@ -2,7 +2,6 @@ package com.qxkj.front.pub;
 
 import com.qxkj.common.constants.CopyrightConstants;
 import com.qxkj.common.response.CopyRightResponse;
-import com.qxkj.common.response.PayConfigResponse;
 import com.qxkj.common.result.CommonResult;
 import com.qxkj.service.service.SystemConfigService;
 import io.swagger.annotations.Api;

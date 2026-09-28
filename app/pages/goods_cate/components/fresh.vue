@@ -341,12 +341,6 @@
 						}
 					}
 				}
-				// for (let key in this.productValue) {
-				// 	if (this.productValue[key].stock > 0) {
-				// 		value = this.attr.productAttr.length ? key.split(",") : [];
-				// 		break;
-				// 	}
-				// }
 				for (let i = 0; i < productAttr.length; i++) {
 					this.$set(productAttr[i], "index", value[i]);
 				}
@@ -755,10 +749,6 @@
 					font-size: 30rpx;
 				}
 
-				// image{
-				// 	width: 29rpx;
-				// 	height: 30rpx;
-				// }
 			}
 
 			.search {
@@ -780,11 +770,6 @@
 					color: $qianxu-font-color-subtitle;
 				}
 
-				// image{
-				// 	width: 27rpx;
-				// 	height: 27rpx;
-				// 	margin-right: 18rpx;
-				// }
 			}
 		}
 

@@ -10,10 +10,6 @@ import echarts from 'echarts';
 export default {
   name: 'index',
   props: {
-    // styles: {
-    //   type: Object,
-    //   default: null
-    // },
     seriesData: {
       type: Array,
       default: () => [],

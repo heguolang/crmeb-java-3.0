@@ -356,12 +356,6 @@
 						}
 					}
 				}
-				// for (let key in this.productValue) {
-				// 	if (this.productValue[key].stock > 0) {
-				// 		value = this.attr.productAttr.length ? key.split(",") : [];
-				// 		break;
-				// 	}
-				// }
 				for (let i = 0; i < productAttr.length; i++) {
 					this.$set(productAttr[i], "index", value[i]);
 				}

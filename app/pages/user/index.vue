@@ -69,9 +69,8 @@ import {
   mpBindingPhone,
 } from "@/api/user.js";
 import { getThemeInfo } from "@/api/api.js";
-import { wechatAuthV2, silenceAuth } from "@/api/public.js";
 import { toLogin } from "@/libs/login.js";
-import { mapState, mapGetters } from "vuex";
+import { mapGetters } from "vuex";
 // #ifdef H5
 import Auth from "@/libs/wechat";
 // #endif
@@ -80,7 +79,6 @@ import dayjs from "@/plugin/dayjs/dayjs.min.js";
 import Routine from "@/libs/routine";
 import colors from "@/mixins/color";
 import pageFooter from "@/components/pageFooter/index.vue";
-import { getCustomer } from "@/utils/index.js";
 import editUserModal from "@/components/eidtUserModal/index.vue";
 import couponWindow from "@/components/couponWindow/index";
 import waterfallsFlow from "@/components/WaterfallsFlow/WaterfallsFlow.vue";
@@ -231,23 +229,10 @@ export default {
     // #ifdef MP
     // 小程序静默授权
     if (!this.$store.getters.isLogin) {
-      // Routine.getCode()
-      // 	.then(code => {
-      // 		Routine.silenceAuth(code).then(res => {
-      // 			this.onLoadFun();
-      // 		})
-      // 	})
-      // 	.catch(res => {
-      // 		uni.hideLoading();
-      // 	});
     }
     // #endif
 
     // #ifdef H5 || APP-PLUS
-    // if (that.isLogin == false) {
-    // 	toLogin();
-    // }
-    //获取用户信息回来后授权
     let cacheCode = this.$Cache.get("snsapi_userinfo_code");
     let res1 = cacheCode ? option.code != cacheCode : true;
     if (

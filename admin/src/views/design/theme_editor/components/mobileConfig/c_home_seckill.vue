@@ -18,7 +18,6 @@
 
 <script>
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
-import { mapState, mapMutations, mapActions } from 'vuex';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
 export default {
   name: 'c_home_seckill',
@@ -97,14 +96,6 @@ export default {
           components: toolCom.c_input_item,
           configNme: 'rightBntConfig',
         },
-        // {
-        // 	components: toolCom.c_title,
-        // 	configNme: 'titleGoodsList'
-        // },
-        // {
-        //     components: toolCom.c_radio,
-        //     configNme: 'goodStyleConfig'
-        // },
         {
           components: toolCom.c_title,
           configNme: 'titleGoods',

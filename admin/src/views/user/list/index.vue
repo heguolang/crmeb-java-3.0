@@ -648,7 +648,6 @@ import pingouLevelEdit from './pingouLevel';
 import { pingouLevelListApi } from '@/api/pingou';
 import userList from '@/components/userList';
 import * as logistics from '@/api/logistics.js';
-import Cookies from 'js-cookie';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 import { Debounce } from '@/utils/validate';
 
@@ -1045,11 +1044,6 @@ export default {
     // 列表
     async getCityList() {
       let res = await logistics.cityListTree();
-      //res.forEach((el, index) => {
-      //     el.child.forEach((cel, j) => {
-      //       delete cel.child
-      //     })
-      //   })
       this.addresData = res;
       // })
     },

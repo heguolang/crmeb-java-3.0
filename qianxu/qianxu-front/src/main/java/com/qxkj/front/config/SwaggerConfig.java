@@ -4,7 +4,6 @@ import com.qxkj.common.config.QianxuConfig;
 import com.qxkj.common.constants.Constants;
 import com.google.common.base.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

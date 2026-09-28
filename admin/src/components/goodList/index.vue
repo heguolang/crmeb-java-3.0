@@ -189,7 +189,6 @@ export default {
       }
     },
     syncCheckedId(o) {
-      const ids = this.tableData.data.map((v) => v.id);
       if (o) {
         this.tableData.data.forEach((item) => {
           const index = this.checkedIds.indexOf(item.id);

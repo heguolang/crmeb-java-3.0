@@ -26,7 +26,6 @@
 	const app = getApp();
 	let statusBarHeight = uni.getSystemInfoSync().statusBarHeight + 'px';
 	import sendVerifyCode from "@/mixins/SendVerifyCode";
-	import Routine from '@/libs/routine';
 	import {
 		loginMobile,
 		registerVerify,

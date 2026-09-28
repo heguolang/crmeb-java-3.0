@@ -1184,7 +1184,6 @@
 				this.days[0].reduce((prev, current) => {
 					if (!prev) return;
 					const prveDate = ((prev || {}).date || '').split('-');
-					const prevYear = prveDate[0];
 					const prevMonth = prveDate[1];
 					const currentMonth = ((current || {}).date || '').split('-')[1];
 					if (prevMonth === currentMonth) {

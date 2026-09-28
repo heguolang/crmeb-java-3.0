@@ -3,7 +3,7 @@ import E from 'wangeditor'; // npm 安装
 import util from '../../utils/bus';
 
 // 获取必要的变量，这些在下文中都会用到
-const { $, BtnMenu, DropListMenu, PanelMenu, DropList, Panel, Tooltip } = E;
+const { BtnMenu } = E;
 var _this = null;
 export default class AlertMenu extends BtnMenu {
   constructor(editor) {

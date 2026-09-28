@@ -115,11 +115,6 @@ export default {
     handlerGetListData(pram) {
       articleApi.ListArticle(pram).then((data) => {
         this.listData = data;
-        // this.listData.list.map((item) => {
-        //   item.imageInput.map(i => {
-        //     this.imgList.push(i)
-        //   })
-        // })
       });
     },
     handlerGetCategoryTreeData() {

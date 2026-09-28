@@ -11,7 +11,6 @@
 import { storeStaffListApi } from '@/api/storePoint';
 import { seckillListApi } from '@/api/marketing';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
-import Cookies from 'js-cookie';
 
 /**
  * @description 确定操作弹框

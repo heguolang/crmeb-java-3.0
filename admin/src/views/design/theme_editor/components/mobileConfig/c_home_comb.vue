@@ -18,7 +18,7 @@
 <script>
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
-import { mapState, mapMutations, mapActions } from 'vuex';
+import { mapMutations } from 'vuex';
 export default {
   name: 'c_home_comb',
   componentsName: 'home_comb',
@@ -41,10 +41,6 @@ export default {
     return {
       configObj: {},
       rCom: [
-        // {
-        //   components: toolCom.c_title,
-        //   configNme: 'titleLeft',
-        // },
         {
           components: toolCom.c_card_select,
           configNme: 'styleConfig',
@@ -71,10 +67,6 @@ export default {
           components: toolCom.c_radio,
           configNme: 'searchBox',
         },
-        // {
-        //   components: toolCom.c_title,
-        //   configNme: 'titleSearch',
-        // },
       ],
       fixContent: [
         {
@@ -267,10 +259,6 @@ export default {
       handler(nVal, oVal) {
         this.setUp = nVal;
         var arr = [
-          // {
-          //   components: toolCom.c_title,
-          //   configNme: 'titleLeft',
-          // },
           {
             components: toolCom.c_card_select,
             configNme: 'styleConfig',
@@ -292,10 +280,6 @@ export default {
       handler(nVal, oVal) {
         this.type = nVal;
         var arr = [
-          // {
-          //   components: toolCom.c_title,
-          //   configNme: 'titleLeft',
-          // },
           {
             components: toolCom.c_card_select,
             configNme: 'styleConfig',
@@ -317,10 +301,6 @@ export default {
       handler(nVal, oVal) {
         this.type2 = nVal;
         var arr = [
-          // {
-          //   components: toolCom.c_title,
-          //   configNme: 'titleLeft',
-          // },
           {
             components: toolCom.c_card_select,
             configNme: 'styleConfig',
@@ -341,10 +321,6 @@ export default {
       handler(nVal, oVal) {
         this.type3 = nVal;
         var arr = [
-          // {
-          //   components: toolCom.c_title,
-          //   configNme: 'titleLeft',
-          // },
           {
             components: toolCom.c_card_select,
             configNme: 'styleConfig',
@@ -365,10 +341,6 @@ export default {
       handler(nVal, oVal) {
         this.type4 = nVal;
         var arr = [
-          // {
-          //   components: toolCom.c_title,
-          //   configNme: 'titleLeft',
-          // },
           {
             components: toolCom.c_card_select,
             configNme: 'styleConfig',

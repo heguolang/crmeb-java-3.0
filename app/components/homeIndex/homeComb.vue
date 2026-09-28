@@ -175,7 +175,6 @@
 	import {
 		goPage
 	} from '@/libs/iframe.js'
-	import animationType from '@/utils/animationType.js'
 	export default {
 		name: 'homeComb',
 		props: {

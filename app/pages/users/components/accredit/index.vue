@@ -21,10 +21,9 @@
 	</view>
 </template>
 <script>
-	const app = getApp();
 	import Routine from '@/libs/routine';
-	import {loginMobile,registerVerify,getCodeApi,getUserInfo} from "@/api/user";
-	import { getLogo, getUserPhone } from '@/api/public';
+import { getUserInfo } from "@/api/user";
+import { getUserPhone } from '@/api/public';
 	export default {
 		name:'',
 		props:{

@@ -205,7 +205,6 @@
 			//鼠标松开
 			end: function() {
 				this.endMovetime = new Date().getTime();
-				var _this = this;
 				//                判断是否重合
 				if (this.status && this.isEnd == false) {
 					if (this.type !== '1') { //图片滑动

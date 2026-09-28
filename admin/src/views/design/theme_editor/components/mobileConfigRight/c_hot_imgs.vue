@@ -45,9 +45,7 @@
 
 <script>
 import vuedraggable from 'vuedraggable';
-import { mapState, mapActions } from 'vuex';
 import uploadPictures from '@/views/design/theme_editor/components/uploadPictures';
-import { wechatNewsAddApi, wechatNewsInfotApi } from '@/api/app';
 export default {
   name: 'c_hot_imgs',
   props: {

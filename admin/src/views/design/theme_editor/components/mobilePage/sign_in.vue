@@ -90,7 +90,7 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex';
+import { mapState } from 'vuex';
 // import theme from "@/views/design/theme_editor/mixins/theme";
 export default {
   name: 'sign_in',

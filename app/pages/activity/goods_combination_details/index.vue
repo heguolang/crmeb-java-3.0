@@ -608,15 +608,6 @@
 				silenceBindingSpread()
 			}
 
-			// if (this.isLogin) {
-			// 	this.combinationDetail();
-			// 	if(parseInt(app.globalData.spread)>0) silenceBindingSpread()
-			// } else {
-			// 	this.$Cache.set('login_back_url',
-			// 		`/pages/activity/goods_combination_details/index?id=${options.id}&spread=${app.globalData.spread?app.globalData.spread:0}`
-			// 	);
-			// 	toLogin();
-			// }
 		},
 		methods: {
 			wxChatService() {
@@ -863,12 +854,6 @@
 						}
 					}
 				}
-				// for (var key in self.productValue) {
-				// 	if (self.productValue[key].quota > 0) {
-				// 		value = productAttr.length ? key.split(",") : [];
-				// 		break;
-				// 	}
-				// }
 				for (let i = 0; i < value.length; i++) {
 					self.$set(productAttr[i], "index", value[i]);
 				}
@@ -1084,9 +1069,6 @@
 			 * 
 			 */
 			listenerActionSheet: function() {
-				// if (this.isLogin == false) {
-				// 	toLogin();
-				// } else {
 				// #ifdef H5
 				if (this.$wechat.isWeixin() === true) {
 					this.weixinStatus = true;
@@ -1202,7 +1184,6 @@
 					mask: true
 				});
 				that.posters = false;
-				let arrImagesUrl = '';
 				let arrImagesUrlTop = '';
 				if (!that.PromotionCode) {
 					uni.hideLoading();

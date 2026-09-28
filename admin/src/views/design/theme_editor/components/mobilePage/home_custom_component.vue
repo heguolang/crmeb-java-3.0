@@ -677,11 +677,6 @@ export default {
     setConfig(data) {
       if (!data) return;
       this.configObj = data;
-      // for (let key in this.defaultConfig) {
-      //   if (this.configObj[key] === undefined) {
-      //     this.$set(this.configObj, key, JSON.parse(JSON.stringify(this.defaultConfig[key])));
-      //   }
-      // }
       this.bottomBgColor = this.configObj.bottomBgColor.color[0].item;
       this.bgColorLeft = data.moduleColor.color[0].item;
       this.bgColorRight = data.moduleColor.color[1].item;

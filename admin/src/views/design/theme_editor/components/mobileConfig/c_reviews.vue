@@ -18,7 +18,6 @@
 <script>
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
-import { mapState, mapMutations, mapActions } from 'vuex';
 
 export default {
   name: 'c_reviews',
@@ -117,10 +116,6 @@ export default {
             components: toolCom.c_title,
             configNme: 'listTitle',
           },
-          // {
-          //   components: toolCom.c_radio,
-          //   configNme: 'layoutConfig',
-          // },
           {
             components: toolCom.c_slider,
             configNme: 'numConfig',

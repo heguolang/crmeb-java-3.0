@@ -364,7 +364,7 @@
 // | Author: 贵州黔序科技有限公司
 // +----------------------------------------------------------------------
 
-import { getLogisticsInfoApi, orderInvoiceListApi, orderDetailApi, refundOrderDetailApi } from '@/api/order';
+import { getLogisticsInfoApi, orderDetailApi, refundOrderDetailApi } from '@/api/order';
 import { checkPermi } from '@/utils/permission';
 export default {
   name: 'OrderDetail',

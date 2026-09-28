@@ -63,17 +63,6 @@ export default {
       form_create_helper.set(this.$route.query.fodder, pc.satt_dir);
       form_create_helper.close(this.$route.query.fodder);
     },
-    // getPic (pc) {
-    //     if (this.$route.query.fodder === 'dialog') {
-    //         /* eslint-disable */
-    //         nowEditor.dialog.close(true);
-    //         nowEditor.editor.setContent('<img src="'+pc.att_dir+'">',true);
-    //     }
-    //     else {
-    //         form_create_helper.set(this.$route.query.fodder, pc.satt_dir)
-    //         form_create_helper.close(this.$route.query.fodder);
-    //     }
-    // }
   },
 };
 </script>

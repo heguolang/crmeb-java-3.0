@@ -2,7 +2,6 @@ package com.qxkj.admin.controller;
 
 import com.qxkj.common.page.CommonPage;
 import com.qxkj.common.request.AdminIntegralSearchRequest;
-import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.response.UserIntegralRecordResponse;
 import com.qxkj.common.result.CommonResult;
 import com.qxkj.service.service.UserIntegralRecordService;
@@ -11,8 +10,6 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;

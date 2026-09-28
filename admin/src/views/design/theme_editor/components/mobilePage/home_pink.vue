@@ -566,10 +566,6 @@ export default {
               id: 0,
               name: '商品名称',
             },
-            // {
-            //   id: 1,
-            //   name: '商品标签',
-            // },
             {
               id: 2,
               name: '商品价格',

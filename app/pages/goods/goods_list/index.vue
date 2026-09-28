@@ -74,7 +74,7 @@
 </template>
 
 <script>
-	import {getProductslist,getProductHot} from '@/api/store.js';
+import { getProductslist } from '@/api/store.js';
 	import recommend from '@/components/recommend';
 	import {mapGetters} from "vuex";
 	import {goShopDetail} from '@/libs/order.js'

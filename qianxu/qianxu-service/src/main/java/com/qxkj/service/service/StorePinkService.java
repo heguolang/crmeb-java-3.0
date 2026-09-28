@@ -1,6 +1,5 @@
 package com.qxkj.service.service;
 
-import com.qxkj.common.request.PageParamRequest;
 import com.github.pagehelper.PageInfo;
 import com.qxkj.common.model.combination.StorePink;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -8,7 +7,6 @@ import com.qxkj.common.request.StorePinkSearchRequest;
 import com.qxkj.common.response.StorePinkAdminHeaderResponse;
 import com.qxkj.common.response.StorePinkAdminListResponse;
 import com.qxkj.common.response.StorePinkDetailResponse;
-import com.qxkj.common.vo.MyRecord;
 
 import java.util.List;
 

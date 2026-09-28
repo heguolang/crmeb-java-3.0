@@ -37,7 +37,6 @@ import com.qxkj.service.service.StoreCouponService;
 import com.qxkj.service.service.StoreCouponUserService;
 import com.qxkj.service.service.StoreProductService;
 import com.qxkj.service.service.UserService;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

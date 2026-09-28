@@ -10,7 +10,6 @@ function loadScript(src, callback) {
   const cb = callback || (() => {});
   if (!existingScript) {
     callbacks[src] = [];
-    const $script = document.createElement('script');
     $script.src = src;
     $script.id = src;
     $script.async = 1;

@@ -114,7 +114,7 @@
 
 <script>
 import { bargainListApi, bargainDeleteApi, bargainStatusApi, exportBargainApi } from '@/api/marketing';
-import { checkPermi, checkRole } from '@/utils/permission';
+import { checkPermi } from '@/utils/permission';
 export default {
   name: 'index',
   data() {

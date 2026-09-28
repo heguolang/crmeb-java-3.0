@@ -100,8 +100,7 @@
 </template>
 
 <script>
-import { replyListApi, replyDeleteApi, replyUpdateApi, replyStatusApi } from '@/api/wxApi';
-import { getToken } from '@/utils/auth';
+import { replyListApi, replyDeleteApi, replyStatusApi } from '@/api/wxApi';
 import { checkPermi } from '@/utils/permission';
 export default {
   name: 'WechatKeyword',

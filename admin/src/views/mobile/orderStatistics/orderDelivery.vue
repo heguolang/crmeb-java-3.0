@@ -135,19 +135,6 @@ export default {
       });
     },
     async saveInfo() {
-      // type: '1',
-      //   expressRecordType: '1',
-      //   expressId: '',
-      //   expressCode: '',
-      //   deliveryName: '',
-      //   deliveryTel: '',
-      //   // expressName: '',
-      //   expressNumber: '',
-      //   expressTempId: '',
-      //   toAddr: '',
-      //   toName: '',
-      //   toTel: '',
-      //   orderNo: ''
 
       let that = this,
         deliveryName = that.deliveryName,
@@ -158,14 +145,6 @@ export default {
 
       switch (that.type) {
         case '1':
-          // try {
-          //   await this.$validator({
-          //     expressId: [required(required.message("快递公司"))],
-          //     expressCode: [required(required.message("快递单号"))]
-          //   }).validate({ expressId, expressCode });
-          // } catch (e) {
-          //   return validatorDefaultCatch(e);
-          // }
           if (!that.expressCode) return that.$dialog.error('请输入快递公司');
           if (!that.expressNumber) return that.$dialog.error('请输入快递单号');
           save.expressNumber = that.expressNumber;

@@ -86,10 +86,6 @@
 				this.showTip = true;
 				// setTimeout(() => {
 					
-				// 	setTimeout(() => {
-				// 		this.tipHidden();
-				// 	}, this.delay + 2000);
-				// }, this.delay);
 			},
 			init() {
 				if (uni.getStorageSync("my_tips_2020")) return;

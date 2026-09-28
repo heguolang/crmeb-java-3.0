@@ -78,7 +78,7 @@ import { saveAs } from 'file-saver';
 import { makeUpHtml, vueTemplate, vueScript, cssStyle } from '@/components/FormGenerator/components/generator/html';
 import { makeUpJs } from '@/components/FormGenerator/components/generator/js';
 import { makeUpCss } from '@/components/FormGenerator/components/generator/css';
-import { exportDefault, beautifierConf, titleCase } from '../utils/index';
+import { exportDefault, beautifierConf } from '../utils/index';
 import ResourceDialog from './ResourceDialog';
 import loadMonaco from '../utils/loadMonaco';
 import loadBeautifier from '../utils/loadBeautifier';

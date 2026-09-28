@@ -80,7 +80,7 @@ const mutations = {
 const actions = {
   // user login
   login({ commit }, userInfo) {
-    const { account, pwd, key, code, wxCode } = userInfo;
+    const { account } = userInfo;
     Loading.service();
     return new Promise((resolve, reject) => {
       login(userInfo)

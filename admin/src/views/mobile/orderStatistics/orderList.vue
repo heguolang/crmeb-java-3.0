@@ -304,15 +304,6 @@ export default {
       this.$router.push({ path: '/javaMobile/orderDetail/' + item.orderId });
     },
     offlinePay(item) {
-      // setOfflinePay({ order_id: item.order_id }).then(
-      //   res => {
-      //     this.$dialog.success(res.message);
-      //     this.init();
-      //   },
-      //   error => {
-      //     this.$dialog.error(error.message);
-      //   }
-      // );
     },
   },
 };

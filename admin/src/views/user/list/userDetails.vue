@@ -293,11 +293,6 @@ export default {
       this.paginationData.type = val - 1;
       if (val != 0) {
         this.getListData();
-        // if (this.paginationData.type == '1') {
-        //   this.getIntergralList();
-        // } else {
-        //   this.getListData();
-        // }
       }
     },
   },

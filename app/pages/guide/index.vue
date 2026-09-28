@@ -6,7 +6,6 @@
 
 <script>
 	import guide from './guide.vue'
-	import Cache from '@/utils/cache';
 	import {
 		getOpenAdvApi
 	} from '@/api/api.js'

@@ -158,13 +158,6 @@ export default {
         .catch(() => {
           this.loading = false;
         });
-      // let that = this;
-      // that.loading = true;
-      // userListApi(that.artFrom).then(res=>{
-      //   that.loading = false;
-      //   that.tableData = res.list;
-      //   that.total = res.total
-      // })
     },
     //切换显示条数
     sizeChange(index) {

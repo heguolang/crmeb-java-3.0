@@ -1,7 +1,6 @@
 package com.qxkj.service.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.model.category.Category;
 import com.qxkj.common.request.CategoryRequest;
 import com.qxkj.common.request.CategorySearchRequest;

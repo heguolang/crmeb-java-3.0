@@ -168,13 +168,6 @@ export default {
         "border-radius": borderRadius,
       };
     },
-    // signWrapStyle() {
-    // 	return {
-    // 		padding: `${this.dataConfig.topConfig.val * 2}rpx ${this.dataConfig.prConfig.val * 2}rpx ${this.dataConfig.bottomConfig.val * 2}rpx`,
-    // 		'margin-top': `${this.dataConfig.mbConfig.val * 2}rpx`,
-    // 		background: this.dataConfig.bottomBgColor.color[0].item
-    // 	};
-    // },
     numStyle() {
       let styleObject = {};
       if (this.dataConfig.toneConfig.tabVal) {

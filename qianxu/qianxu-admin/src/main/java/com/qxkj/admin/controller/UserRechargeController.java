@@ -1,7 +1,6 @@
 package com.qxkj.admin.controller;
 
 import com.qxkj.common.page.CommonPage;
-import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.request.UserRechargeSearchRequest;
 import com.qxkj.common.response.UserRechargeResponse;
 import com.qxkj.common.result.CommonResult;

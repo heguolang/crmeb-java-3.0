@@ -373,11 +373,6 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
                     PayComponentProductSku productSku = componentProductSkuService.getByProIdAndAttrValueId(orderInfoVo.getProductId(), attrValueId);
 //                    productSku.setStockNum(productSku.getStockNum() + payNum);
                     StoreProductAttrValue productAttrValue = attrValueService.getById(attrValueId);
-//                    productAttrValue.setStock(productAttrValue.getStock() + payNum);
-//                    productAttrValue.setSales(productAttrValue.getSales() - payNum);
-//                    componentProductService.updateById(componentProduct);
-//                    componentProductSkuService.updateById(productSku);
-//                    attrValueService.updateById(productAttrValue);
 
                     componentProductSkuService.operationStock(productSku.getId(), payNum, "add", productSku.getVersion());
                     componentProductService.operationStock(componentProduct.getId(), payNum, "add");
@@ -681,24 +676,6 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
         }
         User user = userService.getById(storeOrder.getUid());
 
-        // 获取佣金记录
-        //List<UserBrokerageRecord> recordList = userBrokerageRecordService.findListByLinkIdAndLinkType(storeOrder.getOrderId(), BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER);
-        //logger.info("收货处理佣金条数：" + recordList.size());
-        //for (UserBrokerageRecord record : recordList) {
-        //    if (!record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE)) {
-        //        throw new QianxuException(StrUtil.format("订单收货task处理，订单佣金记录不是创建状态，id={}", orderId));
-        //    }
-        //    // 佣金进入冻结期
-        //    record.setStatus(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_FROZEN);
-        //    // 计算解冻时间
-        //    Long thawTime = cn.hutool.core.date.DateUtil.current(false);
-        //    if (record.getFrozenTime() > 0) {
-        //        DateTime dateTime = cn.hutool.core.date.DateUtil.offsetDay(new Date(), record.getFrozenTime());
-        //        thawTime = dateTime.getTime();
-        //    }
-        //    record.setThawTime(thawTime);
-        //    record.setUpdateTime(DateUtil.date());
-        //}
 
         // 获取积分记录：支付已到账的为 COMPLETE，完成到账的保留 CREATE 直至订单完成，收货时不再冻结
         List<UserIntegralRecord> integralRecordList = userIntegralRecordService.findListByOrderIdAndUid(storeOrder.getOrderId(), storeOrder.getUid());
@@ -813,11 +790,6 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
             if (storeNameAndCarNumString.length() > 20) {
                 storeNameAndCarNumString = storeNameAndCarNumString.substring(0, 15) + "***";
             }
-//        temMap.put("character_string6", storeOrder.getOrderId());
-//        temMap.put("phrase4", "已收货");
-//        temMap.put("time7", DateUtil.nowDateTimeStr());
-//        temMap.put("thing1", storeNameAndCarNumString);
-//        temMap.put("thing5", "您购买的商品已确认收货！");
             temMap.put("character_string6", storeOrder.getOrderId());
             temMap.put("date5", QianxuDateUtil.nowDateTimeStr());
             temMap.put("thing2", storeNameAndCarNumString);

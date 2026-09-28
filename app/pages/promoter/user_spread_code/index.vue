@@ -319,11 +319,6 @@
 </script>
 
 <style lang="scss" scoped>
-	// page {
-	// 	background-color: #A2A2A2 !important;
-	// 	height: 100vh;
-	// 	overflow: auto;
-	// }
 	.page{
 		height: 100vh;
 		overflow: auto;

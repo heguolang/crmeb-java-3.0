@@ -19,7 +19,6 @@
 </template>
 
 <script>
-import { statisticsDataApi } from '@/api/order';
 export default {
   name: 'statisticsData',
   props: {

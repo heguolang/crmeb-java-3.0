@@ -9,7 +9,6 @@ import com.qxkj.common.request.StockRequests;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * 订货系统-奖励/奖金/提现/业绩/消息服务

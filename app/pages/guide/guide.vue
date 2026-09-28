@@ -20,7 +20,6 @@
 </template>
 
 <script>
-	let app = getApp();
 	let sysHeight = uni.getSystemInfoSync().statusBarHeight;
 	//let menuHeight = uni.getMenuButtonBoundingClientRect().height; // 获取胶囊高度并设置标题高度
 	export default {

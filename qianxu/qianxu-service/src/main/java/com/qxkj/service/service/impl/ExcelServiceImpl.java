@@ -267,15 +267,6 @@ public class ExcelServiceImpl implements ExcelService {
         aliasMap.put("productName", "商品信息");
         aliasMap.put("statusStr", "订单状态");
         aliasMap.put("payTypeStr", "支付方式");
-//        aliasMap.put("isDel", "是否删除");
-//        aliasMap.put("refundReasonWapImg", "退款图片");
-//        aliasMap.put("refundReasonWapExplain", "退款用户说明");
-//        aliasMap.put("refundReasonTime", "退款时间");
-//        aliasMap.put("refundReasonWap", "前台退款原因");
-//        aliasMap.put("refundReason", "不退款的理由");
-//        aliasMap.put("refundPrice", "退款金额");
-//        aliasMap.put("refundStatus", "退款状态状态，0 未退款 1 申请中 2 已退款");
-//        aliasMap.put("verifyCode", "核销码");
         aliasMap.put("orderType", "订单类型");
 //        aliasMap.put("remark", "订单管理员备注");
         aliasMap.put("realName", "用户姓名");

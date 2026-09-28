@@ -43,7 +43,6 @@
 	import emptyPage from '@/components/emptyPage.vue';
 	import GoodList from '@/components/goodList/index';
 	import {getGroomList} from '@/api/store';
-	import {goPage} from '@/libs/order.js';
 	import {productRank} from '@/api/api.js'
 	import Loading from '@/components/Loading/index.vue';
 	import animationType from '@/utils/animationType.js'

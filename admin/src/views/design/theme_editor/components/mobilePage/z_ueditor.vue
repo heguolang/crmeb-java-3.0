@@ -14,7 +14,7 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex';
+import { mapState } from 'vuex';
 export default {
   name: 'z_ueditor',
   cname: '富文本',

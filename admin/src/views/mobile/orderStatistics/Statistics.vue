@@ -324,7 +324,6 @@ export default {
       this.$refs.calendar.setToday();
     },
     dateInfo() {
-      const info = this.$refs.calendar.dateInfo(2018, 8, 23);
     },
     renderer() {
       if (this.monthRange.length) {

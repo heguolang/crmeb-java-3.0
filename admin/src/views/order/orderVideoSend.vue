@@ -23,7 +23,7 @@
 </template>
 
 <script>
-import { videoSendApi, sheetInfoApi, companyGetListApi } from '@/api/order';
+import { videoSendApi, companyGetListApi } from '@/api/order';
 import { Debounce } from '@/utils/validate';
 const validatePhone = (rule, value, callback) => {
   if (!value) {

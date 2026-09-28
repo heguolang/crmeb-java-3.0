@@ -168,7 +168,6 @@
 				let that = this,province = [],city = [],area = [];
 				if (that.district.length) {
 					let cityChildren = that.district[0].child || [];
-					let areaChildren = cityChildren.length ? (cityChildren[0].child || []) : [];
 					that.district.forEach(function(item,i) {
 						province.push(item.name);
 						if (item.name === that.region[0]) {

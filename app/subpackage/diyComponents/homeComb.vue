@@ -200,8 +200,6 @@
 
 <script>
 import commonWrapper from "./commonWrapper.vue";
-import { getCategoryList } from "@/api/store.js";
-import { getCategoryVersion } from "@/api/api.js";
 let statusBarHeight = uni.getWindowInfo().statusBarHeight;
 export default {
   components: { commonWrapper },
@@ -751,15 +749,6 @@ export default {
         color: #ffffff;
 
         &::after {
-          // content: '';
-          // transition: .5s;
-          // width: 19rpx;
-          // height: 3rpx;
-          // background: #FFFFFF;
-          // position: absolute;
-          // bottom: 19rpx;
-          // left: 50%;
-          // transform: translateX(-50%);
         }
       }
     }

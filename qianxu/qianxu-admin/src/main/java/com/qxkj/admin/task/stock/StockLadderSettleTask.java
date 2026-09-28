@@ -5,7 +5,6 @@ import com.qxkj.service.service.StockRewardService;
 import com.qxkj.service.service.StockService;
 import com.qxkj.service.service.SystemConfigService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 

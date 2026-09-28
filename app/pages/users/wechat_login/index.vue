@@ -160,12 +160,6 @@
 			}
 			// #endif
 			let pages = getCurrentPages();
-			// let prePage = pages[pages.length - 2];
-			// if (prePage.route == 'pages/order_addcart/order_addcart') {
-			// 	this.isHome = true
-			// } else {
-			// 	this.isHome = false
-			// }
 
 		},
 		methods: {

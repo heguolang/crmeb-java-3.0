@@ -167,7 +167,7 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex';
+import { mapState } from 'vuex';
 // import theme from "@/views/design/theme_editor/mixins/theme";
 import Setting from '@/utils/settingMer';
 export default {

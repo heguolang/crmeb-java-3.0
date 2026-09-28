@@ -1,7 +1,5 @@
 package com.qxkj.common.request;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -33,11 +31,6 @@ public class StoreCouponUserSearchRequest extends UserCommonSearchRequest implem
 
     private static final long serialVersionUID=1L;
 
-    //@ApiModelProperty(value = "优惠券所属用户")
-    //private Integer uid;
-    //
-    //@ApiModelProperty(value = "优惠券id")
-    //private Integer couponId;
 
     @ApiModelProperty(value = "优惠券名称")
     private String name;

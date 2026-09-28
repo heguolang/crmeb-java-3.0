@@ -176,8 +176,8 @@
 
 <script>
 import Setting from '@/utils/settingMer';
-import { diyProList, diyDel, setStatus, recovery, getRoutineCode, setDefault, exportDiyDataApi } from '@/api/theme';
-import { mapState, mapActions } from 'vuex';
+import { diyProList, setStatus, recovery, getRoutineCode, setDefault, exportDiyDataApi } from '@/api/theme';
+import { mapState } from 'vuex';
 import QRCode from 'qrcodejs2';
 import goodClass from './goodClass';
 import users from './users';
@@ -408,7 +408,6 @@ export default {
     diyProList() {
       // let storage = window.localStorage;
       // this.iframeUrl = storage.getItem("iframeUrl");
-      let that = this;
       this.loading = true;
       diyProList(this.diyFrom).then((res) => {
         this.loading = false;
@@ -431,16 +430,7 @@ export default {
         }
       }
     },
-    // 添加
-    // add() {
-    //   this.$modalForm(getDiyCreate()).then(() => this.diyProList());
-    // },
-    // 添加
     add() {
-      // this.$router.push({
-      //   path: this.'/design/edit_theme',
-      //   query: { id: 0, name: '首页', type: 1 },
-      // });
     },
     // 删除
     del(row) {

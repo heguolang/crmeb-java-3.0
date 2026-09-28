@@ -14,7 +14,7 @@
 </template>
 
 <script>
-	import { getCombinationPink, getCombinationPoster } from '../../../api/activity.js';
+import { getCombinationPink } from '../../../api/activity.js';
 	import uQRCode from '@/js_sdk/Sansnn-uQRCode/uqrcode.js';
 	import { imageBase64 } from "@/api/public";
 	export default {

@@ -459,7 +459,6 @@ export default {
       );
     },
     getLiveList: function () {
-      let limit = this.$config.LIMIT;
       getLiveList(
         1,
         this.dataConfig.numberConfig.val == undefined

@@ -854,10 +854,6 @@ export default {
     onMoveSpec(event, index = -1, type) {
       const oldIndex = event.oldIndex,
         newIndex = event.newIndex;
-      // if (type == 'value') {
-      //   const [movedItem] = this.formValidate.attr[index].attrValue.splice(oldIndex, 1);
-      //   this.formValidate.attr[index].attrValue.splice(newIndex, 0, movedItem);
-      // }
       this.generateAttr(this.formValidate.attr);
     },
     // 修改当前选中的规格索引
@@ -1026,16 +1022,6 @@ export default {
         if (this.ManyAttrValue.length) {
           this.formValidate.attr[index].attrName = val;
           this.generateAttr(this.formValidate.attr);
-          // this.ManyAttrValue.map((item, i) => {
-          //   if (i > 0) {
-          //     if (Object.keys(item.attrValueShow).includes(this.changeAttrValue)) {
-          //       item.attrValueShow[val] = item.attrValueShow[this.changeAttrValue];
-          //       item[val] = item[this.changeAttrValue];
-          //       delete item.attrValueShow[this.changeAttrValue];
-          //       delete item[this.changeAttrValue];
-          //     }
-          //   }
-          // });
           this.changeAttrValue = val;
         }
       } else {

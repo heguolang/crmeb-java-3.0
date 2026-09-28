@@ -33,7 +33,6 @@
 	import {
 		mapGetters
 	} from "vuex";
-	import animationType from '@/utils/animationType.js'
 	import {
 		getProductslist
 	} from '@/api/store.js';

@@ -1,6 +1,5 @@
 package com.qxkj.service.service;
 
-import com.qxkj.common.model.order.StoreOrder;
 
 /**
  *

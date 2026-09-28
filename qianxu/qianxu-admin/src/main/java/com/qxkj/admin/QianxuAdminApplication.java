@@ -29,12 +29,6 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @Configuration
 @EnableTransactionManagement
 @SpringBootApplication(exclude = DataSourceAutoConfiguration.class) //去掉数据源
-//@ComponentScan(basePackages={"com.utils",
-//        "com.qxkj",
-//        "com.exception",
-//        "com.common",
-//        "com.aop"}) //扫描utils包和父包
-//@MapperScan(basePackages = {"com.qxkj.*.dao", "com.qxkj.*.*.dao"})
 @ComponentScan(basePackages = {"com.qxkj"})
 @MapperScan(basePackages = {"com.qxkj.**.dao"})
 public class QianxuAdminApplication {

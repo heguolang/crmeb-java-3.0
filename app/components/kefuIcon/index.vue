@@ -21,7 +21,6 @@
 	import {
 		getCustomer
 	} from '@/utils/index.js'
-	let app = getApp();
 	export default {
 		name: "kefuIcon",
 		props: {

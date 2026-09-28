@@ -1,6 +1,5 @@
 package com.qxkj.service.service;
 
-import com.alipay.api.domain.Product;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.github.pagehelper.PageInfo;
 import com.qxkj.common.model.product.StoreProduct;

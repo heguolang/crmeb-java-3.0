@@ -162,21 +162,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     @Override
     public CommonPage<StoreOrderDetailResponse> getAdminList(StoreOrderSearchRequest request) {
         Page<Object> startPage = PageHelper.startPage(request.getPage(), request.getLimit());
-        //QueryWrapper<StoreOrder> queryWrapper = new QueryWrapper<>();
-        //queryWrapper.select("id", "order_id", "uid", "real_name", "pay_price", "pay_type", "create_time", "status", "refund_status"
-        //        , "refund_reason_wap_img", "refund_reason_wap_explain", "refund_reason_wap", "refund_reason", "refund_reason_time"
-        //        , "is_del", "combination_id", "pink_id", "seckill_id", "bargain_id", "verify_code", "remark", "paid", "is_system_del"
-        //        , "shipping_type", "type", "is_alter_price", "pro_total_price", "is_alter_price", "coupon_price");
-        //if (StrUtil.isNotBlank(request.getOrderNo())) {
-        //    queryWrapper.eq("order_id", request.getOrderNo());
-        //}
-        //getRequestTimeWhere(queryWrapper, request);
-        //getStatusWhere(queryWrapper, request.getStatus());
-        //if (!request.getType().equals(2)) {
-        //    queryWrapper.eq("type", request.getType());
-        //}
-        //queryWrapper.orderByDesc("id");
-        //List<StoreOrder> orderList = dao.selectList(queryWrapper);
         Map<String, Object> map = CollUtil.newHashMap();
         map.put("status", request.getStatus());
         if (StrUtil.isNotBlank(request.getContent())) {
@@ -256,15 +241,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     public PageInfo<StoreOrder> getUserOrderList_2_3(String keywords,
                                                  Integer uid, Integer status, PageParamRequest pageParamRequest) {
         Page<StoreOrder> page = PageHelper.startPage(pageParamRequest.getPage(), pageParamRequest.getLimit());
-        // 新需求：H5订单列表，增加关键字搜索功能--> 所以注掉以下代码
-//        LambdaQueryWrapper<StoreOrder> lqw = new LambdaQueryWrapper<>();
-//        if(StrUtil.isNotBlank(keywords)){
-//            orderUtils.statusApiByWhere(lqw, status);
-//            lqw.eq(StoreOrder::getUid, uid);
-//            lqw.orderByDesc(StoreOrder::getId);
-//            List<StoreOrder> storeOrders = dao.selectList(lqw);
-//            return CommonPage.copyPageInfo(page, storeOrders);
-//        }
         Map<String, Object> searchMap = new HashMap<>();
         String searchKey = URLUtil.decode(keywords);
         searchMap.put("keywords", searchKey);
@@ -701,14 +677,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
             throw new QianxuException("订单更新失败");
         }
 
-        // 发送消息通知
-//        HashMap<String, String> temMap = new HashMap<>();
-//        temMap.put(Constants.WE_CHAT_TEMP_KEY_FIRST, "您的订单退款申请被通过，钱款将退还至您的支付账户，请耐心等待。");
-//        temMap.put("keyword1", storeOrder.getOrderId());
-//        temMap.put("keyword2", storeOrder.getPayPrice().toString());
-//        temMap.put("keyword3", DateUtil.dateToStr(storeOrder.getCreateTime(), Constants.DATE_FORMAT));
-//        temMap.put(Constants.WE_CHAT_TEMP_KEY_END, "感谢你的使用。");
-//        pushMessageRefundOrder(storeOrder, user, temMap);
         return execute;
     }
 
@@ -718,30 +686,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
      * 公众号模板消息
      * 小程序订阅消息
      */
-//    private void pushMessageRefundOrder(StoreOrder storeOrder, User user, HashMap<String, String> temMap) {
-//        if (user.getUserType().equals(UserConstants.USER_TYPE_H5)) {
-//            return;
-//        }
-//        UserToken userToken;
-//        // 公众号
-//        if (user.getUserType().equals(UserConstants.USER_TYPE_WECHAT)) {
-//            userToken = userTokenService.getTokenByUserId(user.getUid(), UserConstants.USER_TOKEN_TYPE_WECHAT);
-//            if (ObjectUtil.isNull(userToken)) {
-//                return ;
-//            }
-//            // 发送微信模板消息
-//            templateMessageService.pushTemplateMessage(Constants.WE_CHAT_TEMP_KEY_ORDER_REFUND, temMap, userToken.getToken());
-//            return;
-//        }
-//        // 小程序发送订阅消息
-//        String storeNameAndCarNumString = orderUtils.getStoreNameAndCarNumString(storeOrder.getId());
-//        if (StringUtils.isNotBlank(storeNameAndCarNumString)) {
-//            WechatSendMessageForPaySuccess paySuccess = new WechatSendMessageForPaySuccess(
-//                    storeOrder.getId()+"",storeOrder.getPayPrice()+"",storeOrder.getPayTime()+"","暂无",
-//                    storeOrder.getTotalPrice()+"",storeNameAndCarNumString);
-//            orderUtils.sendWeiChatMiniMessageForPaySuccess(paySuccess, userService.getById(storeOrder).getUid());
-//        }
-//    }
 
     /**
      * 订单详情（PC）
@@ -1767,12 +1711,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
             default:
                 throw new QianxuException("类型错误");
         }
-        //storeOrder.setUpdateTime(DateUtil.date());
-        //return transactionTemplate.execute(e -> {
-        //    updateById(storeOrder);
-        //    storeOrderStatusService.createLog(storeOrder.getId(), Constants.ORDER_LOG_EXPRESS, StrUtil.format("变更运单号,快递公司:{},运单号:{}", storeOrder.getDeliveryName(), storeOrder.getDeliveryId()));
-        //    return Boolean.TRUE;
-        //});
         return Boolean.TRUE;
     }
 
@@ -1907,13 +1845,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
             if (ObjectUtil.isNull(userToken)) {
                 return ;
             }
-            // 组装数据
-            // 注释部分为丰享汇小程序
-//        temMap.put("character_string1", storeOrder.getOrderId());
-//        temMap.put("name3", storeOrder.getDeliveryName());
-//        temMap.put("character_string4", storeOrder.getDeliveryId());
-//        temMap.put("thing7", "您的订单已发货");
-            // 放开部分为一码秦川小程序
             temMap.put("character_string1", storeOrder.getOrderId());
             temMap.put("name6", storeOrder.getDeliveryName());
             temMap.put("character_string7", storeOrder.getDeliveryId());
@@ -2035,10 +1966,6 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
             if (proName.length() > 20) {
                 proName = proName.substring(0, 15) + "***";
             }
-//        map.put("thing8", proName);
-//        map.put("character_string1", storeOrder.getOrderId());
-//        map.put("name4", request.getDeliveryName());
-//        map.put("phone_number10", request.getDeliveryTel());
             map.put("thing8", proName);
             map.put("character_string1", storeOrder.getOrderId());
             map.put("name4", request.getDeliveryName());

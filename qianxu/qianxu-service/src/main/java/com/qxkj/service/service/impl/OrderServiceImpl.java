@@ -1156,33 +1156,6 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-//        // 支付渠道 默认：余额支付
-//        int isChannel = 3;
-//        if (request.getPayType().equals(PayConstants.PAY_TYPE_WE_CHAT)) {
-//            switch (request.getPayChannel()) {
-//                case PayConstants.PAY_CHANNEL_WE_CHAT_H5:// H5
-//                    isChannel = 2;
-//                    break;
-//                case PayConstants.PAY_CHANNEL_WE_CHAT_PUBLIC:// 公众号
-//                    isChannel = 0;
-//                    break;
-//                case PayConstants.PAY_CHANNEL_WE_CHAT_PROGRAM:// 小程序
-//                    isChannel = 1;
-//                    break;
-//                case PayConstants.PAY_CHANNEL_WE_CHAT_APP_IOS:// app ios
-//                    isChannel = 4;
-//                    break;
-//                case PayConstants.PAY_CHANNEL_WE_CHAT_APP_ANDROID:// app android
-//                    isChannel = 5;
-//                    break;
-//            }
-//        }
-//        if (request.getPayType().equals(PayConstants.PAY_TYPE_ALI_PAY)) {
-//            isChannel = 6;
-//            if (request.getPayChannel().equals(PayConstants.PAY_CHANNEL_ALI_APP_PAY)) {
-//                isChannel = 7;
-//            }
-//        }
 
         StoreOrder storeOrder = new StoreOrder();
         storeOrder.setUid(user.getUid());
@@ -2278,10 +2251,6 @@ public class OrderServiceImpl implements OrderService {
                         postageFee = shippingTemplatesRegion.getFirstPrice();
                     } else {// 超过首件的需要计算续件
                         int renewalNum = num - shippingTemplatesRegion.getFirst().intValue();
-                        // 剩余件数/续件 = 需要计算的续件费用的次数
-//                        BigDecimal divide = BigDecimal.valueOf(renewalNum).divide(shippingTemplatesRegion.getRenewal(), 0, BigDecimal.ROUND_UP);
-//                        BigDecimal renewalPrice = shippingTemplatesRegion.getRenewalPrice().multiply(divide);
-//                        storePostage = storePostage.add(shippingTemplatesRegion.getFirstPrice()).add(renewalPrice);
                         BigDecimal renewalPrice = shippingTemplatesRegion.getRenewalPrice().multiply(new BigDecimal(String.valueOf(renewalNum)).divide(shippingTemplatesRegion.getRenewal(), 0, RoundingMode.UP));
                         storePostage = storePostage.add(shippingTemplatesRegion.getFirstPrice()).add(renewalPrice);
                         postageFee = shippingTemplatesRegion.getFirstPrice().add(renewalPrice);
@@ -2316,10 +2285,6 @@ public class OrderServiceImpl implements OrderService {
                         postageFee = shippingTemplatesRegion.getFirstPrice();
                     } else {// 超过首件的需要计算续件
                         BigDecimal renewalNum = surplus.subtract(shippingTemplatesRegion.getFirst());
-                        // 剩余件数/续件 = 需要计算的续件费用的次数
-//                        BigDecimal divide = renewalNum.divide(shippingTemplatesRegion.getRenewal(), 0, BigDecimal.ROUND_UP);
-//                        BigDecimal renewalPrice = shippingTemplatesRegion.getRenewalPrice().multiply(divide);
-//                        storePostage = storePostage.add(shippingTemplatesRegion.getFirstPrice()).add(renewalPrice);
                         BigDecimal renewalPrice = shippingTemplatesRegion.getRenewalPrice().multiply(renewalNum.divide(shippingTemplatesRegion.getRenewal(), 0, RoundingMode.UP));
                         storePostage = storePostage.add(shippingTemplatesRegion.getFirstPrice()).add(renewalPrice);
                         postageFee = shippingTemplatesRegion.getFirstPrice().add(renewalPrice);

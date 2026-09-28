@@ -576,11 +576,6 @@ export default {
     creatQrCode(id, status) {
       this.$refs.qrCodeUrl.innerHTML = '';
       let url = `${this.BaseURL}pages/index/index?theme_id=${this.$route.query.id}`;
-      // if (status) {
-      //   url = `${this.BaseURL}pages/index/index`;
-      // } else {
-      //   url = `${this.BaseURL}pages/annex/special/index?id=${id}`;
-      // }
       var qrcode = new QRCode(this.$refs.qrCodeUrl, {
         text: url, // 需要转换为二维码的内容
         width: 160,
@@ -1195,17 +1190,6 @@ export default {
       tempArr.push(tool);
       this.leftMenu = tempArr;
     },
-    // toImage(val){
-    //     html2canvas(this.$refs.imgContainer,{
-    //         useCORS:true,
-    //         logging:true,
-    //         taintTest: false,
-    //         backgroundColor: null
-    //     }).then((canvas) => {
-    //         let imgUrl = canvas.toDataURL('image/jpeg');
-    //         this.diySaveDate(val,imgUrl)
-    //     });
-    // },
     diySaveDate(val, num, title, save) {
       let pageData = {};
       if (['home', 'detail', 'user'].includes(this.pageType)) {

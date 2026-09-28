@@ -72,14 +72,6 @@ export default {
         });
     },
     addHotTxt() {
-      // let obj = {}
-      // if(this.configData.list.length){
-      //     obj = JSON.parse(JSON.stringify(this.configData.list[this.configData.list.length - 1]))
-      // }else {
-      //     obj = {
-      //         val: ''
-      //     }
-      // }
       let obj = {
         val: '',
       };

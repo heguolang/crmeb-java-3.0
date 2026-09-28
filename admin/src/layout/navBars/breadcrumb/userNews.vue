@@ -43,16 +43,6 @@ export default {
   props: ['vm'],
   mounted() {
     this.getNotict();
-    // this.newOrderAudioLink = newOrderAudioLink;
-    // adminSocket.then((ws) => {
-    //   ws.send({
-    //     type: 'login',
-    //     data: getCookies('token'),
-    //   });
-    //   let that = this;
-    //   ws.$on('ADMIN_NEW_PUSH', function (data) {
-    //     that.getNotict();
-    //   });
 
     //   ws.$on('NEW_ORDER', function (data) {
     //     that.$notify.info({

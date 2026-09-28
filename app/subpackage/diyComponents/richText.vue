@@ -122,13 +122,6 @@ export default {
         background: this.dataConfig.bgColor.color[0].item,
       };
     },
-    // richTextWrapStyle() {
-    // 	return {
-    // 		'padding': `${this.dataConfig.topConfig.val*2}rpx ${this.dataConfig.lrConfig.val*2}rpx ${this.dataConfig.bottomConfig.val*2}rpx`,
-    // 		'margin-top': `${this.dataConfig.udConfig.val*2}rpx`,
-    // 		'background': this.dataConfig.bottomBgColor.color[0].item,
-    // 	};
-    // },
   },
 };
 </script>

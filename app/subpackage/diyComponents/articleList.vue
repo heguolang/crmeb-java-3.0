@@ -167,11 +167,6 @@ export default {
         color: this.dataConfig.browseColor.color[0].item,
       };
     },
-    // iconLikeStyle() {
-    // 	return {
-    // 		'color': this.dataConfig.likeColor.color[0].item,
-    // 	};
-    // },
     numberStyle() {
       return {
         color: this.dataConfig.statisticColor.color[0].item,

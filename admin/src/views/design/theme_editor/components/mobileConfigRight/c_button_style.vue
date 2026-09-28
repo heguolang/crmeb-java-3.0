@@ -196,12 +196,6 @@ export default {
           height: 129,
           count: 1,
         },
-        // {
-        //   url: require('@/assets/images/cube1.png'),
-        //   width: 130,
-        //   height: 130,
-        //   count: 16,
-        // },
       ],
       list: [],
     };

@@ -273,10 +273,6 @@ public class StoreBargainUserHelpServiceImpl extends ServiceImpl<StoreBargainUse
             if (ObjectUtil.isNull(userToken)) {
                 return ;
             }
-            // 组装数据
-//        temMap.put("thing6",  storeBargain.getTitle());
-//        temMap.put("amount3", storeBargain.getMinPrice().toString() + "元");
-//        temMap.put("thing7", "好腻害！你的朋友们已经帮你砍到底价了！");
             temMap.put("thing1",  storeBargain.getTitle());
             temMap.put("amount2", storeBargain.getMinPrice().toString() + "元");
             temMap.put("thing3", "好腻害！你的朋友们已经帮你砍到底价了！");

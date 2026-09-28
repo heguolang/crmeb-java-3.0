@@ -215,7 +215,6 @@
 
 <script>
 import { dividendInfoApi, dividendLevelSaveApi, dividendLevelUpdateApi, dividendLevelDeleteApi } from '@/api/dividend';
-import { distributorLevelListApi } from '@/api/distributorLevel';
 import { productDetailApi } from '@/api/store';
 import goodsList from '@/components/goodsList';
 

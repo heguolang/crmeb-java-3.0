@@ -232,7 +232,7 @@ export default {
       systemFormConfigApi
         .getFormConfigInfo(formPram)
         .then((data) => {
-          const { id, name, info, content } = data;
+          const { id, name, content } = data;
           this.formConf.content = JSON.parse(content);
           this.formConf.id = id;
           this.handlerGetSettingInfo(id, 1);
@@ -256,7 +256,6 @@ export default {
     }),
     handlerSave(formValue) {
       const _pram = this.buildFormPram(formValue);
-      let _formId = 0;
       systemSettingApi.systemConfigSave(_pram).then((data) => {
         this.$message.success('添加数据成功');
       });
@@ -397,10 +396,6 @@ export default {
   background: var(--prev-color-primary);
   color: #fff;
 }
-// ::v-deep .el-step__icon-inner {
-//   margin-right: 2px;
-//   margin-top: 1px;
-// }
 ::v-deep .el-steps {
   margin-left: 3px;
 }

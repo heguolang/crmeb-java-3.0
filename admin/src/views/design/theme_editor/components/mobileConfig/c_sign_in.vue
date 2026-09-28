@@ -19,7 +19,6 @@
 <script>
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
-import { mapMutations } from 'vuex';
 export default {
   name: 'c_sign_in',
   componentsName: 'sign_in',
@@ -85,10 +84,6 @@ export default {
       titleStyle: [],
       moduleStyle: [],
       moduleStyle2: [
-        // {
-        //   components: toolCom.c_bg_color,
-        //   configNme: 'moduleColor2',
-        // },
       ],
       currencyStyle: [
         {

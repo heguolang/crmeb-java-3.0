@@ -65,8 +65,6 @@
 		mapGetters
 	} from "vuex";
 	// import cookie from "@/utils/store/cookie";
-	const LONGITUDE = "user_longitude";
-	const LATITUDE = "user_latitude";
 	const MAPKEY = "mapKey";
 	export default {
 		name: "storeList",
@@ -177,10 +175,6 @@
 					address: e
 				});
 				uni.navigateBack();
-				// if (this.goName === "orders") {
-				//   this.$store.commit("GET_STORE", e);
-				//   this.$router.go(-1); //返回上一层
-				// }
 			},
 			// 获取门店列表数据
 			getList: function() {

@@ -11,7 +11,6 @@ import org.hibernate.validator.constraints.Range;
 
 import javax.validation.constraints.*;
 import java.io.Serializable;
-import java.util.Date;
 
 /**
  *

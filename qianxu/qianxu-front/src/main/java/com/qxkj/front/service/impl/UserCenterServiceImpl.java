@@ -310,11 +310,6 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
             userIdList.addAll(secondSpreadIdList);
         }
         List<UserSpreadPeopleItemResponse> spreadPeopleList = userService.getSpreadPeopleList(userIdList, request.getKeyword(), request.getSortKey(), request.getIsAsc(), pageParamRequest);
-//        spreadPeopleList.forEach(e -> {
-//            OrderBrokerageData brokerageData = storeOrderService.getBrokerageData(e.getUid(), userId);
-//            e.setOrderCount(brokerageData.getNum());
-//            e.setNumberCount(brokerageData.getPrice());
-//        });
         return spreadPeopleList;
     }
 
@@ -1281,10 +1276,6 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
             model.setTotalAmount(total_amount);
             model.setProductCode("QUICK_MSECURITY_PAY");
 
-//            HashMap<String, String> map = CollUtil.newHashMap();
-//            map.put("type", Constants.SERVICE_PAY_TYPE_RECHARGE);
-//            String jsonString = JSONObject.toJSONString(map);
-//            String encode;
             String encode = "type=" + Constants.SERVICE_PAY_TYPE_RECHARGE;
             try {
                 encode = URLEncoder.encode(encode, "utf-8");
@@ -1327,10 +1318,6 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         model.setProductCode("QUICK_WAP_PAY");
         model.setQuitUrl(systemConfigService.getValueByKey(AlipayConfig.recharge_quit_url));
 
-//        HashMap<String, String> map = CollUtil.newHashMap();
-//        map.put("type", Constants.SERVICE_PAY_TYPE_RECHARGE);
-//        String jsonString = JSONObject.toJSONString(map);
-//        String encode;
         String encode = "type=" + Constants.SERVICE_PAY_TYPE_RECHARGE;
         try {
             encode = URLEncoder.encode(encode, "utf-8");

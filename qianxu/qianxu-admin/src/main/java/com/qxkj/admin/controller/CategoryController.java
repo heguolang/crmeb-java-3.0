@@ -2,10 +2,8 @@ package com.qxkj.admin.controller;
 
 import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.model.category.Category;
-import com.qxkj.common.page.CommonPage;
 import com.qxkj.common.request.CategoryRequest;
 import com.qxkj.common.request.CategorySearchRequest;
-import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.result.CommonResult;
 import com.qxkj.common.utils.QianxuUtil;
 import com.qxkj.common.vo.CategoryTreeVo;

@@ -14,11 +14,6 @@ export default {
   name: 'AuthSend',
   created() {
     import('@/assets/js/media_750');
-    // const hash = window.location.search.slice(1)
-    // if (window.localStorage) {
-    //   window.localStorage.setItem('x-admin-oauth-code', hash)
-    //   window.close()
-    // }
     Cookies.set(WX_AUTH, this.$route.query.code);
   },
   render: function (h) {

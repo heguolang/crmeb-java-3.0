@@ -690,12 +690,6 @@ export default {
     };
   },
   computed: {
-    // documentLink() {
-    //   return (
-    //     this.activeData.__config__.document
-    //     || 'https://element.eleme.cn/#/zh-CN/component/installation'
-    //   )
-    // },
     dateOptions() {
       if (this.activeData.type !== undefined && this.activeData.__config__.tag === 'el-date-picker') {
         if (this.activeData['start-placeholder'] === undefined) {

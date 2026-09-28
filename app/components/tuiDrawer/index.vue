@@ -122,7 +122,6 @@
 			updateButtonSize() {
 				const actions = this.actions;
 				if (actions.length > 0) {
-					const query = uni.createSelectorQuery().in(this);
 					let limitMovePosition = 0;
 					actions.forEach(item => {
 						limitMovePosition += item.width || 0;

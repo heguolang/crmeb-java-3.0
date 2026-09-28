@@ -1,6 +1,5 @@
 package com.qxkj.admin.controller;
 
-import com.qxkj.common.annotation.CustomResponseAnnotation;
 import com.qxkj.common.annotation.LogControllerAnnotation;
 import com.qxkj.common.enums.MethodType;
 import com.qxkj.common.model.product.StoreProduct;

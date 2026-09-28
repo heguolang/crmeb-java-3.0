@@ -18,7 +18,6 @@
 
 <script>
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
-import { mapState, mapMutations, mapActions } from 'vuex';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
 export default {
   name: 'c_nav_bar',
@@ -44,10 +43,6 @@ export default {
     return {
       configObj: {},
       rCom: [
-        // {
-        //     components: toolCom.c_title,
-        //     configNme: 'titleLeft'
-        // },
         {
           components: toolCom.c_card_select,
           configNme: 'styleConfig',
@@ -142,10 +137,6 @@ export default {
       handler(nVal, oVal) {
         this.setUp = nVal;
         var arr = [
-          // {
-          //     components: toolCom.c_title,
-          //     configNme: 'titleLeft'
-          // },
           {
             components: toolCom.c_card_select,
             configNme: 'styleConfig',
@@ -185,10 +176,6 @@ export default {
       handler(nVal, oVal) {
         this.type = nVal;
         var arr = [
-          // {
-          //     components: toolCom.c_title,
-          //     configNme: 'titleLeft'
-          // },
           {
             components: toolCom.c_card_select,
             configNme: 'styleConfig',
@@ -226,10 +213,6 @@ export default {
       handler(nVal, oVal) {
         this.type2 = nVal;
         var arr = [
-          // {
-          //     components: toolCom.c_title,
-          //     configNme: 'titleLeft'
-          // },
           {
             components: toolCom.c_card_select,
             configNme: 'styleConfig',

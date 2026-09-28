@@ -36,11 +36,6 @@ public class StoreSeckillMangerRequest {
     @Length(max = 255, message = "秒杀时段名称不能超过255个字符")
     private String name;
 
-//    @ApiModelProperty(value = "秒杀开始时间段")
-//    private Integer startTime;
-//
-//    @ApiModelProperty(value = "秒杀结束时间段")
-//    private Integer endTime;
 
     @ApiModelProperty(value = "秒杀结束时间段")
     @NotBlank(message = "秒杀时间段不能为空")

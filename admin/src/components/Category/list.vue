@@ -146,7 +146,7 @@ import * as categoryApi from '@/api/categoryApi.js';
 import info from './info';
 import edit from './edit';
 import * as selfUtil from '@/utils/QXKJUtil.js';
-import { checkPermi, checkRole } from '@/utils/permission';
+import { checkPermi } from '@/utils/permission';
 export default {
   // name: "list"
   components: { info, edit },
@@ -262,10 +262,6 @@ export default {
       // this.ruleForm.isEditorFlag = true;
       //编辑时候使用
       this.$emit('rulesSelect', this.$refs.tree.getCheckedKeys());
-      // this.selectModelKeys = this.$refs.tree.getCheckedKeys();
-      //无论编辑和新增点击了就传到后台这个值
-      // this.$emit('rulesSelect', this.$refs.tree.getCheckedKeys().concat(this.$refs.tree.getHalfCheckedKeys()));
-      // this.ruleForm.menuIdsisEditor = this.$refs.tree.getCheckedKeys().concat(this.$refs.tree.getHalfCheckedKeys());
     },
     //具体方法可以看element官网api
     childNodes(node) {

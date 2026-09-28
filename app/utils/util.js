@@ -16,7 +16,6 @@ import store from '../store';
 import {
 	pathToBase64
 } from '@/plugin/image-tools/index.js';
-import util from 'utils/util'
 // #ifdef APP-PLUS
 import permision from "./permission.js"
 // #endif

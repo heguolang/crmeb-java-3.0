@@ -1007,8 +1007,6 @@ import { teamLevelAllApi } from '@/api/teamLevel';
 import { marketingSendApi } from '@/api/marketing';
 import { shippingTemplatesList } from '@/api/logistics';
 import { goodDesignList } from '@/api/systemGroup';
-import { arraysEqual } from '@/utils';
-import { clearTreeData } from '@/utils/QXKJUtil';
 import CreatTemplates from '@/views/systemSetting/deliverGoods/freightSet/creatTemplates';
 import creatAttr from '../components/creatAttr';
 import Templates from '../../appSetting/wxAccount/wxTemplate/index';
@@ -1494,20 +1492,6 @@ export default {
     },
   },
   watch: {
-    // 'formValidate.attr': {
-    //   handler: function (val) {
-    //     // 如果是多规格商品
-    //     if (this.formValidate.specType) {
-    //       // 生成规格属性表头
-    //       this.generateHeader(val);
-    //       // 生成规格属性数据
-    //       this.ManyAttrValue = this.generateAttr(val);
-    //     }
-    //     // if (this.formValidate.specType) this.watCh(val); //重要！！！
-    //   },
-    //   immediate: false,
-    //   deep: true,
-    // },
   },
   created() {
     this.tempRoute = Object.assign({}, this.$route);

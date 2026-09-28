@@ -19,7 +19,6 @@
 
 <script>
 import * as systemAdminApi from '@/api/systemadmin.js';
-import { getInfo } from '@/api/user.js';
 import Cookies from 'js-cookie';
 import { Debounce } from '@/utils/validate';
 export default {

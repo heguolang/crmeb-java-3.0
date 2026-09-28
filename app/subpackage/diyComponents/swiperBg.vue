@@ -168,15 +168,6 @@ export default {
         transform: `scale(${num})`,
       };
     },
-    // colorBgStyle() {
-    //   let styleObject = {
-    //     background: this.dataConfig.bgColor.color[0].item,
-    //   };
-    //   if (this.dataConfig.styleConfig.tabVal == 1) {
-    //     styleObject["height"] = "50%";
-    //   }
-    //   return styleObject;
-    // },
     imageStyle() {
       let borderRadius = `${this.dataConfig.filletImg.val * 2}rpx`;
       if (this.dataConfig.filletImg.type) {
@@ -231,7 +222,6 @@ export default {
   },
   watch: {
     imageH(nVal, oVal) {
-      let self = this;
       this.imageH = nVal;
     },
   },

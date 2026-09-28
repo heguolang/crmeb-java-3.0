@@ -19,7 +19,7 @@
 <script>
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
-import { mapState, mapMutations, mapActions } from 'vuex';
+import { mapMutations } from 'vuex';
 import { getArticleList, themeArticleCategory } from '@/api/theme';
 export default {
   name: 'c_home_bargain',
@@ -89,10 +89,6 @@ export default {
           components: toolCom.c_bg_color,
           configNme: 'browseColor',
         },
-        // {
-        //   components: toolCom.c_bg_color,
-        //   configNme: 'likeColor',
-        // },
         {
           components: toolCom.c_bg_color,
           configNme: 'statisticColor',

@@ -17,7 +17,6 @@ import com.qxkj.common.result.CommonResultCode;
 import com.qxkj.common.utils.ValidateFormUtil;
 import com.qxkj.common.vo.DateLimitUtilVo;
 import com.qxkj.common.vo.MyRecord;
-import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.constants.Constants;
 import com.qxkj.common.constants.UserConstants;
 import com.qxkj.common.exception.QianxuException;
@@ -347,10 +346,6 @@ public class StorePinkServiceImpl extends ServiceImpl<StorePinkDao, StorePink> i
             if (ObjectUtil.isNull(userToken)) {
                 return ;
             }
-            // 组装数据
-//        temMap.put("character_string1",  record.getStr("orderNo"));
-//        temMap.put("thing2", record.getStr("proName"));
-//        temMap.put("thing5", "恭喜您拼团成功！我们将尽快为您发货。");
             temMap.put("character_string10",  record.getStr("orderNo"));
             temMap.put("thing7", record.getStr("proName"));
             temMap.put("thing9", "恭喜您拼团成功！我们将尽快为您发货。");

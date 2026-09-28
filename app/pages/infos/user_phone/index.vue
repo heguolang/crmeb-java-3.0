@@ -89,16 +89,6 @@
 				this.isShowAuth = e
 			},
 			next() {
-				// uni.hideLoading();
-				// this.isNew = false;
-				// this.captcha = '';
-				// clearInterval(this.timer);
-				// this.disabled = false;
-				// this.text = "获取验证码";
-				// uni.showLoading({
-				// 	title: '加载中',
-				// 	mask: true
-				// });
 				if (!this.captcha) return this.$util.Tips({
 					title: '请填写验证码'
 				});

@@ -14,7 +14,6 @@ import store from './store'
 import Cache from './utils/cache'
 import util from 'utils/util'
 import configs from './config/app.js'
-import global from './libs/global.js'
 import apps from './libs/apps.js' //校验登录是否失效
 import * as Order from './libs/order';
 import skeleton from './components/skeleton/index.vue'
@@ -59,13 +58,6 @@ let cookieName = "VCONSOLE",
 		name: 'spread',
 		value: urlSpread,
 	})
-	// var spread = Cache.get(SPREAD);
-	// urlSpread = parseInt(urlSpread);
-	// if (!Number.isNaN(urlSpread) && spread !== urlSpread) {
-	// 	Cache.set("spread", urlSpread || 0);
-	// } else if (spread === 0 || typeof spread !== "number") {
-	// 	Cache.set("spread", urlSpread || 0);
-	// }
 }
 if (vconsole !== undefined) {
 	if (vconsole === md5UnQianxu && Cache.has(cookieName))
@@ -76,7 +68,6 @@ import VConsole from './components/vconsole.min.js'
 
 if (vconsole !== undefined && vconsole === md5Qianxu) {
 	Cache.set(cookieName, md5Qianxu, 3600);
-	let vConsole = new VConsole();
 }
 // #endif
 

@@ -133,15 +133,6 @@ public class ExpressController {
         return CommonResult.success(expressService.template(com));
     }
 
-//    /**
-//     * 获取电子面单模版
-//     */
-//    @ApiOperation(value = "查询 电子面单 模版列表")
-//    @RequestMapping(value = "/templatedianzi", method = RequestMethod.GET)
-//    @ApiImplicitParam(name="com", value="快递公司编号", required = true)
-//    public CommonResult<JSONObject> templateDZ(@RequestParam(value = "com") String com) {
-//        return CommonResult.success(expressService.templateFor(com));
-//    }
 }
 
 

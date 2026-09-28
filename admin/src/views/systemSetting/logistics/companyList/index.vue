@@ -92,7 +92,6 @@
 
 <script>
 import parser from '@/components/FormGenerator/components/parser/Parser';
-import * as systemFormConfigApi from '@/api/systemFormConfig.js';
 import * as logistics from '@/api/logistics.js';
 export default {
   name: 'CompanyList',

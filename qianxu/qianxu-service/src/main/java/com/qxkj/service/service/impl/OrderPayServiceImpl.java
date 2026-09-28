@@ -662,10 +662,6 @@ public class OrderPayServiceImpl implements OrderPayService {
             if (ObjectUtil.isNull(userToken)) {
                 return ;
             }
-            // 组装数据
-//        temMap.put("character_string1",  record.getStr("orderNo"));
-//        temMap.put("thing2", record.getStr("proName"));
-//        temMap.put("thing5", "恭喜您拼团成功！我们将尽快为您发货。");
             temMap.put("character_string10",  record.getStr("orderNo"));
             temMap.put("thing7", record.getStr("proName"));
             temMap.put("thing9", "恭喜您拼团成功！我们将尽快为您发货。");
@@ -1221,10 +1217,6 @@ public class OrderPayServiceImpl implements OrderPayService {
                 model.setTotalAmount(total_amount);
                 model.setProductCode("QUICK_MSECURITY_PAY");
 
-//                HashMap<String, String> map = CollUtil.newHashMap();
-//                map.put("type", Constants.SERVICE_PAY_TYPE_ORDER);
-//                String jsonString = JSONObject.toJSONString(map);
-//                String encode;
                 String encode = "type=" + Constants.SERVICE_PAY_TYPE_ORDER;
                 try {
                     encode = URLEncoder.encode(encode, "utf-8");
@@ -1628,10 +1620,6 @@ public class OrderPayServiceImpl implements OrderPayService {
             if (ObjectUtil.isNull(userToken)) {
                 return ;
             }
-            // 组装数据
-//            temMap.put("character_string1", storeOrder.getOrderId());
-//            temMap.put("amount2", storeOrder.getPayPrice().toString() + "元");
-//            temMap.put("thing7", "您的订单已支付成功");
             temMap.put("character_string3", storeOrder.getOrderId());
             temMap.put("amount9", storeOrder.getPayPrice().toString() + "元");
             temMap.put("thing6", "您的订单已支付成功");

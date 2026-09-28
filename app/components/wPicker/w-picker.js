@@ -37,7 +37,6 @@ const initPicker={
 			let dMonth=aToday.getMonth()+1;
 			let dDate=aToday.getDate();
 			let totalDays=new Date(startYear,curMonth,0).getDate();
-			let dvalObj={};
 			switch(mode){
 				case "half":
 				case "date":
@@ -264,7 +263,6 @@ const initPicker={
 			let date=[],areas=[],hours=[];
 			let hour=new Date().getHours();
 			let weeks=["周日","周一","周二","周三","周四","周五","周六"];
-			let arrs=[];
 			let defaultVal=[];
 			let d=0,a=0,h=0;
 			for(let i=0;i<dayStep;i++){

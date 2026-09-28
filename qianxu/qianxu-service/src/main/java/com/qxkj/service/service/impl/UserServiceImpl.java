@@ -1563,51 +1563,6 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         return CommonPage.copyPageInfo(recordPageInfo, responseList);
     }
 
-//    /**
-//     * 根据推广级别和其他参数获取推广列表
-//     *
-//     * @param request 推广层级和推广时间参数
-//     * @return 推广订单列表
-//     */
-//    @Override
-//    public PageInfo<SpreadOrderResponse> getOrderListBySpreadLevel(RetailShopStairUserRequest request, PageParamRequest pageParamRequest) {
-//        // 获取推广人列表
-//        if (ObjectUtil.isNull(request.getType())) {
-//            request.setType(0);
-//        }
-//        List<User> userList = getSpreadListBySpreadIdAndType(request.getUid(), request.getType());
-//        if (CollUtil.isEmpty(userList)) {
-//            return new PageInfo<>();
-//        }
-//
-//        List<Integer> userIds = userList.stream().map(User::getUid).distinct().collect(Collectors.toList());
-//        // 获取推广人订单号集合
-//        List<StoreOrder> orderList = storeOrderService.getOrderListStrByUids(userIds, request);
-//        if (CollUtil.isEmpty(orderList)) {
-//            return new PageInfo<>();
-//        }
-//        List<String> orderNoList = CollUtil.newArrayList();
-//        Map<String, StoreOrder> orderMap = CollUtil.newHashMap();
-//        orderList.forEach(e -> {
-//            orderNoList.add(e.getOrderId());
-//            orderMap.put(e.getOrderId(), e);
-//        });
-//        // 获取用户佣金记录
-//        PageInfo<UserBrokerageRecord> recordPageInfo = userBrokerageRecordService.findListByLinkIdsAndLinkTypeAndUid(orderNoList, BrokerageRecordConstants.BROKERAGE_RECORD_LINK_TYPE_ORDER, request.getUid(), pageParamRequest);
-//        List<SpreadOrderResponse> responseList = recordPageInfo.getList().stream().map(e -> {
-//            SpreadOrderResponse response = new SpreadOrderResponse();
-//            StoreOrder storeOrder = orderMap.get(e.getLinkId());
-//            response.setId(storeOrder.getId());
-//            response.setOrderId(storeOrder.getOrderId());
-//            response.setRealName(storeOrder.getRealName());
-//            response.setUserPhone(storeOrder.getUserPhone());
-//            response.setPrice(e.getPrice());
-//            response.setUpdateTime(e.getUpdateTime());
-//            return response;
-//        }).collect(Collectors.toList());
-//
-//        return CommonPage.copyPageInfo(recordPageInfo, responseList);
-//    }
 
     /**
      * 获取推广人列表

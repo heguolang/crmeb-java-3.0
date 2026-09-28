@@ -1,6 +1,5 @@
 package com.qxkj.common.request;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.qxkj.common.annotation.StringContains;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -9,8 +8,6 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.util.List;
 
 /**
  *

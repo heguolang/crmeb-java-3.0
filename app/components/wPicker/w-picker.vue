@@ -561,7 +561,6 @@
 				let days=[],months=[],endYears=[],endMonths=[],endDays=[],startDays=[];
 				let mode=_this.mode;
 				let col1,col2,col3,d,a,h,m;
-				let xDate=new Date().getTime();
 				switch(mode){
 					case "limitHour":
 						col1=_this.data.date[arr[0]];

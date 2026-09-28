@@ -1,6 +1,5 @@
 package com.qxkj.common.utils;
 
-import com.qxkj.common.constants.Constants;
 import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.vo.ImageMergeUtilVo;
 import lombok.Data;

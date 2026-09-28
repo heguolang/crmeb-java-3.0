@@ -8,7 +8,6 @@ import com.qxkj.common.utils.RedisUtil;
 import com.qxkj.common.utils.RequestUtil;
 import com.qxkj.common.vo.LoginUserVo;
 import org.apache.commons.lang3.ArrayUtils;
-import org.springframework.boot.test.context.TestComponent;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;

@@ -18,9 +18,8 @@
 </template>
 
 <script>
-import { getCategory, getProProduct } from '@/api/theme';
+import { getProProduct } from '@/api/theme';
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
-import { mapState, mapMutations, mapActions } from 'vuex';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
 export default {
   name: 'c_good_recommend',

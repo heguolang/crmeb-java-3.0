@@ -428,16 +428,6 @@ export function combineListApi(params) {
   });
 }
 
-// /**
-//  * 拼团列表 统计
-//  */
-// export function combineStatisticsApi(params) {
-//   return request({
-//     url: `/admin/store/combination/statistics`,
-//     method: 'get',
-//     params,
-//   });
-// }
 /**
  * 拼团列表 状态统计
  */

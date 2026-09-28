@@ -345,15 +345,6 @@ public class OrderTaskServiceImpl implements OrderTaskService {
                     continue;
                 }
                 String replyType = Constants.STORE_REPLY_TYPE_PRODUCT;
-//                if (ObjectUtil.isNotNull(orderInfo.getInfo().getSeckillId()) && orderInfo.getInfo().getSeckillId() > 0) {
-//                    replyType = Constants.STORE_REPLY_TYPE_SECKILL;
-//                }
-//                if (ObjectUtil.isNotNull(orderInfo.getInfo().getBargainId()) && orderInfo.getInfo().getBargainId() > 0) {
-//                    replyType = Constants.STORE_REPLY_TYPE_BARGAIN;
-//                }
-//                if (ObjectUtil.isNotNull(orderInfo.getInfo().getCombinationId()) && orderInfo.getInfo().getCombinationId() > 0) {
-//                    replyType = Constants.STORE_REPLY_TYPE_PINTUAN;
-//                }
                 StoreProductReply reply = new StoreProductReply();
                 reply.setUid(order.getUid());
                 reply.setOid(order.getId());

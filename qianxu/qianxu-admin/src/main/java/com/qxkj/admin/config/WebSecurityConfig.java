@@ -4,7 +4,6 @@ import com.qxkj.admin.filter.JwtAuthenticationTokenFilter;
 import com.qxkj.admin.manager.AuthenticationEntryPointImpl;
 import com.qxkj.admin.manager.CustomAccessDeniedHandler;
 import com.qxkj.admin.manager.CustomAuthenticationProvider;
-import com.qxkj.common.constants.Constants;
 import com.qxkj.common.constants.UploadConstants;
 import com.qxkj.service.service.impl.UserDetailServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,10 +69,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
      * 这里将Spring Security自带的authenticationManager声明成Bean，声明它的作用是用它帮我们进行认证操作，
      * 调用这个Bean的authenticate方法会由Spring Security自动帮我们做认证。
      */
-//    @Bean
-//    public AuthenticationManager authenticationManager() throws Exception {
-//        return new CusAuthenticationManager(customAuthenticationProvider);
-//    }
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {

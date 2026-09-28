@@ -30,7 +30,6 @@
 </template>
 
 <script>
-import { Local } from '@/utils/storage.js';
 import { R } from '@/utils/util';
 import { getMenuopen } from '@/utils/util';
 
@@ -109,7 +108,7 @@ export default {
     onBreadcrumbClick(v) {
       console.log(v);
 
-      const { redirect, path } = v;
+      const { path } = v;
       this.$router.push(path);
     },
     // breadcrumb icon 点击菜单展开与收起

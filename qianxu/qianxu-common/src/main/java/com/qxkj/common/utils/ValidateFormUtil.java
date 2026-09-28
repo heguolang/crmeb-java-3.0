@@ -7,7 +7,6 @@ import com.qxkj.common.constants.RegularConstants;
 import com.qxkj.common.constants.UserConstants;
 import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.model.system.SystemConfig;
-import com.qxkj.common.request.StoreOrderTabsNumRequest;
 import com.qxkj.common.request.UserCommonSearchRequest;
 import com.qxkj.common.result.CommonResultCode;
 import org.apache.commons.lang3.StringUtils;

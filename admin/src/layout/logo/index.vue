@@ -78,14 +78,6 @@ export default {
     },
     // logo 点击实现菜单展开/收起
     onThemeConfigChange() {
-      // if (
-      //   this.$store.state.themeConfig.themeConfig.layout == 'columns' &&
-      //   !this.$store.state.user.childMenuList.length &&
-      //   this.$store.state.themeConfig.themeConfig.isCollapse
-      // )
-      //   return;
-      // if (this.$store.state.themeConfig.themeConfig.layout === 'transverse' || this.$store.state.themeConfig.themeConfig.layout === 'classic') return false;
-      // this.$store.state.themeConfig.themeConfig.isCollapse = !this.$store.state.themeConfig.themeConfig.isCollapse;
       this.$router.push(`/dashboard`);
     },
   },

@@ -221,38 +221,9 @@ public class YlyUtil {
     public static void main(String[] args) throws Exception {
         YlyUtil ylyUtil = new YlyUtil();
         ylyUtil.instant();
-//        ylyUtil.ylyVoice();
-        // 响应类型 蜂鸣器:buzzer,喇叭:horn
-        // 音量大小 【1234】
-//        ylyUtil.ylySetSound(EnumYly.VOLUME_RESPONSE_TYPE_FENGMINGQI.getCode(),
-//                EnumYly.VOLUME_RESPONSE_VOICE3.getCode());
         ylyUtil.ylyVoice();
 
 
-        // 根据商品对象打印商品信息
-//        List<YlyPrintRequestGoods> goods = new ArrayList<>();
-//        YlyPrintRequestGoods g1 = new YlyPrintRequestGoods("红轴的机械键盘","110","1","110");
-//        YlyPrintRequestGoods g2 = new YlyPrintRequestGoods("新版的Iphone18 工程机 侧面带滑轮的那种","9999","1","9999");
-//        goods.add(g1);
-//        goods.add(g2);
-//        YlyPrintRequest ylyPrintRequest = new YlyPrintRequest();
-//        ylyPrintRequest.setBusinessName("黔序商城订单");
-//        ylyPrintRequest.setOrderNo("Order110");
-//        ylyPrintRequest.setDate("20211127");
-////        ylyPrintRequest.setTime("12:00:00");
-//        ylyPrintRequest.setName("大粽子");
-//        ylyPrintRequest.setPhone("18292417675");
-//        ylyPrintRequest.setAddress("陕西省 西安市 雁塔区 春林东街");
-//        ylyPrintRequest.setNote("死鬼 来的是否先打电话");
-//
-//        ylyPrintRequest.setGoods(goods);
-//        ylyPrintRequest.setAmount("10109");
-//        ylyPrintRequest.setDiscount("100");
-//        ylyPrintRequest.setPostal("0");
-//        ylyPrintRequest.setDeduction("9");
-//        ylyPrintRequest.setPayMoney("10000");
-//        // 执行打印
-//        ylyUtil.ylyPrint(ylyPrintRequest);
 
         // 取消多有待打印订单 根据需求调用
 //        ylyUtil.ylyCancelAll();

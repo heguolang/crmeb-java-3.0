@@ -13,7 +13,6 @@ import com.qxkj.common.constants.UserConstants;
 import com.qxkj.common.page.CommonPage;
 import com.qxkj.common.request.AdminIntegralSearchRequest;
 import com.qxkj.common.request.PageParamRequest;
-import com.qxkj.common.constants.Constants;
 import com.qxkj.common.constants.IntegralRecordConstants;
 import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.response.UserIntegralRecordResponse;
@@ -31,7 +30,6 @@ import com.qxkj.service.service.UserIntegralRecordService;
 import com.qxkj.service.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -39,7 +37,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -171,49 +168,6 @@ public class UserIntegralRecordServiceImpl extends ServiceImpl<UserIntegralRecor
             }
         }
         List<UserIntegralRecordResponse> responseList = dao.findRecordPageList(map);
-        //LambdaQueryWrapper<UserIntegralRecord> lqw = Wrappers.lambdaQuery();
-        //lqw.select(UserIntegralRecord::getId, UserIntegralRecord::getTitle, UserIntegralRecord::getBalance, UserIntegralRecord::getIntegral,
-        //        UserIntegralRecord::getMark, UserIntegralRecord::getUid, UserIntegralRecord::getUpdateTime);
-        //lqw.eq(UserIntegralRecord::getStatus, IntegralRecordConstants.INTEGRAL_RECORD_STATUS_COMPLETE);
-        //if (ObjectUtil.isNotNull(request.getUid())) {
-        //    lqw.eq(UserIntegralRecord::getUid, request.getUid());
-        //}
-        //if (StrUtil.isNotBlank(request.getKeywords())) {
-        //    List<Integer> idList = userService.findIdListLikeName(request.getKeywords());
-        //    if (CollUtil.isNotEmpty(idList)) {
-        //        lqw.in(UserIntegralRecord::getUid, idList);
-        //    } else {
-        //        return CommonPage.copyPageInfo(page, CollUtil.newArrayList());
-        //    }
-        //}
-        ////时间范围
-        //if (StrUtil.isNotBlank(request.getDateLimit())) {
-        //    DateLimitUtilVo dateLimit = QianxuDateUtil.getDateLimit(request.getDateLimit());
-        //    //判断时间
-        //    int compareDateResult = QianxuDateUtil.compareDate(dateLimit.getEndTime(), dateLimit.getStartTime(), Constants.DATE_FORMAT);
-        //    if (compareDateResult == -1) {
-        //        throw new QianxuException("开始时间不能大于结束时间！");
-        //    }
-        //
-        //    lqw.between(UserIntegralRecord::getUpdateTime, dateLimit.getStartTime(), dateLimit.getEndTime());
-        //}
-        //lqw.orderByDesc(UserIntegralRecord::getUpdateTime);
-        //List<UserIntegralRecord> list = dao.selectList(lqw);
-        //if (CollUtil.isEmpty(list)) {
-        //    return CommonPage.copyPageInfo(page, CollUtil.newArrayList());
-        //}
-        //List<UserIntegralRecordResponse> responseList = list.stream().map(i -> {
-        //    UserIntegralRecordResponse response = new UserIntegralRecordResponse();
-        //    BeanUtils.copyProperties(i, response);
-        //    // 获取用户昵称
-        //    User user = userService.getById(i.getUid());
-        //    if (ObjectUtil.isNotNull(user)) {
-        //        response.setNickName(user.getNickname());
-        //    } else {
-        //        response.setNickName("");
-        //    }
-        //    return response;
-        //}).collect(Collectors.toList());
         return CommonPage.copyPageInfo(page, responseList);
     }
 

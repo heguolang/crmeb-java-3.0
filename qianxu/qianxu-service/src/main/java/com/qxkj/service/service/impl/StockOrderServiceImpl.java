@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qxkj.common.constants.Constants;
 import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.model.product.StoreProduct;

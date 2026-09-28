@@ -3,14 +3,12 @@ package com.qxkj.service.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
-import com.qxkj.common.constants.Constants;
 import com.qxkj.common.constants.SysConfigConstants;
 import com.qxkj.common.constants.UploadConstants;
 import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.result.CommonResultCode;
 import com.qxkj.common.vo.CloudVo;
 import com.qxkj.common.vo.FileResultVo;
-import com.qxkj.common.vo.UploadCommonVo;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;
 import com.qcloud.cos.auth.BasicCOSCredentials;
@@ -26,7 +24,6 @@ import com.qxkj.common.model.system.SystemAttachment;
 import com.qxkj.common.config.QianxuConfig;
 import com.qxkj.service.service.*;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -243,18 +240,6 @@ public class UploadServiceImpl implements UploadService {
                 try {
                     // 构造一个带指定Zone对象的配置类, 默认华东
                     Configuration cfg = new Configuration(Region.autoRegion());
-//                    if (cloudVo.getRegion().equals("huabei")) {
-//                        cfg = new Configuration(Region.huabei());
-//                    }
-//                    if (cloudVo.getRegion().equals("huanan")) {
-//                        cfg = new Configuration(Region.huanan());
-//                    }
-//                    if (cloudVo.getRegion().equals("beimei")) {
-//                        cfg = new Configuration(Region.beimei());
-//                    }
-//                    if (cloudVo.getRegion().equals("dongnanya")) {
-//                        cfg = new Configuration(Region.xinjiapo());
-//                    }
 
                     // 其他参数参考类注释
                     UploadManager uploadManager = new UploadManager(cfg);

@@ -242,13 +242,6 @@ export default {
       };
       return styleObject;
     },
-    // componentStyle() {
-    // 	return {
-    // 		'padding': `${this.dataConfig.topConfig.val * 2}rpx ${this.dataConfig.prConfig.val * 2}rpx ${this.dataConfig.bottomConfig.val * 2}rpx`,
-    // 		'margin-top': `${this.dataConfig.mbConfig.val * 2}rpx`,
-    // 		'background': this.dataConfig.bottomBgColor.color[0].item,
-    // 	};
-    // },
     progressStyle() {
       let styleObject = {};
       if (this.dataConfig.toneConfig.tabVal) {
@@ -377,13 +370,6 @@ export default {
         });
     },
     tapQrCode() {
-      // this.isCode = true;
-      // this.codeIndex = 0;
-      // this.$nextTick(function() {
-      // 	let code = this.diyInfo.bar_code;
-      // 	this.config.bar.code = code;
-      // 	this.config.qrc.code = code;
-      // })
       uni.navigateTo({
         url: "/pages/users/user_member_code/index",
       });

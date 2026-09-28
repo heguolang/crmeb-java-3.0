@@ -56,11 +56,6 @@ public class StoreProductGuaranteeServiceImpl extends ServiceImpl<StoreProductGu
         return guaranteeList.stream().map(guarantee -> {
             StoreProductGuaranteeResponse response = new StoreProductGuaranteeResponse();
             BeanUtils.copyProperties(guarantee, response);
-            //response.setProNum(0);
-            //List<Product> productList = productService.findUseGuarantee(guarantee.getId());
-            //if (CollUtil.isNotEmpty(productList)) {
-            //    response.setProNum(productList.size());
-            //}
             return response;
         }).collect(Collectors.toList());
     }

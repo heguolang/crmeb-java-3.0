@@ -84,7 +84,7 @@
 </template>
 
 <script>
-	import {userActivity,getuserDalance,extractUser} from '@/api/user.js';
+import { getuserDalance, extractUser } from '@/api/user.js';
 	import {toLogin} from '@/libs/login.js';
 	import {mapGetters} from "vuex";
 	import { alipayQueryPayResult } from '@/api/order.js';
@@ -206,10 +206,6 @@
 			 * 获取活动可参与否
 			 */
 			get_activity: function() {
-				// let that = this;
-				// userActivity().then(res => {
-				// 	that.$set(that, "activity", res.data);
-				// })
 			}
 		},
 		onReachBottom() {

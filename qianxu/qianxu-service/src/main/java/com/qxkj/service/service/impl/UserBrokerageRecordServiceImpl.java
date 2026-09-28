@@ -10,7 +10,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qxkj.common.constants.UserConstants;
-import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.page.CommonPage;
 import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.constants.BrokerageRecordConstants;

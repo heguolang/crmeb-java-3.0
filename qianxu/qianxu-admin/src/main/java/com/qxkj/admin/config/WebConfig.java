@@ -1,6 +1,5 @@
 package com.qxkj.admin.config;
 
-import com.qxkj.common.constants.Constants;
 import com.qxkj.common.constants.UploadConstants;
 import com.qxkj.common.interceptor.SwaggerInterceptor;
 import com.qxkj.admin.filter.ResponseFilter;
@@ -16,7 +15,6 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.handler.MappedInterceptor;
 
-import java.io.File;
 
 /**
  *

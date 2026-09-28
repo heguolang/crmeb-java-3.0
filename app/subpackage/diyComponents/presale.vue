@@ -328,13 +328,6 @@ export default {
         fontSize: this.dataConfig.titleNumber.val * 2 + "rpx",
       };
     },
-    // boxStyle(){
-    // 	return {
-    // 		padding: `${this.dataConfig.topConfig.val * 2}rpx ${this.dataConfig.prConfig.val * 2}rpx ${this.dataConfig.bottomConfig.val * 2}rpx`,
-    // 		marginTop: `${this.dataConfig.mbConfig.val * 2}rpx`,
-    // 		background: this.dataConfig.bottomBgColor.color[0].item,
-    // 	}
-    // },
     boxContentStyle() {
       let br = `${this.dataConfig.fillet.val * 2}rpx`;
       let borderRadius = `0 0 ${br} ${br}`;

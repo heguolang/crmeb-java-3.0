@@ -74,7 +74,7 @@ export default {
     },
     handlerInitEditData() {
       if (this.isCreate !== 1) return;
-      const { id, name, info, formId, createTime, updateTime } = this.editData;
+      const { id, name, info, formId } = this.editData;
       this.editPram.id = id;
       this.editPram.name = name;
       this.editPram.info = info;

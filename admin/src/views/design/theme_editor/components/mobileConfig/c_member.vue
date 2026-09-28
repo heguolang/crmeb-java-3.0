@@ -19,7 +19,6 @@
 <script>
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
-import { mapState, mapMutations, mapActions } from 'vuex';
 export default {
   name: 'c_member',
   componentsName: 'home_member',
@@ -196,13 +195,6 @@ export default {
           });
         }
 
-        // Shortcut Config - Left Top
-        // if (this.configObj.styleConfig.tabVal == 0 || this.configObj.styleConfig.tabVal == 2) {
-        //   tempArr.push({
-        //     components: toolCom.c_menu_list,
-        //     configNme: 'shortcutConfig',
-        //   });
-        // }
 
         tempArr.push({
           components: toolCom.c_radio,

@@ -103,7 +103,7 @@ export default {
     },
     // 菜单高亮点击事件
     onColumnsAsideMenuClick(v) {
-      let { path, redirect } = v;
+      let { path } = v;
       if (v.children.length) {
         this.$router.push(findFirstNonNullChildren(v.children).path);
       } else {

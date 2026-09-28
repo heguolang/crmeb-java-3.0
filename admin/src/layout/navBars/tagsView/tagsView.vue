@@ -514,14 +514,6 @@ export default {
   & ::-webkit-scrollbar {
     display: none !important;
   }
-  // // 风格2
-  // .tags-style-two {
-  // }
-  // // 风格3
-  // .tags-style-three {
-  // }
-  // // 风格4
-  // 风格1
   .tags-style-one {
     .is-active {
       background: none !important;

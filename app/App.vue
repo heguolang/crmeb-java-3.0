@@ -7,7 +7,6 @@
 	} from './config/app';
 	import Auth from './libs/wechat.js';
 	import Routine from './libs/routine.js';
-	import Apps from './libs/apps.js';
 	import Cache from './utils/cache.js';
 	import {
 		getTheme,

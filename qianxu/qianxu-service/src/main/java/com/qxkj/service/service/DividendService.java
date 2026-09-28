@@ -1,6 +1,5 @@
 package com.qxkj.service.service;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.qxkj.common.model.dividend.DividendDetail;
 import com.qxkj.common.model.dividend.DividendLevel;

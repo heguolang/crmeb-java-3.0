@@ -283,9 +283,7 @@ export default {
         return m;
       }
       function swapArray(arr, index1, index2) {
-        let oldObj = {};
         let newObj = {};
-        let active = 0;
         arr.forEach((el, index) => {
           if (!el.id) {
             el.id = 'id' + el.timestamp;

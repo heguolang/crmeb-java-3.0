@@ -509,15 +509,6 @@
 						}
 					}
 				}
-				// for (let key in this.productValue) {
-				// 	if (value.length == 0) {
-				// 		value = this.attr.productAttr.length ? key.split(",") : [];
-				// 	}
-				// 	if (this.productValue[key].isDefault) {
-				// 		value = this.attr.productAttr.length ? key.split(",") : [];
-				// 		break;
-				// 	}
-				// }
 				for (let i = 0; i < productAttr.length; i++) {
 					this.$set(productAttr[i], "index", value[i]);
 				}
@@ -643,7 +634,6 @@
 				let that = this,
 					selectValue = that.selectValue;
 				if (selectValue.length > 0) {
-					let selectValueProductId = that.getSelectValueProductId();
 					collectAll(that.getSelectValueProductId()).then(res => {
 						return that.$util.Tips({
 							title: '收藏成功',

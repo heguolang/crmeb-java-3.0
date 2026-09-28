@@ -88,7 +88,7 @@ export default {
     },
     // 菜单高亮点击事件
     onColumnsAsideMenuClick(v) {
-      let { path, redirect } = v;
+      let { path } = v;
       if (v.children.length) {
         this.$router.push(findFirstNonNullChildren(v.children).path);
       } else {
@@ -243,10 +243,6 @@ export default {
         color: var(--prev-bg-columnsMenuBarColor);
       }
     }
-    // li:hover {
-    //   background: var(--prev-color-primary);
-    //   color: var(--prev-bg-columnsMenuBarColor);
-    // }
     .layout-columns {
       transition: 0.3s ease-in-out;
     }

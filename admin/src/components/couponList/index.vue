@@ -68,7 +68,7 @@
 </template>
 
 <script>
-import { marketingListApi, couponUserApi, marketingSendApi } from '@/api/marketing';
+import { couponUserApi, marketingSendApi } from '@/api/marketing';
 export default {
   name: 'CouponList',
   props: {

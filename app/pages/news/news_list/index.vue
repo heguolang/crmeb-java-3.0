@@ -99,13 +99,6 @@
 		 * 生命周期函数--监听页面显示
 		 */
 		onShow: function() {
-			// this.getArticleHot();
-			// this.getArticleBanner();
-			// this.getArticleCate();
-			// this.status = false;
-			// this.page = 1;
-			// //this.articleList = [];
-			// this.getCidArticle();
 		},
 		/**
 		   * 页面上拉触底事件的处理函数

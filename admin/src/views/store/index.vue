@@ -301,7 +301,6 @@ import {
   productGroupBatchBindApi,
   productGroupBatchUnbindApi,
 } from '@/api/productGroup';
-import { getToken } from '@/utils/auth';
 import storeEdit from './components/storeEdit';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
 import { Debounce } from '@/utils/validate.js';

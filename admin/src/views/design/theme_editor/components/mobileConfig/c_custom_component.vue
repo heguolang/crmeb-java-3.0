@@ -38,7 +38,6 @@
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
 import CustomDesign from '@/components/CustomDesign';
-import { mapState, mapMutations } from 'vuex';
 
 export default {
   name: 'c_custom_component',

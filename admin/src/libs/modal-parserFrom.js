@@ -49,10 +49,6 @@ export default function modalParserFrom(title, formName, isCreate, editData, cal
       })
       .catch(() => {
         reject();
-        // this.$message({
-        //   type: 'info',
-        //   message: '已取消',
-        // });
       });
   });
 }

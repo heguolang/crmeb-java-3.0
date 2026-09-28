@@ -5,7 +5,6 @@ import com.github.pagehelper.PageInfo;
 import com.qxkj.common.model.order.StoreOrder;
 import com.qxkj.common.model.pingou.PingouActivity;
 import com.qxkj.common.model.pingou.PingouJoin;
-import com.qxkj.common.model.pingou.PingouTeam;
 import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.request.PingouActivityRequest;
 import com.qxkj.common.request.PingouSearchRequest;

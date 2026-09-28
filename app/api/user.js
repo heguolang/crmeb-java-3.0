@@ -9,7 +9,6 @@
 // +----------------------------------------------------------------------
 
 import request from "@/utils/request.js";
-import Cache from "@/utils/cache.js"
 
 /**
  * 获取用户信息

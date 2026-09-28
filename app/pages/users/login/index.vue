@@ -87,7 +87,6 @@
 	</div>
 </template>
 <script>
-	import dayjs from "@/plugin/dayjs/dayjs.min.js";
 	import {
 		loginH5,
 		loginMobile,
@@ -97,10 +96,8 @@
 		getUserInfo
 	} from "@/api/user";
 	let app = getApp();
-	import attrs, {required,alpha_num,chs_phone} from "@/utils/validate";
-	import {validatorDefaultCatch} from "@/utils/dialog";
+import { required } from "@/utils/validate";
 	import {appAuth, appleLogin} from "@/api/public";
-	import Routine from '@/libs/routine';
 	import {Debounce} from '@/utils/validate.js'
 	import {
 		goToAgreement
@@ -344,7 +341,6 @@
 					})
 					.then(res => {
 						let data = res.data;
-						let newTime = Math.round(new Date() / 1000);
 						this.$store.commit("LOGIN", {
 							'token': res.data.token
 						});

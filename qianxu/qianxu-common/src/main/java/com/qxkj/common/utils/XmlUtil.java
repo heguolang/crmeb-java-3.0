@@ -10,7 +10,6 @@ import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.w3c.dom.Text;
 import org.xml.sax.InputSource;
 
 import javax.servlet.http.HttpServletRequest;
@@ -21,7 +20,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,28 +66,6 @@ public class XmlUtil {
     /**
      * 将发送消息封装成对应的xml格式
      */
-//    public static HashMap<String, Object> xmlToMap(String strxml) throws Exception {
-//        strxml = strxml.replaceFirst("encoding=\".*\"", "encoding=\"UTF-8\"");
-//
-//        HashMap<String, Object> map = new HashMap<>();
-//        SAXReader reader = new SAXReader();
-//        InputStream inputStream = new ByteArrayInputStream(strxml.getBytes(StandardCharsets.UTF_8));
-//
-//        if (StringUtils.isBlank(strxml)) {
-//            return null;
-//        }
-//
-//        Document document = reader.read(inputStream);
-//        Element root = document.getRootElement();
-//        List<Element> list = root.elements();
-//
-//        for (Element e : list) {
-//            map.put(e.getName(), e.getText());
-//        }
-//        inputStream.close();
-//
-//        return map;
-//    }
 
     public static HashMap<String, Object> xmlToMap(String strxml) {
         strxml = strxml.replaceFirst("encoding=\".*\"", "encoding=\"UTF-8\"");

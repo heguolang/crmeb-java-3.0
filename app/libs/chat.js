@@ -8,7 +8,6 @@
 // | Author: 贵州黔序科技有限公司
 // +----------------------------------------------------------------------
 
-import $store from "@/store";
 import {
 	VUE_APP_WS_URL
 } from "@/utils/index.js";

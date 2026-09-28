@@ -30,12 +30,6 @@ export const GoodsTableHead = [
     align: 'center',
     minWidth: '120px',
   },
-  // {
-  //   title: '商品条码',
-  //   slot: 'itemNumber',
-  //   align: 'center',
-  //   minWidth: '120px',
-  // },
   {
     title: '重量（KG）',
     slot: 'weight',

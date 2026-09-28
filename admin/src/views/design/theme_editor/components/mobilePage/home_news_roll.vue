@@ -467,11 +467,6 @@ export default {
           min: 0,
           valList: [{ val: 0 }, { val: 0 }, { val: 0 }, { val: 0 }],
         },
-        // logoConfig: {
-        //     header: '图标设置',
-        //     title: '最多可添加1张图片，建议宽度130 * 36px',
-        //     url: require('@/assets/images/news.png')
-        // }
       },
       tabVal: '',
       rollStyle: '',

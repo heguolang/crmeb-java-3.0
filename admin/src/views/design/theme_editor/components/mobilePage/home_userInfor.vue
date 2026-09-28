@@ -123,7 +123,7 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex';
+import { mapState } from 'vuex';
 // import theme from "@/views/design/theme_editor/mixins/theme";
 export default {
   name: 'home_userInfor',
@@ -509,11 +509,6 @@ export default {
       this.bgColorLeft = data.moduleColor.color[0].item;
       this.bgColorRight = data.moduleColor.color[1].item;
       this.themeColor = `linear-gradient(90deg,${this.colorStyle.theme} 0%,${this.colorStyle.gradient} 100%)`;
-      // this.bottomBgColor = data.bottomBgColor.color[0].item;
-      // this.topConfig = data.topConfig.val;
-      // this.bottomConfig = data.bottomConfig.val;
-      // this.prConfig = data.prConfig.val;
-      // this.mTop = data.mbConfig.val;
       let fillet = data.fillet.type;
       let filletVal = data.fillet.val;
       let valList = data.fillet.valList;

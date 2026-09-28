@@ -23,8 +23,6 @@
 </template>
 
 <script>
-import { mapState } from 'vuex';
-import settings from '@/utils/settingMer';
 import uploadPictures from '@/views/design/theme_editor/components/uploadPictures';
 export default {
   name: 'c_upload_video',

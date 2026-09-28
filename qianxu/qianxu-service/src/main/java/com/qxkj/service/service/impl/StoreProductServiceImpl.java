@@ -527,17 +527,6 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         if (tempProduct.getIsRecycle() || tempProduct.getIsDel()) {
             throw new QianxuException("商品已删除");
         }
-        // 出售中(is_show=1)商品允许直接编辑保存，状态保持不变；仅回收站/已删除拦截（上方已拦截）
-        // 如果商品是活动商品主商品不允许修改
-//        if (storeSeckillService.isExistByProductId(storeProductRequest.getId())) {
-//            throw new QianxuException("商品作为秒杀商品的主商品，需要修改请先删除对应秒杀商品");
-//        }
-//        if (storeBargainService.isExistByProductId(storeProductRequest.getId())) {
-//            throw new QianxuException("商品作为砍价商品的主商品，需要修改请先删除对应砍价商品");
-//        }
-//        if (storeCombinationService.isExistByProductId(storeProductRequest.getId())) {
-//            throw new QianxuException("商品作为拼团商品的主商品，需要修改请先删除对应拼团商品");
-//        }
 
         StoreProduct storeProduct = new StoreProduct();
         BeanUtils.copyProperties(storeProductRequest, storeProduct);
@@ -604,20 +593,6 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
             attrList.add(attr);
             optionMap.put(attr.getAttrName(), attrOptionList);
         });
-        //List<StoreProductAttr> attrAddList = CollUtil.newArrayList();
-        //List<StoreProductAttr> attrUpdateList = CollUtil.newArrayList();
-        //addRequestList.forEach(e -> {
-        //    StoreProductAttr attr = new StoreProductAttr();
-        //    BeanUtils.copyProperties(e, attr);
-        //    if (ObjectUtil.isNull(attr.getId())) {
-        //        attr.setProductId(storeProduct.getId());
-        //        attr.setType(Constants.PRODUCT_TYPE_NORMAL);
-        //        attrAddList.add(attr);
-        //    } else {
-        //        attr.setIsDel(false);
-        //        attrUpdateList.add(attr);
-        //    }
-        //});
 
         // attrValue部分
         List<StoreProductAttrValue> attrValueAddList = CollUtil.newArrayList();
@@ -662,12 +637,6 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
             productAttrOptionService.deleteByProductUpdate(storeProduct.getId());
             storeProductAttrValueService.deleteByProductIdAndType(storeProduct.getId(), Constants.PRODUCT_TYPE_NORMAL);
 
-            //if (CollUtil.isNotEmpty(attrAddList)) {
-            //    attrService.saveBatch(attrAddList);
-            //}
-            //if (CollUtil.isNotEmpty(attrUpdateList)) {
-            //    attrService.saveOrUpdateBatch(attrUpdateList);
-            //}
 
             attrService.saveBatch(attrList);
             attrList.forEach(attr -> {
@@ -1583,10 +1552,6 @@ public class StoreProductServiceImpl extends ServiceImpl<StoreProductDao, StoreP
         }
 
         if (StrUtil.isNotBlank(request.getKeyword())) {
-//            if (QianxuUtil.isString2Num(request.getKeyword())) {
-//                Integer productId = Integer.valueOf(request.getKeyword());
-//                lqw.like(StoreProduct::getId, productId);
-//            } else {
             lqw.and(i -> i.like(StoreProduct::getStoreName, request.getKeyword())
                     .or().like(StoreProduct::getKeyword, request.getKeyword()));
 //            }

@@ -85,7 +85,6 @@ class Cache {
 			uni.setStorageSync(options.name,JSON.stringify(options));
 	    }else{
 			//如果options.expires没有设置，就判断一下value的类型
-	       	let type = Object.prototype.toString.call(options.value);
 	       	//如果value是对象或者数组对象的类型，就先用JSON.stringify转一下，再存进去
 	        if(Object.prototype.toString.call(options.value) == '[object Object]'){
 	            options.value = JSON.stringify(options.value);
@@ -201,12 +200,6 @@ class Cache {
 	 */
 	clearOverdue()
 	{
-		// let cacheList = uni.getStorageInfoSync(),that = this;
-		// if (typeof cacheList.keys === 'object'){
-		// 	cacheList.keys.forEach(item=>{
-		// 		that.getExpireCahe(item);
-		// 	})
-		// }
 	}
 	
 	/**

@@ -12,7 +12,6 @@
 	</view>
 </template>
 <script>
-	const app = getApp();
 	import Routine from '@/libs/routine';
 	import {
 		loginMobile,
@@ -20,7 +19,7 @@
 		getCodeApi,
 		getUserInfo
 	} from "@/api/user";
-	import { getLogo, getUserPhone } from '@/api/public';
+import { getUserPhone } from '@/api/public';
 	import { updateUserPhone } from '@/api/user';
 	export default{
 		name:'routine_phone',

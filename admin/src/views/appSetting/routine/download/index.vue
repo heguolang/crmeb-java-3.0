@@ -29,7 +29,6 @@
 <script>
 import { wechatCodeDownload } from '@/api/wxApi';
 import { getMiniDownloadUrlApi } from '@/api/systemConfig';
-import { checkPermi } from '@/utils/permission'; // 权限判断函数
 export default {
   data() {
     return {

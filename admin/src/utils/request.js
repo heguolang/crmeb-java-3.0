@@ -9,9 +9,8 @@
 // +----------------------------------------------------------------------
 
 import axios from 'axios';
-import { MessageBox, Message } from 'element-ui';
+import { Message } from 'element-ui';
 import store from '@/store';
-import { getToken } from '@/utils/auth';
 import SettingMer from '@/utils/settingMer';
 import { isPhone } from '@/libs/wechat';
 const service = axios.create({

@@ -35,7 +35,7 @@ import '@/assets/iconfont/iconfont.css';
 // import '@/assets/iconfont/iconfont copy.css';
 import '@/assets/iconfont/iconfont-weapp-icon.css';
 
-import { parseTime, resetForm, addDateRange, selectDictLabel, selectDictLabels, handleTree } from '@/utils/parsing';
+import { parseTime, resetForm, handleTree } from '@/utils/parsing';
 // 懒加载
 import VueLazyload from 'vue-lazyload';
 
@@ -79,7 +79,6 @@ import { parseQuery } from '@/utils';
 import * as Auth from '@/libs/wechat';
 import * as constants from '@/utils/constants.js';
 import * as selfUtil from '@/utils/QXKJUtil.js';
-import SettingMer from '@/utils/settingMer';
 import plugins from './plugins';
 import directive from './directive'; //directive
 
@@ -139,7 +138,6 @@ Vue.prototype.resetForm = resetForm;
 
 let cookieName = 'VCONSOLE';
 let query = parseQuery();
-let urlSpread = query['spread'];
 let vconsole = query[cookieName.toLowerCase()];
 let md5Qianxu = 'b14d1e9baeced9bb7525ab19ee35f2d2'; //QIANXU MD5 加密开启vconsole模式
 let md5UnQianxu = '3dca2162c4e101b7656793a1af20295c'; //UN_CREMB MD5 加密关闭vconsole模式
@@ -168,10 +166,6 @@ String.prototype.replaceAll = function (s1, s2) {
  * Currently MockJs will be used in the production environment,
  * please remove it before going online ! ! !
  */
-// if (process.env.NODE_ENV === 'production') {
-//   const { mockXHR } = require('../mock')
-//   mockXHR()
-// }
 
 // register global utility filters
 Object.keys(filters).forEach((key) => {
@@ -180,7 +174,6 @@ Object.keys(filters).forEach((key) => {
 
 Vue.config.productionTip = false;
 
-const $previewApp = document.getElementById('previewApp');
 const childAttrs = {
   file: '',
   dialog: ' width="600px" class="dialog-width" v-if="visible" :visible.sync="visible" :modal-append-to-body="false" ',

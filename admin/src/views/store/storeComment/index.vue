@@ -118,7 +118,6 @@ import creatComment from './creatComment.vue';
 import { categoryApi, replyListApi, replyDeleteApi, replyCommentApi } from '@/api/store';
 import { formatDates } from '@/utils/index';
 import { userListApi } from '@/api/user';
-import { search } from 'core-js/fn/symbol';
 export default {
   name: 'StoreComment',
   filters: {

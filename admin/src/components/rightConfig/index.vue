@@ -23,7 +23,6 @@
 <script>
 import { getCategory, getByCategory, diySave, storeStatus } from '@/api/diy';
 import toolCom from '@/components/diyComponents/index.js';
-import { mapMutations } from 'vuex';
 import { mapState } from 'vuex';
 export default {
   name: 'rightConfig',
@@ -80,7 +79,6 @@ export default {
     defultArr: {
       handler(nVal, oVal) {
         this.rCom = [];
-        let tempArr = this.objToArray(nVal);
         this.rCom = nVal[this.name.name].list;
       },
       deep: true,

@@ -45,27 +45,6 @@ public class QrCodeServiceImpl implements QrCodeService {
      */
     @Override
     public QrCodeVo getWecahtQrCode(JSONObject data) {
-//        StringBuilder scene = new StringBuilder();
-//        String page = "";
-//        try {
-//            if (ObjectUtil.isNotNull(data)) {
-//                Map<Object, Object> dataMap = JSONObject.toJavaObject(data, Map.class);
-//
-//                for (Map.Entry<Object, Object> m : dataMap.entrySet()) {
-//                    if (m.getKey().equals("path")) {
-//                        //前端路由， 不需要拼参数
-//                        page = m.getValue().toString();
-//                        continue;
-//                    }
-//                    if (scene.length() > 0) {
-//                        scene.append(",");
-//                    }
-//                    scene.append(m.getKey()).append(":").append(m.getValue());
-//                }
-//            }
-//        } catch (Exception e) {
-//            throw new QianxuException("url参数错误 " + e.getMessage());
-//        }
         if (ObjectUtil.isNull(data) || data.isEmpty())
             throw new QianxuException(CommonResultCode.VALIDATE_FAILED, "生成微信参数不能为空");
         QrCodeVo vo = new QrCodeVo();

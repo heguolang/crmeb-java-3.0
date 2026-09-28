@@ -4,7 +4,6 @@ import com.qxkj.common.model.user.UserBrokerageRecord;
 import com.qxkj.common.page.CommonPage;
 import com.qxkj.common.request.BrokerageRecordRequest;
 import com.qxkj.common.request.FundsMonitorRequest;
-import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.response.MonitorResponse;
 import com.qxkj.common.result.CommonResult;
 import com.qxkj.service.service.UserBillService;

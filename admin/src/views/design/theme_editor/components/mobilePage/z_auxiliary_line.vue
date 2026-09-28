@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex';
+import { mapState } from 'vuex';
 export default {
   name: 'z_auxiliary_line',
   cname: '辅助线',

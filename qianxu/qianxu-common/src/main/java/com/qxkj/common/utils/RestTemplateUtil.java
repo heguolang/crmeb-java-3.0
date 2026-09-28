@@ -60,16 +60,6 @@ public class RestTemplateUtil {
             " (" + System.getProperty("os.arch") + " " + System.getProperty("os.name") + " " + System.getProperty("os.version") +
             ") Java/" + System.getProperty("java.version") + " HttpClient/" + HttpClient.class.getPackage().getImplementationVersion();
 
-//    /**
-//     * 设置超时时间
-//     */
-//    public RestTemplateUtil() {
-//        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-//        //30s
-//        requestFactory.setConnectTimeout(30*1000);
-//        requestFactory.setReadTimeout(30*1000);
-//        restTemplate = new RestTemplate(requestFactory);
-//    }
 
     /**
      * 发送GET请求
@@ -442,11 +432,6 @@ public class RestTemplateUtil {
         HttpEntity<MultiValueMap<String, Object>> requestEntity =
                 new HttpEntity<>(params, headers);
 
-//        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-//        //30s
-//        requestFactory.setConnectTimeout(30*1000);
-//        requestFactory.setReadTimeout(30*1000);
-//        restTemplate = new RestTemplate(requestFactory);
         return restTemplate.postForEntity(url, requestEntity, String.class).getBody();
     }
 

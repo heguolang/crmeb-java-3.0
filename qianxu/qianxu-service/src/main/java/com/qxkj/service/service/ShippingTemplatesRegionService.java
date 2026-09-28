@@ -2,7 +2,6 @@ package com.qxkj.service.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.qxkj.common.model.express.ShippingTemplatesRegion;
-import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.request.ShippingTemplatesRegionRequest;
 import com.qxkj.common.response.ShippingTemplatesRegionResponse;
 

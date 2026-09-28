@@ -1,7 +1,5 @@
 package com.qxkj.admin.controller;
 
-import com.qxkj.common.annotation.LogControllerAnnotation;
-import com.qxkj.common.enums.MethodType;
 import com.qxkj.common.request.StoreProductGuaranteeRequest;
 import com.qxkj.common.response.StoreProductGuaranteeResponse;
 import com.qxkj.common.result.CommonResult;

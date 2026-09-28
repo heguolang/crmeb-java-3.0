@@ -18,8 +18,7 @@
 <script>
 import toolCom from '@/views/design/theme_editor/components/mobileConfigRight/index.js';
 import rightBtn from '@/views/design/theme_editor/components/rightBtn/index.vue';
-import { mapState, mapMutations, mapActions } from 'vuex';
-import { newcomerList } from '@/api/theme';
+import { mapMutations } from 'vuex';
 export default {
   name: 'c_new_vip',
   componentsName: 'home_new_vip',
@@ -433,19 +432,6 @@ export default {
         }
       }
     },
-    // 获取组件参数
-    // getConfig (data) {
-    //     newcomerList({
-    //         page: 1,
-    //         limit: this.configObj.numConfig.val,
-    //         priceOrder: this.configObj.itemSort.type == 2 ? 'desc' : '',
-    //         salesOrder: this.configObj.itemSort.type == 1 ? 'desc' : ''
-    //     }).then(res=>{
-    //         this.configObj.newVipList.list = res.data;
-    //     }).catch(err=>{
-    //        return this.$message.error(err.msg);
-    //     })
-    // },
     handleSubmit(name) {
       let obj = {};
       obj.activeIndex = this.activeIndex;

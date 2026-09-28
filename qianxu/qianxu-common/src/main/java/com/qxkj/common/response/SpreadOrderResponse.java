@@ -1,8 +1,5 @@
 package com.qxkj.common.response;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.qxkj.common.utils.CustomerBigDecimalSerialize;
 import io.swagger.annotations.ApiModel;

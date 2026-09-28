@@ -10,12 +10,6 @@
 
 const arrTemp =  ["beforePay","afterPay", "createBargain","pink"];
 
-// export function auth() {
-// 	let tmplIds = {};
-// 	let messageTmplIds = uni.getStorageSync(SUBSCRIBE_MESSAGE);
-// 	tmplIds = messageTmplIds ? JSON.parse(messageTmplIds) : {};
-// 	return tmplIds;
-// }
 
 /**
  * 支付成功后订阅消息id
@@ -39,10 +33,6 @@ export function openOrderSubscribe() {
  * 提现消息订阅
  * 成功 和 失败 消息
  */
-// export function openExtrctSubscribe() {
-// 	let tmplIds = uni.getStorageSync('tempID' + arrTemp[2]);
-// 	return subscribe(tmplIds);
-// }
 
 
 /**
@@ -61,13 +51,6 @@ export function openPinkSubscribe() {
 	let tmplIds = uni.getStorageSync('tempID' + arrTemp[3]);
 	return subscribe(tmplIds);
 }
-// /**
-//  * 提现
-//  */
-// export function openEextractSubscribe() {
-// 	let tmplIds = JSON.parse(uni.getStorageSync('tempID' + paySubscribe));
-// 	return subscribe(tmplIds);
-// }
 
 /**
  * 调起订阅界面

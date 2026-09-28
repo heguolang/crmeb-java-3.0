@@ -161,8 +161,7 @@
 import PriceChange from '../components/PriceChange';
 import ClipboardJS from 'clipboard';
 import { orderDetailApi } from '@/api/order';
-import { required, num } from '@/utils/validate';
-import { validatorDefaultCatch } from '@/libs/dialog';
+import { num } from '@/utils/validate';
 import { isWriteOff } from '@/utils';
 export default {
   name: 'AdminOrder',
@@ -236,84 +235,6 @@ export default {
         },
       );
     },
-    // async savePrice(opt) {
-    //   let that = this,
-    //     data = {},
-    //     price = opt.price,
-    //     remark = opt.remark,
-    //     refundStatus = that.orderInfo.refundStatus,
-    //     refundPrice = opt.refundPrice;
-    //   if (that.status == 0 && refundStatus === 0) {
-    //     try {
-    //       await this.$validator({
-    //         price: [
-    //           required(required.message("金额")),
-    //           num(num.message("金额"))
-    //         ]
-    //       }).validate({ price });
-    //     } catch (e) {
-    //       return validatorDefaultCatch(e);
-    //     }
-    //     data.price = price;
-    //     data.orderId  = opt.orderId;
-    //     setAdminOrderPrice(data).then(
-    //       function() {
-    //         that.change = false;
-    //         that.$dialog.success("改价成功");
-    //         that.getIndex();
-    //       },
-    //       function() {
-    //         that.change = false;
-    //         that.$dialog.error("改价失败");
-    //       }
-    //     );
-    //   } else if (that.status == 0 && that.orderInfo.refund_status === 1) {
-    //     try {
-    //       await this.$validator({
-    //         refund_price: [
-    //           required(required.message("金额")),
-    //           num(num.message("金额"))
-    //         ]
-    //       }).validate({ refund_price });
-    //     } catch (e) {
-    //       return validatorDefaultCatch(e);
-    //     }
-    //     data.price = refund_price;
-    //     data.type = opt.type;
-    //     setOrderRefund(data).then(
-    //       res => {
-    //         that.change = false;
-    //         that.$dialog.success(res.msg);
-    //         that.getIndex();
-    //       },
-    //       err => {
-    //         that.change = false;
-    //         that.$dialog.error(err.msg);
-    //         that.getIndex();
-    //       }
-    //     );
-    //   } else {
-    //     try {
-    //       await this.$validator({
-    //         remark: [required(required.message("备注"))]
-    //       }).validate({ remark });
-    //     } catch (e) {
-    //       return validatorDefaultCatch(e);
-    //     }
-    //     data.remark = remark;
-    //     setAdminOrderRemark(data).then(
-    //       res => {
-    //         that.change = false;
-    //         that.$dialog.success(res.msg);
-    //         that.getIndex();
-    //       },
-    //       err => {
-    //         that.change = false;
-    //         that.$dialog.error(err.msg);
-    //       }
-    //     );
-    //   }
-    // },
     offlinePay: function () {
       setOfflinePay({ orderId: this.orderInfo.orderId }).then(
         (res) => {

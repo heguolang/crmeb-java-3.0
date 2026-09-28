@@ -2,7 +2,6 @@ package com.qxkj.service.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateTime;
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -13,7 +12,6 @@ import com.qxkj.common.constants.DateConstants;
 import com.qxkj.common.constants.PayConstants;
 import com.qxkj.common.constants.UserConstants;
 import com.qxkj.common.page.CommonPage;
-import com.qxkj.common.constants.Constants;
 import com.qxkj.common.exception.QianxuException;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -23,12 +21,10 @@ import com.qxkj.common.utils.QianxuDateUtil;
 import com.qxkj.common.model.finance.UserRecharge;
 import com.qxkj.common.request.UserRechargeSearchRequest;
 import com.qxkj.common.response.UserRechargeResponse;
-import com.qxkj.common.model.user.User;
 import com.qxkj.common.utils.ValidateFormUtil;
 import com.qxkj.common.vo.DateLimitUtilVo;
 import com.qxkj.service.dao.UserRechargeDao;
 import com.qxkj.service.service.UserRechargeService;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -36,7 +32,6 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -64,32 +59,6 @@ public class UserRechargeServiceImpl extends ServiceImpl<UserRechargeDao, UserRe
     */
     @Override
     public PageInfo<UserRechargeResponse> getList(UserRechargeSearchRequest request) {
-        //Page<UserRecharge> userRechargesList = PageHelper.startPage(request.getPage(), request.getLimit());
-        //
-        //DateLimitUtilVo dateLimit = QianxuDateUtil.getDateLimit(request.getDateLimit());
-        ////带 UserExtract 类的多条件查询
-        //LambdaQueryWrapper<UserRecharge> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        //if (ObjectUtil.isNotNull(request.getUid()) && request.getUid() > 0) {
-        //    lambdaQueryWrapper.eq(UserRecharge::getUid, request.getUid());
-        //}
-        //if (StrUtil.isNotBlank(request.getKeywords())) {
-        //    lambdaQueryWrapper.like(UserRecharge::getOrderId, request.getKeywords()); //订单号
-        //}
-        ////是否充值
-        //lambdaQueryWrapper.eq(UserRecharge::getPaid, true);
-        //
-        ////时间范围
-        //if (StrUtil.isNotBlank(dateLimit.getStartTime()) && StrUtil.isNotBlank(dateLimit.getEndTime())) {
-        //    //判断时间
-        //    int compareDateResult = QianxuDateUtil.compareDate(dateLimit.getEndTime(), dateLimit.getStartTime(), Constants.DATE_FORMAT);
-        //    if(compareDateResult == -1){
-        //        throw new QianxuException("开始时间不能大于结束时间！");
-        //    }
-        //
-        //    lambdaQueryWrapper.between(UserRecharge::getCreateTime, dateLimit.getStartTime(), dateLimit.getEndTime());
-        //}
-        //lambdaQueryWrapper.orderByDesc(UserRecharge::getId);
-        //List<UserRecharge> userRecharges = dao.selectList(lambdaQueryWrapper);
         Map<String, Object> map = CollUtil.newHashMap();
         if (StrUtil.isNotBlank(request.getContent())) {
             ValidateFormUtil.validatorUserCommonSearch(request);
@@ -130,23 +99,6 @@ public class UserRechargeServiceImpl extends ServiceImpl<UserRechargeDao, UserRe
         Page<UserRechargeResponse> page = PageHelper.startPage(request.getPage(), request.getLimit());
         List<UserRechargeResponse> userRechargesList = dao.getAdminPage(map);
         return CommonPage.copyPageInfo(page, userRechargesList);
-        //if (CollUtil.isEmpty(userRecharges)) {
-        //    return CommonPage.copyPageInfo(userRechargesList, CollUtil.newArrayList());
-        //}
-        //
-        //List<Integer> userIds = userRecharges.stream().map(UserRecharge::getUid).collect(Collectors.toList());
-        //HashMap<Integer, User> userHashMap = userService.getMapListInUid(userIds);
-        //List<UserRechargeResponse> responseList = userRecharges.stream().map(e -> {
-        //    User user = userHashMap.get(e.getUid());
-        //    UserRechargeResponse r = new UserRechargeResponse();
-        //    BeanUtils.copyProperties(e, r);
-        //    if (null != user) {
-        //        r.setAvatar(user.getAvatar());
-        //        r.setNickname(user.getNickname());
-        //    }
-        //    return r;
-        //}).collect(Collectors.toList());
-        //return CommonPage.copyPageInfo(userRechargesList, responseList);
     }
 
     /**

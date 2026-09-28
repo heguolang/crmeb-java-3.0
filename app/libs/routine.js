@@ -12,8 +12,7 @@ import store from '../store';
 import { checkLogin } from './login';
 import { login } from '../api/public';
 import Cache from '../utils/cache';
-import { spread } from "@/api/user";
-import { STATE_R_KEY, USER_INFO, EXPIRES_TIME, LOGIN_STATUS} from './../config/cache';
+import { STATE_R_KEY, USER_INFO } from './../config/cache';
 class Routine 
 {
 	

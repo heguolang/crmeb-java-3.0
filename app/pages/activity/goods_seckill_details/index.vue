@@ -770,12 +770,6 @@
 						}
 					}
 				}
-				// for (var key in self.productValue) {
-				// 	if (self.productValue[key].quota > 0) {
-				// 		value = productAttr.length ? key.split(",") : [];
-				// 		break;
-				// 	}
-				// }
 				for (let i = 0; i < value.length; i++) {
 					self.$set(productAttr[i], "index", value[i]);
 				}
@@ -1141,7 +1135,6 @@
 					mask: true
 				});
 				that.posters = false;
-				let arrImagesUrl = '';
 				let arrImagesUrlTop = '';
 				if (!that.PromotionCode) {
 					uni.hideLoading();

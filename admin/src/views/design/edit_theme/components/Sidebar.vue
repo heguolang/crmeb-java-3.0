@@ -165,17 +165,7 @@ export default {
         clip-path: inset(0 0 50% 50%);
       }
 
-      // &:hover {
-      //   opacity: 1;
-      //   background: #fff;
-      //   color: #1f74ff;
-      //   margin-left: 8px;
-      // }
 
-      // &:hover::before,
-      // &:hover::after {
-      //   box-shadow: 0 0 0 15px #fff;
-      // }
 
       &.active {
         opacity: 1;

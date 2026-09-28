@@ -25,12 +25,6 @@ import java.util.Objects;
 public class StoreSeckillManagerResponse {
     private static final long serialVersionUID=1L;
 
-    // 自定义statusName值
-    // 开启 =     status = 1 && 当前时间小于startTime
-    // 关闭 =     status = 0
-    // 进行中 =    status = 1 && 当前时间大于startTime 小于 stopTime
-    // 已结束 =    status = 1 && 当前时间大于结束时间
-    // 秒杀状态【仅仅前端用】 killStatus 1=即将开始 0=关闭 2=进行中 -1=已结束
     public String getStatusName() {
         String _statusName = null;
         int currentHour = QianxuDateUtil.getCurrentHour();

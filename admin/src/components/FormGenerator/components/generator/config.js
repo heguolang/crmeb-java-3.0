@@ -144,24 +144,6 @@ export const inputComponents = [
     'controls-position': '',
     disabled: false,
   },
-  // {
-  //   __config__: {
-  //     label: '编辑器',
-  //     showLabel: true,
-  //     changeTag: true,
-  //     labelWidth: null,
-  //     tag: 'tinymce',
-  //     tagIcon: 'rich-text',
-  //     defaultValue: null,
-  //     span: 24,
-  //     layout: 'colFormItem',
-  //     required: true,
-  //     regList: [],
-  //     document: 'http://tinymce.ax-z.cn'
-  //   },
-  //   height: 300, // 编辑器高度
-  //   branding: false // 隐藏右下角品牌烙印
-  // }
 ];
 
 // 选择型组件 【左面板】
@@ -605,11 +587,6 @@ export const selectComponents = [
       'list-type': true,
     },
     accept: '',
-    // headers: { 'Authori-zation': getToken() },
-    // data: { model: 'product', pid: 0 },
-    // action: SettingMer.apiBaseURL + 'admin/upload/image?model=product&pid=0',
-    // disabled: false,
-    // accept: '',
     name: 'upfile',
     // 'auto-upload': false,
     // 'list-type': 'text',
@@ -649,31 +626,6 @@ export const selectComponents = [
     // 'list-type': 'text',
     multiple: false,
   },
-  // {
-  //   __config__: {
-  //     label: '富文本编辑器',
-  //     tag: 'tinymce',
-  //     tagIcon: 'rich-text',
-  //     layout: 'colFormItem',
-  //     defaultValue: null,
-  //     showLabel: true,
-  //     labelWidth: null,
-  //     required: false,
-  //     tips:false,
-  //     tipsDesc:'',
-  //     tipsIsLink:false,
-  //     tipsLink:'',
-  //     span: 24,
-  //     showTip: false,
-  //     regList: [],
-  //     document: "http://tinymce.ax-z.cn",
-  //     renderKey: 1636077154813,
-  //     changeTag: true,
-  //   },
-  //   height: 300, // 编辑器高度
-  //   name: 'tinymce',
-  //   disabled: false
-  // }
 ];
 
 // 布局型组件 【左面板】

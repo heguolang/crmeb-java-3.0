@@ -86,17 +86,6 @@ export default {
           this.setEditorValue('editorJson', this.beautifierJson);
         });
       });
-      // monaco.editor.create(document.getElementById("editorJson"), {
-      //   value: [
-      //     "function x() {",
-      //     '\tconsole.integralLog("Hello world!");',
-      //     "}"].join(
-      //     "\n"
-      //   ),
-      //   language: "javascript",
-      //   theme: 'vs-dark',
-      //   automaticLayout: true
-      // });
     },
     onClose() {},
     setEditorValue(id, codeStr) {

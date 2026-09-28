@@ -3,7 +3,6 @@ package com.qxkj.service.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.github.pagehelper.PageInfo;
 import com.qxkj.common.page.CommonPage;
-import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.request.RetailShopRequest;
 import com.qxkj.common.request.RetailShopSearchRequest;
 import com.qxkj.common.response.SpreadUserResponse;

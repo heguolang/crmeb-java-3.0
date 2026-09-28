@@ -8,7 +8,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.qxkj.common.constants.Constants;
 import com.qxkj.common.constants.NotifyConstants;
 import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.model.sms.SmsTemplate;

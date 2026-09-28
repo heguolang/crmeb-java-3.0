@@ -2,8 +2,6 @@ package com.qxkj.common.response;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -68,11 +66,6 @@ public class StoreCouponFrontResponse implements Serializable {
     @ApiModelProperty(value = "是否固定使用时间, 默认0 否， 1是")
     private Boolean isFixedTime;
 
-//    @ApiModelProperty(value = "可使用时间范围 开始时间")
-//    private Date useStartTime;
-//
-//    @ApiModelProperty(value = "可使用时间范围 结束时间")
-//    private Date useEndTime;
 
     @ApiModelProperty(value = "天数")
     private Integer day;
@@ -83,17 +76,6 @@ public class StoreCouponFrontResponse implements Serializable {
 //    @ApiModelProperty(value = "排序")
 //    private Integer sort;
 
-//    @ApiModelProperty(value = "状态（0：关闭，1：开启）")
-//    private Boolean status;
-//
-//    @ApiModelProperty(value = "是否删除 状态（0：否，1：是）")
-//    private Boolean isDel;
-//
-//    @ApiModelProperty(value = "创建时间")
-//    private Date createTime;
-//
-//    @ApiModelProperty(value = "更新时间")
-//    private Date updateTime;
 
     @ApiModelProperty(value = "是否已领取未使用")
     private Boolean isUse = false;

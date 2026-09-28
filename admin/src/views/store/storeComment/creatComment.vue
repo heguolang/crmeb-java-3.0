@@ -66,7 +66,7 @@
 </template>
 
 <script>
-import { replyCreatApi, replyEditApi, replyInfoApi } from '@/api/store';
+import { replyCreatApi, replyInfoApi } from '@/api/store';
 import { Debounce } from '@/utils/validate';
 const defaultObj = {
   avatar: '',

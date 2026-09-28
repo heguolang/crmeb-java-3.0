@@ -19,7 +19,6 @@
 
 <script>
 import { themeInfo, themeSave } from '@/api/theme';
-import setting from '@/utils/settingMer';
 
 export default {
   name: 'goodClass',

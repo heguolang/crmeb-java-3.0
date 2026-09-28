@@ -1,7 +1,6 @@
 package com.qxkj.common.vo;
 
 import cn.hutool.core.collection.CollUtil;
-import com.qxkj.common.response.MenusResponse;
 
 import java.util.ArrayList;
 import java.util.Comparator;

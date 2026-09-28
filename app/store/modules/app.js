@@ -9,7 +9,7 @@
 // +----------------------------------------------------------------------
 import Auth from '../../libs/wechat';
 import store from "../index";
-import { tokenIsExistApi,loginConfigApi,getTheme } from '@/api/api.js';
+import { tokenIsExistApi, getTheme } from '@/api/api.js';
 import {
 	getOrderPayConfig
 } from '../../api/order.js';

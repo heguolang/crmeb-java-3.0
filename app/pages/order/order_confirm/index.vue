@@ -331,12 +331,6 @@
 			// #ifdef APP-PLUS
 			this.payChannel = this.systemPlatform === 'ios' ? 'weixinAppIos' : 'weixinAppAndroid';
 			// #endif
-			// if (!options.cartId) return this.$util.Tips({
-			// 	title: '请选择要购买的商品'
-			// }, {
-			// 	tab: 3,
-			// 	url: 1
-			// });
 			this.preOrderNo = options.preOrderNo || 0;
 			this.addressChangeId = options.addressId || 0;
 			this.is_address = options.is_address ? true : false;

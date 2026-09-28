@@ -1,6 +1,5 @@
 package com.qxkj.common.response;
 
-import io.swagger.annotations.Api;
 import lombok.Data;
 
 /**

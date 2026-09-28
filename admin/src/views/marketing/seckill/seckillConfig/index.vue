@@ -121,7 +121,6 @@
 
 <script>
 import zbParser from '@/components/FormGenerator/components/parser/ZBParser';
-import { configSaveForm, configInfo } from '@/api/systemConfig.js';
 import {
   seckillListApi,
   seckillUpdateApi,

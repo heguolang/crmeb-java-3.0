@@ -332,11 +332,6 @@ public class AliPayServiceImpl implements AliPayService {
         //商户订单号和支付宝交易号不能同时为空。 trade_no、  out_trade_no如果同时存在优先取trade_no
         //商户订单号，和支付宝交易号二选一
         String out_trade_no = orderNo;
-        //支付宝交易号，和商户订单号二选一
-        //        String trade_no = new String(request.getParameter("WIDtrade_no").getBytes("ISO-8859-1"),"UTF-8");
-        //请求退款接口时，传入的退款请求号，如果在退款请求时未传入，则该值为创建交易时的外部交易号
-        //        String out_request_no = new String(request.getParameter("WIDout_request_no").getBytes("ISO-8859-1"),"UTF-8");
-        //        String out_request_no = new String("WIDout_request_no");
         /**********************/
         // SDK 公共请求类，包含公共请求参数，以及封装了签名与验签，开发者无需关注签名与验签
         String aliPayAppid = systemConfigService.getValueByKey(AlipayConfig.APPID);

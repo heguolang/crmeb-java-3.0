@@ -7,7 +7,7 @@
 </template>
 
 <script>
-import { mapState, mapMutations, mapActions } from 'vuex';
+import { mapMutations } from 'vuex';
 export default {
   name: 'rightBtn',
   props: ['activeIndex', 'configObj'],

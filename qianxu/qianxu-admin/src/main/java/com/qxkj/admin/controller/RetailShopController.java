@@ -12,8 +12,6 @@ import com.qxkj.common.result.CommonResult;
 import com.qxkj.service.service.RetailShopService;
 import com.qxkj.service.service.UserService;
 import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

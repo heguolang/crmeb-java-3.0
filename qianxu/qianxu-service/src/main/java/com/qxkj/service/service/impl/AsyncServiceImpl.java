@@ -2,7 +2,6 @@ package com.qxkj.service.service.impl;
 
 import com.qxkj.common.constants.Constants;
 import com.qxkj.common.constants.SysConfigConstants;
-import com.qxkj.common.model.order.StoreOrder;
 import com.qxkj.service.service.AsyncService;
 import com.qxkj.service.service.SystemConfigService;
 import com.qxkj.service.service.UserBrokerageRecordService;

@@ -724,9 +724,7 @@
 			uni.getSystemInfo({
 				success: function(res) {
 					that.height = res.windowHeight
-					//res.windowHeight:获取整个窗口高度为px，*2为rpx；98为头部占据的高度；
 					// #ifndef APP-PLUS || H5 || MP-ALIPAY
-					//that.navbarRight = res.windowWidth - uni.getMenuButtonBoundingClientRect().left;
 					// #endif
 				},
 			});
@@ -1209,11 +1207,6 @@
 					this.$set(this.attr, 'productAttr', productAttr);
 					// 获取suk小图
 					this.getSkuImage()
-					// var navList = ['商品', '评价', '详情'];
-					// if (goodArray.length) {
-					// 	navList.splice(2, 0, '推荐')
-					// }
-					//that.$set(that, 'navList', navList);
 
 					//无需登录即可分享
 					that.getCartCount();
@@ -1390,10 +1383,6 @@
 				let dataList = await getCoupons({
 					productId: this.id
 				});
-				// if (dataList.length) {
-				// 	this.couponDeaultType = dataList.data;
-				// 	this.$set(this.coupon, 'type', dataList);
-				// }
 				if (dataList.data.list.length) {
 					this.couponDeaultType = dataList.data.list;
 					this.$set(this.coupon, 'type', dataList.data);
@@ -1455,13 +1444,6 @@
 			couponTap: function() {
 				let that = this;
 				if (!this.couponDeaultType.length) return;
-				// if (that.isLogin === false) {
-				// 	toLogin();
-				// } else {
-				// this.loadend = false;
-				// this.loading = false;
-				// this.$set(that.coupon, 'list', []);
-				// //that.getCouponList(this.couponDeaultType[0].useType); //打开弹框默认请求商品券
 				this.initCouponList()
 				this.getCouponList(this.couponDeaultType[0].useType)
 				that.$set(that.coupon, 'coupon', true);
@@ -1592,17 +1574,6 @@
 			 * 
 			 */
 			listenerActionSheet: function() {
-				// if (this.isLogin === false) {
-				// 	toLogin();
-				// } else {
-				// 	// #ifdef H5
-				// 	if (this.$wechat.isWeixin() === true) {
-				// 		this.weixinStatus = true;
-				// 	}
-				// 	// #endif
-				// 	this.goPoster()
-				// 	this.posters = true;
-				// }
 				// #ifdef H5
 				if (this.$wechat.isWeixin() === true) {
 					this.weixinStatus = true;
@@ -1701,7 +1672,6 @@
 					mask: true
 				});
 				that.posters = false;
-				let arrImagesUrl = '';
 				let arrImagesUrlTop = '';
 				if (!that.PromotionCode) {
 					uni.hideLoading();

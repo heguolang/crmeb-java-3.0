@@ -1,6 +1,5 @@
 package com.qxkj.common.model.system;
 
-import java.math.BigDecimal;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;

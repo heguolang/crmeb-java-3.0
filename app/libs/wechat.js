@@ -198,21 +198,6 @@ class AuthWechat {
 					})
 				})
 		}
-		// if (uni.getStorageSync(WX_AUTH) && store.state.app.token) return;
-		// const {
-		// 	code
-		// } = parseQuery();
-		// if (!code){
-		// 	return this.toAuth(snsapiBase,url);
-		// }else{
-		// 	if(Cache.has('snsapiKey'))
-		// 		return this.auth(code).catch(error=>{
-		// 			uni.showToast({
-		// 				title:error,
-		// 				icon:'none'
-		// 			})
-		// 		})
-		// }
 	}
 
 	clearAuthStatus() {
@@ -267,11 +252,6 @@ class AuthWechat {
 		);
 		uni.setStorageSync(STATE_KEY, state);
 		return `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appId}&redirect_uri=${redirect_uri}&response_type=code&scope=snsapi_userinfo&state=${state}#wechat_redirect`;
-		// if(snsapiBase==='snsapi_base'){
-		// 	return `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appId}&redirect_uri=${redirect_uri}&response_type=code&scope=snsapi_base&state=${state}#wechat_redirect`;
-		// }else{
-		// 	return `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appId}&redirect_uri=${redirect_uri}&response_type=code&scope=snsapi_userinfo&state=${state}#wechat_redirect`;
-		// }
 	}
 
 	/**

@@ -3,7 +3,6 @@ package com.qxkj.common.response;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
-import java.math.BigDecimal;
 
 /**
  *

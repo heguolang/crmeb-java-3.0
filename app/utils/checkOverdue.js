@@ -1,4 +1,4 @@
-import {HTTP_REQUEST_URL,HEADER,TOKENNAME,HEADERPARAMS} from '@/config/app';
+import { HTTP_REQUEST_URL, HEADER } from '@/config/app';
 import store from "../store";
 export function checkOverdue(data) {
 	let Url = HTTP_REQUEST_URL,header = HEADER;

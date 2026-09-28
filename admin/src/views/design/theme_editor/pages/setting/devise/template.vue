@@ -22,11 +22,9 @@
 </template>
 
 <script>
-import { diyGetInfo, diySave } from '@/api/theme';
-import { mapMutations } from 'vuex';
+import { diyGetInfo } from '@/api/theme';
 import rightConfig from '@/components/rightConfig/index';
 import links from './links';
-import Setting from '@/utils/settingMer';
 export default {
   name: 'index',
   components: {
@@ -72,10 +70,6 @@ export default {
     upData(data) {
       this.$store.commit(this.updataConfig, data);
     },
-    // ...mapMutations({
-    //     add: 'diy/setConfig',
-    //     upData:'diy/updataConfig'
-    // })
   },
 };
 </script>

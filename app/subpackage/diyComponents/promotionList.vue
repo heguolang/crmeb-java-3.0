@@ -222,13 +222,6 @@ export default {
         }
       }
     },
-    // bottomBgColor() {
-    // 	return {
-    // 		padding: `${this.dataConfig.topConfig.val * 2}rpx ${this.dataConfig.prConfig.val * 2}rpx ${this.dataConfig.bottomConfig.val * 2}rpx`,
-    // 		'margin-top': `${this.dataConfig.mbConfig.val * 2}rpx`,
-    // 		background: this.dataConfig.bottomBgColor.color[0].item
-    // 	};
-    // },
     lineColor() {
       let diy = this.dataConfig.toneConfig.tabVal;
       let type = this.dataConfig.styleConfig.tabVal;
@@ -471,24 +464,11 @@ export default {
   methods: {
     observeVideo() {
       this.autoplay = true;
-      // let observer = uni.createIntersectionObserver(this, { observeAll: true });
-      // observer.relativeToViewport().observe('.video', res => {
-      // 	if (res.intersectionRatio) {
-      // 		uni.createVideoContext(res.id, this).play();
-      // 	} else{
-      // 		uni.createVideoContext(res.id, this).pause();
-      // 	}
-      // });
     },
     // 促销列表的点击事件；
     changeTab(item) {
       this.goodType = item.tabVal;
       this.activeValue = item;
-      // this.tempArr = [];
-      // this.page = 1;
-      // this.loadend = false;
-      // let onloadH = true;
-      // this.getGroomList(onloadH);
     },
     // 精品推荐
     getGroomList(onloadH) {

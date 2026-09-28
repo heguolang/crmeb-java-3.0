@@ -14,7 +14,6 @@ export default {
   changePageCoreRecordData: function (multipleSelectionAll, multipleSelection, tableData, successFn) {
     // 标识当前行的唯一键的名称
     const idKey = 'uid';
-    const that = this;
     // 如果总记忆中还没有选择的数据，那么就直接取当前页选中的数据，不需要后面一系列计算
     if (multipleSelectionAll.length <= 0) {
       multipleSelectionAll = multipleSelection;

@@ -2,7 +2,6 @@ package com.qxkj.common.request;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.qxkj.common.constants.RegularConstants;
-import com.qxkj.common.utils.ValidateFormUtil;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;

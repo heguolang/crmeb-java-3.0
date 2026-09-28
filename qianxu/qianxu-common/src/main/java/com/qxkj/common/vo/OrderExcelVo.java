@@ -43,32 +43,6 @@ public class OrderExcelVo implements Serializable {
     @ApiModelProperty(value = "支付方式")
     private String payTypeStr;
 
-//    @ApiModelProperty(value = "是否删除")
-//    private String isDel;
-//
-//    @ApiModelProperty(value = "退款图片")
-//    private String refundReasonWapImg;
-//
-//    @ApiModelProperty(value = "退款用户说明")
-//    private String refundReasonWapExplain;
-//
-//    @ApiModelProperty(value = "退款时间")
-//    private String refundReasonTime;
-//
-//    @ApiModelProperty(value = "前台退款原因")
-//    private String refundReasonWap;
-//
-//    @ApiModelProperty(value = "不退款的理由")
-//    private String refundReason;
-//
-//    @ApiModelProperty(value = "退款金额")
-//    private String refundPrice;
-//
-//    @ApiModelProperty(value = "0 未退款 1 申请中 2 已退款")
-//    private String refundStatus;
-//
-//    @ApiModelProperty(value = "核销码")
-//    private String verifyCode;
 
     @ApiModelProperty(value = "订单类型")
     private String orderType;
@@ -79,12 +53,4 @@ public class OrderExcelVo implements Serializable {
     @ApiModelProperty(value = "用户姓名")
     private String realName;
 
-//    @ApiModelProperty(value = "支付状态")
-//    private String paid;
-//
-//    @ApiModelProperty(value = "订单类型:0-普通订单，1-视频号订单")
-//    private String type;
-//
-//    @ApiModelProperty(value = "是否改价,0-否，1-是")
-//    private String isAlterPrice;
 }

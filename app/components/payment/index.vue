@@ -353,7 +353,6 @@
 					}, //微信、支付宝订单数据 【注意微信的订单信息，键值应该全部是小写，不能采用驼峰命名】
 					success: (e) => {
 						uni.hideLoading();
-						let url = '/pages/order/order_pay_status/index?order_id=' + that.order_id;
 						uni.showToast({
 							title: "支付成功"
 						})

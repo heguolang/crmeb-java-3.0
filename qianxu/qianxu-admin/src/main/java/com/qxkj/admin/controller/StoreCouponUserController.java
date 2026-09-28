@@ -1,7 +1,6 @@
 package com.qxkj.admin.controller;
 
 import com.qxkj.common.page.CommonPage;
-import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.request.StoreCouponUserRequest;
 import com.qxkj.common.request.StoreCouponUserSearchRequest;
 import com.qxkj.common.response.StoreCouponUserResponse;

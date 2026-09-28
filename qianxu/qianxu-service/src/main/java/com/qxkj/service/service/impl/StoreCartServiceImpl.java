@@ -251,12 +251,6 @@ public class StoreCartServiceImpl extends ServiceImpl<StoreCartDao, StoreCart> i
      */
     @Override
     public Boolean productStatusNotEnable(Integer productId) {
-        //StoreCart storeCartPram = new StoreCart();
-        //storeCartPram.setProductId(productId);
-        //List<StoreCart> existStoreCartProducts = getByEntity(storeCartPram);
-        //if (null == existStoreCartProducts) return true;
-        //existStoreCartProducts.forEach(e-> e.setStatus(false).setUpdateTime(DateUtil.date()));
-        //return updateBatchById(existStoreCartProducts);
         LambdaUpdateWrapper<StoreCart> update = Wrappers.lambdaUpdate();
         update.set(StoreCart::getStatus, false);
         update.eq(StoreCart::getProductId, productId);
@@ -403,16 +397,6 @@ public class StoreCartServiceImpl extends ServiceImpl<StoreCartDao, StoreCart> i
      * @return Integer
      */
     private Integer getUserSumByStatus(Integer userId, Boolean status) {
-        //QueryWrapper<StoreCart> queryWrapper = new QueryWrapper<>();
-        //queryWrapper.select("ifnull(sum(cart_num), 0) as cart_num");
-        //queryWrapper.eq("uid", userId);
-        //queryWrapper.eq("is_new", false);
-        //queryWrapper.eq("status", status);
-        //StoreCart storeCart = dao.selectOne(queryWrapper);
-        //if (ObjectUtil.isNull(storeCart)) {
-        //    return 0;
-        //}
-        //return storeCart.getCartNum();
         return dao.getUserCartSumByStatus(userId, status);
     }
 

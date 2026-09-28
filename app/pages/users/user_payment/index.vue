@@ -80,7 +80,7 @@
 		appWechat,
 		alipayFull
 	} from '@/api/user.js';
-	import { wechatQueryPayResult,getOrderPayConfig} from '@/api/order.js';
+import { getOrderPayConfig } from '@/api/order.js';
 	import {
 		toLogin
 	} from '@/libs/login.js';
