@@ -91,6 +91,30 @@ export function userTeamLevelUpdateApi(data) {
 }
 
 /**
+ * 修改用户分红等级（人工指定；dividendLevelId=0 恢复自动判定）
+ * @param data
+ */
+export function userDividendLevelUpdateApi(data) {
+  return request({
+    url: `/admin/user/update/dividend/level`,
+    method: 'post',
+    data,
+  });
+}
+
+/**
+ * 修改用户拼购等级（人工指定；pingouLevelId=0 恢复自动判定）
+ * @param data
+ */
+export function userPingouLevelUpdateApi(data) {
+  return request({
+    url: `/admin/user/update/pingou/level`,
+    method: 'post',
+    data,
+  });
+}
+
+/**
  * 会员管理 详情
  * @param pram
  */

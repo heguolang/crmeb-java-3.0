@@ -81,6 +81,24 @@
             and u.uid in
             <foreach collection="dividendQualifiedUids" item="duid" open="(" separator="," close=")">#{duid}</foreach>
         </if>
+        <!-- 团队等级：0 = 无（null 或 0），>0 = 指定等级 -->
+        <choose>
+            <when test="teamLevel != null and teamLevel == 0">
+                and (u.team_level is null or u.team_level = 0)
+            </when>
+            <when test="teamLevel != null">
+                and u.team_level = #{teamLevel}
+            </when>
+        </choose>
+        <!-- 拼购等级（人工指定）：0 = 未指定（自动命中阶梯），>0 = 指定等级 -->
+        <choose>
+            <when test="pingouLevelId != null and pingouLevelId == 0">
+                and (u.pingou_level_id is null or u.pingou_level_id = 0)
+            </when>
+            <when test="pingouLevelId != null">
+                and u.pingou_level_id = #{pingouLevelId}
+            </when>
+        </choose>
         <if test="startTime != null and startTime != '' and accessType != null and accessType != ''">
             <choose>
                 <when test="accessType == 1">
@@ -145,6 +163,24 @@
             </when>
             <when test="distributorLevelId != null">
                 and distributor_level_id = #{distributorLevelId}
+            </when>
+        </choose>
+        <!-- 团队等级：0 = 无（null 或 0），>0 = 指定等级 -->
+        <choose>
+            <when test="teamLevel != null and teamLevel == 0">
+                and (team_level is null or team_level = 0)
+            </when>
+            <when test="teamLevel != null">
+                and team_level = #{teamLevel}
+            </when>
+        </choose>
+        <!-- 拼购等级（人工指定）：0 = 未指定（自动命中阶梯），>0 = 指定等级 -->
+        <choose>
+            <when test="pingouLevelId != null and pingouLevelId == 0">
+                and (pingou_level_id is null or pingou_level_id = 0)
+            </when>
+            <when test="pingouLevelId != null">
+                and pingou_level_id = #{pingouLevelId}
             </when>
         </choose>
         ORDER BY uid desc

@@ -422,7 +422,7 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
                 .eq(PingouJoin::getActivityId, activity.getId())
                 .eq(PingouJoin::getSpreadUid, spreadUid));
         int count = (spreadCount == null ? 0 : spreadCount.intValue());
-        BigDecimal sharePrice = calcShareReward(activity, count, join.getPayPrice());
+        BigDecimal sharePrice = calcShareReward(activity, count, join.getPayPrice(), spreadUid);
         if (sharePrice == null) {
             // 直推人数未命中任何阶梯
             join.setShareStatus(SHARE_STATUS_NO_SPREAD);
@@ -446,26 +446,32 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
     /**
      * 按分享奖励阶梯计算推荐人奖励金额。
      * 优先级：
+     * ⓪ 推荐人被人工指定了拼购等级 → 直接命中该等级的档位，不看直推人数（强干预，见后台 会员管理-身份）；
      * ① 活动按等级独立设置（share_tiers 带 levelId）→ 以拼购等级为骨架，独立设置的档覆盖默认比例，阈值始终跟随等级；
      * ② 旧版自由阶梯（share_tiers 无 levelId）→ 直接按阶梯匹配；
      * ③ 活动未设置 → 全部走拼购等级默认比例；
      * ④ 无任何阶梯 → 旧字段兜底（低/高‰ + 阈值）。
      * 阶梯命中：直推人数（含本次）达到 minDirectNum 的最高一档；人数未命中任何档返回 null。
      */
-    private BigDecimal calcShareReward(PingouActivity activity, int directCount, BigDecimal payPrice) {
+    private BigDecimal calcShareReward(PingouActivity activity, int directCount, BigDecimal payPrice, Integer spreadUid) {
         List<PingouShareTier> effective = effectiveShareTiers(activity);
+        // ⓪ 人工指定拼购等级优先：直接取该等级的档位金额
+        Integer assignedLevelId = assignedPingouLevelId(spreadUid);
+        if (assignedLevelId != null && assignedLevelId > 0 && CollUtil.isNotEmpty(effective)) {
+            for (PingouShareTier tier : effective) {
+                if (assignedLevelId.equals(tier.getLevelId())) {
+                    return tierAmount(tier, payPrice);
+                }
+            }
+            // 该等级在本活动阶梯里没有对应档位 → 回落到按直推人数匹配
+        }
         if (CollUtil.isNotEmpty(effective)) {
             effective.sort((a, b) -> Integer.compare(
                     ObjectUtil.defaultIfNull(b.getMinDirectNum(), 0),
                     ObjectUtil.defaultIfNull(a.getMinDirectNum(), 0)));
             for (PingouShareTier tier : effective) {
                 if (directCount >= ObjectUtil.defaultIfNull(tier.getMinDirectNum(), 0)) {
-                    BigDecimal value = ObjectUtil.defaultIfNull(tier.getRewardValue(), BigDecimal.ZERO);
-                    if (Integer.valueOf(2).equals(tier.getRewardType())) {
-                        return value.setScale(2, RoundingMode.DOWN);
-                    }
-                    return payPrice.multiply(value)
-                            .divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
+                    return tierAmount(tier, payPrice);
                 }
             }
             return null;
@@ -476,6 +482,29 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
                 : ObjectUtil.defaultIfNull(activity.getShareRateLow(), new BigDecimal("5"));
         return payPrice.multiply(rate)
                 .divide(new BigDecimal("1000"), 2, RoundingMode.DOWN);
+    }
+
+    /**
+     * 取推荐人被人工指定的拼购等级ID（0/空 = 未指定，走原有直推人数判定）
+     */
+    private Integer assignedPingouLevelId(Integer uid) {
+        if (ObjectUtil.isNull(uid) || uid < 1) {
+            return null;
+        }
+        User user = userService.getById(uid);
+        return ObjectUtil.isNull(user) ? null : user.getPingouLevelId();
+    }
+
+    /**
+     * 单档奖励金额：rewardType=2 → 固定金额；否则 → 支付金额 × 比例%
+     */
+    private BigDecimal tierAmount(PingouShareTier tier, BigDecimal payPrice) {
+        BigDecimal value = ObjectUtil.defaultIfNull(tier.getRewardValue(), BigDecimal.ZERO);
+        if (Integer.valueOf(2).equals(tier.getRewardType())) {
+            return value.setScale(2, RoundingMode.DOWN);
+        }
+        return payPrice.multiply(value)
+                .divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
     }
 
     /**

@@ -294,6 +294,20 @@ public interface UserService extends IService<User> {
     Boolean updateUserLevel(UpdateUserLevelRequest request);
 
     /**
+     * 更新会员分红等级（人工指定；dividendLevelId=0 表示恢复自动判定）
+     * @param request request
+     * @return Boolean
+     */
+    Boolean updateUserDividendLevel(UpdateUserDividendLevelRequest request);
+
+    /**
+     * 更新会员拼购等级（人工指定；pingouLevelId=0 表示恢复自动判定）
+     * @param request request
+     * @return Boolean
+     */
+    Boolean updateUserPingouLevel(UpdateUserPingouLevelRequest request);
+
+    /**
      * 获取用户总人数
      */
     Integer getTotalNum();

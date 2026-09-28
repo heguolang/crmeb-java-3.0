@@ -339,11 +339,19 @@ public class DividendServiceImpl extends ServiceImpl<DividendRecordDao, Dividend
             // 2. 分红等级：比例与升级条件独立维护，达标判定复用分销商等级那套条件逻辑
             //    参与者 = 满足该等级自身升级条件的会员（与分销商等级本身无关）
             List<DividendLevel> levels = levelList();
-            List<Integer> candidateUids = userService.list(Wrappers.<User>lambdaQuery()
-                    .select(User::getUid)
+            List<User> candidates = userService.list(Wrappers.<User>lambdaQuery()
+                    .select(User::getUid, User::getDividendLevelId)
                     .eq(User::getStatus, true)
-                    .eq(User::getIsLogoff, false))
-                    .stream().map(User::getUid).collect(java.util.stream.Collectors.toList());
+                    .eq(User::getIsLogoff, false));
+            List<Integer> candidateUids = new ArrayList<>();
+            // 人工指定的分红等级：uid -> levelId（只收 >0 的），指定后不再参与其它等级
+            Map<Integer, Integer> assignedMap = new HashMap<>();
+            for (User u : candidates) {
+                candidateUids.add(u.getUid());
+                if (u.getDividendLevelId() != null && u.getDividendLevelId() > 0) {
+                    assignedMap.put(u.getUid(), u.getDividendLevelId());
+                }
+            }
 
             for (DividendLevel level : levels) {
                 BigDecimal rate = level.getDividendRate();
@@ -353,6 +361,14 @@ public class DividendServiceImpl extends ServiceImpl<DividendRecordDao, Dividend
                 DistributorLevel conditionHolder = toConditionHolder(level);
                 List<Integer> uids = new ArrayList<>();
                 for (Integer uid : candidateUids) {
+                    Integer assigned = assignedMap.get(uid);
+                    if (assigned != null) {
+                        // 人工指定优先：只在该等级参与分红，不再按条件判定进其它等级
+                        if (assigned.equals(level.getId())) {
+                            uids.add(uid);
+                        }
+                        continue;
+                    }
                     if (distributorLevelService.meetsCondition(conditionHolder, uid)) {
                         uids.add(uid);
                     }

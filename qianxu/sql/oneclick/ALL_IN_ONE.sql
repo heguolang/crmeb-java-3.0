@@ -23268,5 +23268,44 @@ SELECT 1, m.`id`
                     WHERE x.`rid` = 1 AND x.`menu_id` = m.`id`);
 -- ========== END: menu_business_entry_20260924.sql ==========
 
+-- ========== BEGIN: upgrade_20260928_user_identity_level.sql ==========
+-- 会员管理「身份」栏：人工指定分红等级 / 拼购等级
+-- 语义：0 = 未指定（走原有自动判定）；>0 = 人工强制指定，覆盖自动判定
+--       分红：只在该等级参与分红；拼购：固定按该等级档位拿分享奖励
+-- 幂等：information_schema 判断 + PREPARE
+
+-- 1) eb_user 增加人工指定分红等级
+SET @exist := (SELECT COUNT(1) FROM information_schema.COLUMNS
+               WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eb_user' AND COLUMN_NAME = 'dividend_level_id');
+SET @sql := IF(@exist = 0,
+  'ALTER TABLE `eb_user` ADD COLUMN `dividend_level_id` int(11) NOT NULL DEFAULT 0 COMMENT ''人工指定分红等级ID，0=未指定（按分红等级自身升级条件自动判定）'' AFTER `distributor_level_id`',
+  'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 2) eb_user 增加人工指定拼购等级
+SET @exist := (SELECT COUNT(1) FROM information_schema.COLUMNS
+               WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eb_user' AND COLUMN_NAME = 'pingou_level_id');
+SET @sql := IF(@exist = 0,
+  'ALTER TABLE `eb_user` ADD COLUMN `pingou_level_id` int(11) NOT NULL DEFAULT 0 COMMENT ''人工指定拼购等级ID，0=未指定（按直推人数自动命中阶梯）'' AFTER `dividend_level_id`',
+  'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3) 后台会员列表筛选索引（团队等级 / 拼购等级 / 分红等级）
+SET @exist := (SELECT COUNT(1) FROM information_schema.STATISTICS
+               WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eb_user' AND INDEX_NAME = 'idx_team_level');
+SET @sql := IF(@exist = 0, 'ALTER TABLE `eb_user` ADD INDEX `idx_team_level` (`team_level`)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exist := (SELECT COUNT(1) FROM information_schema.STATISTICS
+               WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eb_user' AND INDEX_NAME = 'idx_pingou_level');
+SET @sql := IF(@exist = 0, 'ALTER TABLE `eb_user` ADD INDEX `idx_pingou_level` (`pingou_level_id`)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exist := (SELECT COUNT(1) FROM information_schema.STATISTICS
+               WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eb_user' AND INDEX_NAME = 'idx_dividend_level');
+SET @sql := IF(@exist = 0, 'ALTER TABLE `eb_user` ADD INDEX `idx_dividend_level` (`dividend_level_id`)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+-- ========== END: upgrade_20260928_user_identity_level.sql ==========
+
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'QIANXU ALL_IN_ONE deploy done' AS result;

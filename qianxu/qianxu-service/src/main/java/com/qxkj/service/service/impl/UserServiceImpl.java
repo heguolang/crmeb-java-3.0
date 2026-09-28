@@ -36,7 +36,9 @@ import com.qxkj.common.utils.*;
 import com.qxkj.common.vo.DateLimitUtilVo;
 import com.qxkj.service.dao.UserDao;
 import com.qxkj.common.model.dividend.DividendLevel;
+import com.qxkj.common.model.pingou.PingouLevel;
 import com.qxkj.service.dao.DividendLevelDao;
+import com.qxkj.service.dao.PingouLevelDao;
 import com.qxkj.service.service.*;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -74,6 +76,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
     @Resource
     private DividendLevelDao dividendLevelDao;
+
+    @Resource
+    private PingouLevelDao pingouLevelDao;
 
     @Autowired
     private UserBillService userBillService;
@@ -212,6 +217,16 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         //全球分红等级：null-全部；0-不参与任何分红等级；>0-满足该等级升级条件的会员
         map.put("dividendQualifiedUids", dividendQualifiedUids);
 
+        //拼购等级（人工指定）：null-全部；0-未指定（自动命中）；>0-指定等级
+        if (request.getPingouLevelId() != null) {
+            map.put("pingouLevelId", request.getPingouLevelId());
+        }
+
+        //团队等级：null-全部；0-无；>0-指定等级
+        if (request.getTeamLevel() != null) {
+            map.put("teamLevel", request.getTeamLevel());
+        }
+
         DateLimitUtilVo dateLimit = QianxuDateUtil.getDateLimit(request.getDateLimit());
 
         if (!StringUtils.isBlank(dateLimit.getStartTime())) {
@@ -267,6 +282,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             userResponses.add(userResponse);
         }
         fillDividendLevelNames(userResponses);
+        fillPingouLevelNames(userResponses);
         return CommonPage.copyPageInfo(pageUser, userResponses);
     }
 
@@ -276,11 +292,19 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
      * 达标判定复用分销商等级那套升级条件逻辑（基于会员自身统计，与分销商等级本身无关）。
      */
     private List<Integer> resolveDividendQualifiedUids(Integer levelId) {
-        List<Integer> candidateUids = userDao.selectList(Wrappers.<User>lambdaQuery()
-                .select(User::getUid)
+        List<User> candidates = userDao.selectList(Wrappers.<User>lambdaQuery()
+                .select(User::getUid, User::getDividendLevelId)
                 .eq(User::getStatus, true)
-                .eq(User::getIsLogoff, false))
-                .stream().map(User::getUid).collect(java.util.stream.Collectors.toList());
+                .eq(User::getIsLogoff, false));
+        List<Integer> candidateUids = new ArrayList<>();
+        // 人工指定映射：uid -> 指定等级ID（只收 >0 的）
+        Map<Integer, Integer> assignedMap = new java.util.HashMap<>();
+        for (User u : candidates) {
+            candidateUids.add(u.getUid());
+            if (u.getDividendLevelId() != null && u.getDividendLevelId() > 0) {
+                assignedMap.put(u.getUid(), u.getDividendLevelId());
+            }
+        }
         if (levelId != null && levelId > 0) {
             DividendLevel level = dividendLevelDao.selectById(levelId);
             if (ObjectUtil.isNull(level) || Boolean.TRUE.equals(level.getIsDel())) {
@@ -288,16 +312,25 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             }
             List<Integer> uids = new ArrayList<>();
             for (Integer uid : candidateUids) {
+                Integer assigned = assignedMap.get(uid);
+                if (assigned != null) {
+                    // 人工指定优先：只归入被指定的那个等级，不再参与其它等级
+                    if (assigned.equals(levelId)) {
+                        uids.add(uid);
+                    }
+                    continue;
+                }
                 if (distributorLevelService.meetsCondition(toDividendConditionHolder(level), uid)) {
                     uids.add(uid);
                 }
             }
             return uids.isEmpty() ? java.util.Collections.singletonList(-1) : uids;
         }
-        // levelId=0：排除满足任一分红等级条件的会员
+        // levelId=0：既未人工指定、也不满足任一分红等级条件的会员
         List<DividendLevel> levels = dividendLevelDao.selectList(Wrappers.<DividendLevel>lambdaQuery()
                 .eq(DividendLevel::getIsDel, false));
         List<Integer> notQualified = new ArrayList<>(candidateUids);
+        notQualified.removeIf(assignedMap::containsKey);
         for (DividendLevel level : levels) {
             com.qxkj.common.model.system.DistributorLevel holder = toDividendConditionHolder(level);
             notQualified.removeIf(uid -> distributorLevelService.meetsCondition(holder, uid));
@@ -342,11 +375,23 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         if (CollUtil.isEmpty(levels)) {
             return;
         }
+        Map<Integer, String> levelNameById = new java.util.HashMap<>();
         List<com.qxkj.common.model.system.DistributorLevel> holders = new ArrayList<>();
         for (DividendLevel level : levels) {
+            levelNameById.put(level.getId(), level.getName());
             holders.add(toDividendConditionHolder(level));
         }
         for (UserResponse response : responses) {
+            // 人工指定优先：指定了等级就按指定等级显示，不再看自动判定（与分红结算口径保持一致）
+            Integer assigned = response.getDividendLevelId();
+            if (assigned != null && assigned > 0) {
+                String assignedName = levelNameById.get(assigned);
+                if (StrUtil.isNotBlank(assignedName)) {
+                    response.setDividendLevelName(assignedName);
+                    response.setDividendLevelNames(assignedName);
+                }
+                continue;
+            }
             List<String> names = new ArrayList<>();
             for (int i = 0; i < levels.size(); i++) {
                 if (distributorLevelService.meetsCondition(holders.get(i), response.getUid())) {
@@ -355,6 +400,36 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             }
             if (!names.isEmpty()) {
                 response.setDividendLevelNames(String.join("、", names));
+            }
+        }
+    }
+
+    /**
+     * 为会员信息填充「人工指定拼购等级」名称
+     * 未指定（pingou_level_id=0）时留空，前端显示为自动命中，不误导为已指定
+     */
+    private void fillPingouLevelNames(List<UserResponse> responses) {
+        if (CollUtil.isEmpty(responses)) {
+            return;
+        }
+        List<Integer> ids = responses.stream()
+                .map(UserResponse::getPingouLevelId)
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+        if (ids.isEmpty()) {
+            return;
+        }
+        List<PingouLevel> pingouLevels = pingouLevelDao.selectList(Wrappers.<PingouLevel>lambdaQuery()
+                .in(PingouLevel::getId, ids));
+        Map<Integer, String> nameById = new java.util.HashMap<>();
+        for (PingouLevel level : pingouLevels) {
+            nameById.put(level.getId(), level.getName());
+        }
+        for (UserResponse response : responses) {
+            Integer id = response.getPingouLevelId();
+            if (id != null && id > 0) {
+                response.setPingouLevelName(nameById.get(id));
             }
         }
     }
@@ -1924,6 +1999,52 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
      * @param request request
      * @return Boolean
      */
+    /**
+     * 更新会员分红等级（人工指定）
+     * dividendLevelId=0 → 清除人工指定，恢复按升级条件自动判定
+     */
+    @Override
+    public Boolean updateUserDividendLevel(UpdateUserDividendLevelRequest request) {
+        User user = getById(request.getUid());
+        if (ObjectUtil.isNull(user)) {
+            throw new QianxuException("用户不存在");
+        }
+        Integer levelId = request.getDividendLevelId();
+        if (levelId != null && levelId > 0) {
+            DividendLevel level = dividendLevelDao.selectById(levelId);
+            if (ObjectUtil.isNull(level) || Boolean.TRUE.equals(level.getIsDel())) {
+                throw new QianxuException("分红等级不存在，请先到 全球分红-分红等级 配置");
+            }
+        }
+        User update = new User();
+        update.setUid(request.getUid());
+        update.setDividendLevelId(levelId == null ? 0 : levelId);
+        return updateById(update);
+    }
+
+    /**
+     * 更新会员拼购等级（人工指定）
+     * pingouLevelId=0 → 清除人工指定，恢复按直推人数自动命中阶梯
+     */
+    @Override
+    public Boolean updateUserPingouLevel(UpdateUserPingouLevelRequest request) {
+        User user = getById(request.getUid());
+        if (ObjectUtil.isNull(user)) {
+            throw new QianxuException("用户不存在");
+        }
+        Integer levelId = request.getPingouLevelId();
+        if (levelId != null && levelId > 0) {
+            PingouLevel level = pingouLevelDao.selectById(levelId);
+            if (ObjectUtil.isNull(level) || Boolean.TRUE.equals(level.getIsDel())) {
+                throw new QianxuException("拼购等级不存在，请先到 拼购系统-拼购等级 配置");
+            }
+        }
+        User update = new User();
+        update.setUid(request.getUid());
+        update.setPingouLevelId(levelId == null ? 0 : levelId);
+        return updateById(update);
+    }
+
     @Override
     public Boolean updateUserLevel(UpdateUserLevelRequest request) {
         User user = getById(request.getUid());

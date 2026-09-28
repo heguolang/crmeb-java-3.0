@@ -104,6 +104,9 @@ public class UserResponse {
     @ApiModelProperty(value = "等级")
     private Integer level;
 
+    @ApiModelProperty(value = "团队等级ID，0=无")
+    private Integer teamLevel;
+
     @ApiModelProperty(value = "推广人id")
     private Integer spreadUid;
 
@@ -157,4 +160,16 @@ public class UserResponse {
 
     @ApiModelProperty(value = "达标的全球分红等级名称（按分红等级自身升级条件判定，多个用、连接）")
     private String dividendLevelNames;
+
+    @ApiModelProperty(value = "人工指定分红等级ID，0=未指定")
+    private Integer dividendLevelId;
+
+    @ApiModelProperty(value = "人工指定分红等级名称（未指定为空，此时看 dividendLevelNames 自动判定结果）")
+    private String dividendLevelName;
+
+    @ApiModelProperty(value = "人工指定拼购等级ID，0=未指定")
+    private Integer pingouLevelId;
+
+    @ApiModelProperty(value = "人工指定拼购等级名称（未指定为空，此时按直推人数自动命中）")
+    private String pingouLevelName;
 }

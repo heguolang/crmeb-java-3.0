@@ -139,6 +139,42 @@
                 <el-option :value="3" label="保密"></el-option>
               </el-select>
             </el-form-item>
+            <el-form-item label="拼购等级">
+              <el-select
+                v-model="userFrom.pingouLevelId"
+                @visible-change="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择拼购等级"
+                clearable
+                filterable
+              >
+                <el-option :value="0" label="未指定（自动命中）"></el-option>
+                <el-option
+                  :value="item.id"
+                  v-for="item in pingouLevelList"
+                  :key="item.id"
+                  :label="item.name"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="团队等级">
+              <el-select
+                v-model="userFrom.teamLevel"
+                @visible-change="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择团队等级"
+                clearable
+                filterable
+              >
+                <el-option :value="0" label="无"></el-option>
+                <el-option
+                  :value="item.id"
+                  v-for="item in teamLevelList"
+                  :key="item.id"
+                  :label="item.name"
+                ></el-option>
+              </el-select>
+            </el-form-item>
             <el-form-item label="身份">
               <el-select
                 v-model="userFrom.isPromoter"
@@ -252,6 +288,7 @@
               <div class="kv"><span class="kv__k">手机号：</span><span class="kv__v kv__v--num">{{ item.phone | filterEmpty }}</span></div>
               <div class="kv"><span class="kv__k">注册时间：</span><span class="kv__v kv__v--num">{{ item.createTime | filterEmpty }}</span></div>
               <div class="kv"><span class="kv__k">分红等级：</span><span class="kv__v">{{ item.dividendLevelNames || '—' }}</span></div>
+              <div class="kv"><span class="kv__k">拼购等级：</span><span class="kv__v">{{ item.pingouLevelName || '—' }}</span></div>
               <div class="kv"><span class="kv__k">备注：</span><span class="kv__v">{{ item.mark | filterEmpty }}</span></div>
             </div>
 
@@ -297,6 +334,30 @@
                 v-hasPermi="['admin:user:infobycondition']"
                 >编辑</el-button
               >
+              <!-- 身份：等级类操作集中一处（2026-09-28 从「更多」拆出，原 9 项挤在一起难找） -->
+              <el-dropdown
+                trigger="click"
+                class="more-drop"
+                v-if="checkPermi(['admin:user:update:level'])"
+              >
+                <el-button size="mini" type="primary" plain>
+                  身份<i class="el-icon-arrow-down el-icon--right" />
+                </el-button>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item @click.native="onLevel(item.uid, item.level)"
+                    >修改用户等级</el-dropdown-item
+                  >
+                  <el-dropdown-item @click.native="onTeamLevel(item.uid, item.teamLevel)"
+                    >修改团队等级</el-dropdown-item
+                  >
+                  <el-dropdown-item @click.native="onDividendLevel(item)"
+                    >修改分红等级</el-dropdown-item
+                  >
+                  <el-dropdown-item @click.native="onPingouLevel(item)"
+                    >修改拼购等级</el-dropdown-item
+                  >
+                </el-dropdown-menu>
+              </el-dropdown>
               <el-dropdown trigger="click" class="more-drop">
                 <el-button size="mini">
                   更多<i class="el-icon-arrow-down el-icon--right" />
@@ -315,16 +376,6 @@
                   >
                   <el-dropdown-item @click.native="setPhone(item)" v-if="checkPermi(['admin:user:update:phone'])"
                     >修改手机号</el-dropdown-item
-                  >
-                  <el-dropdown-item
-                    @click.native="onLevel(item.uid, item.level)"
-                    v-if="checkPermi(['admin:user:update:level'])"
-                    >修改用户等级</el-dropdown-item
-                  >
-                  <el-dropdown-item
-                    @click.native="onTeamLevel(item.uid, item.teamLevel)"
-                    v-if="checkPermi(['admin:user:update:level'])"
-                    >修改团队等级</el-dropdown-item
                   >
                   <el-dropdown-item
                     @click.native="setPassword(item)"
@@ -536,6 +587,30 @@
     <el-dialog title="修改用户团队等级" :visible.sync="teamLevelVisible" width="540px" :before-close="CloseTeamLevel">
       <team-level-edit :teamLevelInfo="teamLevelInfo" :teamLevelList="teamLevelList"></team-level-edit>
     </el-dialog>
+    <!-- 用户分红等级（人工指定） -->
+    <el-dialog
+      title="修改分红等级"
+      :visible.sync="dividendLevelVisible"
+      width="540px"
+      :before-close="CloseDividendLevel"
+    >
+      <dividend-level-edit
+        :dividendLevelInfo="dividendLevelInfo"
+        :dividendLevelList="dividendLevelList"
+      ></dividend-level-edit>
+    </el-dialog>
+    <!-- 用户拼购等级（人工指定） -->
+    <el-dialog
+      title="修改拼购等级"
+      :visible.sync="pingouLevelVisible"
+      width="540px"
+      :before-close="ClosePingouLevel"
+    >
+      <pingou-level-edit
+        :pingouLevelInfo="pingouLevelInfo"
+        :pingouLevelList="pingouLevelList"
+      ></pingou-level-edit>
+    </el-dialog>
   </div>
 </template>
 
@@ -562,6 +637,9 @@ import editFrom from './edit';
 import userDetails from './userDetails';
 import levelEdit from './level';
 import teamLevelEdit from './teamLevel';
+import dividendLevelEdit from './dividendLevel';
+import pingouLevelEdit from './pingouLevel';
+import { pingouLevelListApi } from '@/api/pingou';
 import userList from '@/components/userList';
 import * as logistics from '@/api/logistics.js';
 import Cookies from 'js-cookie';
@@ -575,7 +653,7 @@ const DEFAULT_AVATAR_PLACEHOLDER =
 
 export default {
   name: 'UserIndex',
-  components: { editFrom, userDetails, userList, levelEdit, teamLevelEdit },
+  components: { editFrom, userDetails, userList, levelEdit, teamLevelEdit, dividendLevelEdit, pingouLevelEdit },
   filters: {
     sexFilter(status) {
       const statusMap = {
@@ -602,6 +680,8 @@ export default {
       userVisible: false,
       levelInfo: {},
       teamLevelInfo: {},
+      dividendLevelInfo: {},
+      pingouLevelInfo: {},
       pickerOptions: this.$timeOptions,
       loadingBtn: false,
       PointValidateForm: {
@@ -620,6 +700,8 @@ export default {
       dialogVisible: false,
       levelVisible: false,
       teamLevelVisible: false,
+      dividendLevelVisible: false,
+      pingouLevelVisible: false,
       groupData: [],
       labelData: [],
       levelList: [],
@@ -668,6 +750,8 @@ export default {
         limit: 20,
         groupId: '',
         dividendLevelId: '',
+        pingouLevelId: '',
+        teamLevel: '',
       },
       grid: {
         xl: 8,
@@ -680,6 +764,7 @@ export default {
       groupList: [],
       distributorLevelList: [],
       dividendLevelList: [],
+      pingouLevelList: [],
       selectedData: [],
       timeVal: [],
       addresData: [],
@@ -726,6 +811,7 @@ export default {
     this.teamLevelLists();
     this.distributorLevelLists();
     this.dividendLevelLists();
+    this.pingouLevelLists();
     this.getTagList();
     if (checkPermi(['admin:system:city:list:tree'])) this.getCityList();
   },
@@ -1022,6 +1108,28 @@ export default {
       };
       this.teamLevelVisible = true;
     },
+    CloseDividendLevel() {
+      this.dividendLevelVisible = false;
+    },
+    // 分红等级（人工指定；0=恢复自动判定）
+    onDividendLevel(item) {
+      this.dividendLevelInfo = {
+        uid: item.uid,
+        dividendLevelId: item.dividendLevelId || 0,
+      };
+      this.dividendLevelVisible = true;
+    },
+    ClosePingouLevel() {
+      this.pingouLevelVisible = false;
+    },
+    // 拼购等级（人工指定；0=恢复自动判定）
+    onPingouLevel(item) {
+      this.pingouLevelInfo = {
+        uid: item.uid,
+        pingouLevelId: item.pingouLevelId || 0,
+      };
+      this.pingouLevelVisible = true;
+    },
     // 账户充减
     editPoint(id) {
       this.uid = id;
@@ -1213,6 +1321,16 @@ export default {
         })
         .catch(() => {
           this.dividendLevelList = [];
+        });
+    },
+    // 拼购等级列表（拼购系统-拼购等级）
+    pingouLevelLists() {
+      pingouLevelListApi()
+        .then((res) => {
+          this.pingouLevelList = res || [];
+        })
+        .catch(() => {
+          this.pingouLevelList = [];
         });
     },
     // 分销商等级列表

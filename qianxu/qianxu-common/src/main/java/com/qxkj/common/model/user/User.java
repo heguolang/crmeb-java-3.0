@@ -115,6 +115,12 @@ public class User implements Serializable {
     @ApiModelProperty(value = "分销商等级ID，0=无")
     private Integer distributorLevelId;
 
+    @ApiModelProperty(value = "人工指定分红等级ID，0=未指定（按分红等级自身升级条件自动判定）")
+    private Integer dividendLevelId;
+
+    @ApiModelProperty(value = "人工指定拼购等级ID，0=未指定（按直推人数自动命中阶梯）")
+    private Integer pingouLevelId;
+
     @ApiModelProperty(value = "推广人id")
     private Integer spreadUid;
 

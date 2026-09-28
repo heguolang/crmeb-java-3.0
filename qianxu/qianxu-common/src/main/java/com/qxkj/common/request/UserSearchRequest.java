@@ -77,4 +77,10 @@ public class UserSearchRequest extends UserCommonSearchRequest implements Serial
 
     @ApiModelProperty(value = "全球分红级别ID（eb_dividend_level）：0=不参与任何分红级别，>0=达到该级别条件的会员")
     private Integer dividendLevelId;
+
+    @ApiModelProperty(value = "拼购等级ID（人工指定）：0=未指定（自动命中阶梯），>0=指定等级")
+    private Integer pingouLevelId;
+
+    @ApiModelProperty(value = "团队等级ID：0=无，>0=指定等级")
+    private Integer teamLevel;
 }

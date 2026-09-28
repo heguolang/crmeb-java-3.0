@@ -252,6 +252,34 @@ public class UserController {
         }
         return CommonResult.failed("更新失败");
     }
+
+    /**
+     * 更新用户分红等级（人工指定；0=恢复自动判定）
+     */
+    @PreAuthorize("hasAuthority('admin:user:update:level')")
+    @ApiOperation(value = "更新用户分红等级")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员分红等级")
+    @RequestMapping(value = "/update/dividend/level", method = RequestMethod.POST)
+    public CommonResult<Object> updateUserDividendLevel(@Validated @RequestBody UpdateUserDividendLevelRequest request) {
+        if (userService.updateUserDividendLevel(request)) {
+            return CommonResult.success("更新成功");
+        }
+        return CommonResult.failed("更新失败");
+    }
+
+    /**
+     * 更新用户拼购等级（人工指定；0=恢复自动判定）
+     */
+    @PreAuthorize("hasAuthority('admin:user:update:level')")
+    @ApiOperation(value = "更新用户拼购等级")
+    @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "修改会员拼购等级")
+    @RequestMapping(value = "/update/pingou/level", method = RequestMethod.POST)
+    public CommonResult<Object> updateUserPingouLevel(@Validated @RequestBody UpdateUserPingouLevelRequest request) {
+        if (userService.updateUserPingouLevel(request)) {
+            return CommonResult.success("更新成功");
+        }
+        return CommonResult.failed("更新失败");
+    }
 }
 
 
