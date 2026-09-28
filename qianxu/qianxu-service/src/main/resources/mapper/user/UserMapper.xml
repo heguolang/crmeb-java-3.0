@@ -64,9 +64,18 @@
                 and u.pay_count >= ${payCount}
             </if>
         </if>
-        <if test="status != null and status !='' or status == 0 ">
+        <if test="status != null">
             and u.`status` = ${status}
         </if>
+        <!-- 上级情况（推荐人）：1 = 有上级（spread_uid > 0），0 = 没有上级（推荐人为「无」） -->
+        <choose>
+            <when test="hasSpread != null and hasSpread == 1">
+                and u.spread_uid &gt; 0
+            </when>
+            <when test="hasSpread != null and hasSpread == 0">
+                and (u.spread_uid is null or u.spread_uid = 0)
+            </when>
+        </choose>
         <!-- 分红级别（分销商等级）：0 = 未分级（null 或 0），>0 = 指定等级 id -->
         <choose>
             <when test="distributorLevelId != null and distributorLevelId == 0">

@@ -227,6 +227,11 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             map.put("teamLevel", request.getTeamLevel());
         }
 
+        //上级情况：null-全部；1-有上级（已绑定推荐人）；0-没有上级
+        if (request.getHasSpread() != null) {
+            map.put("hasSpread", request.getHasSpread());
+        }
+
         DateLimitUtilVo dateLimit = QianxuDateUtil.getDateLimit(request.getDateLimit());
 
         if (!StringUtils.isBlank(dateLimit.getStartTime())) {

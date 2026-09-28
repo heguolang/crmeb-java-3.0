@@ -186,6 +186,30 @@
                 <el-option :value="0" label="普通用户"></el-option>
               </el-select>
             </el-form-item>
+            <!-- 激活状态 = eb_user.status（1 正常 / 0 禁用），2026-09-28 新增 -->
+            <el-form-item label="激活状态">
+              <el-select
+                v-model="userFrom.status"
+                @visible-change="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择激活状态"
+              >
+                <el-option :value="1" label="激活（正常）"></el-option>
+                <el-option :value="0" label="未激活（禁用）"></el-option>
+              </el-select>
+            </el-form-item>
+            <!-- 上级情况 = eb_user.spread_uid（>0 有推荐人 / 0 为「无」），2026-09-28 新增 -->
+            <el-form-item label="上级情况">
+              <el-select
+                v-model="userFrom.hasSpread"
+                @visible-change="userSearchs"
+                @clear="userSearchs"
+                placeholder="请选择上级情况"
+              >
+                <el-option :value="1" label="有上级"></el-option>
+                <el-option :value="0" label="没有上级"></el-option>
+              </el-select>
+            </el-form-item>
             <!-- 时间选择只在选了「访问情况」后出现，固定排在第二组行尾：
                  插在条件中间会把后面的条件整体往后推，视觉跳动大 -->
             <el-form-item label="时间选择" v-if="userFrom.accessType">
@@ -734,6 +758,8 @@ export default {
         dividendLevelId: '',
         pingouLevelId: '',
         teamLevel: '',
+        status: '',
+        hasSpread: '',
       },
       grid: {
         xl: 8,
@@ -1003,6 +1029,11 @@ export default {
         page: 1,
         limit: 20,
         groupId: '',
+        dividendLevelId: '',
+        pingouLevelId: '',
+        teamLevel: '',
+        status: '',
+        hasSpread: '',
       };
       this.address = [];
       this.groupData = [];

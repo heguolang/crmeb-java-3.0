@@ -83,4 +83,7 @@ public class UserSearchRequest extends UserCommonSearchRequest implements Serial
 
     @ApiModelProperty(value = "团队等级ID：0=无，>0=指定等级")
     private Integer teamLevel;
+
+    @ApiModelProperty(value = "上级情况：1=有上级（已绑定推荐人），0=没有上级（推荐人为无）")
+    private Integer hasSpread;
 }
