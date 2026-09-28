@@ -154,4 +154,7 @@ public class UserResponse {
 
     @ApiModelProperty(value = "分红级别（分销商等级ID）")
     private Integer distributorLevelId;
+
+    @ApiModelProperty(value = "达标的全球分红等级名称（按分红等级自身升级条件判定，多个用、连接）")
+    private String dividendLevelNames;
 }

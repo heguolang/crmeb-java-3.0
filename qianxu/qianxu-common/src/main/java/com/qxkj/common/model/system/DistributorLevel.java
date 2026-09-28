@@ -107,9 +107,6 @@ public class DistributorLevel implements Serializable {
     @ApiModelProperty(value = "下单指定商品达成方式：1=任买一件即可，2=需全部购买")
     private Integer orderProductMode;
 
-    @ApiModelProperty(value = "全球分红比例（%，按分红基数，0=不参与分红）")
-    private BigDecimal dividendRate;
-
     // ==================== 状态 ====================
 
     @ApiModelProperty(value = "是否显示：1=显示，0=隐藏")

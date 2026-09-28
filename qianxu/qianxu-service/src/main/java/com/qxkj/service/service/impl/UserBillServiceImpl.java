@@ -281,6 +281,13 @@ public class UserBillServiceImpl extends ServiceImpl<UserBillDao, UserBill> impl
                 case "pingouRefund":
                     titleList.add("拼购未中奖退款");
                     break;
+                case "pingouSubsidy":
+                    // 补贴/分享奖励只进佣金账户，余额表按标题过滤后自然为空
+                    titleList.add("拼购未中奖补贴");
+                    break;
+                case "pingouShare":
+                    titleList.add("拼购分享奖励");
+                    break;
                 case "dividend":
                     titleList.add("全球分红");
                     break;

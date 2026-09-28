@@ -529,6 +529,14 @@ public class DistributorLevelServiceImpl extends ServiceImpl<DistributorLevelDao
      * 最后一个条件的 directUserConsumeRelation 不参与组合（其后无条件）。
      * 全部条件门槛均为 0 的等级不参与自动升级（视为未配置，需管理员手动指定）。
      */
+    @Override
+    public boolean meetsCondition(DistributorLevel conditionHolder, Integer uid) {
+        if (ObjectUtil.isNull(conditionHolder) || uid == null) {
+            return false;
+        }
+        return meetsCondition(conditionHolder, getOrInitStat(uid));
+    }
+
     private boolean meetsCondition(DistributorLevel level, UserDistributorLevelStat stat) {
         if (ObjectUtil.isNull(level) || ObjectUtil.isNull(stat)) {
             return false;

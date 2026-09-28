@@ -1,25 +1,24 @@
 <template>
   <div class="divBg addContent-wrapper">
     <el-card :bordered="false" shadow="never" class="mt16">
-      <!-- 顶部说明 + 新增 -->
-      <div class="filter-panel">
-        <div class="level-tip">
-          拼购等级是<b>全局默认分享奖励阶梯</b>：推荐人的直推人数达到某等级门槛（含）时，按满足条件的最高一档比例发放分享奖励；
-          拼购活动创建时未单独设置分享奖励阶梯的，结算自动按这里的默认等级比例执行。
-        </div>
-        <div class="filter-actions">
-          <el-button type="primary" icon="el-icon-plus" @click="onOpenEdit()">添加等级</el-button>
+      <!-- 顶部统计条（分销商管理范式）：说明文案 + 添加按钮右侧 -->
+      <div class="summary-bar summary-bar--flex">
+        <span>拼购等级是<b>全局默认分享奖励阶梯</b>：推荐人的直推人数达到某等级门槛（含）时，按满足条件的最高一档比例发放分享奖励；拼购活动未单独设置分享奖励阶梯的，结算自动按这里的默认等级比例执行。</span>
+        <div>
+          <el-button type="primary" plain icon="el-icon-plus" @click="onOpenEdit()">添加等级</el-button>
         </div>
       </div>
 
       <el-table class="admin-table table-lg" v-loading="loading" :data="tableData" size="small" stripe highlight-current-row>
+        <!-- 头部留白列：定稿规则 30，定宽不参与弹性分配 -->
         <el-table-column width="30" />
-        <el-table-column label="ID" width="70">
+        <!-- ID：等级主键独立一栏（非会员 ID，不做色块/复制——复制只用于会员 ID） -->
+        <el-table-column label="ID" width="80" align="center">
           <template slot-scope="scope">{{ scope.row.id }}</template>
         </el-table-column>
-        <el-table-column label="等级名称" min-width="140">
+        <el-table-column label="等级名称" min-width="160">
           <template slot-scope="scope">
-            <span class="level-name">{{ scope.row.name }}</span>
+            <div class="info-name">{{ scope.row.name }}</div>
           </template>
         </el-table-column>
         <el-table-column label="直推人数（含）" width="140" align="center">
@@ -28,18 +27,24 @@
         <el-table-column label="分享奖励比例" width="140" align="center">
           <template slot-scope="scope"><span class="c-red">{{ scope.row.rewardRate }}%</span></template>
         </el-table-column>
-        <el-table-column label="排序" width="90" align="center">
+        <el-table-column label="排序" width="70" align="center">
           <template slot-scope="scope">{{ scope.row.sort }}</template>
         </el-table-column>
-        <el-table-column label="更新时间" width="160" class-name="time-cell">
+        <!-- 时间列定宽：14px 下完整 yyyy-MM-dd HH:mm:ss 需 186px（含内边距），别用 min-width -->
+        <el-table-column label="更新时间" width="186" align="center" class-name="time-cell">
           <template slot-scope="scope">{{ fmtTime(scope.row.updateTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="140" fixed="right">
+        <!-- 操作：单行等宽胶囊（172 = 内边距 30 + 2 格×68 + 间隙 6），危险操作收尾，不 fixed -->
+        <el-table-column label="操作" width="172" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="onOpenEdit(scope.row)">修改</el-button>
-            <el-button type="text" size="small" class="text-danger" @click="onDelete(scope.row)">删除</el-button>
+            <div class="op-grid op-grid--auto">
+              <el-button size="mini" plain class="op-tag tint-neutral" @click="onOpenEdit(scope.row)">修改</el-button>
+              <el-button size="mini" plain class="op-tag tint-danger" @click="onDelete(scope.row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
+        <!-- 尾部留白列：定稿规则 150，按钮与表格右缘之间留白 -->
+        <el-table-column width="150" />
       </el-table>
     </el-card>
 
@@ -148,26 +153,23 @@ export default {
 </script>
 
 <style scoped>
-.filter-panel {
+/* 列表范式（summary-bar / table-lg / op-grid / op-tag / info-name）已统一提升到
+   theme/styles.scss 全局定义，本页不写 scoped 副本 */
+/* 无筛选页变体：统计条左侧文案 + 右侧操作按钮（与分红等级页同款） */
+.summary-bar--flex {
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
-.level-tip {
-  font-size: 13px;
-  color: #6b7280;
-  line-height: 1.8;
-  flex: 1;
-}
-.level-name {
-  font-weight: 600;
-  color: #303133;
+/* 操作列：胶囊强制横排不换行（与分销商管理同款） */
+::v-deep .op-cell .op-tag {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .c-red {
   color: #e93323;
   font-weight: 600;
-}
-.text-danger {
-  color: #f56c6c;
 }
 .form-tip {
   font-size: 12px;

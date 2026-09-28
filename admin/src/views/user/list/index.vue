@@ -113,19 +113,19 @@
                 <el-option :value="3" label="时间段未访问"></el-option>
               </el-select>
             </el-form-item>
-            <el-form-item label="分红级别">
+            <el-form-item label="分红等级">
               <el-select
-                v-model="userFrom.distributorLevelId"
+                v-model="userFrom.dividendLevelId"
                 @visible-change="userSearchs"
                 @clear="userSearchs"
-                placeholder="请选择分红级别"
+                placeholder="请选择分红等级"
                 clearable
                 filterable
               >
-                <el-option :value="0" label="未分级"></el-option>
+                <el-option :value="0" label="不参与分红"></el-option>
                 <el-option
                   :value="item.id"
-                  v-for="item in distributorLevelList"
+                  v-for="item in dividendLevelList"
                   :key="item.id"
                   :label="item.name"
                 ></el-option>
@@ -251,7 +251,7 @@
               </div>
               <div class="kv"><span class="kv__k">手机号：</span><span class="kv__v kv__v--num">{{ item.phone | filterEmpty }}</span></div>
               <div class="kv"><span class="kv__k">注册时间：</span><span class="kv__v kv__v--num">{{ item.createTime | filterEmpty }}</span></div>
-              <div class="kv"><span class="kv__k">分红级别：</span><span class="kv__v">{{ matchDistributorLevelName(item.distributorLevelId) }}</span></div>
+              <div class="kv"><span class="kv__k">分红等级：</span><span class="kv__v">{{ item.dividendLevelNames || '—' }}</span></div>
               <div class="kv"><span class="kv__k">备注：</span><span class="kv__v">{{ item.mark | filterEmpty }}</span></div>
             </div>
 
@@ -556,6 +556,7 @@ import {
 } from '@/api/user';
 import { teamLevelAllApi } from '@/api/teamLevel';
 import { distributorLevelListApi } from '@/api/distributorLevel';
+import { dividendInfoApi } from '@/api/dividend';
 import { spreadClearApi } from '@/api/distribution';
 import editFrom from './edit';
 import userDetails from './userDetails';
@@ -666,7 +667,7 @@ export default {
         page: 1,
         limit: 20,
         groupId: '',
-        distributorLevelId: '',
+        dividendLevelId: '',
       },
       grid: {
         xl: 8,
@@ -678,6 +679,7 @@ export default {
       labelLists: [],
       groupList: [],
       distributorLevelList: [],
+      dividendLevelList: [],
       selectedData: [],
       timeVal: [],
       addresData: [],
@@ -723,6 +725,7 @@ export default {
     this.levelLists();
     this.teamLevelLists();
     this.distributorLevelLists();
+    this.dividendLevelLists();
     this.getTagList();
     if (checkPermi(['admin:system:city:list:tree'])) this.getCityList();
   },
@@ -1202,7 +1205,17 @@ export default {
           this.teamLevelList = [];
         });
     },
-    // 分销商等级列表（分红级别）
+    // 分红等级列表（全球分红-独立条件）
+    dividendLevelLists() {
+      dividendInfoApi()
+        .then((res) => {
+          this.dividendLevelList = (res && res.levels) || [];
+        })
+        .catch(() => {
+          this.dividendLevelList = [];
+        });
+    },
+    // 分销商等级列表
     distributorLevelLists() {
       distributorLevelListApi()
         .then((res) => {

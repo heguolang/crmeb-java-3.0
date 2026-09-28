@@ -17,6 +17,9 @@ public class PingouShareTier implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    @ApiModelProperty(value = "关联拼购等级ID（活动按等级独立设置时存在，旧数据为空）")
+    private Integer levelId;
+
     @ApiModelProperty(value = "直推人数下限（含）")
     private Integer minDirectNum;
 

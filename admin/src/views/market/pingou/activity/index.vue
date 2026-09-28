@@ -52,12 +52,11 @@
             <span class="info-v">￥{{ scope.row.refundSubsidy }} /人</span>
           </template>
         </el-table-column>
-        <el-table-column label="分享奖励" min-width="140">
+        <el-table-column label="分享奖励" min-width="150">
           <template slot-scope="scope">
-            <div v-for="(t, i) in parseTiers(scope.row.shareTiers, scope.row)" :key="i" class="info-line">
-              {{ tierText(t) }}
+            <div v-for="(line, i) in tierLines(scope.row)" :key="i" class="info-line">
+              {{ line }}
             </div>
-            <div v-if="!parseTiers(scope.row.shareTiers, scope.row).length" class="info-line tier-default">按默认等级比例</div>
           </template>
         </el-table-column>
         <el-table-column label="活动时间" width="300" class-name="time-cell">
@@ -88,75 +87,131 @@
     </el-card>
 
     <!-- 添加/编辑弹窗 -->
-    <el-dialog :title="editForm.id ? '修改拼购活动' : '添加拼购活动'" :visible.sync="editVisible" width="560px" top="6vh">
-      <el-form ref="editForm" :model="editForm" :rules="rules" label-width="110px" size="small">
-        <el-form-item label="活动名称" prop="name">
-          <el-input v-model="editForm.name" placeholder="例如：国庆活动" style="width: 320px" />
-        </el-form-item>
-        <el-form-item label="拼购商品" prop="productId">
-          <el-input :value="productLabel" placeholder="请选择拼购商品（中奖者所得商品）" readonly style="width: 320px">
-            <template slot="append">
-              <el-button @click="openProductPicker">选择商品</el-button>
-            </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="活动时间" prop="startTime">
-          <el-date-picker
-            v-model="dateRange"
-            type="datetimerange"
-            value-format="yyyy-MM-dd HH:mm:ss"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            style="width: 320px"
-          />
-        </el-form-item>
-        <el-form-item label="成团人数" prop="totalNum">
-          <el-input-number v-model="editForm.totalNum" :min="2" :max="9999" style="width: 150px" />
-          <span class="form-tip">人（满员即开奖）</span>
-        </el-form-item>
-        <el-form-item label="中奖人数" prop="winNum">
-          <el-input-number v-model="editForm.winNum" :min="1" :max="editForm.totalNum ? editForm.totalNum - 1 : 1" style="width: 150px" />
-          <span class="form-tip">人（随机抽取，中奖得商品）</span>
-        </el-form-item>
-        <el-form-item label="未中奖补贴">
-          <el-input-number v-model="editForm.refundSubsidy" :min="0" :precision="2" style="width: 150px" />
-          <span class="form-tip">元/人（发放到佣金账户，本金自动退回余额）</span>
-        </el-form-item>
-        <el-form-item label="分享奖励">
-          <div v-for="(t, i) in editForm.shareTiers" :key="i" class="tier-row">
-            <span class="tier-label">直推</span>
-            <el-input-number v-model="t.minDirectNum" :min="1" :precision="0" style="width: 110px" />
-            <span class="tier-label">人（含）以上</span>
-            <el-select v-model="t.rewardType" style="width: 120px">
-              <el-option label="比例（%）" :value="1" />
-              <el-option label="固定金额（元）" :value="2" />
-            </el-select>
-            <el-input-number v-model="t.rewardValue" :min="0" :precision="2" style="width: 120px" />
-            <el-button size="mini" type="danger" plain icon="el-icon-delete" circle @click="removeTier(i)" />
+    <el-dialog :title="editForm.id ? '修改拼购活动' : '添加拼购活动'" :visible.sync="editVisible" width="640px" top="6vh">
+      <el-form ref="editForm" :model="editForm" :rules="rules" label-width="88px" label-position="left" size="small" class="edit-form">
+        <!-- 基本信息 -->
+        <div class="form-group">
+          <div class="group-title">基本信息</div>
+          <el-form-item label="活动名称" prop="name">
+            <el-input v-model="editForm.name" placeholder="例如：国庆活动" />
+          </el-form-item>
+          <el-form-item label="拼购商品" prop="productId">
+            <el-input :value="productLabel" placeholder="请选择拼购商品（中奖者所得商品）" readonly>
+              <template slot="append">
+                <el-button @click="openProductPicker">选择商品</el-button>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item label="活动时间" prop="startTime">
+            <el-date-picker
+              v-model="dateRange"
+              type="datetimerange"
+              value-format="yyyy-MM-dd HH:mm:ss"
+              range-separator="至"
+              start-placeholder="开始时间"
+              end-placeholder="结束时间"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </div>
+
+        <!-- 开奖与补贴 -->
+        <div class="form-group">
+          <div class="group-title">开奖与补贴</div>
+          <div class="half-row">
+            <el-form-item label="成团人数" prop="totalNum">
+              <div class="num-cell">
+                <el-input-number v-model="editForm.totalNum" :min="2" :max="9999" style="width: 110px" />
+                <span class="unit">人</span>
+              </div>
+            </el-form-item>
+            <el-form-item label="中奖人数" prop="winNum">
+              <div class="num-cell">
+                <el-input-number v-model="editForm.winNum" :min="1" :max="editForm.totalNum ? editForm.totalNum - 1 : 1" style="width: 110px" />
+                <span class="unit">人</span>
+              </div>
+            </el-form-item>
           </div>
-          <div>
-            <el-button size="mini" type="primary" plain icon="el-icon-plus" @click="addTier">添加阶梯</el-button>
-            <el-button size="mini" type="success" plain icon="el-icon-document-copy" @click="applyDefaultLevels">引用默认等级</el-button>
-            <span class="form-tip">按直推人数匹配最高一档；比例按被推荐人参与金额计算</span>
-            <div class="form-tip" style="margin-top: 4px">
-              <template v-if="editForm.shareTiers.length">本活动已独立设置分享奖励阶梯，结算按上面配置执行</template>
-              <template v-else>未设置阶梯 → 结算自动按「拼购等级」里配置的默认比例发放；点「引用默认等级」可载入后独立调整</template>
+          <div class="group-tip">成团即开奖 · 中奖者随机抽取、获得拼购商品</div>
+          <el-form-item label="未中奖补贴">
+            <div class="num-cell">
+              <el-input-number v-model="editForm.refundSubsidy" :min="0" :precision="2" style="width: 110px" />
+              <span class="unit">元/人</span>
             </div>
+            <div class="field-tip">发放到佣金账户，本金自动退回余额</div>
+          </el-form-item>
+        </div>
+
+        <!-- 分享奖励 -->
+        <div class="form-group">
+          <div class="group-title">分享奖励</div>
+          <template v-if="levelRows.length">
+            <div v-for="lv in levelRows" :key="lv.id" class="level-card">
+              <div class="level-head">
+                <div class="level-name">{{ lv.name }}（直推≥{{ lv.minDirectNum }}人）</div>
+                <el-radio-group v-model="lv.mode" size="mini">
+                  <el-radio label="default">跟随默认（{{ lv.rewardRate }}%）</el-radio>
+                  <el-radio label="custom">独立设置</el-radio>
+                </el-radio-group>
+              </div>
+              <div v-if="lv.mode === 'custom'" class="level-body">
+                <el-select v-model="lv.rewardType" size="mini" style="width: 130px">
+                  <el-option label="比例（%）" :value="1" />
+                  <el-option label="固定金额（元）" :value="2" />
+                </el-select>
+                <el-input-number v-model="lv.rewardValue" :min="0" :precision="2" size="mini" style="width: 110px" />
+              </div>
+            </div>
+            <div class="field-tip block-tip">
+              每个等级可选「跟随默认」（按拼购等级设置的比例）或「独立设置」本活动专属奖励；结算按直推人数匹配满足条件的最高一档
+            </div>
+            <div v-if="editForm.legacyTiers && editForm.legacyTiers.length" class="field-tip block-tip">
+              另有 {{ editForm.legacyTiers.length }} 条历史阶梯配置将继续生效
+            </div>
+          </template>
+          <template v-else>
+            <div v-for="(t, i) in editForm.shareTiers" :key="i" class="tier-row">
+              <span class="tier-label">直推</span>
+              <el-input-number v-model="t.minDirectNum" :min="1" :precision="0" style="width: 110px" />
+              <span class="tier-label">人（含）以上</span>
+              <el-select v-model="t.rewardType" style="width: 130px">
+                <el-option label="比例（%）" :value="1" />
+                <el-option label="固定金额（元）" :value="2" />
+              </el-select>
+              <el-input-number v-model="t.rewardValue" :min="0" :precision="2" style="width: 120px" />
+              <el-button size="mini" type="danger" plain icon="el-icon-delete" circle @click="removeTier(i)" />
+            </div>
+            <div class="tier-add">
+              <el-button size="mini" type="primary" plain icon="el-icon-plus" @click="addTier">添加阶梯</el-button>
+              <span class="field-tip">尚未设置拼购等级：建议先到「大市场 → 拼购等级」添加等级，再按等级设置分享奖励</span>
+            </div>
+          </template>
+        </div>
+
+        <!-- 其他设置 -->
+        <div class="form-group">
+          <div class="group-title">其他设置</div>
+          <div class="half-row">
+            <el-form-item label="限购数量">
+              <div class="num-cell">
+                <el-input-number v-model="editForm.limitNum" :min="0" style="width: 110px" />
+                <span class="unit-tip">0=不限</span>
+              </div>
+            </el-form-item>
+            <el-form-item label="排序">
+              <div class="num-cell">
+                <el-input-number v-model="editForm.sort" :min="0" style="width: 110px" />
+                <span class="unit-tip">越大越靠前</span>
+              </div>
+            </el-form-item>
           </div>
-        </el-form-item>
-        <el-form-item label="限购数量">
-          <el-input-number v-model="editForm.limitNum" :min="0" style="width: 150px" />
-          <span class="form-tip">件/人（0 = 不限）</span>
-        </el-form-item>
-        <el-form-item label="是否展示">
-          <el-switch v-model="editForm.isShow" :active-value="true" :inactive-value="false" />
-          <span class="form-tip">在会员端拼购列表展示</span>
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="editForm.sort" :min="0" style="width: 150px" />
-          <span class="form-tip">数字越大越靠前</span>
-        </el-form-item>
+          <el-form-item label="是否展示">
+            <div class="num-cell">
+              <el-switch v-model="editForm.isShow" :active-value="true" :inactive-value="false" />
+              <span class="unit-tip">在会员端拼购列表展示</span>
+            </div>
+          </el-form-item>
+        </div>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button size="small" @click="editVisible = false">取消</el-button>
@@ -215,6 +270,10 @@ export default {
       editVisible: false,
       dateRange: null,
       editForm: this.emptyForm(),
+      // 拼购等级行（表单分享奖励区按等级逐行渲染；mode: default=跟随默认 custom=独立设置）
+      levelRows: [],
+      // 列表展示用的等级默认比例
+      listLevels: [],
       rules: {
         name: [{ required: true, message: '请输入活动名称', trigger: 'blur' }],
         productId: [{ required: true, message: '请选择拼购商品', trigger: 'change' }],
@@ -239,6 +298,7 @@ export default {
     }
   },
   mounted() {
+    this.loadListLevels();
     this.getList();
   },
   methods: {
@@ -255,6 +315,7 @@ export default {
         winNum: 2,
         refundSubsidy: 0,
         shareTiers: [],
+        legacyTiers: [],
         limitNum: 0,
         isShow: true,
         sort: 0,
@@ -284,29 +345,78 @@ export default {
       return t ? String(t).slice(0, 16) : '—';
     },
     openEdit(row) {
-      if (row) {
-        const form = { ...this.emptyForm(), ...row };
-        delete form.createTime;
-        delete form.updateTime;
-        delete form.isDel;
-        delete form.productName;
-        delete form.productPrice;
-        delete form.shareRateLow;
-        delete form.shareRateHigh;
-        delete form.shareRateThreshold;
-        form.shareTiers = this.parseTiers(row.shareTiers, row);
-        this.editForm = form;
-        this.pickedProduct = { storeName: row.productName, price: row.productPrice };
-        this.dateRange = [row.startTime, row.endTime];
-      } else {
-        this.editForm = this.emptyForm();
-        this.pickedProduct = null;
-        this.dateRange = null;
-      }
-      this.editVisible = true;
-      this.$nextTick(() => {
-        this.$refs.editForm && this.$refs.editForm.clearValidate();
-      });
+      // 先拉最新等级（分享奖励按等级逐行渲染），再组装表单
+      pingouLevelListApi()
+        .then((res) => {
+          const levels = Array.isArray(res) ? res : res.list || [];
+          this.levelRows = levels
+            .slice()
+            .sort((a, b) => (a.minDirectNum || 0) - (b.minDirectNum || 0))
+            .map((l) => ({
+              id: l.id,
+              name: l.name,
+              minDirectNum: l.minDirectNum || 1,
+              rewardRate: Number(l.rewardRate) || 0,
+              mode: 'default',
+              rewardType: 1,
+              rewardValue: Number(l.rewardRate) || 0
+            }));
+          const form = { ...this.emptyForm(), ...(row || {}) };
+          const tiers = row ? this.parseTiers(row.shareTiers, row) : [];
+          if (row) {
+            delete form.createTime;
+            delete form.updateTime;
+            delete form.isDel;
+            delete form.productName;
+            delete form.productPrice;
+            delete form.shareRateLow;
+            delete form.shareRateHigh;
+            delete form.shareRateThreshold;
+            delete form.shareTiersJson;
+            this.pickedProduct = { storeName: row.productName, price: row.productPrice };
+            this.dateRange = [row.startTime, row.endTime];
+          } else {
+            this.pickedProduct = null;
+            this.dateRange = null;
+          }
+          if (this.levelRows.length) {
+            // 等级模式：已保存的独立档归位到对应等级；旧数据（无 levelId）按直推人数匹配；匹配不上的留作历史阶梯
+            const byLevel = {};
+            const legacy = [];
+            (tiers || []).forEach((t) => {
+              if (t.levelId != null && this.levelRows.some((l) => l.id === t.levelId)) {
+                byLevel[t.levelId] = t;
+              } else {
+                const lv = this.levelRows.find((l) => l.minDirectNum === t.minDirectNum);
+                if (lv && !byLevel[lv.id]) {
+                  byLevel[lv.id] = t;
+                } else {
+                  legacy.push(t);
+                }
+              }
+            });
+            this.levelRows.forEach((lv) => {
+              const t = byLevel[lv.id];
+              if (t) {
+                lv.mode = 'custom';
+                lv.rewardType = t.rewardType || 1;
+                lv.rewardValue = Number(t.rewardValue) || 0;
+              }
+            });
+            form.legacyTiers = legacy;
+            form.shareTiers = [];
+          } else {
+            // 无等级：退回自由阶梯模式，保证旧数据可编辑
+            form.shareTiers = tiers;
+            form.legacyTiers = [];
+          }
+          this.editForm = form;
+          this.editVisible = true;
+          this.$nextTick(() => {
+            this.$refs.editForm && this.$refs.editForm.clearValidate();
+          });
+        })
+        .catch(() => {});
     },
     // ---------- 分享奖励阶梯 ----------
     parseTiers(json, row) {
@@ -325,29 +435,37 @@ export default {
       }
       return tiers;
     },
-    tierText(t) {
-      const unit = t.rewardType === 2 ? '元' : '%';
-      return `直推≥${t.minDirectNum}人：${t.rewardValue}${unit}`;
+    tierLines(row) {
+      const tiers = this.parseTiers(row.shareTiers, row);
+      if (!tiers.length) return ['按默认等级比例'];
+      const unit = (t) => (t.rewardType === 2 ? '元' : '%');
+      const hasLevel = tiers.some((t) => t.levelId != null);
+      if (hasLevel && this.listLevels.length) {
+        const byLevel = {};
+        tiers.forEach((t) => {
+          if (t.levelId != null) byLevel[t.levelId] = t;
+        });
+        const lines = this.listLevels.map((lv) => {
+          const t = byLevel[lv.id];
+          return t ? `${lv.name}：独立 ${t.rewardValue}${unit(t)}` : `${lv.name}：默认 ${lv.rewardRate}%`;
+        });
+        tiers.forEach((t) => {
+          if (t.levelId == null) lines.push(`直推≥${t.minDirectNum}人：${t.rewardValue}${unit(t)}`);
+        });
+        return lines;
+      }
+      return tiers.map((t) => `直推≥${t.minDirectNum}人：${t.rewardValue}${unit(t)}`);
     },
-    addTier() {
-      this.editForm.shareTiers.push({ minDirectNum: 1, rewardType: 1, rewardValue: 0.5 });
-    },
-    // 引用「拼购等级设置」的默认等级，一键填充为活动独立阶梯（可再调整）
-    applyDefaultLevels() {
+    loadListLevels() {
       pingouLevelListApi()
         .then((res) => {
           const levels = Array.isArray(res) ? res : res.list || [];
-          if (!levels.length) {
-            this.$message.warning('还没有默认等级，请先到「大市场 → 拼购等级」添加');
-            return;
-          }
-          this.editForm.shareTiers = levels
-            .slice()
-            .sort((a, b) => a.minDirectNum - b.minDirectNum)
-            .map((l) => ({ minDirectNum: l.minDirectNum, rewardType: 1, rewardValue: Number(l.rewardRate) }));
-          this.$message.success('已载入默认等级，可继续独立调整');
+          this.listLevels = levels.slice().sort((a, b) => (a.minDirectNum || 0) - (b.minDirectNum || 0));
         })
         .catch(() => {});
+    },
+    addTier() {
+      this.editForm.shareTiers.push({ minDirectNum: 1, rewardType: 1, rewardValue: 0.5 });
     },
     removeTier(i) {
       this.editForm.shareTiers.splice(i, 1);
@@ -359,7 +477,17 @@ export default {
           this.$message.error('请选择活动时间');
           return;
         }
-        const data = { ...this.editForm, startTime: this.dateRange[0], endTime: this.dateRange[1] };
+        // 组装分享奖励：等级模式 → 每个独立设置的等级一条（带 levelId），跟随默认的等级不传（结算走默认比例）
+        let shareTiers;
+        if (this.levelRows.length) {
+          shareTiers = this.levelRows
+            .filter((l) => l.mode === 'custom')
+            .map((l) => ({ levelId: l.id, minDirectNum: l.minDirectNum, rewardType: l.rewardType, rewardValue: l.rewardValue }))
+            .concat(this.editForm.legacyTiers || []);
+        } else {
+          shareTiers = this.editForm.shareTiers;
+        }
+        const data = { ...this.editForm, shareTiers, startTime: this.dateRange[0], endTime: this.dateRange[1] };
         this.saving = true;
         const req = data.id ? pingouActivityUpdateApi(data) : pingouActivitySaveApi(data);
         req
@@ -456,6 +584,98 @@ export default {
   font-size: 12px;
   color: #909399;
 }
+/* ---------- 弹窗表单：四组分档（按图纸：640px / 88px 左置标签 / 并排半列） ---------- */
+.edit-form {
+  .group-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f5fd6;
+    line-height: 18px;
+    margin: 0 0 16px;
+  }
+  .form-group {
+    & + .form-group {
+      margin-top: 20px;
+    }
+    ::v-deep .el-form-item {
+      margin-bottom: 16px;
+    }
+    ::v-deep .el-form-item__label {
+      font-size: 13px;
+      color: #606266;
+      padding-right: 12px;
+      line-height: 32px;
+    }
+  }
+  /* 并排半列：成团+中奖、限购+排序 */
+  .half-row {
+    display: flex;
+    gap: 24px;
+    ::v-deep .el-form-item {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+  .group-tip {
+    font-size: 12px;
+    color: #909399;
+    line-height: 18px;
+    margin: -6px 0 16px;
+  }
+  .num-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    .unit {
+      font-size: 13px;
+      color: #606266;
+      white-space: nowrap;
+    }
+    .unit-tip {
+      font-size: 12px;
+      color: #909399;
+      white-space: nowrap;
+    }
+  }
+  .field-tip {
+    font-size: 12px;
+    color: #909399;
+    line-height: 18px;
+    margin-top: 2px;
+    &.block-tip {
+      margin: 2px 0 8px;
+    }
+  }
+  .level-card {
+    background: #f7f8fa;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    .level-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      .level-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: #303133;
+      }
+    }
+    .level-body {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+  }
+  .tier-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
 .pager {
   margin-top: 16px;
   text-align: right;
@@ -468,7 +688,8 @@ export default {
     margin: 0 6px;
     font-size: 13px;
     color: #606266;
-    white-space: nowrap;  }
+    white-space: nowrap;
+  }
   .el-input-number,
   .el-select {
     margin-right: 6px;

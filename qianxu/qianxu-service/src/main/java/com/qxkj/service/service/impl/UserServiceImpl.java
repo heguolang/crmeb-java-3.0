@@ -35,6 +35,8 @@ import com.qxkj.common.token.FrontTokenComponent;
 import com.qxkj.common.utils.*;
 import com.qxkj.common.vo.DateLimitUtilVo;
 import com.qxkj.service.dao.UserDao;
+import com.qxkj.common.model.dividend.DividendLevel;
+import com.qxkj.service.dao.DividendLevelDao;
 import com.qxkj.service.service.*;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -69,6 +71,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
     @Resource
     private UserDao userDao;
+
+    @Resource
+    private DividendLevelDao dividendLevelDao;
 
     @Autowired
     private UserBillService userBillService;
@@ -146,6 +151,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
      */
     @Override
     public PageInfo<UserResponse> getList(UserSearchRequest request) {
+        // 分红等级筛选的达标 uid 集合需先计算（内部有 SQL，必须放在 PageHelper.startPage 之前，避免消耗分页参数）
+        List<Integer> dividendQualifiedUids = request.getDividendLevelId() == null
+                ? null : resolveDividendQualifiedUids(request.getDividendLevelId());
         Page<User> pageUser = PageHelper.startPage(request.getPage(), request.getLimit());
         LambdaQueryWrapper<User> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         Map<String, Object> map = CollUtil.newHashMap();
@@ -201,6 +209,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             map.put("distributorLevelId", request.getDistributorLevelId());
         }
 
+        //全球分红等级：null-全部；0-不参与任何分红等级；>0-满足该等级升级条件的会员
+        map.put("dividendQualifiedUids", dividendQualifiedUids);
+
         DateLimitUtilVo dateLimit = QianxuDateUtil.getDateLimit(request.getDateLimit());
 
         if (!StringUtils.isBlank(dateLimit.getStartTime())) {
@@ -255,7 +266,97 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             }
             userResponses.add(userResponse);
         }
+        fillDividendLevelNames(userResponses);
         return CommonPage.copyPageInfo(pageUser, userResponses);
+    }
+
+    /**
+     * 计算分红等级筛选的达标 uid 集合：
+     * levelId=0 → 不满足任何分红等级升级条件的会员；levelId>0 → 满足该等级升级条件的会员。
+     * 达标判定复用分销商等级那套升级条件逻辑（基于会员自身统计，与分销商等级本身无关）。
+     */
+    private List<Integer> resolveDividendQualifiedUids(Integer levelId) {
+        List<Integer> candidateUids = userDao.selectList(Wrappers.<User>lambdaQuery()
+                .select(User::getUid)
+                .eq(User::getStatus, true)
+                .eq(User::getIsLogoff, false))
+                .stream().map(User::getUid).collect(java.util.stream.Collectors.toList());
+        if (levelId != null && levelId > 0) {
+            DividendLevel level = dividendLevelDao.selectById(levelId);
+            if (ObjectUtil.isNull(level) || Boolean.TRUE.equals(level.getIsDel())) {
+                return java.util.Collections.singletonList(-1);
+            }
+            List<Integer> uids = new ArrayList<>();
+            for (Integer uid : candidateUids) {
+                if (distributorLevelService.meetsCondition(toDividendConditionHolder(level), uid)) {
+                    uids.add(uid);
+                }
+            }
+            return uids.isEmpty() ? java.util.Collections.singletonList(-1) : uids;
+        }
+        // levelId=0：排除满足任一分红等级条件的会员
+        List<DividendLevel> levels = dividendLevelDao.selectList(Wrappers.<DividendLevel>lambdaQuery()
+                .eq(DividendLevel::getIsDel, false));
+        List<Integer> notQualified = new ArrayList<>(candidateUids);
+        for (DividendLevel level : levels) {
+            com.qxkj.common.model.system.DistributorLevel holder = toDividendConditionHolder(level);
+            notQualified.removeIf(uid -> distributorLevelService.meetsCondition(holder, uid));
+        }
+        return notQualified.isEmpty() ? java.util.Collections.singletonList(-1) : notQualified;
+    }
+
+    /**
+     * 把分红等级的条件字段转为条件判定载体（复用分销商等级判定逻辑）
+     */
+    private com.qxkj.common.model.system.DistributorLevel toDividendConditionHolder(DividendLevel level) {
+        return new com.qxkj.common.model.system.DistributorLevel()
+                .setDirectUserCount(level.getDirectUserCount())
+                .setDirectUserRelation(level.getDirectUserRelation())
+                .setTeamUserCount(level.getTeamUserCount())
+                .setTeamUserRelation(level.getTeamUserRelation())
+                .setDirectLevelId(level.getDirectLevelId())
+                .setDirectLevelCount(level.getDirectLevelCount())
+                .setDirectLevelRelation(level.getDirectLevelRelation())
+                .setTotalConsumeAmount(level.getTotalConsumeAmount())
+                .setTotalConsumeRelation(level.getTotalConsumeRelation())
+                .setTotalRechargeAmount(level.getTotalRechargeAmount())
+                .setTotalRechargeRelation(level.getTotalRechargeRelation())
+                .setTeamProductAmount(level.getTeamProductAmount())
+                .setTeamProductRelation(level.getTeamProductRelation())
+                .setDirectConsumeAmount(level.getDirectConsumeAmount())
+                .setDirectConsumeRelation(level.getDirectConsumeRelation())
+                .setOrderProductIds(level.getOrderProductIds())
+                .setOrderProductRelation(level.getOrderProductRelation())
+                .setOrderProductMode(level.getOrderProductMode());
+    }
+
+    /**
+     * 为会员信息填充达标的分红等级名称（按各分红等级自身升级条件判定）
+     */
+    private void fillDividendLevelNames(List<UserResponse> responses) {
+        if (CollUtil.isEmpty(responses)) {
+            return;
+        }
+        List<DividendLevel> levels = dividendLevelDao.selectList(Wrappers.<DividendLevel>lambdaQuery()
+                .eq(DividendLevel::getIsDel, false));
+        if (CollUtil.isEmpty(levels)) {
+            return;
+        }
+        List<com.qxkj.common.model.system.DistributorLevel> holders = new ArrayList<>();
+        for (DividendLevel level : levels) {
+            holders.add(toDividendConditionHolder(level));
+        }
+        for (UserResponse response : responses) {
+            List<String> names = new ArrayList<>();
+            for (int i = 0; i < levels.size(); i++) {
+                if (distributorLevelService.meetsCondition(holders.get(i), response.getUid())) {
+                    names.add(levels.get(i).getName());
+                }
+            }
+            if (!names.isEmpty()) {
+                response.setDividendLevelNames(String.join("、", names));
+            }
+        }
     }
 
     /**

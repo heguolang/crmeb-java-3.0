@@ -12,6 +12,7 @@ import com.github.pagehelper.PageHelper;
 import com.qxkj.common.constants.Constants;
 import com.qxkj.common.constants.BrokerageRecordConstants;
 import com.qxkj.common.model.dividend.DividendDetail;
+import com.qxkj.common.model.dividend.DividendLevel;
 import com.qxkj.common.model.dividend.DividendRecord;
 import com.qxkj.common.model.system.DistributorLevel;
 import com.qxkj.common.model.user.User;
@@ -21,6 +22,7 @@ import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.utils.QianxuDateUtil;
 import com.qxkj.service.dao.DividendDetailDao;
+import com.qxkj.service.dao.DividendLevelDao;
 import com.qxkj.service.dao.DividendRecordDao;
 import com.qxkj.service.service.DistributorLevelService;
 import com.qxkj.service.service.UserBillService;
@@ -73,6 +75,9 @@ public class DividendServiceImpl extends ServiceImpl<DividendRecordDao, Dividend
     private DividendDetailDao detailDao;
 
     @Autowired
+    private DividendLevelDao dividendLevelDao;
+
+    @Autowired
     private SystemConfigService systemConfigService;
 
     @Autowired
@@ -96,8 +101,10 @@ public class DividendServiceImpl extends ServiceImpl<DividendRecordDao, Dividend
         map.put("status", "1".equals(StrUtil.trimToEmpty(systemConfigService.getValueByKey(CONFIG_STATUS))));
         map.put("cycle", parseConfigInt(CONFIG_CYCLE, 1));
         map.put("base", parseConfigInt(CONFIG_BASE, 1));
-        // 各等级分红比例（复用分销商等级，升级条件同步复用）
-        map.put("levels", distributorLevelService.getList());
+        // 分红等级（比例与升级条件独立维护），附完整条件字段供编辑回显
+        map.put("levels", levelList());
+        // 可参考的分销商等级（前端「引用分销商等级条件」用）
+        map.put("distributorLevels", distributorLevelService.getList());
         return map;
     }
 
@@ -116,19 +123,90 @@ public class DividendServiceImpl extends ServiceImpl<DividendRecordDao, Dividend
     }
 
     @Override
-    public Boolean saveLevelRate(Integer levelId, BigDecimal rate) {
-        if (levelId == null) {
-            throw new QianxuException("请选择分红级别");
+    public List<DividendLevel> levelList() {
+        return dividendLevelDao.selectList(Wrappers.<DividendLevel>lambdaQuery()
+                .eq(DividendLevel::getIsDel, false)
+                .orderByAsc(DividendLevel::getSort)
+                .orderByAsc(DividendLevel::getId));
+    }
+
+    @Override
+    public Boolean saveLevel(DividendLevel level) {
+        validateLevel(level);
+        level.setId(null);
+        level.setIsDel(false);
+        if (level.getSort() == null) {
+            level.setSort(0);
         }
-        if (rate == null || rate.compareTo(BigDecimal.ZERO) < 0 || rate.compareTo(new BigDecimal("100")) > 0) {
+        level.setCreateTime(new Date());
+        level.setUpdateTime(new Date());
+        return dividendLevelDao.insert(level) > 0;
+    }
+
+    @Override
+    public Boolean updateLevel(DividendLevel level) {
+        if (level.getId() == null) {
+            throw new QianxuException("缺少分红级别ID");
+        }
+        DividendLevel exists = dividendLevelDao.selectById(level.getId());
+        if (ObjectUtil.isNull(exists) || Boolean.TRUE.equals(exists.getIsDel())) {
+            throw new QianxuException("分红级别不存在");
+        }
+        validateLevel(level);
+        level.setUpdateTime(new Date());
+        return dividendLevelDao.updateById(level) > 0;
+    }
+
+    @Override
+    public Boolean deleteLevel(Integer id) {
+        if (id == null) {
+            throw new QianxuException("缺少分红级别ID");
+        }
+        DividendLevel exists = dividendLevelDao.selectById(id);
+        if (ObjectUtil.isNull(exists) || Boolean.TRUE.equals(exists.getIsDel())) {
+            throw new QianxuException("分红级别不存在");
+        }
+        exists.setIsDel(true);
+        exists.setUpdateTime(new Date());
+        return dividendLevelDao.updateById(exists) > 0;
+    }
+
+    /**
+     * 分红等级校验：名称、比例范围（升级条件可全部为空=条件未配置，不参与自动达标）
+     */
+    private void validateLevel(DividendLevel level) {
+        if (level == null || StrUtil.isBlank(level.getName())) {
+            throw new QianxuException("请填写分红等级名称");
+        }
+        if (level.getDividendRate() == null || level.getDividendRate().compareTo(BigDecimal.ZERO) < 0
+                || level.getDividendRate().compareTo(new BigDecimal("100")) > 0) {
             throw new QianxuException("分红比例须在 0~100 之间");
         }
-        DistributorLevel level = distributorLevelService.getById(levelId);
-        if (ObjectUtil.isNull(level) || Boolean.TRUE.equals(level.getIsDel())) {
-            throw new QianxuException("分销商等级不存在");
-        }
-        level.setDividendRate(rate);
-        return distributorLevelService.updateById(level);
+    }
+
+    /**
+     * 把分红等级的升级条件字段复制为条件判定载体（复用分销商等级那套判定逻辑）
+     */
+    private DistributorLevel toConditionHolder(DividendLevel level) {
+        return new DistributorLevel()
+                .setDirectUserCount(level.getDirectUserCount())
+                .setDirectUserRelation(level.getDirectUserRelation())
+                .setTeamUserCount(level.getTeamUserCount())
+                .setTeamUserRelation(level.getTeamUserRelation())
+                .setDirectLevelId(level.getDirectLevelId())
+                .setDirectLevelCount(level.getDirectLevelCount())
+                .setDirectLevelRelation(level.getDirectLevelRelation())
+                .setTotalConsumeAmount(level.getTotalConsumeAmount())
+                .setTotalConsumeRelation(level.getTotalConsumeRelation())
+                .setTotalRechargeAmount(level.getTotalRechargeAmount())
+                .setTotalRechargeRelation(level.getTotalRechargeRelation())
+                .setTeamProductAmount(level.getTeamProductAmount())
+                .setTeamProductRelation(level.getTeamProductRelation())
+                .setDirectConsumeAmount(level.getDirectConsumeAmount())
+                .setDirectConsumeRelation(level.getDirectConsumeRelation())
+                .setOrderProductIds(level.getOrderProductIds())
+                .setOrderProductRelation(level.getOrderProductRelation())
+                .setOrderProductMode(level.getOrderProductMode());
     }
 
     @Override
@@ -258,40 +336,31 @@ public class DividendServiceImpl extends ServiceImpl<DividendRecordDao, Dividend
         StringBuilder markBuilder = new StringBuilder(StrUtil.nullToEmpty(mark));
 
         if (baseAmount.compareTo(BigDecimal.ZERO) > 0) {
-            // 2. 分红级别 = 分销商等级（grade 升序），参与者 = 等级达到该档（grade >= 档位 grade）的会员
-            List<DistributorLevel> levels = distributorLevelService.getList();
-            List<User> users = userService.list(Wrappers.<User>lambdaQuery()
-                    .select(User::getUid, User::getDistributorLevelId, User::getBrokeragePrice)
+            // 2. 分红等级：比例与升级条件独立维护，达标判定复用分销商等级那套条件逻辑
+            //    参与者 = 满足该等级自身升级条件的会员（与分销商等级本身无关）
+            List<DividendLevel> levels = levelList();
+            List<Integer> candidateUids = userService.list(Wrappers.<User>lambdaQuery()
+                    .select(User::getUid)
                     .eq(User::getStatus, true)
-                    .eq(User::getIsLogoff, false));
-            Map<Integer, Integer> uidToGrade = new HashMap<>();
-            Map<Integer, Integer> levelGradeMap = new HashMap<>();
-            for (DistributorLevel level : levels) {
-                levelGradeMap.put(level.getId(), ObjectUtil.defaultIfNull(level.getGrade(), 0));
-            }
-            for (User user : users) {
-                Integer grade = levelGradeMap.get(user.getDistributorLevelId());
-                if (grade != null) {
-                    uidToGrade.put(user.getUid(), grade);
-                }
-            }
+                    .eq(User::getIsLogoff, false))
+                    .stream().map(User::getUid).collect(java.util.stream.Collectors.toList());
 
-            for (DistributorLevel level : levels) {
+            for (DividendLevel level : levels) {
                 BigDecimal rate = level.getDividendRate();
                 if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
                     continue;
                 }
-                int levelGrade = ObjectUtil.defaultIfNull(level.getGrade(), 0);
+                DistributorLevel conditionHolder = toConditionHolder(level);
                 List<Integer> uids = new ArrayList<>();
-                for (Map.Entry<Integer, Integer> entry : uidToGrade.entrySet()) {
-                    if (entry.getValue() >= levelGrade) {
-                        uids.add(entry.getKey());
+                for (Integer uid : candidateUids) {
+                    if (distributorLevelService.meetsCondition(conditionHolder, uid)) {
+                        uids.add(uid);
                     }
                 }
                 if (uids.isEmpty()) {
                     continue;
                 }
-                // 本档分红总额 = 基数 × 比例%，均分到人（金额向下保留 2 位）
+                // 本级分红总额 = 基数 × 比例%，均分到人（金额向下保留 2 位）
                 BigDecimal pool = baseAmount.multiply(rate).divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
                 BigDecimal per = pool.divide(new BigDecimal(uids.size()), 2, RoundingMode.DOWN);
                 if (per.compareTo(BigDecimal.ZERO) <= 0) {
@@ -337,7 +406,7 @@ public class DividendServiceImpl extends ServiceImpl<DividendRecordDao, Dividend
     /**
      * 发放个人分红：入佣金账户 + 佣金流水 + 资金明细
      */
-    private void grantDividend(Integer uid, BigDecimal price, DistributorLevel level, String periodNo) {
+    private void grantDividend(Integer uid, BigDecimal price, DividendLevel level, String periodNo) {
         User user = userService.getById(uid);
         if (ObjectUtil.isNull(user)) {
             throw new QianxuException("分红发放失败，用户不存在，uid=" + uid);

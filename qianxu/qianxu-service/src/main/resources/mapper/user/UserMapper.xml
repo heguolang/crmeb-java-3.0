@@ -76,6 +76,11 @@
                 and u.distributor_level_id = #{distributorLevelId}
             </when>
         </choose>
+        <!-- 全球分红等级筛选：后端按分红等级自身升级条件预算达标 uid 集合（空集合由后端保证不为空） -->
+        <if test="dividendQualifiedUids != null">
+            and u.uid in
+            <foreach collection="dividendQualifiedUids" item="duid" open="(" separator="," close=")">#{duid}</foreach>
+        </if>
         <if test="startTime != null and startTime != '' and accessType != null and accessType != ''">
             <choose>
                 <when test="accessType == 1">

@@ -258,7 +258,8 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
         response.setShareRateLow(activity.getShareRateLow());
         response.setShareRateHigh(activity.getShareRateHigh());
         response.setShareRateThreshold(activity.getShareRateThreshold());
-        response.setShareTiers(activity.getShareTiers());
+        // 返回合并后的有效阶梯（独立设置覆盖默认等级），保证会员端展示与实际结算一致
+        response.setShareTiers(serializeTiers(effectiveShareTiers(activity)));
         response.setLimitNum(activity.getLimitNum());
 
         // 累计开团次数
@@ -444,20 +445,20 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
 
     /**
      * 按分享奖励阶梯计算推荐人奖励金额。
-     * 优先级：活动独立阶梯（share_tiers）→ 拼购等级设置默认阶梯（eb_pingou_level，比例%）→ 旧字段（低/高‰ + 阈值）。
+     * 优先级：
+     * ① 活动按等级独立设置（share_tiers 带 levelId）→ 以拼购等级为骨架，独立设置的档覆盖默认比例，阈值始终跟随等级；
+     * ② 旧版自由阶梯（share_tiers 无 levelId）→ 直接按阶梯匹配；
+     * ③ 活动未设置 → 全部走拼购等级默认比例；
+     * ④ 无任何阶梯 → 旧字段兜底（低/高‰ + 阈值）。
      * 阶梯命中：直推人数（含本次）达到 minDirectNum 的最高一档；人数未命中任何档返回 null。
      */
     private BigDecimal calcShareReward(PingouActivity activity, int directCount, BigDecimal payPrice) {
-        List<PingouShareTier> tiers = parseTiers(activity.getShareTiers());
-        if (CollUtil.isEmpty(tiers)) {
-            // 活动未独立设置阶梯 → 走「拼购等级设置」默认阶梯（比例%）
-            tiers = getDefaultLevelTiers();
-        }
-        if (CollUtil.isNotEmpty(tiers)) {
-            tiers.sort((a, b) -> Integer.compare(
+        List<PingouShareTier> effective = effectiveShareTiers(activity);
+        if (CollUtil.isNotEmpty(effective)) {
+            effective.sort((a, b) -> Integer.compare(
                     ObjectUtil.defaultIfNull(b.getMinDirectNum(), 0),
                     ObjectUtil.defaultIfNull(a.getMinDirectNum(), 0)));
-            for (PingouShareTier tier : tiers) {
+            for (PingouShareTier tier : effective) {
                 if (directCount >= ObjectUtil.defaultIfNull(tier.getMinDirectNum(), 0)) {
                     BigDecimal value = ObjectUtil.defaultIfNull(tier.getRewardValue(), BigDecimal.ZERO);
                     if (Integer.valueOf(2).equals(tier.getRewardType())) {
@@ -478,6 +479,58 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
     }
 
     /**
+     * 计算活动的「有效分享奖励阶梯」（展示与结算共用同一口径）：
+     * ① 活动按等级独立设置（带 levelId）→ 以拼购等级为骨架合并；
+     * ② 旧版自由阶梯（无 levelId）→ 直接使用；
+     * ③ 未设置 → 全部走拼购等级默认比例。
+     */
+    private List<PingouShareTier> effectiveShareTiers(PingouActivity activity) {
+        List<PingouShareTier> tiers = parseTiers(activity.getShareTiers());
+        boolean hasLevelTier = tiers.stream().anyMatch(t -> ObjectUtil.isNotNull(t.getLevelId()));
+        if (hasLevelTier) {
+            return mergeLevelTiers(tiers);
+        }
+        if (CollUtil.isNotEmpty(tiers)) {
+            return tiers;
+        }
+        return getDefaultLevelTiers();
+    }
+
+    /**
+     * 按等级合并活动独立设置与默认等级：
+     * 以「拼购等级」为骨架逐级生成；活动里按 levelId 独立设置的档覆盖默认比例，
+     * 阈值（minDirectNum）始终跟随等级设置；已删除等级的独立档保留，避免已配置奖励静默失效。
+     */
+    private List<PingouShareTier> mergeLevelTiers(List<PingouShareTier> saved) {
+        Map<Integer, PingouShareTier> byLevelId = new LinkedHashMap<>();
+        for (PingouShareTier t : saved) {
+            if (ObjectUtil.isNotNull(t.getLevelId())) {
+                byLevelId.put(t.getLevelId(), t);
+            }
+        }
+        List<PingouShareTier> effective = new ArrayList<>();
+        List<PingouLevel> levels = pingouLevelDao.selectList(new LambdaQueryWrapper<PingouLevel>()
+                .eq(PingouLevel::getIsDel, false));
+        for (PingouLevel level : levels) {
+            int min = ObjectUtil.defaultIfNull(level.getMinDirectNum(), 1);
+            PingouShareTier custom = byLevelId.remove(level.getId());
+            if (ObjectUtil.isNotNull(custom)) {
+                custom.setMinDirectNum(min);
+                effective.add(custom);
+            } else {
+                PingouShareTier tier = new PingouShareTier();
+                tier.setLevelId(level.getId());
+                tier.setMinDirectNum(min);
+                tier.setRewardType(1);
+                tier.setRewardValue(ObjectUtil.defaultIfNull(level.getRewardRate(), BigDecimal.ZERO));
+                effective.add(tier);
+            }
+        }
+        effective.addAll(byLevelId.values());
+        return effective;
+    }
+
+    /**
      * 读取「拼购等级设置」作为默认分享奖励阶梯（rewardType=1 比例%）
      */
     private List<PingouShareTier> getDefaultLevelTiers() {
@@ -489,6 +542,7 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
         List<PingouShareTier> tiers = new ArrayList<>();
         for (PingouLevel level : levels) {
             PingouShareTier tier = new PingouShareTier();
+            tier.setLevelId(level.getId());
             tier.setMinDirectNum(ObjectUtil.defaultIfNull(level.getMinDirectNum(), 1));
             tier.setRewardType(1);
             tier.setRewardValue(ObjectUtil.defaultIfNull(level.getRewardRate(), BigDecimal.ZERO));
@@ -648,7 +702,8 @@ public class PingouServiceImpl extends ServiceImpl<PingouActivityDao, PingouActi
         bill.setUid(uid);
         bill.setLinkId(linkId);
         bill.setTitle(title);
-        bill.setCategory(Constants.USER_BILL_CATEGORY_MONEY);
+        // 佣金类流水必须挂佣金账户，否则资金监控会把它统计进余额
+        bill.setCategory(Constants.USER_BILL_CATEGORY_BROKERAGE_PRICE);
         bill.setType(Constants.USER_BILL_TYPE_BROKERAGE);
         bill.setNumber(price);
         bill.setBalance(ObjectUtil.defaultIfNull(user.getBrokeragePrice(), BigDecimal.ZERO).add(price));

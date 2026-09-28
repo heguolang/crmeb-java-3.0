@@ -1,6 +1,7 @@
 package com.qxkj.admin.controller;
 
 import com.qxkj.common.model.dividend.DividendDetail;
+import com.qxkj.common.model.dividend.DividendLevel;
 import com.qxkj.common.model.dividend.DividendRecord;
 import com.qxkj.common.page.CommonPage;
 import com.qxkj.common.request.PageParamRequest;
@@ -61,19 +62,42 @@ public class DividendController {
     }
 
     /**
-     * 保存等级分红比例
+     * 保存分红级别
      */
     @PreAuthorize("hasAuthority('admin:dividend:info')")
-    @ApiOperation(value = "保存等级分红比例")
-    @RequestMapping(value = "/level", method = RequestMethod.POST)
-    public CommonResult<String> saveLevel(@RequestBody Map<String, Object> body) {
-        Integer levelId = body.get("id") == null ? null : Integer.valueOf(String.valueOf(body.get("id")));
-        java.math.BigDecimal rate = body.get("dividendRate") == null
-                ? null : new java.math.BigDecimal(String.valueOf(body.get("dividendRate")));
-        if (dividendService.saveLevelRate(levelId, rate)) {
+    @ApiOperation(value = "保存分红级别")
+    @RequestMapping(value = "/level/save", method = RequestMethod.POST)
+    public CommonResult<String> saveLevel(@RequestBody DividendLevel level) {
+        if (dividendService.saveLevel(level)) {
             return CommonResult.success("保存成功");
         }
         return CommonResult.failed("保存失败");
+    }
+
+    /**
+     * 修改分红级别
+     */
+    @PreAuthorize("hasAuthority('admin:dividend:info')")
+    @ApiOperation(value = "修改分红级别")
+    @RequestMapping(value = "/level/update", method = RequestMethod.POST)
+    public CommonResult<String> updateLevel(@RequestBody DividendLevel level) {
+        if (dividendService.updateLevel(level)) {
+            return CommonResult.success("修改成功");
+        }
+        return CommonResult.failed("修改失败");
+    }
+
+    /**
+     * 删除分红级别（软删）
+     */
+    @PreAuthorize("hasAuthority('admin:dividend:info')")
+    @ApiOperation(value = "删除分红级别")
+    @RequestMapping(value = "/level/delete", method = RequestMethod.GET)
+    public CommonResult<String> deleteLevel(@RequestParam Integer id) {
+        if (dividendService.deleteLevel(id)) {
+            return CommonResult.success("删除成功");
+        }
+        return CommonResult.failed("删除失败");
     }
 
     /**

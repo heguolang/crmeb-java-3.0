@@ -32,10 +32,22 @@ export default {
       meta: { title: '拼购等级', icon: '' }
     },
     {
-      path: 'dividend',
-      component: () => import('@/views/market/dividend/index'),
-      name: 'Dividend',
-      meta: { title: '全球分红', icon: '' }
+      path: 'dividend/setting',
+      component: () => import('@/views/market/dividend/setting'),
+      name: 'DividendSetting',
+      meta: { title: '分红设置', icon: '' }
+    },
+    {
+      path: 'dividend/level',
+      component: () => import('@/views/market/dividend/level'),
+      name: 'DividendLevel',
+      meta: { title: '分红等级', icon: '' }
+    },
+    {
+      path: 'dividend/record',
+      component: () => import('@/views/market/dividend/record'),
+      name: 'DividendRecord',
+      meta: { title: '分红记录', icon: '' }
     }
   ]
 };

@@ -80,7 +80,9 @@
         </el-table-column>
         <el-table-column label="操作" width="110" class-name="op-cell" label-class-name="op-cell">
           <template slot-scope="scope">
-            <div class="op-grid">
+            <!-- 单按钮必须用 --auto：默认 .op-grid 是固定三格网格，1 个按钮时格子被压到
+                 ~25px，四字胶囊会被竖着折行（踩过：查看详情拆成两行） -->
+            <div class="op-grid op-grid--auto">
               <el-button size="mini" plain class="op-tag tint-primary" @click="openDetail(scope.row)">查看详情</el-button>
             </div>
           </template>
@@ -219,19 +221,19 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.summary-bar {
-  padding: 4px 0 12px;
-  font-size: 14px;
-  color: #606266;
-  b {
-    color: #1f5fd6;
-    &.c-open {
-      color: #e6a23c;
-    }
-    &.c-finish {
-      color: #67c23a;
-    }
-  }
+/* summary-bar / op-grid / op-tag / info-name / info-line 走 theme/styles.scss 全局基线，
+   本页只保留页面特有的状态色与社区样式；不再覆写 summary-bar 字号边框（曾压过 15px 基线） */
+.summary-bar b.c-open {
+  color: #e6a23c;
+}
+.summary-bar b.c-finish {
+  color: #67c23a;
+}
+/* 操作列：胶囊强制横排不换行（与分销商管理同款） */
+::v-deep .op-cell .op-tag {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .tab-bar {
   display: inline-block;

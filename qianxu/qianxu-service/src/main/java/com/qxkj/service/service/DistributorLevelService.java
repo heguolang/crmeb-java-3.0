@@ -75,6 +75,12 @@ public interface DistributorLevelService extends IService<DistributorLevel> {
     DistributorLevel resolveMatchedLevel(User user);
 
     /**
+     * 判定用户是否满足指定条件（条件项与分销商等级升级条件同一套，
+     * 供全球分红等级等复用；基于会员自身统计，与分销商等级本身无关）
+     */
+    boolean meetsCondition(com.qxkj.common.model.system.DistributorLevel conditionHolder, Integer uid);
+
+    /**
      * 批量同步分销商等级（只升不降）
      */
     Boolean syncDistributorLevels(List<Integer> uids);

@@ -3,14 +3,16 @@ package com.qxkj.service.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.qxkj.common.model.dividend.DividendDetail;
+import com.qxkj.common.model.dividend.DividendLevel;
 import com.qxkj.common.model.dividend.DividendRecord;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * 全球分红服务：
- * 分红级别复用分销商等级（升级条件同分销商等级），
- * 达到某等级（grade 大于等于该档）的会员参与该档比例的分红均分。
+ * 分红级别独立设置（比例自定），升级条件复用所绑定的分销商等级，
+ * 达到该分销商等级条件（grade 大于等于该等级）的会员参与该级别比例的分红均分。
  */
 public interface DividendService extends IService<DividendRecord> {
 
@@ -29,9 +31,24 @@ public interface DividendService extends IService<DividendRecord> {
     Boolean saveConfig(Boolean status, Integer cycle, Integer base);
 
     /**
-     * 保存等级分红比例（%）
+     * 分红级别列表（含绑定的分销商等级名称/权重）
      */
-    Boolean saveLevelRate(Integer levelId, java.math.BigDecimal rate);
+    List<DividendLevel> levelList();
+
+    /**
+     * 保存分红级别
+     */
+    Boolean saveLevel(DividendLevel level);
+
+    /**
+     * 修改分红级别
+     */
+    Boolean updateLevel(DividendLevel level);
+
+    /**
+     * 删除分红级别（软删）
+     */
+    Boolean deleteLevel(Integer id);
 
     /**
      * 分红结算记录分页
