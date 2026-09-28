@@ -1870,6 +1870,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
         // 使用更简洁的条件设置方式
         wrapper.set(StrUtil.isNotBlank(userRequest.getTagId()), User::getTagId, userRequest.getTagId())
+                .set(StrUtil.isNotBlank(userRequest.getNickname()), User::getNickname, userRequest.getNickname())
                 .set(StrUtil.isNotBlank(userRequest.getBirthday()), User::getBirthday, userRequest.getBirthday())
                 .set(StrUtil.isNotBlank(userRequest.getRealName()), User::getRealName, userRequest.getRealName())
                 .set(StrUtil.isNotBlank(userRequest.getAddres()), User::getAddres, userRequest.getAddres())
@@ -1878,13 +1879,13 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
                 .set(ObjectUtil.isNotNull(userRequest.getStatus()), User::getStatus, userRequest.getStatus())
                 .set(ObjectUtil.isNotNull(userRequest.getIsPromoter()), User::getIsPromoter, userRequest.getIsPromoter());
 
-        // 推广员状态变更的特殊处理
-        if (userRequest.getIsPromoter() && !tempUser.getIsPromoter()) {
+        // 推广员状态变更的特殊处理（isPromoter 可能未传，避免 null 拆箱 NPE）
+        if (ObjectUtil.isNotNull(userRequest.getIsPromoter()) && userRequest.getIsPromoter() && !tempUser.getIsPromoter()) {
             wrapper.set(User::getPromoterTime, DateUtil.date());
         }
         wrapper.eq(User::getUid, tempUser.getUid());
         boolean update = update(wrapper);
-        if (update && tempUser.getStatus() && !userRequest.getStatus()) {
+        if (update && tempUser.getStatus() && ObjectUtil.isNotNull(userRequest.getStatus()) && !userRequest.getStatus()) {
             // 用户禁用时，清除token
             tokenComponet.clearUserToken(tempUser.getUid());
         }

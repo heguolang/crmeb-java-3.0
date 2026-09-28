@@ -1,7 +1,12 @@
 <template>
-  <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="75px" class="demo-ruleForm">
+  <!-- label-width 90px：75px 放不下「用户编号：」5 个字会折行（2026-09-28 用户截图反馈）。
+       必填规则已按需求全部移除（rules 删空，后端 @NotNull 同步去掉），所有字段均可留空。 -->
+  <el-form :model="ruleForm" ref="ruleForm" label-width="90px" class="demo-ruleForm">
     <el-form-item label="用户编号：" prop="id">
       <el-input v-model="ruleForm.id" disabled></el-input>
+    </el-form-item>
+    <el-form-item label="用户昵称：" prop="nickname">
+      <el-input v-model="ruleForm.nickname" placeholder="请输入用户昵称"></el-input>
     </el-form-item>
     <el-form-item label="用户地址：" prop="addres">
       <el-input v-model="ruleForm.addres"></el-input>
@@ -45,6 +50,7 @@ const defaultObj = {
   // birthday: '',
   // cardId: '',
   id: null,
+  nickname: '',
   mark: '',
   //  phone: '',
   // realName: '',
@@ -70,14 +76,7 @@ export default {
       labelLists: [],
       levelList: [],
       groupList: [],
-      rules: {
-        id: [{ required: true, message: '请输入用户编号', trigger: 'change' }],
-        addres: [{ required: true, message: '请输入用户地址', trigger: 'change' }],
-        mark: [{ required: true, message: '请输入用户备注', trigger: 'blur' }],
-        groupId: [{ required: true, message: '请选择用户分组', trigger: 'blur' }],
-        isPromoter: [{ required: true, message: '请选择状态', trigger: 'blur' }],
-        status: [{ required: true, message: '请选择状态', trigger: 'blur' }],
-      },
+      rules: {}, // 必填限制已全部取消（2026-09-28），保留空对象避免 $refs 校验报错
     };
   },
   mounted() {
@@ -94,6 +93,7 @@ export default {
           // birthday: res.birthday,
           // cardId: res.cardId,
           id: res.uid,
+          nickname: res.nickname || '',
           mark: res.mark,
           // phone: res.phone,
           // realName: res.realName,

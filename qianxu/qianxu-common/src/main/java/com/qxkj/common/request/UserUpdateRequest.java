@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
-import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
 /**
@@ -32,6 +31,9 @@ public class UserUpdateRequest implements Serializable {
     @ApiModelProperty(value = "uid")
     private Integer uid;
 
+    @ApiModelProperty(value = "用户昵称")
+    private String nickname;
+
     @ApiModelProperty(value = "真实姓名")
     private String realName;
 
@@ -45,7 +47,6 @@ public class UserUpdateRequest implements Serializable {
     private String mark;
 
     @ApiModelProperty(value = "状态是否正常， 0 = 禁止， 1 = 正常")
-    @NotNull(message = "状态不能为空")
     private Boolean status;
 
     @ApiModelProperty(value = "详细地址")
@@ -61,7 +62,6 @@ public class UserUpdateRequest implements Serializable {
     private String tagId;
 
     @ApiModelProperty(value = "是否为推广员")
-    @NotNull(message = "是否为推广员不能为空")
     private Boolean isPromoter;
 
 }

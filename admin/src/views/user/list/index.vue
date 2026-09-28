@@ -314,86 +314,68 @@
               <span class="status-label" :class="item.status ? 'is-on' : 'is-off'">{{ item.status ? '正常' : '禁用' }}</span>
             </div>
 
-            <!-- 操作 -->
-            <div class="list-cell mi-ops op-bar">
-              <el-button
-                class="op-btn"
-                size="mini"
-                type="primary"
-                plain
-                @click="onDetails(item.uid)"
-                v-hasPermi="['admin:user:topdetail']"
-                >详情</el-button
-              >
-              <el-button
-                class="op-btn"
-                size="mini"
-                type="primary"
-                plain
-                @click="editUser(item.uid)"
-                v-hasPermi="['admin:user:infobycondition']"
-                >编辑</el-button
-              >
-              <!-- 身份：等级类操作集中一处（2026-09-28 从「更多」拆出，原 9 项挤在一起难找） -->
-              <el-dropdown
-                trigger="click"
-                class="more-drop"
-                v-if="checkPermi(['admin:user:update:level'])"
-              >
-                <el-button size="mini" type="primary" plain>
-                  身份<i class="el-icon-arrow-down el-icon--right" />
-                </el-button>
-                <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item @click.native="onLevel(item.uid, item.level)"
-                    >修改用户等级</el-dropdown-item
-                  >
-                  <el-dropdown-item @click.native="onTeamLevel(item.uid, item.teamLevel)"
-                    >修改团队等级</el-dropdown-item
-                  >
-                  <el-dropdown-item @click.native="onDividendLevel(item)"
-                    >修改分红等级</el-dropdown-item
-                  >
-                  <el-dropdown-item @click.native="onPingouLevel(item)"
-                    >修改拼购等级</el-dropdown-item
-                  >
-                </el-dropdown-menu>
-              </el-dropdown>
-              <el-dropdown trigger="click" class="more-drop">
-                <el-button size="mini">
-                  更多<i class="el-icon-arrow-down el-icon--right" />
-                </el-button>
-                <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item
-                    @click.native="editPoint(item.uid)"
-                    v-if="checkPermi(['admin:user:operate:founds'])"
-                    >账户充减</el-dropdown-item
-                  >
-                  <el-dropdown-item @click.native="setBatch('group', item)" v-if="checkPermi(['admin:user:group'])"
-                    >设置分组</el-dropdown-item
-                  >
-                  <el-dropdown-item @click.native="setBatch('label', item)" v-if="checkPermi(['admin:user:tag'])"
-                    >设置标签</el-dropdown-item
-                  >
-                  <el-dropdown-item @click.native="setPhone(item)" v-if="checkPermi(['admin:user:update:phone'])"
-                    >修改手机号</el-dropdown-item
-                  >
-                  <el-dropdown-item
-                    @click.native="setPassword(item)"
-                    v-if="checkPermi(['admin:user:update:password'])"
-                    >修改登录密码</el-dropdown-item
-                  >
-                  <el-dropdown-item
-                    @click.native="setExtension(item)"
-                    v-if="checkPermi(['admin:user:update:spread'])"
-                    >修改推荐人</el-dropdown-item
-                  >
-                  <el-dropdown-item
-                    @click.native="clearSpread(item)"
-                    v-if="checkPermi(['admin:retail:spread:clean'])"
-                    >清除上级推广人</el-dropdown-item
-                  >
-                </el-dropdown-menu>
-              </el-dropdown>
+            <!-- 操作：照抄分销商管理定稿版式（op-grid + op-tag 胶囊，间距统一 6px）。
+                 5 个按钮（详情 + 身份/资金/安全/更多）→ 默认 3 列网格自动 3+2 两排，
+                 每行最多 3 个（用户 2026-09-28 定稿：一行超 3 个太挤）。
+                 下拉按钮套 op-tag：el-dropdown 本身是 grid item 被 stretch，内部按钮 width:100% 铺满格子。 -->
+            <div class="list-cell mi-ops">
+              <div class="op-grid">
+                <el-button
+                  size="mini"
+                  plain
+                  class="op-tag tint-neutral"
+                  @click="onDetails(item.uid)"
+                  v-hasPermi="['admin:user:topdetail']"
+                  >详情</el-button
+                >
+                <!-- 身份：等级类操作集中一处（2026-09-28 从「更多」拆出） -->
+                <el-dropdown trigger="click" v-if="checkPermi(['admin:user:update:level'])">
+                  <el-button size="mini" plain class="op-tag tint-neutral">
+                    身份<i class="el-icon-arrow-down el-icon--right" />
+                  </el-button>
+                  <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item @click.native="onLevel(item.uid, item.level)">修改用户等级</el-dropdown-item>
+                    <el-dropdown-item @click.native="onTeamLevel(item.uid, item.teamLevel)">修改团队等级</el-dropdown-item>
+                    <el-dropdown-item @click.native="onDividendLevel(item)">修改分红等级</el-dropdown-item>
+                    <el-dropdown-item @click.native="onPingouLevel(item)">修改拼购等级</el-dropdown-item>
+                  </el-dropdown-menu>
+                </el-dropdown>
+                <!-- 资金：账户资金类操作（2026-09-28 从「更多」拆出） -->
+                <el-dropdown trigger="click" v-if="checkPermi(['admin:user:operate:founds'])">
+                  <el-button size="mini" plain class="op-tag tint-neutral">
+                    资金<i class="el-icon-arrow-down el-icon--right" />
+                  </el-button>
+                  <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item @click.native="editPoint(item.uid)">账户充减</el-dropdown-item>
+                  </el-dropdown-menu>
+                </el-dropdown>
+                <!-- 安全：账号凭证类操作（2026-09-28 从「更多」拆出） -->
+                <el-dropdown
+                  trigger="click"
+                  v-if="checkPermi(['admin:user:update:phone']) || checkPermi(['admin:user:update:password'])"
+                >
+                  <el-button size="mini" plain class="op-tag tint-neutral">
+                    安全<i class="el-icon-arrow-down el-icon--right" />
+                  </el-button>
+                  <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item @click.native="setPhone(item)" v-if="checkPermi(['admin:user:update:phone'])">修改手机号</el-dropdown-item>
+                    <el-dropdown-item @click.native="setPassword(item)" v-if="checkPermi(['admin:user:update:password'])">修改登录密码</el-dropdown-item>
+                  </el-dropdown-menu>
+                </el-dropdown>
+                <!-- 更多：编辑 + 关系/归类类操作 -->
+                <el-dropdown trigger="click">
+                  <el-button size="mini" plain class="op-tag tint-neutral">
+                    更多<i class="el-icon-arrow-down el-icon--right" />
+                  </el-button>
+                  <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item @click.native="editUser(item.uid)" v-if="checkPermi(['admin:user:infobycondition'])">编辑</el-dropdown-item>
+                    <el-dropdown-item @click.native="setBatch('group', item)" v-if="checkPermi(['admin:user:group'])">设置分组</el-dropdown-item>
+                    <el-dropdown-item @click.native="setBatch('label', item)" v-if="checkPermi(['admin:user:tag'])">设置标签</el-dropdown-item>
+                    <el-dropdown-item @click.native="setExtension(item)" v-if="checkPermi(['admin:user:update:spread'])">修改推荐人</el-dropdown-item>
+                    <el-dropdown-item @click.native="clearSpread(item)" v-if="checkPermi(['admin:retail:spread:clean'])">清除上级推广人</el-dropdown-item>
+                  </el-dropdown-menu>
+                </el-dropdown>
+              </div>
             </div>
           </div>
 
