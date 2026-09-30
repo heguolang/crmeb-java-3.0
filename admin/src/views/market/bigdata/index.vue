@@ -15,7 +15,7 @@
         </div>
         <div class="bd-hd-title">
           <span class="bd-hd-wing"></span>
-          <h1>市 场 大 数 据 中 心</h1>
+          <h1>{{ screenTitles.market }}</h1>
           <span class="bd-hd-wing flip"></span>
         </div>
         <div class="bd-hd-right">
@@ -156,6 +156,8 @@ import { viewModelApi } from '@/api/dashboard';
 import { tradeDataApi, userTotalData } from '@/api/statistic';
 import { orderListApi, orderStatusNumApi } from '@/api/order';
 import { pingouTeamListApi } from '@/api/pingou';
+import { getBigdataScreenSettingApi } from '@/api/dashboard';
+import { mergeScreenTitles } from '../components/screenNames';
 
 // 主要城市坐标（地图光点）
 const MAP_POINTS = [
@@ -182,6 +184,8 @@ export default {
       timer: null,
       refreshTimer: null,
       gaugeCharts: [],
+      // 大屏大标题（可在页头"设置"里改）
+      screenTitles: mergeScreenTitles(''),
       mapChartObj: null,
       // 交易
       todaySales: 0,
@@ -245,6 +249,7 @@ export default {
       this.loadData();
     });
     this.refreshTimer = setInterval(this.loadData, 60 * 1000);
+    this.loadScreenTitles();
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.fitStage);
@@ -254,6 +259,14 @@ export default {
     if (this.mapChartObj) this.mapChartObj.dispose();
   },
   methods: {
+    // 加载大屏大标题设置
+    loadScreenTitles() {
+      getBigdataScreenSettingApi()
+        .then((res) => {
+          this.screenTitles = mergeScreenTitles(res);
+        })
+        .catch(() => {});
+    },
     // 1920×1080 设计稿等比缩放，适配任意 LED 分辨率
     fitStage() {
       const el = this.$refs.stage;
@@ -800,7 +813,9 @@ export default {
 
 /* 最近下单 */
 .bd-panel-order {
-  flex: 1.35;
+  /* 与左栏对齐：交易额 190 + 间距 16 + 健康度 235 = 441，分界线在一条水平线上 */
+  height: 441px;
+  flex: none;
   display: flex;
   flex-direction: column;
   min-height: 0;

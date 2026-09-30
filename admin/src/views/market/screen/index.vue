@@ -8,7 +8,7 @@
       <div class="qx-brand">
         <div class="qx-logo">QX</div>
         <div class="qx-brand-text">
-          <h1>黔序数据指挥中心</h1>
+          <h1>{{ screenTitles.operation }}</h1>
           <p>QIANXU DATA COMMAND CENTER</p>
         </div>
       </div>
@@ -131,13 +131,14 @@
 <script>
 import echarts from 'echarts';
 import screenfull from 'screenfull';
-import { viewModelApi, chartOrder30Api, businessData } from '@/api/dashboard';
+import { viewModelApi, chartOrder30Api, businessData, getBigdataScreenSettingApi } from '@/api/dashboard';
 import { tradeDataApi, userTotalData, userChannelData } from '@/api/statistic';
 import { orderListApi, orderStatusNumApi } from '@/api/order';
 import { stockAgentListApi } from '@/api/stock';
 import { agentListApi } from '@/api/daili';
 import { pingouTeamListApi, pingouActivityListApi } from '@/api/pingou';
 import { dividendRecordListApi } from '@/api/dividend';
+import { mergeScreenTitles } from '../components/screenNames';
 
 const CYAN = '#00e5ff';
 const BLUE = '#2f7bff';
@@ -163,6 +164,8 @@ export default {
   data() {
     return {
       loading: false,
+      // 大屏大标题（页头齿轮可改）
+      screenTitles: mergeScreenTitles(''),
       isFull: false,
       nowText: '',
       kpi: {},
@@ -277,6 +280,7 @@ export default {
     this.tickClock();
     this.timers.push(setInterval(this.tickClock, 1000));
     this.loadAll();
+    this.loadScreenTitles();
     // 实时订单流：10 秒
     this.timers.push(setInterval(this.loadOrderStream, 10000));
     // 统计类数据：30 秒
@@ -294,6 +298,14 @@ export default {
     this.charts = {};
   },
   methods: {
+    /* ---------------- 大屏大标题设置 ---------------- */
+    loadScreenTitles() {
+      getBigdataScreenSettingApi()
+        .then((res) => {
+          this.screenTitles = mergeScreenTitles(res);
+        })
+        .catch(() => {});
+    },
     /* ---------------- 时钟 ---------------- */
     tickClock() {
       const d = new Date();

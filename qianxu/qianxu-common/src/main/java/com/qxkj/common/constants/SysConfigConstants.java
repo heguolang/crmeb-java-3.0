@@ -189,6 +189,9 @@ public class SysConfigConstants {
     /** 主题测配置 */
     public static final String CONFIG_CHANGE_COLOR = "change_color_config";
 
+    /** 数据中心大屏展示名称设置（JSON：运营大数据/市场大数据的标题与板块名称） */
+    public static final String CONFIG_BIGDATA_SCREEN_SETTING = "qx_bigdata_screen_setting";
+
     /** 电子面单-快递公司ID */
     public static final String ELECTRONIC_FACE_SHEET_EXPORT_ID = "config_export_id";
     /** 电子面单-快递公司模板id */

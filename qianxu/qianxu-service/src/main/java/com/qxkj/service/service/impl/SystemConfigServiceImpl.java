@@ -359,6 +359,22 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigDao, System
         return updateOrSaveValueByName(SysConfigConstants.CONFIG_CHANGE_COLOR, request.getValue());
     }
 
+    /**
+     * 获取数据中心大屏展示名称设置（未配置返回空串）
+     */
+    @Override
+    public String getBigdataScreenSetting() {
+        return getValueByKey(SysConfigConstants.CONFIG_BIGDATA_SCREEN_SETTING);
+    }
+
+    /**
+     * 保存数据中心大屏展示名称设置
+     */
+    @Override
+    public Boolean saveBigdataScreenSetting(SaveConfigRequest request) {
+        return updateOrSaveValueByName(SysConfigConstants.CONFIG_BIGDATA_SCREEN_SETTING, request.getValue());
+    }
+
     private SystemConfig getConfigByNameException(String name) {
         String value = getValueByKeyException(name);
         SystemConfig systemConfig = new SystemConfig();

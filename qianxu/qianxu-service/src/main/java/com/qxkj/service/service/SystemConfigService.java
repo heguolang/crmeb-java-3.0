@@ -127,6 +127,16 @@ public interface SystemConfigService extends IService<SystemConfig> {
     Boolean saveChangeColor(SaveConfigRequest request);
 
     /**
+     * 获取数据中心大屏展示名称设置（JSON 字符串，未配置返回空串）
+     */
+    String getBigdataScreenSetting();
+
+    /**
+     * 保存数据中心大屏展示名称设置
+     */
+    Boolean saveBigdataScreenSetting(SaveConfigRequest request);
+
+    /**
      * 获取各种文字协议
      * @return String
      */

@@ -224,6 +224,8 @@ const actions = {
 
 // 递归函数，用于替换 childList 为 children
 // 新标签页打开的菜单路径（数据大屏类，便于全屏 / LED 投屏观看）
+// 2026-09-30 起菜单已收敛为单一「大数据中心」页，两个大屏由该页按钮新标签打开，
+// 这里保留作兼容：若以后再把大屏直接挂成菜单项，仍会自动新标签打开。
 const NEW_TAB_MENU_PATHS = ['/market/screen/operation', '/market/screen/market'];
 
 function replaceChildListWithChildren(data) {

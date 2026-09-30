@@ -13,10 +13,17 @@ export default {
     icon: 'goods'
   },
   children: [
-    // 旧地址兜底：/market/screen 现在是"数据中心大屏"目录，进来自动到运营大数据
+    // 旧地址兜底：/market/screen 现在是"数据中心大屏"目录，进来自动到大数据中心
     {
       path: 'screen',
-      redirect: 'screen/operation'
+      redirect: 'screen/hub'
+    },
+    // 大数据中心：运营/市场两个大屏的聚合入口（缩略图 + 打开按钮 + 名称设置）
+    {
+      path: 'screen/hub',
+      component: () => import('@/views/market/screen/hub'),
+      name: 'MarketScreenHub',
+      meta: { title: '大数据中心', icon: '' }
     },
     {
       path: 'screen/operation',

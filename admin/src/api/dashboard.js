@@ -73,3 +73,22 @@ export function businessData() {
     method: 'get',
   });
 }
+
+// ==================== 数据中心大屏展示名称设置（2026-09-30） ====================
+
+// 获取大屏大标题设置（运营大数据/市场大数据），返回 JSON 字符串，未配置返回空串
+export function getBigdataScreenSettingApi() {
+  return request({
+    url: '/admin/system/config/get/bigdata/screen/setting',
+    method: 'get',
+  });
+}
+
+// 保存大屏大标题设置，value 为 JSON 字符串：{ operation: '...', market: '...' }
+export function saveBigdataScreenSettingApi(value) {
+  return request({
+    url: '/admin/system/config/save/bigdata/screen/setting',
+    method: 'post',
+    data: { value },
+  });
+}
