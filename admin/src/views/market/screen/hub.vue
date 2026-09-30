@@ -25,28 +25,23 @@
             <span class="thumb-wing flip"></span>
           </div>
 
-          <!-- 运营大数据：左面板 + 中间地图 + 右柱图，底部模块条 -->
+          <!-- 运营大数据：跑马灯 + 左 KPI/趋势 + 中订单流 + 右环形/状态，底部 6 模块条 -->
           <div v-if="s.key === 'operation'" class="thumb-body">
+            <div class="tb-ticker"></div>
             <div class="thumb-main">
               <div class="tb-col">
-                <div class="tb-panel"><i></i><i></i><i></i></div>
-                <div class="tb-panel rect"></div>
+                <div class="tb-kpi4"><i></i><i></i><i></i><i></i></div>
+                <div class="tb-panel trend"></div>
               </div>
               <div class="tb-col main">
-                <div class="tb-map">
-                  <span class="tb-map-core"></span>
-                  <span class="tb-map-dot d1"></span>
-                  <span class="tb-map-dot d2"></span>
-                  <span class="tb-map-dot d3"></span>
-                </div>
-                <div class="tb-kpi"><i></i><i></i><i></i><i></i></div>
+                <div class="tb-rows"><i></i><i></i><i></i><i></i><i></i></div>
               </div>
               <div class="tb-col">
-                <div class="tb-panel rect"></div>
-                <div class="tb-panel bars"><i></i><i></i><i></i><i></i></div>
+                <div class="tb-ring"><span></span></div>
+                <div class="tb-panel bars"><i></i><i></i><i></i><i></i><i></i></div>
               </div>
             </div>
-            <div class="tb-foot"><i></i><i></i><i></i><i></i></div>
+            <div class="tb-foot"><i></i><i></i><i></i><i></i><i></i><i></i></div>
           </div>
 
           <!-- 市场大数据：左柱状面板 + 右数据块，底部模块条 -->
@@ -413,54 +408,85 @@ export default {
 .tb-panel.bars i:nth-child(5) {
   height: 96%;
 }
-.tb-map {
-  position: relative;
-  flex: 2.4;
+/* 跑马灯细条 */
+.tb-ticker {
+  flex: none;
+  height: 6px;
+  border-radius: 3px;
+  margin-bottom: 2px;
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.55), rgba(0, 229, 255, 0.08));
+}
+/* 左栏 KPI 2×2 */
+.tb-kpi4 {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 5px;
+  min-height: 58px;
+}
+.tb-kpi4 i {
+  border-radius: 4px;
   border: 1px solid rgba(74, 157, 248, 0.3);
+  background: linear-gradient(180deg, rgba(74, 157, 248, 0.3), rgba(9, 20, 44, 0.5));
+}
+/* 趋势：面积图意象 */
+.tb-panel.trend {
+  position: relative;
+  overflow: hidden;
+}
+.tb-panel.trend::after {
+  content: '';
+  position: absolute;
+  inset: 26% 12% 18% 12%;
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.55), rgba(0, 229, 255, 0.05));
+  clip-path: polygon(0 72%, 18% 44%, 36% 58%, 54% 24%, 72% 38%, 100% 4%, 100% 100%, 0 100%);
+}
+/* 中栏实时订单流：多行条 */
+.tb-rows {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+.tb-rows i {
+  flex: 1;
+  position: relative;
+  border-radius: 4px;
+  border: 1px solid rgba(74, 157, 248, 0.26);
+  background: linear-gradient(90deg, rgba(74, 157, 248, 0.46), rgba(9, 20, 44, 0.3) 68%);
+}
+.tb-rows i::after {
+  content: '';
+  position: absolute;
+  right: 9%;
+  top: 50%;
+  width: 20%;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 2px;
+  background: rgba(255, 200, 74, 0.8);
+}
+/* 右栏环形图 */
+.tb-ring {
+  flex: 1.3;
+  border: 1px solid rgba(74, 157, 248, 0.28);
   border-radius: 6px;
-  background: radial-gradient(75% 65% at 50% 55%, rgba(74, 157, 248, 0.26), rgba(9, 20, 44, 0.6) 72%);
+  background: linear-gradient(180deg, rgba(9, 20, 44, 0.72), rgba(9, 20, 44, 0.52));
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 0;
 }
-.tb-map-core {
-  width: 40px;
-  height: 40px;
+.tb-ring span {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: radial-gradient(circle, #cfe6ff 0%, rgba(74, 157, 248, 0.28) 55%, transparent 72%);
-  box-shadow: 0 0 22px rgba(74, 157, 248, 0.75);
-}
-.tb-map-dot {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #8fd0ff;
-  box-shadow: 0 0 8px #4a9df8;
-}
-.tb-map-dot.d1 {
-  top: 26%;
-  left: 26%;
-}
-.tb-map-dot.d2 {
-  bottom: 24%;
-  right: 30%;
-}
-.tb-map-dot.d3 {
-  top: 48%;
-  right: 18%;
-}
-.tb-kpi {
-  flex: 1;
-  display: flex;
-  gap: 6px;
-}
-.tb-kpi i {
-  flex: 1;
-  border-radius: 4px;
-  border: 1px solid rgba(74, 157, 248, 0.24);
-  background: rgba(46, 90, 168, 0.5);
+  border: 6px solid rgba(74, 157, 248, 0.28);
+  border-top-color: #8fd0ff;
+  border-right-color: #7fc0ff;
+  box-shadow: 0 0 14px rgba(74, 157, 248, 0.55);
 }
 /* 右侧数据块（市场大屏） */
 .tb-stat {

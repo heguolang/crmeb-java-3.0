@@ -4940,5 +4940,17 @@ UPDATE `eb_system_menu`
 -- 2) 旧的「运营大数据」「市场大数据」子菜单下线（软删）
 UPDATE `eb_system_menu` SET `is_delte` = 1, `update_time` = NOW() WHERE `id` IN (729, 730);
 
+
+-- ============================================================
+-- 补丁：「佣金记录」「团队奖记录」菜单下线（2026-09-30）
+-- 早期已在线上库直接 is_show=0 隐藏，但未同步本地与脚本，
+-- 导致本地环境菜单「财务」下重新出现。此处按 component 幂等对齐。
+-- 幂等：可重复执行
+-- ============================================================
+UPDATE `eb_system_menu`
+   SET `is_show` = 0, `update_time` = NOW()
+ WHERE `component` IN ('/financial/brokerage', '/distribution/teamBrokerageRecord')
+   AND `name` IN ('佣金记录', '团队奖记录');
+
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'QIANXU 01_increment done' AS result;
