@@ -107,3 +107,6 @@ local-dev/backup/
 
 # 2026-09-28: 本地调试探测脚本不入库
 local-dev/tools/probe_*.js
+
+# 2026-09-30 SQL 旧脚本归档（仅本地追溯，不进远端）
+qianxu/sql/_archive/
