@@ -4,13 +4,19 @@
     <div class="hub-hd">
       <div class="hub-hd-left">
         <h2>大数据中心</h2>
-        <p>运营大数据 / 市场大数据统一入口，点击卡片按钮在新标签页全屏打开，适合投屏观看</p>
+        <p>运营数据 / 市场数据统一入口，点击卡片即可预览并全屏打开大屏</p>
       </div>
+      <span class="hub-count">共 {{ screens.length }} 块大屏</span>
     </div>
 
     <!-- 两个大屏卡片 -->
     <div class="hub-cards">
-      <div v-for="s in screens" :key="s.key" class="hub-card">
+      <div
+        v-for="s in screens"
+        :key="s.key"
+        class="hub-card"
+        @click="openScreen(s)"
+      >
         <!-- 缩略图（按真实大屏布局绘制的示意图） -->
         <div class="hub-thumb" :class="'thumb-' + s.key">
           <div class="thumb-hd">
@@ -19,97 +25,127 @@
             <span class="thumb-wing flip"></span>
           </div>
 
-          <!-- 运营大数据：中间地图 + 左右面板 -->
+          <!-- 运营大数据：左面板 + 中间地图 + 右柱图，底部模块条 -->
           <div v-if="s.key === 'operation'" class="thumb-body">
-            <div class="tb-col">
-              <div class="tb-panel"><i></i><i></i><i></i></div>
-              <div class="tb-panel rect"></div>
-            </div>
-            <div class="tb-col main">
-              <div class="tb-map">
-                <span class="tb-map-core"></span>
-                <span class="tb-map-dot d1"></span>
-                <span class="tb-map-dot d2"></span>
-                <span class="tb-map-dot d3"></span>
+            <div class="thumb-main">
+              <div class="tb-col">
+                <div class="tb-panel"><i></i><i></i><i></i></div>
+                <div class="tb-panel rect"></div>
               </div>
-              <div class="tb-kpi"><i></i><i></i><i></i><i></i></div>
+              <div class="tb-col main">
+                <div class="tb-map">
+                  <span class="tb-map-core"></span>
+                  <span class="tb-map-dot d1"></span>
+                  <span class="tb-map-dot d2"></span>
+                  <span class="tb-map-dot d3"></span>
+                </div>
+                <div class="tb-kpi"><i></i><i></i><i></i><i></i></div>
+              </div>
+              <div class="tb-col">
+                <div class="tb-panel rect"></div>
+                <div class="tb-panel bars"><i></i><i></i><i></i><i></i></div>
+              </div>
             </div>
-            <div class="tb-col">
-              <div class="tb-panel rect"></div>
-              <div class="tb-panel bars"><i></i><i></i><i></i><i></i></div>
-            </div>
+            <div class="tb-foot"><i></i><i></i><i></i><i></i></div>
           </div>
 
-          <!-- 市场大数据：左三块 + 右两块 -->
+          <!-- 市场大数据：左柱状面板 + 右数据块，底部模块条 -->
           <div v-else class="thumb-body">
-            <div class="tb-col wide">
-              <div class="tb-panel wide rect"></div>
-              <div class="tb-panel rect"></div>
-              <div class="tb-panel bars"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="thumb-main">
+              <div class="tb-col wide">
+                <div class="tb-panel bars tall"><i></i><i></i><i></i><i></i><i></i></div>
+              </div>
+              <div class="tb-col stat-col">
+                <div class="tb-stat">
+                  <span class="tb-stat-label">今日交易额</span>
+                  <span class="tb-stat-bar w2"></span>
+                </div>
+                <div class="tb-stat">
+                  <span class="tb-stat-label">优秀团队</span>
+                  <span class="tb-stat-bar w1"></span>
+                </div>
+              </div>
             </div>
-            <div class="tb-col">
-              <div class="tb-panel tall"></div>
-              <div class="tb-panel rect"></div>
-            </div>
+            <div class="tb-foot"><i></i><i></i><i></i><i></i></div>
           </div>
 
-          <div class="thumb-mask">
-            <el-button size="small" type="primary" icon="el-icon-full-screen" @click="openScreen(s)">
+          <!-- 悬浮提示层：右下角「打开大屏」 -->
+          <div class="thumb-hover">
+            <span class="thumb-hover-btn">
+              <i class="el-icon-full-screen"></i>
               打开大屏
-            </el-button>
+            </span>
           </div>
         </div>
 
         <!-- 卡片信息 -->
         <div class="hub-meta">
           <div class="hub-name">
-            <span class="dot"></span>
             <span class="nm">{{ s.name }}</span>
-            <el-tag size="mini" type="info" effect="plain">{{ s.screen }}</el-tag>
+            <span class="hub-tag">{{ s.screen }}</span>
           </div>
           <p class="hub-desc">{{ s.desc }}</p>
-          <div class="hub-actions">
-            <el-button size="small" type="primary" icon="el-icon-full-screen" @click="openScreen(s)">
+          <div class="hub-facts">
+            <span v-for="(f, i) in s.facts" :key="i" class="hub-fact">
+              <i :class="f.icon"></i>{{ f.text }}
+            </span>
+          </div>
+          <div class="hub-foot">
+            <el-button
+              size="small"
+              type="primary"
+              icon="el-icon-full-screen"
+              @click.stop="openScreen(s)"
+            >
               打开大屏
             </el-button>
-            <span class="hub-actions-tip">新标签页打开，全屏投屏</span>
+            <span class="hub-foot-tip">{{ s.tip }}</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 展示名称设置 -->
-    <el-card class="hub-setting" shadow="never">
-      <div slot="header" class="hs-header">
-        <span>大屏展示名称设置</span>
-        <span class="hs-sub">设置数据中心大屏展示的大标题名称，留空保存即恢复默认</span>
+    <!-- 展示名称设置（可收起） -->
+    <div class="hub-setting">
+      <div class="hs-header" @click="settingCollapsed = !settingCollapsed">
+        <div class="hs-title-wrap">
+          <span class="hs-title">大屏展示名称设置</span>
+          <span class="hs-sub">设置大屏顶部展示标题，留空保存即恢复默认</span>
+        </div>
+        <span class="hs-toggle">
+          {{ settingCollapsed ? '展开' : '收起' }}
+          <i :class="settingCollapsed ? 'el-icon-arrow-down' : 'el-icon-arrow-up'"></i>
+        </span>
       </div>
-      <el-form label-width="150px" class="hs-form" @submit.native.prevent>
-        <el-form-item label="运营大数据标题">
-          <el-input
-            v-model="form.operation"
-            placeholder="默认：黔序数据指挥中心"
-            maxlength="30"
-            show-word-limit
-            class="hs-input"
-          />
-        </el-form-item>
-        <el-form-item label="市场大数据标题">
-          <el-input
-            v-model="form.market"
-            placeholder="默认：市 场 大 数 据 中 心"
-            maxlength="30"
-            show-word-limit
-            class="hs-input"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :loading="saving" @click="save">保 存</el-button>
-          <el-button @click="reset">恢复默认</el-button>
+
+      <div v-show="!settingCollapsed" class="hs-body">
+        <div class="hs-form">
+          <div class="hs-field">
+            <span class="hs-label">运营大屏标题</span>
+            <el-input
+              v-model="form.operation"
+              placeholder="默认：黔序数据指挥中心"
+              maxlength="30"
+              show-word-limit
+            />
+          </div>
+          <div class="hs-field">
+            <span class="hs-label">市场大屏标题</span>
+            <el-input
+              v-model="form.market"
+              placeholder="默认：市 场 大 数 据 中 心"
+              maxlength="30"
+              show-word-limit
+            />
+          </div>
+        </div>
+        <div class="hs-actions">
+          <el-button type="primary" size="small" :loading="saving" @click="save">保 存</el-button>
+          <el-button size="small" @click="reset">恢复默认</el-button>
           <span class="hs-tip">保存后大屏刷新页面即可看到新标题。</span>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -122,6 +158,8 @@ export default {
   data() {
     return {
       saving: false,
+      // 设置区默认收起为一行，弱于大屏入口区
+      settingCollapsed: true,
       titles: { ...SCREEN_TITLES_DEFAULT },
       form: {
         operation: SCREEN_TITLES_DEFAULT.operation,
@@ -133,6 +171,11 @@ export default {
           name: '运营大数据',
           screen: '指挥中心',
           desc: '交易 / 会员 / 分销核心指标总览，适合公司大屏、会议室投屏',
+          facts: [
+            { icon: 'el-icon-full-screen', text: '新标签页全屏打开' },
+            { icon: 'el-icon-monitor', text: '适合会议室投屏' },
+          ],
+          tip: '支持投屏观看',
           path: '/market/screen/operation',
         },
         {
@@ -140,6 +183,11 @@ export default {
           name: '市场大数据',
           screen: '市场中心',
           desc: '今日交易、实时分享、下单动态与优秀团队榜，适合市场部门挂屏',
+          facts: [
+            { icon: 'el-icon-full-screen', text: '新标签页全屏打开' },
+            { icon: 'el-icon-monitor', text: '适合市场部门挂屏' },
+          ],
+          tip: '支持投屏观看',
           path: '/market/screen/market',
         },
       ],
@@ -186,179 +234,207 @@ export default {
 
 <style scoped>
 .bigdata-hub {
-  padding: 16px;
-  background: #f4f6fb;
+  padding: 20px;
+  background: #f4f6fa;
   min-height: calc(100vh - 100px);
   box-sizing: border-box;
 }
+
+/* ---------- 页头 ---------- */
 .hub-hd {
-  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
 }
 .hub-hd h2 {
   margin: 0 0 6px;
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 600;
-  color: #1f2a3d;
+  color: #111827;
 }
 .hub-hd p {
   margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+.hub-count {
+  flex: none;
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: #eef3ff;
   font-size: 12px;
-  color: #8a94a6;
+  color: #2b6fe3;
 }
 
 /* ---------- 卡片 ---------- */
 .hub-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 20px;
 }
 .hub-card {
   flex: 1 1 420px;
-  max-width: 620px;
+  max-width: 640px;
   background: #fff;
-  border: 1px solid #e8ecf3;
-  border-radius: 10px;
+  border: 1px solid #e5e9f2;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(31, 79, 158, 0.06);
+  box-shadow: 0 4px 16px rgba(15, 31, 77, 0.06);
   transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
 }
 .hub-card:hover {
-  box-shadow: 0 6px 20px rgba(31, 79, 158, 0.14);
+  box-shadow: 0 10px 26px rgba(15, 31, 77, 0.16);
   transform: translateY(-2px);
 }
 
 /* ---------- 缩略图 ---------- */
 .hub-thumb {
   position: relative;
-  height: 200px;
-  padding: 12px 14px;
+  height: 220px;
+  padding: 14px 16px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 .thumb-operation {
-  background: radial-gradient(120% 100% at 50% 0%, #1b3f7d 0%, #0d2350 55%, #061229 100%);
+  background: linear-gradient(145deg, #0a1a3f 0%, #12295e 48%, #1e4a8f 100%);
 }
 .thumb-market {
-  background: radial-gradient(120% 100% at 50% 0%, #123a72 0%, #0a2350 55%, #041020 100%);
+  background: linear-gradient(145deg, #0a1a3f 0%, #13305f 48%, #21539b 100%);
 }
 .thumb-hd {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  flex: none;
 }
 .thumb-title {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 2px;
-  color: #cfe4ff;
+  color: #8fc1ff;
   text-shadow: 0 0 12px rgba(74, 157, 248, 0.85);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .thumb-wing {
-  width: 26px;
-  height: 2px;
-  background: linear-gradient(90deg, rgba(74, 157, 248, 0), #4a9df8);
+  width: 42px;
+  height: 1px;
+  flex: none;
+  background: linear-gradient(90deg, rgba(46, 90, 168, 0), #2e5aa8);
 }
 .thumb-wing.flip {
-  background: linear-gradient(270deg, rgba(74, 157, 248, 0), #4a9df8);
+  background: linear-gradient(270deg, rgba(46, 90, 168, 0), #2e5aa8);
 }
 .thumb-body {
   flex: 1;
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.thumb-main {
+  flex: 1;
+  display: flex;
+  gap: 10px;
   min-height: 0;
 }
 .tb-col {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
-.tb-col.wide {
-  flex: 1.15;
-}
 .tb-col.main {
+  flex: 1.7;
+}
+.tb-col.wide {
   flex: 1.6;
+}
+.tb-col.stat-col {
+  flex: 1.1;
 }
 .tb-panel {
   flex: 1;
-  border: 1px solid rgba(74, 157, 248, 0.32);
-  border-radius: 4px;
-  background: linear-gradient(180deg, rgba(74, 157, 248, 0.16), rgba(74, 157, 248, 0.04));
+  border: 1px solid rgba(74, 157, 248, 0.28);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(9, 20, 44, 0.72), rgba(9, 20, 44, 0.52));
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
+  gap: 5px;
+  padding: 5px;
   min-height: 0;
-}
-.tb-panel.tall {
-  flex: 1.6;
 }
 .tb-panel i {
   display: block;
-  width: 74%;
-  height: 3px;
+  width: 78%;
+  height: 4px;
   border-radius: 2px;
-  background: rgba(140, 200, 255, 0.55);
+  background: rgba(46, 90, 168, 0.9);
 }
 .tb-panel.rect {
-  background: linear-gradient(180deg, rgba(74, 157, 248, 0.28), rgba(74, 157, 248, 0.06));
+  background: linear-gradient(180deg, rgba(74, 157, 248, 0.2), rgba(9, 20, 44, 0.6));
 }
 .tb-panel.bars {
   flex-direction: row;
   align-items: flex-end;
-  gap: 3px;
+  gap: 4px;
 }
 .tb-panel.bars i {
-  width: 10%;
-  background: linear-gradient(180deg, #7fc0ff, rgba(74, 157, 248, 0.25));
+  width: 12%;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #7fc0ff, rgba(74, 157, 248, 0.3));
 }
 .tb-panel.bars i:nth-child(1) {
-  height: 40%;
+  height: 34%;
+  opacity: 0.45;
 }
 .tb-panel.bars i:nth-child(2) {
-  height: 72%;
+  height: 58%;
+  opacity: 0.6;
 }
 .tb-panel.bars i:nth-child(3) {
-  height: 55%;
+  height: 44%;
+  opacity: 0.75;
 }
 .tb-panel.bars i:nth-child(4) {
-  height: 88%;
+  height: 78%;
+  opacity: 0.9;
 }
 .tb-panel.bars i:nth-child(5) {
-  height: 62%;
+  height: 96%;
 }
 .tb-map {
   position: relative;
-  flex: 2.2;
-  border: 1px solid rgba(74, 157, 248, 0.4);
+  flex: 2.4;
+  border: 1px solid rgba(74, 157, 248, 0.3);
   border-radius: 6px;
-  background: radial-gradient(80% 70% at 50% 55%, rgba(74, 157, 248, 0.35), rgba(74, 157, 248, 0.05) 70%);
+  background: radial-gradient(75% 65% at 50% 55%, rgba(74, 157, 248, 0.26), rgba(9, 20, 44, 0.6) 72%);
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 0;
 }
 .tb-map-core {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: radial-gradient(circle, #a9d3ff 0%, rgba(74, 157, 248, 0.15) 70%, transparent 72%);
-  box-shadow: 0 0 18px rgba(74, 157, 248, 0.8);
+  background: radial-gradient(circle, #cfe6ff 0%, rgba(74, 157, 248, 0.28) 55%, transparent 72%);
+  box-shadow: 0 0 22px rgba(74, 157, 248, 0.75);
 }
 .tb-map-dot {
   position: absolute;
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   background: #8fd0ff;
   box-shadow: 0 0 8px #4a9df8;
@@ -372,7 +448,7 @@ export default {
   right: 30%;
 }
 .tb-map-dot.d3 {
-  top: 46%;
+  top: 48%;
   right: 18%;
 }
 .tb-kpi {
@@ -383,86 +459,201 @@ export default {
 .tb-kpi i {
   flex: 1;
   border-radius: 4px;
-  border: 1px solid rgba(74, 157, 248, 0.3);
-  background: rgba(74, 157, 248, 0.14);
+  border: 1px solid rgba(74, 157, 248, 0.24);
+  background: rgba(46, 90, 168, 0.5);
 }
-.thumb-mask {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: 0;
+/* 右侧数据块（市场大屏） */
+.tb-stat {
+  flex: 1;
+  border: 1px solid rgba(74, 157, 248, 0.28);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(9, 20, 44, 0.72), rgba(9, 20, 44, 0.52));
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  background: rgba(6, 18, 41, 0.55);
-  opacity: 0;
-  transition: opacity 0.2s;
+  gap: 8px;
+  padding: 0 10px;
+  min-height: 0;
 }
-.hub-thumb:hover .thumb-mask {
+.tb-stat-label {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #7eb6ff;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.tb-stat-bar {
+  display: block;
+  height: 8px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #4a9df8, rgba(74, 157, 248, 0.25));
+}
+.tb-stat-bar.w1 {
+  width: 58%;
+}
+.tb-stat-bar.w2 {
+  width: 82%;
+}
+/* 底部模块条 */
+.tb-foot {
+  flex: none;
+  display: flex;
+  gap: 10px;
+  height: 34px;
+}
+.tb-foot i {
+  flex: 1;
+  border-radius: 6px;
+  border: 1px solid rgba(74, 157, 248, 0.24);
+  background: rgba(9, 20, 44, 0.6);
+}
+
+/* 悬浮提示层 */
+.thumb-hover {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+.hub-thumb:hover .thumb-hover {
   opacity: 1;
+  transform: translateY(0);
+}
+.thumb-hover-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(43, 111, 227, 0.95);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  font-size: 12px;
+  color: #fff;
 }
 
 /* ---------- 卡片信息 ---------- */
 .hub-meta {
-  padding: 14px 16px 16px;
+  padding: 16px 18px 18px;
 }
 .hub-name {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.hub-name .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #2b6fe3;
-}
 .hub-name .nm {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1f2a3d;
+  color: #111827;
+}
+.hub-tag {
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: #e8f1ff;
+  font-size: 11px;
+  color: #2b6fe3;
 }
 .hub-desc {
-  margin: 8px 0 12px;
-  font-size: 12px;
+  margin: 10px 0 12px;
+  font-size: 13px;
   line-height: 1.7;
-  color: #8a94a6;
+  color: #6b7280;
   min-height: 34px;
 }
-.hub-actions {
+.hub-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eef1f6;
+  margin-bottom: 14px;
+}
+.hub-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+.hub-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.hub-foot-tip {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ---------- 名称设置（可收起） ---------- */
+.hub-setting {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid #e5e9f2;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(15, 31, 77, 0.04);
+}
+.hs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+}
+.hs-title-wrap {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
-.hub-actions-tip {
-  font-size: 12px;
-  color: #b6bece;
-}
-
-/* ---------- 名称设置 ---------- */
-.hub-setting {
-  margin-top: 16px;
-  border: 1px solid #e8ecf3;
-  border-radius: 10px;
-}
-.hs-header {
-  font-size: 15px;
+.hs-title {
+  font-size: 14px;
   font-weight: 600;
-  color: #1f2a3d;
+  color: #111827;
 }
 .hs-sub {
-  margin-left: 12px;
   font-size: 12px;
-  font-weight: 400;
-  color: #8a94a6;
+  color: #94a3b8;
 }
-.hs-input {
-  max-width: 420px;
+.hs-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #2b6fe3;
+}
+.hs-body {
+  padding: 0 20px 20px;
+}
+.hs-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.hs-field {
+  flex: 1 1 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.hs-label {
+  font-size: 12px;
+  color: #4b5563;
+}
+.hs-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .hs-tip {
-  margin-left: 12px;
   font-size: 12px;
-  color: #8a94a6;
+  color: #94a3b8;
 }
 </style>
