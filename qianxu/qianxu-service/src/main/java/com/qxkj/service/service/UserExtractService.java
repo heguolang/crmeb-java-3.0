@@ -109,4 +109,11 @@ public interface UserExtractService extends IService<UserExtract> {
      * @return Integer
      */
     Integer getNotAuditNum();
+
+    /**
+     * 获取用户最近一笔提现记录（用于回填收款信息）
+     * @param userId 用户uid
+     * @return UserExtract 最近一笔记录，无则返回 null
+     */
+    UserExtract getLatestByUid(Integer userId);
 }

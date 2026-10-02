@@ -73,6 +73,31 @@ export default {
       component: () => import('@/views/market/dividend/record'),
       name: 'DividendRecord',
       meta: { title: '分红记录', icon: '' }
+    },
+    // ==================== 企业管理（软件开发服务） ====================
+    {
+      path: 'enterprise/contract',
+      component: () => import('@/views/market/enterprise/contract/index'),
+      name: 'SvcContract',
+      meta: { title: '合同管理', icon: '' }
+    },
+    {
+      path: 'enterprise/project',
+      component: () => import('@/views/market/enterprise/project/index'),
+      name: 'SvcProject',
+      meta: { title: '项目进度', icon: '' }
+    },
+    {
+      path: 'enterprise/case',
+      component: () => import('@/views/market/enterprise/case/index'),
+      name: 'SvcCase',
+      meta: { title: '客户案例', icon: '' }
+    },
+    {
+      path: 'enterprise/setting',
+      component: () => import('@/views/market/enterprise/setting/index'),
+      name: 'SvcSetting',
+      meta: { title: '服务设置', icon: '' }
     }
   ]
 };

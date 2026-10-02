@@ -4952,5 +4952,223 @@ UPDATE `eb_system_menu`
  WHERE `component` IN ('/financial/brokerage', '/distribution/teamBrokerageRecord')
    AND `name` IN ('佣金记录', '团队奖记录');
 
+-- ============================================================
+-- 补丁：企业服务模块（软件开发服务：合同签约 + 项目进度 + 客户案例 + 服务设置）（2026-10-02）
+-- 菜单：大市场 → 企业管理
+-- 幂等：可重复执行
+-- ============================================================
+
+-- 1. 合同表 ------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `eb_svc_contract` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `contract_no` varchar(32) NOT NULL COMMENT '合同编号',
+  `uid` int NOT NULL COMMENT '会员UID',
+  `title` varchar(128) NOT NULL COMMENT '合同名称',
+  `amount` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '合同金额',
+  `content` text NULL COMMENT '合同内容',
+  `annex` varchar(2000) NOT NULL DEFAULT '' COMMENT '合同文件URL，多个逗号分隔（pdf/doc/docx/xls/图片）',
+  `annex_name` varchar(1500) NOT NULL DEFAULT '' COMMENT '合同文件名，与 annex 的URL按顺序一一对应',
+  `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态：0=待签约 1=已签约 2=已驳回',
+  `reject_reason` varchar(255) NOT NULL DEFAULT '' COMMENT '驳回原因',
+  `sign_time` datetime DEFAULT NULL COMMENT '签约时间',
+  `remark` varchar(255) NOT NULL DEFAULT '' COMMENT '备注',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_contract_no` (`contract_no`),
+  KEY `idx_uid` (`uid`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='企业服务-合同';
+
+-- 2. 项目表 ------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `eb_svc_project` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `uid` int NOT NULL COMMENT '会员UID',
+  `name` varchar(128) NOT NULL COMMENT '项目名称',
+  `type` varchar(32) NOT NULL DEFAULT '' COMMENT '项目类型：小程序/APP开发/系统定制等',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态：1=需求确认 2=开发中 3=待验收 4=已完成 -1=已终止',
+  `percent` int NOT NULL DEFAULT '0' COMMENT '进度百分比 0-100',
+  `stage` varchar(64) NOT NULL DEFAULT '' COMMENT '当前阶段：如 UI 设计/联调中',
+  `manager` varchar(32) NOT NULL DEFAULT '' COMMENT '项目经理',
+  `cycle` varchar(64) NOT NULL DEFAULT '' COMMENT '交付周期描述：如 45 天交付',
+  `sort` int NOT NULL DEFAULT '0' COMMENT '排序（降序）',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_uid` (`uid`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='企业服务-项目';
+
+-- 3. 项目进度记录表 ------------------------------------------------
+CREATE TABLE IF NOT EXISTS `eb_svc_project_progress` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `project_id` int NOT NULL COMMENT '项目ID（eb_svc_project.id）',
+  `uid` int NOT NULL DEFAULT '0' COMMENT '会员UID（冗余）',
+  `stage` varchar(64) NOT NULL DEFAULT '' COMMENT '阶段名称',
+  `percent` int NOT NULL DEFAULT '0' COMMENT '进度百分比',
+  `remark` varchar(500) NOT NULL DEFAULT '' COMMENT '说明',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_project` (`project_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='企业服务-项目进度记录';
+
+-- 4. 客户案例表 ----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `eb_svc_case` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `title` varchar(128) NOT NULL COMMENT '案例名称',
+  `category` varchar(32) NOT NULL DEFAULT '' COMMENT '分类：小程序/APP开发/系统定制',
+  `description` varchar(255) NOT NULL DEFAULT '' COMMENT '一句话描述：如 电商零售 · 45 天交付',
+  `image` varchar(500) NOT NULL DEFAULT '' COMMENT '案例配图URL',
+  `sort` int NOT NULL DEFAULT '0' COMMENT '排序（降序）',
+  `is_show` tinyint NOT NULL DEFAULT '1' COMMENT '是否显示',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_sort` (`sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='企业服务-客户案例';
+
+-- 5. 配置键（软件开发主页/会员中心/底部导航切换 + 联系方式）----------
+INSERT INTO `eb_system_config` (`name`, `title`, `form_id`, `value`, `status`)
+SELECT t.name, t.title, 0, t.value, 0 FROM (
+  SELECT 'svc_home_mode'      AS name, '软件开发首页设为商城主页：1=启用 0=停用' AS title, '0' AS value
+  UNION ALL SELECT 'svc_user_mode',    '软件开发会员中心：1=启用 0=停用',              '0'
+  UNION ALL SELECT 'svc_nav_mode',     '软件开发底部导航栏：1=启用 0=停用',            '1'
+  UNION ALL SELECT 'svc_company_name', '企业服务-公司名称',                            '黔序科技'
+  UNION ALL SELECT 'svc_contact_phone','企业服务-联系电话',                            ''
+  UNION ALL SELECT 'svc_contact_wechat','企业服务-联系微信',                           ''
+  UNION ALL SELECT 'svc_contact_time', '企业服务-响应承诺文案',                        '10分钟内响应，提供初步报价与周期参考'
+) t
+WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` c WHERE c.name = t.name);
+
+-- 6. 菜单：目录「企业管理」（挂在 大市场 下，sort=0 排末尾，不抢占点击跳转）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT m.id, '企业管理', 'office-building', '', '/market/enterprise', 'M', 0, 1
+FROM `eb_system_menu` m
+WHERE m.component = '/market' AND m.pid = 0 AND m.menu_type = 'M' AND m.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_menu` WHERE `component` = '/market/enterprise' AND `is_delte` = 0) x);
+
+-- 7. 菜单：页面（C）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT m.id, t.name, '', t.perms, t.component, 'C', t.sort, 1
+FROM `eb_system_menu` m
+JOIN (
+  SELECT '合同管理' AS name, 'admin:svc:contract:list' AS perms, '/market/enterprise/contract' AS component, 4 AS sort
+  UNION ALL SELECT '项目进度', 'admin:svc:project:list', '/market/enterprise/project', 3
+  UNION ALL SELECT '客户案例', 'admin:svc:case:list',    '/market/enterprise/case',    2
+  UNION ALL SELECT '服务设置', 'admin:svc:setting:list', '/market/enterprise/setting', 1
+) t
+WHERE m.component = '/market/enterprise' AND m.menu_type = 'M' AND m.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id, component FROM `eb_system_menu` WHERE `menu_type` = 'C' AND `is_delte` = 0) x
+                  WHERE x.component = t.component);
+
+-- 8. 菜单：按钮权限（A）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT c.id, t.name, '', t.perms, '', 'A', t.sort, 0
+FROM `eb_system_menu` c
+JOIN (
+  SELECT '/market/enterprise/contract' AS page, '保存合同' AS name, 'admin:svc:contract:save'   AS perms, 1 AS sort
+  UNION ALL SELECT '/market/enterprise/contract', '删除合同',     'admin:svc:contract:delete',  2
+  UNION ALL SELECT '/market/enterprise/project',  '保存项目',     'admin:svc:project:save',     1
+  UNION ALL SELECT '/market/enterprise/project',  '删除项目',     'admin:svc:project:delete',   2
+  UNION ALL SELECT '/market/enterprise/project',  '设置进度',     'admin:svc:project:progress', 3
+  UNION ALL SELECT '/market/enterprise/case',     '保存案例',     'admin:svc:case:save',        1
+  UNION ALL SELECT '/market/enterprise/case',     '删除案例',     'admin:svc:case:delete',      2
+  UNION ALL SELECT '/market/enterprise/setting',  '保存服务设置', 'admin:svc:setting:save',     1
+) t
+JOIN `eb_system_menu` m ON m.component = t.page AND m.menu_type = 'C' AND m.is_delte = 0
+WHERE c.id = m.id
+  AND NOT EXISTS (SELECT 1 FROM (SELECT perms FROM `eb_system_menu` WHERE `menu_type` = 'A' AND `is_delte` = 0) x
+                  WHERE x.perms = t.perms);
+
+-- ============================================================
+-- 补丁：企业服务-合同签约升级（合同文件 + 主体 + 手写签名 + 短信验证 + 项目联动）（2026-10-02 第二批）
+-- 幂等：可重复执行
+-- ============================================================
+SET @db = DATABASE();
+
+-- 1. eb_svc_contract 增加签约升级列（MySQL 5.7 无 ADD COLUMN IF NOT EXISTS，逐列判断）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='party_type')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN party_type tinyint NOT NULL DEFAULT 2 COMMENT ''签约主体：1=企业 2=个人'' AFTER amount', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='party_name')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN party_name varchar(128) NOT NULL DEFAULT '''' COMMENT ''签约主体名称（企业名称/个人姓名）'' AFTER party_type', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sign_name')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sign_name varchar(32) NOT NULL DEFAULT '''' COMMENT ''签约负责人姓名（手写人）'' AFTER reject_reason', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sign_phone')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sign_phone varchar(20) NOT NULL DEFAULT '''' COMMENT ''签约负责人手机号'' AFTER sign_name', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sign_hand')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sign_hand varchar(500) NOT NULL DEFAULT '''' COMMENT ''手写签名图片URL'' AFTER sign_phone', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sign_page')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sign_page int NOT NULL DEFAULT 0 COMMENT ''签字/签章所在合同图片页码（1开始，0=最后一页）'' AFTER annex', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sign_pos')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sign_pos varchar(10) NOT NULL DEFAULT ''center'' COMMENT ''签字位置：left/center/right'' AFTER sign_page', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='seal_pos')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN seal_pos varchar(10) NOT NULL DEFAULT ''center'' COMMENT ''签章位置：left/center/right'' AFTER sign_pos', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='project_id')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN project_id int DEFAULT NULL COMMENT ''关联项目ID（签约后自动生成）'' AFTER uid', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 2. 签约短信验证开关
+INSERT INTO `eb_system_config` (`name`, `title`, `form_id`, `value`, `status`)
+SELECT t.name, t.title, 0, t.value, 0 FROM (
+  SELECT 'svc_sign_sms' AS name, '企业服务-签约短信验证开关：1=需要验证码 0=不需要' AS title, '1' AS value
+) t
+WHERE NOT EXISTS (SELECT 1 FROM `eb_system_config` c WHERE c.name = t.name);
+
+-- ============================================================
+-- 补丁：企业服务-历史已签约合同补建并关联项目（2026-10-02 第三批）
+-- 说明：签约自动生成项目是后加的能力，早期已签约但未关联项目的合同在此补齐
+-- 幂等：可重复执行（第二次执行时已无 project_id IS NULL 的已签约合同）
+-- ============================================================
+INSERT INTO `eb_svc_project` (`uid`, `name`, `type`, `status`, `percent`, `stage`, `sort`, `is_del`)
+SELECT c.uid, c.title, '', 1, 0, '需求确认', 0, 0
+FROM `eb_svc_contract` c
+WHERE c.status = 1 AND c.is_del = 0 AND c.project_id IS NULL;
+
+UPDATE `eb_svc_contract` c
+JOIN (
+  SELECT p.id AS pid, p.uid, p.name FROM `eb_svc_project` p WHERE p.is_del = 0
+) t ON t.uid = c.uid AND t.name = c.title
+SET c.project_id = t.pid
+WHERE c.status = 1 AND c.is_del = 0 AND c.project_id IS NULL;
+
+-- ============================================================
+-- 补丁：企业服务-合同文件支持 doc/pdf 等文件格式（2026-10-02 第四批）
+-- 说明：合同文件由「多页图片」改为「文件」，支持 pdf/doc/docx/xls 等；
+--       annex 继续存逗号分隔的文件 URL，新增 annex_name 按顺序存原始文件名；
+--       sign_page（图片页码）在文件模式下不再使用，保留字段以兼容旧数据；
+--       签署位置改为「独立签署区」内的左/中/右排版，seal_pos/sign_pos 继续沿用。
+-- 幂等：可重复执行
+-- ============================================================
+SET @db = DATABASE();
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='annex_name')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN annex_name varchar(1500) NOT NULL DEFAULT '''' COMMENT ''合同文件名，与 annex 的URL按顺序一一对应'' AFTER annex', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+ALTER TABLE `eb_svc_contract` MODIFY COLUMN `annex` varchar(2000) NOT NULL DEFAULT '' COMMENT '合同文件URL，多个逗号分隔（pdf/doc/docx/xls/图片）';
+
+UPDATE `eb_svc_contract`
+SET `annex_name` = ''
+WHERE `annex_name` IS NULL;
+
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'QIANXU 01_increment done' AS result;

@@ -23,6 +23,7 @@ import com.qxkj.common.constants.*;
 import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.model.coupon.StoreCoupon;
 import com.qxkj.common.model.coupon.StoreCouponUser;
+import com.qxkj.common.model.finance.UserExtract;
 import com.qxkj.common.model.finance.UserRecharge;
 import com.qxkj.common.model.order.StoreOrder;
 import com.qxkj.common.model.system.DistributorLevel;
@@ -1171,6 +1172,18 @@ public class UserCenterServiceImpl extends ServiceImpl<UserDao, User> implements
         response.setExtractWeekdaysTip(userExtractService.formatWeekdaysTip(weekdays));
         response.setExtractTimeTip(userExtractService.formatTimeTip(startHour, endHour));
         response.setExtractTimeAllowed(userExtractService.checkExtractTimeAllowed(false, cat));
+
+        // 最近一笔提现记录，用于前端回填收款信息（提现信息保存）
+        UserExtract lastExtract = userExtractService.getLatestByUid(user.getUid());
+        if (ObjectUtil.isNotNull(lastExtract)) {
+            response.setLastExtractType(lastExtract.getExtractType());
+            response.setLastRealName(lastExtract.getRealName());
+            response.setLastBankCode(lastExtract.getBankCode());
+            response.setLastBankName(lastExtract.getBankName());
+            response.setLastWechat(lastExtract.getWechat());
+            response.setLastAlipayCode(lastExtract.getAlipayCode());
+            response.setLastQrcodeUrl(lastExtract.getQrcodeUrl());
+        }
         return response;
     }
 

@@ -69,4 +69,25 @@ public class UserExtractCashResponse implements Serializable {
 
     @ApiModelProperty(value = "当前是否在可提现时间内")
     private Boolean extractTimeAllowed;
+
+    @ApiModelProperty(value = "最近一次提现方式：bank=银行卡 weixin=微信 alipay=支付宝")
+    private String lastExtractType;
+
+    @ApiModelProperty(value = "最近一次提现姓名/持卡人")
+    private String lastRealName;
+
+    @ApiModelProperty(value = "最近一次银行卡号")
+    private String lastBankCode;
+
+    @ApiModelProperty(value = "最近一次银行名称")
+    private String lastBankName;
+
+    @ApiModelProperty(value = "最近一次微信号")
+    private String lastWechat;
+
+    @ApiModelProperty(value = "最近一次支付宝账号")
+    private String lastAlipayCode;
+
+    @ApiModelProperty(value = "最近一次收款码")
+    private String lastQrcodeUrl;
 }

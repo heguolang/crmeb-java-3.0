@@ -1,0 +1,734 @@
+<template>
+  <view
+    class="new-users copy-data"
+    :class="
+      bgTabVal == 2
+        ? 'fullsize noRepeat'
+        : bgTabVal == 1
+        ? 'repeat ysize'
+        : 'noRepeat ysize'
+    "
+    :style="{
+      height: pageHeight,
+      backgroundColor: bgColor,
+      backgroundImage: bgPic ? `url(${bgPic})` : '',
+    }"
+  >
+    <view class="top" :style="colorStyle">
+      <!-- #ifdef MP || APP-PLUS -->
+      <view class="sys-head">
+        <view class="sys-bar" :style="{ height: sysHeight }"></view>
+        <!-- #ifdef MP -->
+        <view
+          class="sys-title"
+          :style="member_style == 3 ? 'color:#333' : ''"
+          >会员中心</view
+        >
+        <!-- #endif -->
+        <view
+          class="bg"
+          :style="member_style == 3 ? 'background:#f5f5f5' : ''"
+        ></view>
+      </view>
+      <!-- #endif -->
+    </view>
+
+    <PageDesign
+      :style="colorStyle"
+      :diyData="currentDiyData"
+      :isHome="false"
+      :isScrolled="isScrolled"
+      :isFixed="isFixed"
+      :belongIndex="belongIndex"
+      :immersive="headImmersive"
+      @bindSortId="bindSortId"
+      @bindHeight="bindHeighta"
+      @storeTap="storeTap"
+      @changeLogin="changeLogin"
+      @changeBarg="changeBarg"
+      @goDetail="goDetail"
+    ></PageDesign>
+    <pageFooter :style="colorStyle"></pageFooter>
+    <!-- #ifdef MP -->
+    <!-- 手机号授权弹框（后台开关 routine_center_phone_auth 开启且会员未填手机号时弹出） -->
+    <routinePhone
+      mode="bind"
+      :isPhoneBox="isPhoneBox"
+      :logoUrl="logoUrl"
+      @close="phoneBoxClose"
+    ></routinePhone>
+    <!-- #endif -->
+  </view>
+</template>
+<script>
+let sysHeight = uni.getWindowInfo().statusBarHeight + "px";
+import {
+  getMenuList,
+  getUserInfo,
+  setVisit,
+  mpBindingPhone,
+} from "@/api/user.js";
+import { getThemeInfo } from "@/api/api.js";
+import { getSvcConfig } from "@/api/svc.js";
+import { toLogin } from "@/libs/login.js";
+import { mapGetters } from "vuex";
+// #ifdef H5
+import Auth from "@/libs/wechat";
+// #endif
+const app = getApp();
+import dayjs from "@/plugin/dayjs/dayjs.min.js";
+import Routine from "@/libs/routine";
+import colors from "@/mixins/color";
+import pageFooter from "@/components/pageFooter/index.vue";
+import editUserModal from "@/components/eidtUserModal/index.vue";
+import couponWindow from "@/components/couponWindow/index";
+import waterfallsFlow from "@/components/WaterfallsFlow/WaterfallsFlow.vue";
+import emptyPage from "@/components/emptyPage.vue";
+import Loading from "@/components/Loading/index.vue";
+import { goShopDetail } from "@/libs/order.js";
+import { orderData } from "@/api/order.js";
+import PageDesign from "@/subpackage/diyComponents/pageDesign.vue";
+// #ifdef MP
+import routinePhone from "@/components/login_mobile/routine_phone.vue";
+import { getRoutineConfig, getLogo } from "@/api/public.js";
+// #endif
+import { applyTheme } from "@/utils/theme.js";
+
+export default {
+  components: {
+    pageFooter,
+    editUserModal,
+    PageDesign,
+    couponWindow,
+    waterfallsFlow,
+    emptyPage,
+    Loading,
+    // #ifdef MP
+    routinePhone,
+    // #endif
+  },
+  // computed: mapGetters(['isLogin','cartNum']),
+  computed: {
+    pdHeights() {
+      return { height: "100rpx" };
+    },
+    ...mapGetters({
+      cartNum: "cartNum",
+      isLogin: "isLogin",
+    }),
+  },
+  filters: {
+    coundTime(val) {
+      var setTime = val * 1000;
+      var nowTime = new Date();
+      var rest = setTime - nowTime.getTime();
+      var day = parseInt(rest / (60 * 60 * 24 * 1000));
+      // var hour = parseInt(rest/(60*60*1000)%24) //小时
+      return day + this.$t("day");
+    },
+    dateFormat: function (value) {
+      return dayjs(value * 1000).format("YYYY-MM-DD");
+    },
+  },
+  mixins: [colors],
+  data() {
+    return {
+      currentDiyData: {},
+      headImmersive: false,
+      isPhoneBox: false, //手机号授权弹框（会员中心）
+      logoUrl: "",
+      storeMenu: [], // 商家管理
+      orderMenu: [
+        {
+          img: "icon-daifukuan",
+          title: "待付款",
+          url: "/pages/users/order_list/index?status=0",
+        },
+        {
+          img: "icon-daifahuo",
+          title: "待发货",
+          url: "/pages/users/order_list/index?status=1",
+        },
+        {
+          img: "icon-daishouhuo",
+          title: "待收货",
+          url: "/pages/users/order_list/index?status=2",
+        },
+        {
+          img: "icon-daipingjia",
+          title: "待评价",
+          url: "/pages/users/order_list/index?status=3",
+        },
+        {
+          img: "icon-a-shouhoutuikuan",
+          title: "售后/退款",
+          url: "/pages/users/user_return_list/index",
+        },
+      ],
+      imgUrls: [],
+      autoplay: true,
+      circular: true,
+      interval: 3000,
+      duration: 500,
+      isAuto: false, //没有授权的不会自动授权
+      isShowAuth: false, //是否隐藏授权
+      userInfo: {},
+      MyMenus: [],
+      sysHeight: sysHeight,
+      sysHeadBg: "", // 已废弃：头部背景由会员卡背景沉浸式延展实现，此字段仅保留兼容
+      mpHeight: 0,
+      showStatus: 1,
+      activeRouter: "",
+      // #ifdef H5 || MP
+      pageHeight: "100%",
+      routineContact: 0,
+      // #endif
+      // #ifdef APP-PLUS
+      pageHeight: app.globalData.windowHeight,
+      // #endif
+      // #ifdef H5
+      isWeixin: Auth.isWeixin(),
+      //#endif
+      footerSee: false,
+      my_menus_status: 0,
+      business_status: 0,
+      member_style: 0,
+      my_banner_status: 0,
+      is_diy: uni.getStorageSync("is_diy"),
+      belongIndex: 0,
+      isScrolled: false,
+      isFixed: false,
+      product_video_status: false,
+      positionTop: 0,
+      sortMpTop: 0,
+      sortList: [],
+      curSort: 0,
+      goodList: [],
+      loaded: false,
+      loading: false,
+      isCouponShow: false,
+      couponObj: {},
+      site_config: "",
+      configData: {},
+      isFooter: false,
+      entryData: { select_store_id: "", store_id: "" },
+      sid: 0,
+      goodPage: 1,
+      bgColor: "",
+      bgPic: "",
+      bgTabVal: "",
+    };
+  },
+  onLoad(option) {
+    uni.hideTabBar();
+    // 软件开发服务模式：后台开启「软件开发会员中心」后切换
+    getSvcConfig()
+      .then((res) => {
+        if (res.data && res.data.userMode) {
+          uni.switchTab({ url: '/pages/software/user/index' });
+        }
+      })
+      .catch(() => {});
+    // 沉浸式头部延展仅 MP/APP 生效（H5 无自绘头部）
+    // #ifdef MP || APP-PLUS
+    this.headImmersive = true;
+    // #endif
+    applyTheme(uni.getStorageSync("previewThemeId") || "").catch(() => {});
+    let that = this;
+    // #ifdef MP
+    // 小程序静默授权
+    if (!this.$store.getters.isLogin) {
+    }
+    // #endif
+
+    // #ifdef H5 || APP-PLUS
+    let cacheCode = this.$Cache.get("snsapi_userinfo_code");
+    let res1 = cacheCode ? option.code != cacheCode : true;
+    if (
+      this.isWeixin &&
+      option.code &&
+      res1 &&
+      option.scope === "snsapi_userinfo"
+    ) {
+      this.$Cache.set("snsapi_userinfo_code", option.code);
+      Auth.auth(option.code)
+        .then((res) => {
+          this.getUserInfo();
+        })
+        .catch((err) => {});
+    }
+    // #endif
+    // #ifdef APP-PLUS
+    that.$set(that, "pageHeight", app.globalData.windowHeight);
+    // #endif
+
+    let routes = getCurrentPages(); // 获取当前打开过的页面路由数组
+    let curRoute = routes[routes.length - 1].route; //获取当前页面路由
+    this.activeRouter = "/" + curRoute;
+  },
+  onReady() {
+    let self = this;
+    // #ifdef MP
+    let info = uni.createSelectorQuery().select(".sys-head");
+    info
+      .boundingClientRect(function (data) {
+        //data - 各种参数
+        self.mpHeight = data.height;
+      })
+      .exec();
+    // #endif
+  },
+  onShow: function () {
+    let that = this;
+    // #ifdef APP-PLUS
+    uni.getSystemInfo({
+      success: function (res) {
+        that.pageHeight = res.windowHeight + "px";
+      },
+    });
+    // #endif
+    if (that.isLogin) {
+      this.getUserInfo();
+      this.setVisit();
+    }
+    // this.getMyMenus();
+    this.getDiyData();
+  },
+  onPullDownRefresh() {
+    this.onLoadFun();
+  },
+  onPageScroll() {
+    uni.$emit("scroll");
+  },
+  methods: {
+    bindSortId(item, data) {
+      if (item.dataType.tabVal == 1) {
+        uni.navigateTo({
+          url: `/pages/goods/goods_list/index?cid=${item.classPage.id}&title=${item.classPage.name}`,
+        });
+      } else if (item.text.val == "首页") {
+        uni.switchTab({
+          url: `/pages/index/index`,
+        });
+      } else {
+        uni.navigateTo({
+          url: `/pages/activity/small_page/index?id=${item.microPage.id}`,
+        });
+      }
+    },
+    storeTap(id) {
+      this.entryData.select_store_id = id;
+      this.entryData.store_id = "";
+      uni.removeStorageSync("rulesStoreId");
+    },
+    bindHeighta(data) {
+      // #ifdef APP-PLUS
+      this.sortMpTop = data.top + data.height;
+      // #endif
+    },
+    changeSort(item, index) {
+      if (this.curSort == index) return;
+      this.curSort = index;
+      this.sid = item.id;
+      this.goodList = [];
+      this.goodPage = 1;
+      this.loaded = false;
+      if (this.getGoodsList) this.getGoodsList();
+    },
+    goDetail(item) {
+      goShopDetail(item, this.$store.state.app.uid).then((res) => {
+        uni.navigateTo({
+          url: `/pages/goods/goods_details/index?id=${item.id}`,
+        });
+      });
+    },
+    couponClose() {
+      this.isCouponShow = false;
+      if (!uni.getStorageSync("oldUser") && this.getNewCoupon) {
+        this.getNewCoupon();
+      }
+    },
+    goICP(url) {
+      // #ifdef H5
+      window.open(url);
+      // #endif
+      // #ifdef MP
+      uni.navigateTo({
+        url: `/pages/annex/web_view/index?url=${url}`,
+      });
+      // #endif
+    },
+    changeBarg(item) {
+      if (!this.isLogin) {
+        toLogin();
+      } else {
+        uni.navigateTo({
+          url: `/pages/activity/goods_bargain_details/index?id=${item.id}&spid=${this.$store.state.app.uid}`,
+        });
+      }
+    },
+    changeLogin() {
+      if (!this.isLogin) {
+        toLogin();
+      }
+    },
+    objToArr(data) {
+      if (!data || typeof data !== "object") return [];
+      let obj = Object.keys(data).sort();
+      let m = obj.map((key) => data[key]);
+      return m;
+    },
+    getDiyData() {
+      let previewThemeId = uni.getStorageSync("previewThemeId");
+      let data = {};
+      if (previewThemeId) data.theme_id = previewThemeId;
+      getThemeInfo("user", data).then((res) => {
+        this.currentDiyData = res.data;
+        // 沉浸式：把头部延展高度戳进每个装修组件配置，会员卡组件(homeUserInfor)
+        // 读取后经 commonWrapper.extendTop 把背景顶到屏幕最顶端（props 链传递，
+        // 不用 provide/inject——uni-app 小程序端跨 Page→深组件注入不可靠）
+        // #ifdef MP || APP-PLUS
+        try {
+          let inset = parseInt(this.sysHeight, 10) + 43 || 0;
+          let v = this.currentDiyData.value;
+          // ⚠️ value 可能是 JSON 字符串（带 previewThemeId/部分接口形态）：
+          // 必须 parse 后【写回】currentDiyData.value，否则盖章打在临时副本上，
+          // 渲染用的还是原始字符串，_topInset 全丢（延展失效、头部露白）
+          if (typeof v === "string") {
+            v = JSON.parse(v || "{}");
+            this.currentDiyData.value = v;
+          }
+          if (v && typeof v === "object") {
+            Object.keys(v).forEach((k) => {
+              let c = v[k];
+              if (typeof c === "string") {
+                try {
+                  c = JSON.parse(c);
+                  v[k] = c; // 组件级字符串同样要写回
+                } catch (e) {
+                  return;
+                }
+              }
+              if (c && typeof c === "object") c._topInset = inset;
+            });
+          }
+        } catch (e) {}
+        // #endif
+        if (this.currentDiyData.is_bg_color) {
+          this.bgColor = this.currentDiyData.color_picker || "";
+        }
+        if (this.currentDiyData.is_bg_pic) {
+          this.bgPic = this.currentDiyData.bg_pic || "";
+          this.bgTabVal = this.currentDiyData.bg_tab_val || "";
+        }
+        this.applyHeaderBg();
+      });
+    },
+    // 旧「头部取色」方案已废弃：头部背景改为透明浮层，颜色由会员卡背景
+    // 经 commonWrapper extendTop 沉浸式延展直接顶到屏幕顶端（无缝）
+    applyHeaderBg() {},
+    getWechatuserinfo() {
+      //#ifdef H5
+      Auth.isWeixin() && Auth.toAuth("snsapi_userinfo", "/pages/user/index");
+      //#endif
+    },
+    // 记录会员访问（统计类接口，失败静默忽略，不影响页面）
+    setVisit() {
+      setVisit({
+        url: "/pages/user/index",
+      }).catch(() => {});
+    },
+    // 打开授权
+    openAuto() {
+      toLogin();
+    },
+    // 授权回调
+    onLoadFun() {
+      this.getUserInfo();
+    //   this.getMyMenus();
+      this.getDiyData();
+      this.setVisit();
+    },
+    Setting: function () {
+      uni.openSetting({
+        success: function (res) {},
+      });
+    },
+    // 授权关闭
+    authColse: function (e) {
+      this.isShowAuth = e;
+    },
+    // #ifdef MP
+    // 会员中心手机号授权检查：后台开关开启 + 会员未填手机号 → 弹框
+    checkPhoneAuth() {
+      let that = this;
+      const apply = (cfg) => {
+        if (
+          String((cfg && cfg.centerPhoneAuth) || "") === "1" &&
+          that.isLogin &&
+          that.userInfo &&
+          !that.userInfo.phone
+        ) {
+          if (!that.logoUrl) {
+            getLogo().then((res) => {
+              that.logoUrl = res.data.logo_url;
+            });
+          }
+          that.isPhoneBox = true;
+        }
+      };
+      let cfg = getApp().globalData.routineConfig;
+      if (cfg) {
+        apply(cfg);
+        return;
+      }
+      getRoutineConfig()
+        .then((res) => {
+          cfg = (res && res.data) || {};
+          getApp().globalData.routineConfig = cfg;
+          apply(cfg);
+        })
+        .catch(() => {});
+    },
+    // 手机号授权弹框关闭（绑定成功后刷新用户信息）
+    phoneBoxClose(e) {
+      this.isPhoneBox = false;
+      if (e && e.isStatus) {
+        this.getUserInfo();
+      }
+    },
+    // #endif
+    // 绑定手机
+    bindPhone() {
+      uni.navigateTo({
+        url: "/pages/users/user_phone/index",
+      });
+    },
+    getphonenumber(e) {
+      if (e.detail.errMsg == "getPhoneNumber:ok") {
+        Routine.getCode()
+          .then((code) => {
+            let data = {
+              code,
+              iv: e.detail.iv,
+              encryptedData: e.detail.encryptedData,
+            };
+            mpBindingPhone(data)
+              .then((res) => {
+                this.getUserInfo();
+                this.$util.Tips({
+                  title: res.msg,
+                  icon: "success",
+                });
+              })
+              .catch((err) => {
+                return this.$util.Tips({
+                  title: err,
+                });
+              });
+          })
+          .catch((error) => {
+            uni.hideLoading();
+          });
+      }
+    },
+    /**
+     * 获取个人用户信息
+     */
+    getUserInfo: function () {
+      let that = this;
+      getUserInfo().then((res) => {
+        that.userInfo = res.data;
+        this.$store.commit("UPDATE_USERINFO", res.data);
+        that.$store.commit("SETUID", res.data.uid);
+        uni.stopPullDownRefresh();
+        // #ifdef MP
+        // 开关开启且会员未填手机号 → 弹微信手机号授权弹框
+        that.checkPhoneAuth();
+        // #endif
+      });
+      // 订单角标数量走独立接口 /api/front/order/data（字段为驼峰命名）
+      orderData()
+        .then((res) => {
+          const d = res.data || {};
+          that.orderMenu.forEach((item) => {
+            switch (item.title) {
+              case "待付款":
+                item.num = d.unPaidCount || 0;
+                break;
+              case "待发货":
+                item.num = d.unShippedCount || 0;
+                break;
+              case "待收货":
+                item.num = d.receivedCount || 0;
+                break;
+              case "待评价":
+                item.num = d.evaluatedCount || 0;
+                break;
+              case "售后/退款":
+                item.num = d.refundCount || 0;
+                break;
+            }
+          });
+        })
+        .catch(() => {});
+    },
+    //小程序授权api替换 getUserInfo
+    getUserProfile() {
+      toLogin();
+    },
+    /**
+     *
+     * 获取个人中心图标
+     */
+    switchTab(order) {
+      this.orderMenu.forEach((item, index) => {
+        switch (item.title) {
+          case "待付款":
+            item.img = order.dfk;
+            break;
+          case "待发货":
+            item.img = order.dfh;
+            break;
+          case "待收货":
+            item.img = order.dsh;
+            break;
+          case "待评价":
+            item.img = order.dpj;
+            break;
+          case "售后/退款":
+            item.img = order.sh;
+            break;
+        }
+      });
+    },
+    getMyMenus: function () {
+      let that = this;
+      // if (this.MyMenus.length) return;
+      getMenuList().then((res) => {
+        this.member_style = Number(res.data.diy_data.value);
+        this.my_banner_status = res.data.diy_data.my_banner_status;
+        this.my_menus_status = res.data.diy_data.my_menus_status;
+        this.business_status = res.data.diy_data.business_status;
+        let storeMenu = [];
+        let myMenu = [];
+        res.data.routine_my_menus.forEach((el, index, arr) => {
+          if (
+            el.url == "/pages/admin/order/index" ||
+            el.url == "/pages/admin/order_cancellation/index" ||
+            el.url == "/pages/admin/manage/index" ||
+            el.name == "客服接待"
+          ) {
+            storeMenu.push(el);
+          } else {
+            myMenu.push(el);
+          }
+        });
+
+        let order01 = {
+          dfk: "icon-daifukuan",
+          dfh: "icon-daifahuo",
+          dsh: "icon-daishouhuo",
+          dpj: "icon-daipingjia",
+          sh: "icon-a-shouhoutuikuan",
+        };
+        let order02 = {
+          dfk: "icon-daifukuan-lan",
+          dfh: "icon-daifahuo-lan",
+          dsh: "icon-daishouhuo-lan",
+          dpj: "icon-daipingjia-lan",
+          sh: "icon-shouhoutuikuan-lan",
+        };
+        let order03 = {
+          dfk: "icon-daifukuan-ju",
+          dfh: "icon-daifahuo-ju",
+          dsh: "icon-daishouhuo-ju",
+          dpj: "icon-daipingjia-ju",
+          sh: "icon-shouhoutuikuan-ju",
+        };
+        let order04 = {
+          dfk: "icon-daifukuan-fen",
+          dfh: "icon-daifahuo-fen",
+          dsh: "icon-daishouhuo-fen",
+          dpj: "icon-daipingjia-fen",
+          sh: "icon-shouhoutuikuan-fen",
+        };
+        let order05 = {
+          dfk: "icon-daifukuan-lv",
+          dfh: "icon-daifahuo-lv",
+          dsh: "icon-daishouhuo-lv",
+          dpj: "icon-daipingjia-lv",
+          sh: "icon-shouhoutuikuan-lv",
+        };
+        if (this.member_style == 1) {
+          this.switchTab(order01);
+        } else if (this.member_style == 2) {
+          this.switchTab(order02);
+        } else if (this.member_style == 3) {
+          this.switchTab(order03);
+        } else if (this.member_style == 4) {
+          this.switchTab(order04);
+        } else if (this.member_style == 5) {
+          this.switchTab(order05);
+        }
+        this.storeMenu = storeMenu;
+        this.MyMenus = myMenu;
+      });
+    },
+  },
+};
+</script>
+
+<style lang="scss">
+.new-users {
+  padding-bottom: 100rpx;
+  .sys-head {
+    position: relative;
+    width: 100%;
+    /* 沉浸式：背景必须透明，露出底下延展上来的会员卡渐变；
+       之前写死 #fff + z-index:50 会把延展背景整个盖住（白头根因） */
+    background: transparent;
+    z-index: 1;
+
+    .sys-bar {
+      width: 100%;
+    }
+
+    .sys-title {
+      width: 100%;
+      height: 43px;
+      line-height: 43px;
+      text-align: center;
+      font-size: 32rpx;
+      color: #000;
+      font-weight: 500;
+      position: relative;
+      z-index: 10;
+    }
+
+    .bg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+    }
+  }
+}
+.ysize {
+  background-size: 100%;
+}
+
+.fullsize {
+  background-size: 100% 100%;
+}
+
+.repeat {
+  background-repeat: repeat;
+}
+
+.noRepeat {
+  background-repeat: no-repeat;
+}
+</style>

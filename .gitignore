@@ -30,6 +30,8 @@ __pycache__/
 *.pyc
 
 # Uni-app / HBuilder
+qianxu-app/unpackage/
+qianxu-app/.hbuilderx/
 app/unpackage/
 app/.hbuilderx/
 

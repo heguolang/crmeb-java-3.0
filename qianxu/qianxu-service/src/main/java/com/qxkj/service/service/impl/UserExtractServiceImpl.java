@@ -703,6 +703,15 @@ public class UserExtractServiceImpl extends ServiceImpl<UserExtractDao, UserExtr
      * @return Integer
      */
     @Override
+    public UserExtract getLatestByUid(Integer userId) {
+        LambdaQueryWrapper<UserExtract> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(UserExtract::getUid, userId);
+        lambdaQueryWrapper.orderByDesc(UserExtract::getId);
+        lambdaQueryWrapper.last(" limit 1");
+        return dao.selectOne(lambdaQueryWrapper);
+    }
+
+    @Override
     public Integer getNotAuditNum() {
         LambdaQueryWrapper<UserExtract> lqw = Wrappers.lambdaQuery();
         lqw.eq(UserExtract::getStatus, 0);
