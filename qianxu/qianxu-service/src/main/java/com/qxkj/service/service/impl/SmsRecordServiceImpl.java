@@ -103,6 +103,9 @@ public class SmsRecordServiceImpl extends ServiceImpl<SmsRecordDao, SmsRecord> i
             }
             if (applyStatus(taskId, mobile, item.getString("status"), item.getString("times"))) {
                 updated++;
+            } else if (backfillByMobile(taskId, mobile, item.getString("status"), item.getString("times"))) {
+                // 兜底：历史记录因旧 bug 未存 taskId，按手机号匹配回填
+                updated++;
             }
         }
         logger.info("[滨礼短信] 状态同步完成，共 {} 条回执，更新 {} 条记录", reports.size(), updated);
@@ -136,16 +139,42 @@ public class SmsRecordServiceImpl extends ServiceImpl<SmsRecordDao, SmsRecord> i
             if (status != null && status.equals(record.getStatus())) {
                 continue;
             }
-            record.setStatus(status);
-            record.setStatusDesc(resolveStatusDesc(status));
-            record.setStatusTime(times);
-            record.setResultcode(BinliSmsStatusUtil.isSuccess(status) ? 100 : 130);
-            record.setMemo(BinliSmsStatusUtil.isSuccess(status)
-                    ? "发送成功" : "发送失败：" + resolveStatusDesc(status) + "(" + status + ")");
+            applyReceipt(record, status, times);
             dao.updateById(record);
             changed = true;
         }
         return changed;
+    }
+
+    /**
+     * 兜底：历史记录因旧 bug 未存 taskId（task_id 为空且尚无回执），按手机号匹配，
+     * 回填 taskId 与回执状态，使「同步回执」对存量记录也生效。
+     */
+    private boolean backfillByMobile(String taskId, String mobile, String status, String times) {
+        List<SmsRecord> records = dao.selectList(new LambdaQueryWrapper<SmsRecord>()
+                .and(w -> w.eq(SmsRecord::getTaskId, "").or().isNull(SmsRecord::getTaskId))
+                .and(w -> w.eq(SmsRecord::getStatus, "").or().isNull(SmsRecord::getStatus))
+                .like(SmsRecord::getPhone, mobile)
+                .orderByDesc(SmsRecord::getId)
+                .last(" limit 5"));
+        if (CollUtil.isEmpty(records)) {
+            return false;
+        }
+        for (SmsRecord record : records) {
+            record.setTaskId(taskId);
+            applyReceipt(record, status, times);
+            dao.updateById(record);
+        }
+        return true;
+    }
+
+    private void applyReceipt(SmsRecord record, String status, String times) {
+        record.setStatus(status);
+        record.setStatusDesc(resolveStatusDesc(status));
+        record.setStatusTime(times);
+        record.setResultcode(BinliSmsStatusUtil.isSuccess(status) ? 100 : 130);
+        record.setMemo(BinliSmsStatusUtil.isSuccess(status)
+                ? "发送成功" : "发送失败：" + resolveStatusDesc(status) + "(" + status + ")");
     }
 
     private String resolveStatusDesc(String status) {

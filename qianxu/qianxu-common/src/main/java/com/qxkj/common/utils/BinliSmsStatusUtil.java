@@ -330,6 +330,20 @@ public class BinliSmsStatusUtil {
             }
             return "发送失败(" + status + ")";
         }
+        // XA: 运营商签名审核类错误（实测 XA:0003 = 签名未报备/未通过审核）
+        if ("XA:0003".equals(status)) {
+            return "签名未报备或未通过审核";
+        }
+        if (status.startsWith("XA:")) {
+            return "签名相关失败(" + status + ")";
+        }
+        // LU: 联通网关错误（实测 LU:0003 平台显示 API失败）
+        if ("LU:0003".equals(status)) {
+            return "网关API拒绝";
+        }
+        if (status.startsWith("LU:")) {
+            return "联通网关失败(" + status + ")";
+        }
         // SGIP:xxx 运营商网关异常
         if (status.startsWith("SGIP:")) {
             return "运营商网关异常(" + status + ")";
