@@ -5616,3 +5616,361 @@ SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ========== END: upgrade_20261002_contract_dual_sign.sql ==========
+
+-- ============================================================
+-- 补丁：企业服务-签约体系重构（服务需求单 + 合同签约渠道 / 状态语义）
+--       2026-10-02 第八批
+--
+-- 设计口径（用户 2026-10-02 定案）：
+--   · 合同在线下签署，线上只做「登记 → 选状态 → 归档」；
+--     不提供双方在线签署、不提供客户确认，客户在 H5 只读。
+--   · 客户在 H5 提交需求 → 落 eb_svc_demand → 后台受理 / 报价 / 转合同。
+--   · 签约渠道分「纸质 / 电子」两类；电子渠道登记平台名与存证编号。
+--
+-- 幂等：可重复执行
+-- ============================================================
+SET @db = DATABASE();
+
+-- 1. 服务需求单表 -------------------------------------------------
+CREATE TABLE IF NOT EXISTS `eb_svc_demand` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `demand_no` varchar(32) NOT NULL COMMENT '需求编号',
+  `uid` int NOT NULL DEFAULT '0' COMMENT '会员UID',
+  `type` varchar(32) NOT NULL DEFAULT '' COMMENT '需求类型：小程序/APP定制/系统开发等',
+  `title` varchar(128) NOT NULL DEFAULT '' COMMENT '需求标题',
+  `content` text NULL COMMENT '需求描述',
+  `budget` varchar(32) NOT NULL DEFAULT '' COMMENT '预算区间，如 5~10 万',
+  `hope_date` varchar(32) NOT NULL DEFAULT '' COMMENT '期望完成时间',
+  `attach` varchar(2000) NOT NULL DEFAULT '' COMMENT '参考附件URL，多个逗号分隔',
+  `attach_name` varchar(1500) NOT NULL DEFAULT '' COMMENT '附件文件名，与 attach 按顺序一一对应',
+  `contact_name` varchar(32) NOT NULL DEFAULT '' COMMENT '联系人',
+  `contact_phone` varchar(20) NOT NULL DEFAULT '' COMMENT '联系电话',
+  `company` varchar(128) NOT NULL DEFAULT '' COMMENT '公司/单位名称',
+  `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态：0=待受理 1=跟进中 2=已报价 3=已成单 4=已关闭',
+  `follower_uid` int NOT NULL DEFAULT '0' COMMENT '跟进人后台UID',
+  `follower` varchar(32) NOT NULL DEFAULT '' COMMENT '跟进人姓名',
+  `amount` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '报价金额',
+  `quote_desc` varchar(1000) NOT NULL DEFAULT '' COMMENT '方案说明',
+  `quote_file` varchar(500) NOT NULL DEFAULT '' COMMENT '报价单/方案附件URL',
+  `quote_name` varchar(255) NOT NULL DEFAULT '' COMMENT '报价附件文件名',
+  `quote_time` datetime DEFAULT NULL COMMENT '报价发布时间',
+  `follow_log` text NULL COMMENT '跟进记录 JSON 数组',
+  `contract_id` int DEFAULT NULL COMMENT '转出的合同ID（eb_svc_contract.id）',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_demand_no` (`demand_no`),
+  KEY `idx_uid` (`uid`),
+  KEY `idx_status` (`status`),
+  KEY `idx_contract` (`contract_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='企业服务-服务需求单';
+
+-- 2. 签约渠道平台表（登记合同时的下拉选项）--------------------------
+CREATE TABLE IF NOT EXISTS `eb_svc_platform` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `name` varchar(64) NOT NULL DEFAULT '' COMMENT '平台名称',
+  `kind` varchar(32) NOT NULL DEFAULT '' COMMENT '类型：电子签平台/线下渠道',
+  `description` varchar(255) NOT NULL DEFAULT '' COMMENT '资质与定位说明',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态：1=启用 0=停用',
+  `sort` int NOT NULL DEFAULT '0' COMMENT '排序（降序）',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_sort` (`sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='企业服务-签约渠道平台';
+
+-- 种子：常用电子签平台（已存在同名平台则跳过）
+INSERT INTO `eb_svc_platform` (`name`, `kind`, `description`, `status`, `sort`)
+SELECT t.name, t.kind, t.description, t.status, t.sort FROM (
+  SELECT 'e签宝'       AS name, '电子签平台' AS kind, '工信部直发 CA 牌照 · 国密 SM2/SM3/SM4' AS description, 1 AS status, 6 AS sort
+  UNION ALL SELECT '法大大',     '电子签平台', '全资持 CA 牌照 · 司法闭环强',          1, 5
+  UNION ALL SELECT '腾讯电子签', '电子签平台', '微信小程序刷脸秒签 · 至信链存证',      1, 4
+  UNION ALL SELECT '契约锁',     '电子签平台', '印控中台 · 本地化部署',                1, 3
+  UNION ALL SELECT '上上签',     '电子签平台', 'SaaS · 8 家 CA 互认',                  0, 2
+  UNION ALL SELECT 'CFCA 安心签','电子签平台', '国家级金融认证 · 直连公证处',          0, 1
+) t
+WHERE NOT EXISTS (SELECT 1 FROM `eb_svc_platform` p WHERE p.name = t.name AND p.is_del = 0);
+
+-- 3. eb_svc_contract 增加签约渠道 / 状态日志等列 ---------------------
+-- 3.1 签约渠道（paper=纸质 electronic=电子）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sign_channel')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sign_channel varchar(16) NOT NULL DEFAULT ''paper'' COMMENT ''签约渠道：paper=纸质 electronic=电子'' AFTER project_id', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.2 纸质：签署方式
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sign_type')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sign_type varchar(32) NOT NULL DEFAULT '''' COMMENT ''纸质签署方式：当面签/快递往返/扫描件回传'' AFTER sign_channel', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.3 纸质：打印份数
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='print_count')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN print_count varchar(16) NOT NULL DEFAULT '''' COMMENT ''纸质打印份数'' AFTER sign_type', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.4 纸质：快递公司
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='express_co')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN express_co varchar(32) NOT NULL DEFAULT '''' COMMENT ''快递公司'' AFTER print_count', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.5 纸质：寄出快递单号
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='express_no')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN express_no varchar(64) NOT NULL DEFAULT '''' COMMENT ''寄出快递单号'' AFTER express_co', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.6 纸质：回寄快递单号
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='express_no_back')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN express_no_back varchar(64) NOT NULL DEFAULT '''' COMMENT ''回寄快递单号'' AFTER express_no', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.7 纸质：寄出日期
+-- ⚠️ 用 varchar 存 yyyy-MM-dd，不要用 date：Java 侧全是 String、空值统一写 ''，
+--    而 MySQL 严格模式下 `sent_date = ''` 会直接抛
+--    `Data truncation: Incorrect date value: '' for column 'sent_date'`，整单回滚、接口只回「服务器数据异常」。
+--    且 MyBatis-Plus updateById 默认忽略 null，用 date 列会导致「日期一旦填过就清不掉」。
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sent_date')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sent_date varchar(20) NOT NULL DEFAULT '''' COMMENT ''合同寄出日期 yyyy-MM-dd'' AFTER express_no_back', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.7a 万一列已经是 date（早期版本建的）：先转成**可空** varchar
+--      ⚠️ 不能一步到 NOT NULL —— date 列里本来有 NULL，严格模式下 MODIFY 成 NOT NULL 会报
+--         `ERROR 1265 Data truncated for column 'sent_date' at row 1` 并中断整个脚本
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sent_date' AND DATA_TYPE='date')>0,
+  'ALTER TABLE eb_svc_contract MODIFY COLUMN sent_date varchar(20) NULL DEFAULT NULL COMMENT ''合同寄出日期 yyyy-MM-dd''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.7b 过渡态（varchar 且可空）：NULL 回填空串
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sent_date' AND DATA_TYPE='varchar' AND IS_NULLABLE='YES')>0,
+  'UPDATE eb_svc_contract SET sent_date = '''' WHERE sent_date IS NULL', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.7c 过渡态（varchar 且可空）：收紧为 NOT NULL DEFAULT ''，与其它字段口径一致
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sent_date' AND DATA_TYPE='varchar' AND IS_NULLABLE='YES')>0,
+  'ALTER TABLE eb_svc_contract MODIFY COLUMN sent_date varchar(20) NOT NULL DEFAULT '''' COMMENT ''合同寄出日期 yyyy-MM-dd''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.8 纸质：回寄签收日期（同样用 varchar，理由与转换三步见 3.7）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='back_date')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN back_date varchar(20) NOT NULL DEFAULT '''' COMMENT ''回寄签收日期 yyyy-MM-dd'' AFTER sent_date', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='back_date' AND DATA_TYPE='date')>0,
+  'ALTER TABLE eb_svc_contract MODIFY COLUMN back_date varchar(20) NULL DEFAULT NULL COMMENT ''回寄签收日期 yyyy-MM-dd''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='back_date' AND DATA_TYPE='varchar' AND IS_NULLABLE='YES')>0,
+  'UPDATE eb_svc_contract SET back_date = '''' WHERE back_date IS NULL', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='back_date' AND DATA_TYPE='varchar' AND IS_NULLABLE='YES')>0,
+  'ALTER TABLE eb_svc_contract MODIFY COLUMN back_date varchar(20) NOT NULL DEFAULT '''' COMMENT ''回寄签收日期 yyyy-MM-dd''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.9 电子：签约平台名称
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sign_platform')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sign_platform varchar(64) NOT NULL DEFAULT '''' COMMENT ''电子签约平台名称'' AFTER back_date', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.10 电子：平台合同编号 / 存证编号
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='platform_no')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN platform_no varchar(64) NOT NULL DEFAULT '''' COMMENT ''平台合同编号/存证编号'' AFTER sign_platform', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.11 电子：平台查看链接
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='platform_url')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN platform_url varchar(500) NOT NULL DEFAULT '''' COMMENT ''平台查看链接'' AFTER platform_no', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.12 电子：发起日期（同样用 varchar，转换三步见 3.7）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='start_date')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN start_date varchar(20) NOT NULL DEFAULT '''' COMMENT ''电子合同发起日期 yyyy-MM-dd'' AFTER platform_url', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='start_date' AND DATA_TYPE='date')>0,
+  'ALTER TABLE eb_svc_contract MODIFY COLUMN start_date varchar(20) NULL DEFAULT NULL COMMENT ''电子合同发起日期 yyyy-MM-dd''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='start_date' AND DATA_TYPE='varchar' AND IS_NULLABLE='YES')>0,
+  'UPDATE eb_svc_contract SET start_date = '''' WHERE start_date IS NULL', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='start_date' AND DATA_TYPE='varchar' AND IS_NULLABLE='YES')>0,
+  'ALTER TABLE eb_svc_contract MODIFY COLUMN start_date varchar(20) NOT NULL DEFAULT '''' COMMENT ''电子合同发起日期 yyyy-MM-dd''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.13 电子：存证报告 / 出证报告 URL
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='voucher_file')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN voucher_file varchar(500) NOT NULL DEFAULT '''' COMMENT ''存证报告/出证报告URL'' AFTER start_date', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.14 电子：存证报告文件名
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='voucher_name')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN voucher_name varchar(255) NOT NULL DEFAULT '''' COMMENT ''存证报告文件名'' AFTER voucher_file', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.15 关联服务需求ID
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='demand_id')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN demand_id int NULL DEFAULT NULL COMMENT ''关联服务需求ID（eb_svc_demand.id）'' AFTER voucher_name', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.16 服务期限描述
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='service_term')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN service_term varchar(64) NOT NULL DEFAULT '''' COMMENT ''服务期限描述，如 2026-10-02 ~ 2027-10-01'' AFTER demand_id', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3.17 状态变更日志（JSON 数组：[{time,status,statusName,operator,remark}]）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='status_log')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN status_log text NULL COMMENT ''签约状态变更日志 JSON'' AFTER service_term', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 4. 状态语义迁移 -------------------------------------------------
+-- 新增迁移标记列（内部使用，0=旧语义 1=已迁移到新语义）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='status_migrated')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN status_migrated tinyint NOT NULL DEFAULT 0 COMMENT ''状态语义迁移标记（内部用）'' AFTER status_log', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 旧语义 0=待签约 / 1=已签约 / 2=已驳回
+-- 新语义 0=草稿 / 1=待签署 / 2=已签署 / 3=已生效 / -1=已终止
+-- 映射：0→1（待签约→待签署）、1→3（已签约→已生效）、2→-1（已驳回→已终止）
+UPDATE `eb_svc_contract`
+SET `status` = CASE `status` WHEN 0 THEN 1 WHEN 1 THEN 3 WHEN 2 THEN -1 ELSE `status` END,
+    `status_migrated` = 1
+WHERE `status_migrated` = 0;
+
+-- 修正 status 列注释为新语义（仅在注释还是旧文案时执行）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='status' AND COLUMN_COMMENT NOT LIKE '签约状态%')>0,
+  'ALTER TABLE eb_svc_contract MODIFY COLUMN status tinyint NOT NULL DEFAULT 0 COMMENT ''签约状态：0=草稿 1=待签署 2=已签署 3=已生效 -1=已终止''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 5. 菜单：新增「服务需求」「签约渠道」，并把侧栏顺序调成
+--    服务需求 → 合同管理 → 签约渠道 → 项目进度 → 客户案例 → 服务设置
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT m.id, t.name, '', t.perms, t.component, 'C', t.sort, 1
+FROM `eb_system_menu` m
+JOIN (
+  SELECT '服务需求' AS name, 'admin:svc:demand:list'   AS perms, '/market/enterprise/demand'   AS component, 7 AS sort
+  UNION ALL SELECT '签约渠道', 'admin:svc:platform:list', '/market/enterprise/platform', 5
+) t
+WHERE m.component = '/market/enterprise' AND m.menu_type = 'M' AND m.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id, component FROM `eb_system_menu` WHERE `menu_type` = 'C' AND `is_delte` = 0) x
+                  WHERE x.component = t.component);
+
+-- 调序：合同管理 sort 4 → 6（幂等，仅当仍是旧值时改）
+UPDATE `eb_system_menu`
+SET `sort` = 6
+WHERE `component` = '/market/enterprise/contract' AND `menu_type` = 'C' AND `is_delte` = 0 AND `sort` = 4;
+
+-- 6. 菜单：新增页面下的按钮权限（A）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT c.id, t.name, '', t.perms, '', 'A', t.sort, 0
+FROM `eb_system_menu` c
+JOIN (
+  SELECT '/market/enterprise/demand' AS page, '保存需求' AS name, 'admin:svc:demand:save'     AS perms, 1 AS sort
+  UNION ALL SELECT '/market/enterprise/demand', '删除需求', 'admin:svc:demand:delete', 2
+  UNION ALL SELECT '/market/enterprise/demand', '发布报价', 'admin:svc:demand:quote',  3
+  UNION ALL SELECT '/market/enterprise/demand', '转为合同', 'admin:svc:demand:contract', 4
+  UNION ALL SELECT '/market/enterprise/platform', '保存平台', 'admin:svc:platform:save', 1
+  UNION ALL SELECT '/market/enterprise/platform', '删除平台', 'admin:svc:platform:delete', 2
+) t
+JOIN `eb_system_menu` m ON m.component = t.page AND m.menu_type = 'C' AND m.is_delte = 0
+WHERE c.id = m.id
+  AND NOT EXISTS (SELECT 1 FROM (SELECT perms FROM `eb_system_menu` WHERE `menu_type` = 'A' AND `is_delte` = 0) x
+                  WHERE x.perms = t.perms);
+
+-- 7. 合同页新增「变更签约状态」按钮权限
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT c.id, '变更签约状态', '', 'admin:svc:contract:status', '', 'A', 3, 0
+FROM `eb_system_menu` c
+WHERE c.component = '/market/enterprise/contract' AND c.menu_type = 'C' AND c.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT perms FROM `eb_system_menu` WHERE `menu_type` = 'A' AND `is_delte` = 0) x
+                  WHERE x.perms = 'admin:svc:contract:status');
+
+-- ========== END: upgrade_20261002_contract_demand_channel.sql ==========
+
+-- ============================================================
+-- 补丁：企业服务-发票管理（2026-10-02 第九批）
+--
+-- 设计口径：客户在会员端 H5 提交开票信息 → 后台查看信息、开票、
+--           上传成品发票文件并变更状态（待开票 → 开票中 → 已开票 / 已驳回）。
+--           纸质专票可补填邮寄单号，电子发票填接收邮箱。
+--
+-- 幂等：可重复执行
+-- ============================================================
+SET @db = DATABASE();
+
+-- 1. 发票申请表 ---------------------------------------------------
+CREATE TABLE IF NOT EXISTS `eb_svc_invoice` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `invoice_no` varchar(32) NOT NULL COMMENT '申请单号',
+  `uid` int NOT NULL DEFAULT '0' COMMENT '会员UID',
+  `contract_id` int DEFAULT NULL COMMENT '关联合同ID（eb_svc_contract.id）',
+  `contract_no` varchar(32) NOT NULL DEFAULT '' COMMENT '关联合同编号（冗余，便于列表展示）',
+  `type` tinyint NOT NULL DEFAULT '1' COMMENT '发票类型：1=增值税普通发票 2=增值税专用发票 3=电子普通发票',
+  `title_type` tinyint NOT NULL DEFAULT '1' COMMENT '抬头类型：1=企业 2=个人',
+  `title` varchar(128) NOT NULL DEFAULT '' COMMENT '发票抬头（公司名称/个人姓名）',
+  `tax_no` varchar(64) NOT NULL DEFAULT '' COMMENT '纳税人识别号',
+  `bank` varchar(128) NOT NULL DEFAULT '' COMMENT '开户银行（专票必填）',
+  `bank_account` varchar(64) NOT NULL DEFAULT '' COMMENT '银行账号（专票必填）',
+  `addr` varchar(255) NOT NULL DEFAULT '' COMMENT '注册地址（专票必填）',
+  `phone` varchar(32) NOT NULL DEFAULT '' COMMENT '注册电话（专票必填）',
+  `amount` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '开票金额',
+  `content` varchar(255) NOT NULL DEFAULT '' COMMENT '开票内容：如 技术服务费',
+  `receiver` varchar(32) NOT NULL DEFAULT '' COMMENT '收件人',
+  `receiver_phone` varchar(20) NOT NULL DEFAULT '' COMMENT '收件电话',
+  `receiver_addr` varchar(255) NOT NULL DEFAULT '' COMMENT '收件地址（纸质发票邮寄用）',
+  `email` varchar(128) NOT NULL DEFAULT '' COMMENT '接收邮箱（电子发票用）',
+  `remark` varchar(500) NOT NULL DEFAULT '' COMMENT '客户备注',
+  `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态：0=待开票 1=开票中 2=已开票 3=已驳回',
+  `file_url` varchar(500) NOT NULL DEFAULT '' COMMENT '成品发票文件URL（PDF/图片）',
+  `file_name` varchar(255) NOT NULL DEFAULT '' COMMENT '成品发票文件名',
+  `express_co` varchar(32) NOT NULL DEFAULT '' COMMENT '邮寄快递公司',
+  `express_no` varchar(64) NOT NULL DEFAULT '' COMMENT '邮寄快递单号',
+  `sent_date` varchar(20) NOT NULL DEFAULT '' COMMENT '寄出日期 yyyy-MM-dd（varchar：见第八批 3.7 的说明）',
+  `reject_reason` varchar(255) NOT NULL DEFAULT '' COMMENT '驳回原因',
+  `operator` varchar(32) NOT NULL DEFAULT '' COMMENT '经办人',
+  `issue_time` datetime DEFAULT NULL COMMENT '开票时间',
+  `log` text NULL COMMENT '状态变更日志 JSON',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_invoice_no` (`invoice_no`),
+  KEY `idx_uid` (`uid`),
+  KEY `idx_status` (`status`),
+  KEY `idx_contract` (`contract_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='企业服务-发票申请';
+
+-- 1b. 万一 sent_date 列已经是 date（早期版本建的）：转回 varchar，三步见第八批 3.7
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_invoice' AND COLUMN_NAME='sent_date' AND DATA_TYPE='date')>0,
+  'ALTER TABLE eb_svc_invoice MODIFY COLUMN sent_date varchar(20) NULL DEFAULT NULL COMMENT ''寄出日期 yyyy-MM-dd''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_invoice' AND COLUMN_NAME='sent_date' AND DATA_TYPE='varchar' AND IS_NULLABLE='YES')>0,
+  'UPDATE eb_svc_invoice SET sent_date = '''' WHERE sent_date IS NULL', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_invoice' AND COLUMN_NAME='sent_date' AND DATA_TYPE='varchar' AND IS_NULLABLE='YES')>0,
+  'ALTER TABLE eb_svc_invoice MODIFY COLUMN sent_date varchar(20) NOT NULL DEFAULT '''' COMMENT ''寄出日期 yyyy-MM-dd''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 2. 菜单：页面「发票管理」（插在「签约渠道」与「项目进度」之间）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT m.id, '发票管理', '', 'admin:svc:invoice:list', '/market/enterprise/invoice', 'C', 4, 1
+FROM `eb_system_menu` m
+WHERE m.component = '/market/enterprise' AND m.menu_type = 'M' AND m.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_menu` WHERE `component` = '/market/enterprise/invoice' AND `is_delte` = 0) x);
+
+-- 3. 菜单：发票管理的按钮权限（A）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT c.id, t.name, '', t.perms, '', 'A', t.sort, 0
+FROM `eb_system_menu` c
+JOIN (
+  SELECT '开票 / 改状态' AS name, 'admin:svc:invoice:save'   AS perms, 1 AS sort
+  UNION ALL SELECT '删除发票申请', 'admin:svc:invoice:delete', 2
+) t
+WHERE c.component = '/market/enterprise/invoice' AND c.menu_type = 'C' AND c.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT perms FROM `eb_system_menu` WHERE `menu_type` = 'A' AND `is_delte` = 0) x
+                  WHERE x.perms = t.perms);
+
+-- ========== END: upgrade_20261002_contract_invoice.sql ==========

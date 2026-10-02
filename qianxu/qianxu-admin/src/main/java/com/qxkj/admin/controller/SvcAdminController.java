@@ -2,6 +2,9 @@ package com.qxkj.admin.controller;
 
 import com.qxkj.common.model.svc.SvcCase;
 import com.qxkj.common.model.svc.SvcContract;
+import com.qxkj.common.model.svc.SvcDemand;
+import com.qxkj.common.model.svc.SvcInvoice;
+import com.qxkj.common.model.svc.SvcPlatform;
 import com.qxkj.common.model.svc.SvcProject;
 import com.qxkj.common.model.svc.SvcProjectProgress;
 import com.qxkj.common.page.CommonPage;
@@ -38,6 +41,184 @@ public class SvcAdminController {
     @Autowired
     private SvcService svcService;
 
+    // ==================== 服务需求 ====================
+
+    @PreAuthorize("hasAuthority('admin:svc:demand:list')")
+    @ApiOperation(value = "服务需求分页列表")
+    @RequestMapping(value = "/demand/list", method = RequestMethod.GET)
+    public CommonResult<CommonPage<SvcDemand>> demandList(
+            @RequestParam(value = "uid", required = false) Integer uid,
+            @RequestParam(value = "keywords", required = false) String keywords,
+            @RequestParam(value = "type", required = false) String type,
+            @RequestParam(value = "status", required = false) Integer status,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(svcService.adminDemandList(uid, keywords, type, status, pageParamRequest));
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:demand:list')")
+    @ApiOperation(value = "服务需求详情（含跟进记录与附件）")
+    @RequestMapping(value = "/demand/info", method = RequestMethod.GET)
+    public CommonResult<SvcDemand> demandInfo(@RequestParam Integer id) {
+        return CommonResult.success(svcService.adminDemandInfo(id));
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:demand:save')")
+    @ApiOperation(value = "保存服务需求（新增/修改），返回需求 ID")
+    @RequestMapping(value = "/demand/save", method = RequestMethod.POST)
+    public CommonResult<String> saveDemand(@RequestBody @Validated SvcRequests.DemandSaveRequest request) {
+        Integer id = svcService.saveDemand(request);
+        if (id != null) {
+            return CommonResult.success(String.valueOf(id));
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:demand:delete')")
+    @ApiOperation(value = "删除服务需求")
+    @RequestMapping(value = "/demand/delete", method = RequestMethod.POST)
+    public CommonResult<String> deleteDemand(@RequestParam Integer id) {
+        if (svcService.deleteDemand(id)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:demand:quote')")
+    @ApiOperation(value = "需求报价 / 指派跟进人（金额非空即视为发布报价，客户在 H5「我的需求」可见）")
+    @RequestMapping(value = "/demand/quote", method = RequestMethod.POST)
+    public CommonResult<String> quoteDemand(@RequestBody @Validated SvcRequests.DemandQuoteRequest request) {
+        if (svcService.quoteDemand(request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:demand:save')")
+    @ApiOperation(value = "追加一条跟进记录")
+    @RequestMapping(value = "/demand/follow", method = RequestMethod.POST)
+    public CommonResult<String> demandFollow(@RequestBody @Validated SvcRequests.DemandFollowRequest request) {
+        if (svcService.saveDemandFollow(request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:demand:save')")
+    @ApiOperation(value = "关闭需求（不再推进，记录保留）")
+    @RequestMapping(value = "/demand/close", method = RequestMethod.POST)
+    public CommonResult<String> closeDemand(@RequestBody @Validated SvcRequests.DemandCloseRequest request) {
+        if (svcService.closeDemand(request.getId(), request.getReason())) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:demand:contract')")
+    @ApiOperation(value = "需求转合同：带出需求里的客户与企业信息，登记成功后回写需求")
+    @RequestMapping(value = "/demand/to-contract", method = RequestMethod.POST)
+    public CommonResult<String> demandToContract(@RequestParam Integer demandId,
+                                                 @RequestBody @Validated SvcRequests.ContractSaveRequest request) {
+        Integer contractId = svcService.demandToContract(demandId, request);
+        if (contractId != null) {
+            return CommonResult.success(String.valueOf(contractId));
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:demand:list')")
+    @ApiOperation(value = "服务需求统计（待受理 / 跟进中 / 已报价 / 已成单）")
+    @RequestMapping(value = "/demand/stats", method = RequestMethod.GET)
+    public CommonResult<HashMap<String, Object>> demandStats() {
+        return CommonResult.success(svcService.adminDemandStats());
+    }
+
+    // ==================== 签约渠道平台 ====================
+
+    @PreAuthorize("hasAuthority('admin:svc:platform:list')")
+    @ApiOperation(value = "签约渠道平台分页列表")
+    @RequestMapping(value = "/platform/list", method = RequestMethod.GET)
+    public CommonResult<CommonPage<SvcPlatform>> platformList(
+            @RequestParam(value = "keywords", required = false) String keywords,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(svcService.adminPlatformList(keywords, pageParamRequest));
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:platform:list')")
+    @ApiOperation(value = "启用的签约渠道平台（登记合同下拉用）")
+    @RequestMapping(value = "/platform/enabled", method = RequestMethod.GET)
+    public CommonResult<List<SvcPlatform>> enabledPlatforms() {
+        return CommonResult.success(svcService.enabledPlatforms());
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:platform:save')")
+    @ApiOperation(value = "保存签约渠道平台（新增/修改）")
+    @RequestMapping(value = "/platform/save", method = RequestMethod.POST)
+    public CommonResult<String> savePlatform(@RequestBody @Validated SvcRequests.PlatformSaveRequest request) {
+        if (svcService.savePlatform(request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:platform:delete')")
+    @ApiOperation(value = "删除签约渠道平台")
+    @RequestMapping(value = "/platform/delete", method = RequestMethod.POST)
+    public CommonResult<String> deletePlatform(@RequestParam Integer id) {
+        if (svcService.deletePlatform(id)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    // ==================== 发票管理 ====================
+
+    @PreAuthorize("hasAuthority('admin:svc:invoice:list')")
+    @ApiOperation(value = "发票申请分页列表")
+    @RequestMapping(value = "/invoice/list", method = RequestMethod.GET)
+    public CommonResult<CommonPage<SvcInvoice>> invoiceList(
+            @RequestParam(value = "uid", required = false) Integer uid,
+            @RequestParam(value = "keywords", required = false) String keywords,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "type", required = false) Integer type,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(svcService.adminInvoiceList(uid, keywords, status, type, pageParamRequest));
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:invoice:list')")
+    @ApiOperation(value = "发票申请详情（含状态日志）")
+    @RequestMapping(value = "/invoice/info", method = RequestMethod.GET)
+    public CommonResult<SvcInvoice> invoiceInfo(@RequestParam Integer id) {
+        return CommonResult.success(svcService.adminInvoiceInfo(id));
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:invoice:save')")
+    @ApiOperation(value = "保存 / 开票 / 变更发票状态（上传成品发票文件 + 选状态即完成开票），返回申请 ID")
+    @RequestMapping(value = "/invoice/save", method = RequestMethod.POST)
+    public CommonResult<String> saveInvoice(@RequestBody @Validated SvcRequests.InvoiceSaveRequest request) {
+        Integer id = svcService.saveInvoice(request);
+        if (id != null) {
+            return CommonResult.success(String.valueOf(id));
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:invoice:delete')")
+    @ApiOperation(value = "删除发票申请")
+    @RequestMapping(value = "/invoice/delete", method = RequestMethod.POST)
+    public CommonResult<String> deleteInvoice(@RequestParam Integer id) {
+        if (svcService.deleteInvoice(id)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:invoice:list')")
+    @ApiOperation(value = "发票统计（待开票 / 开票中 / 已开票 + 本月开票金额）")
+    @RequestMapping(value = "/invoice/stats", method = RequestMethod.GET)
+    public CommonResult<HashMap<String, Object>> invoiceStats() {
+        return CommonResult.success(svcService.adminInvoiceStats());
+    }
+
     // ==================== 合同管理 ====================
 
     @PreAuthorize("hasAuthority('admin:svc:contract:list')")
@@ -47,8 +228,9 @@ public class SvcAdminController {
             @RequestParam(value = "uid", required = false) Integer uid,
             @RequestParam(value = "keywords", required = false) String keywords,
             @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "signChannel", required = false) String signChannel,
             @Validated PageParamRequest pageParamRequest) {
-        return CommonResult.success(svcService.adminContractList(uid, keywords, status, pageParamRequest));
+        return CommonResult.success(svcService.adminContractList(uid, keywords, status, signChannel, pageParamRequest));
     }
 
     @PreAuthorize("hasAuthority('admin:svc:contract:list')")
@@ -128,6 +310,27 @@ public class SvcAdminController {
         }
         return CommonResult.failed();
     }
+
+    @PreAuthorize("hasAuthority('admin:svc:contract:status')")
+    @ApiOperation(value = "变更签约状态（合同线下签署，线上只选状态；写状态日志，置为「已生效」时自动建项目）")
+    @RequestMapping(value = "/contract/status/save", method = RequestMethod.POST)
+    public CommonResult<String> changeContractStatus(@RequestBody @Validated SvcRequests.ContractStatusRequest request) {
+        if (svcService.changeContractStatus(request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:contract:list')")
+    @ApiOperation(value = "合同统计（待签署 / 已签署 / 已生效 数量 + 本月签约总额）")
+    @RequestMapping(value = "/contract/stats", method = RequestMethod.GET)
+    public CommonResult<HashMap<String, Object>> contractStats() {
+        return CommonResult.success(svcService.adminContractStats());
+    }
+
+    // ---------- 以下为「双方在线签署 / 用印位置」遗留接口 ----------
+    // 2026-10-02 第八批重构后已停用：合同改为线下签署、线上只选状态，后台与 H5 均不再调用。
+    // 接口保留仅为兼容可能存在的旧前端产物，后续版本可整体移除。
 
     // ==================== 项目进度 ====================
 

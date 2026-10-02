@@ -76,10 +76,28 @@ export default {
     },
     // ==================== 企业管理（软件开发服务） ====================
     {
+      path: 'enterprise/demand',
+      component: () => import('@/views/market/enterprise/demand/index'),
+      name: 'SvcDemand',
+      meta: { title: '服务需求', icon: '' }
+    },
+    {
       path: 'enterprise/contract',
       component: () => import('@/views/market/enterprise/contract/index'),
       name: 'SvcContract',
       meta: { title: '合同管理', icon: '' }
+    },
+    {
+      path: 'enterprise/platform',
+      component: () => import('@/views/market/enterprise/platform/index'),
+      name: 'SvcPlatform',
+      meta: { title: '签约渠道', icon: '' }
+    },
+    {
+      path: 'enterprise/invoice',
+      component: () => import('@/views/market/enterprise/invoice/index'),
+      name: 'SvcInvoice',
+      meta: { title: '发票管理', icon: '' }
     },
     {
       path: 'enterprise/project',

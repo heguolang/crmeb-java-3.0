@@ -5,6 +5,98 @@ import SettingMer from '@/utils/settingMer';
 
 // ==================== 企业服务（大市场 → 企业管理） ====================
 
+// ---------- 服务需求 ----------
+
+/** 服务需求分页列表 */
+export function svcDemandListApi(params) {
+  return request({ url: '/admin/svc/demand/list', method: 'get', params });
+}
+/** 服务需求详情（含跟进记录与附件） */
+export function svcDemandInfoApi(id) {
+  return request({ url: '/admin/svc/demand/info', method: 'get', params: { id } });
+}
+/** 保存服务需求（新增/修改） */
+export function svcDemandSaveApi(data) {
+  return request({ url: '/admin/svc/demand/save', method: 'post', data });
+}
+/** 删除服务需求 */
+export function svcDemandDeleteApi(id) {
+  return request({ url: '/admin/svc/demand/delete', method: 'post', params: { id } });
+}
+/** 需求报价 / 指派跟进人 */
+export function svcDemandQuoteApi(data) {
+  return request({ url: '/admin/svc/demand/quote', method: 'post', data });
+}
+/** 追加一条跟进记录 */
+export function svcDemandFollowApi(data) {
+  return request({ url: '/admin/svc/demand/follow', method: 'post', data });
+}
+/** 关闭需求 */
+export function svcDemandCloseApi(data) {
+  return request({ url: '/admin/svc/demand/close', method: 'post', data });
+}
+/** 需求转合同（body 为合同登记信息） */
+export function svcDemandToContractApi(demandId, data) {
+  return request({ url: '/admin/svc/demand/to-contract', method: 'post', params: { demandId }, data });
+}
+/** 服务需求统计 */
+export function svcDemandStatsApi() {
+  return request({ url: '/admin/svc/demand/stats', method: 'get' });
+}
+
+// ---------- 签约渠道平台 ----------
+
+/** 签约渠道平台分页列表 */
+export function svcPlatformListApi(params) {
+  return request({ url: '/admin/svc/platform/list', method: 'get', params });
+}
+/** 启用的签约渠道平台（登记合同下拉用） */
+export function svcPlatformEnabledApi() {
+  return request({ url: '/admin/svc/platform/enabled', method: 'get' });
+}
+/** 保存签约渠道平台 */
+export function svcPlatformSaveApi(data) {
+  return request({ url: '/admin/svc/platform/save', method: 'post', data });
+}
+/** 删除签约渠道平台 */
+export function svcPlatformDeleteApi(id) {
+  return request({ url: '/admin/svc/platform/delete', method: 'post', params: { id } });
+}
+
+// ---------- 发票管理 ----------
+
+/** 发票申请分页列表 */
+export function svcInvoiceListApi(params) {
+  return request({ url: '/admin/svc/invoice/list', method: 'get', params });
+}
+/** 发票申请详情 */
+export function svcInvoiceInfoApi(id) {
+  return request({ url: '/admin/svc/invoice/info', method: 'get', params: { id } });
+}
+/** 保存 / 开票 / 变更发票状态 */
+export function svcInvoiceSaveApi(data) {
+  return request({ url: '/admin/svc/invoice/save', method: 'post', data });
+}
+/** 删除发票申请 */
+export function svcInvoiceDeleteApi(id) {
+  return request({ url: '/admin/svc/invoice/delete', method: 'post', params: { id } });
+}
+/** 发票统计 */
+export function svcInvoiceStatsApi() {
+  return request({ url: '/admin/svc/invoice/stats', method: 'get' });
+}
+
+// ---------- 合同 ----------
+
+/** 变更签约状态 */
+export function svcContractStatusSaveApi(data) {
+  return request({ url: '/admin/svc/contract/status/save', method: 'post', data });
+}
+/** 合同统计 */
+export function svcContractStatsApi() {
+  return request({ url: '/admin/svc/contract/stats', method: 'get' });
+}
+
 /** 合同分页列表 */
 export function svcContractListApi(params) {
   return request({ url: '/admin/svc/contract/list', method: 'get', params });

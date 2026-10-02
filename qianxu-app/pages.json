@@ -129,7 +129,7 @@
 		{
 			"path": "pages/software/contract/index",
 			"style": {
-				"navigationBarTitleText": "合同管理",
+				"navigationBarTitleText": "我的合同",
 				"navigationStyle": "custom",
 				"navigationBarTextStyle": "black"
 			}
@@ -138,6 +138,54 @@
 			"path": "pages/software/contract/detail",
 			"style": {
 				"navigationBarTitleText": "合同详情",
+				"navigationStyle": "custom",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/software/demand/index",
+			"style": {
+				"navigationBarTitleText": "我的需求",
+				"navigationStyle": "custom",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/software/demand/submit",
+			"style": {
+				"navigationBarTitleText": "提交需求",
+				"navigationStyle": "custom",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/software/demand/detail",
+			"style": {
+				"navigationBarTitleText": "需求详情",
+				"navigationStyle": "custom",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/software/invoice/index",
+			"style": {
+				"navigationBarTitleText": "发票管理",
+				"navigationStyle": "custom",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/software/invoice/submit",
+			"style": {
+				"navigationBarTitleText": "申请开票",
+				"navigationStyle": "custom",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/software/invoice/detail",
+			"style": {
+				"navigationBarTitleText": "开票详情",
 				"navigationStyle": "custom",
 				"navigationBarTextStyle": "black"
 			}

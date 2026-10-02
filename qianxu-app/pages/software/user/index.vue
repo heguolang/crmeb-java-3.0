@@ -32,8 +32,12 @@
           <view class="stat-num">{{ stats.waitAcceptCount || 0 }}</view>
           <view class="stat-label">待验收</view>
         </view>
+        <view class="stat-item" @click="nav('/pages/software/contract/index')">
+          <view class="stat-num">{{ stats.contractCount || 0 }}</view>
+          <view class="stat-label">我的合同</view>
+        </view>
         <view class="stat-item" @click="nav('/pages/users/user_money/index')">
-          <view class="stat-num">¥{{ fmtMoney(stats.balance) }}</view>
+          <view class="stat-num sm">¥{{ fmtMoney(stats.balance) }}</view>
           <view class="stat-label">账户余额</view>
         </view>
       </view>
@@ -109,10 +113,10 @@ export default {
       projects: [],
       dynamic: [],
       menus: [
-        { name: '提交需求', icon: '/static/software/svc_require.png', type: 'contact' },
+        { name: '我的需求', icon: '/static/software/svc_require.png', type: 'nav', url: '/pages/software/demand/index' },
         { name: '工单进度', icon: '/static/software/svc_ticket.png', type: 'nav', url: '/pages/software/project/index' },
         { name: '合同管理', icon: '/static/software/svc_contract.png', type: 'nav', url: '/pages/software/contract/index' },
-        { name: '发票管理', icon: '/static/software/svc_invoice.png', type: 'todo' },
+        { name: '发票管理', icon: '/static/software/svc_invoice.png', type: 'nav', url: '/pages/software/invoice/index' },
         { name: '资料设置', icon: '/static/software/svc_profile.png', type: 'nav', url: '/pages/users/user_info/index' },
         { name: '客服中心', icon: '/static/software/svc_service.png', type: 'nav', url: '/pages/users/customer_service/index' }
       ]
@@ -176,10 +180,8 @@ export default {
       uni.navigateTo({ url: '/pages/software/project/detail?id=' + id });
     },
     onMenu(g) {
-      if (g.type === 'nav') {
+      if (g.url) {
         uni.navigateTo({ url: g.url, fail: () => uni.showToast({ title: '页面暂未开放', icon: 'none' }) });
-      } else if (g.type === 'contact') {
-        uni.navigateTo({ url: '/pages/software/contract/index' });
       } else {
         uni.showToast({ title: '敬请期待', icon: 'none' });
       }
@@ -247,7 +249,8 @@ export default {
   z-index: 2;
 }
 .stat-item { flex: 1; text-align: center; }
-.stat-num { font-size: 38rpx; font-weight: 700; color: #222; }
+.stat-num { font-size: 36rpx; font-weight: 700; color: #222; }
+.stat-num.sm { font-size: 30rpx; }
 .stat-label { font-size: 22rpx; color: #9aa4b2; margin-top: 8rpx; }
 
 .page-body { padding: 24rpx 30rpx 0; }

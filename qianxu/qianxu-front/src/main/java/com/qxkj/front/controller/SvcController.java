@@ -2,6 +2,8 @@ package com.qxkj.front.controller;
 
 import com.qxkj.common.model.svc.SvcCase;
 import com.qxkj.common.model.svc.SvcContract;
+import com.qxkj.common.model.svc.SvcDemand;
+import com.qxkj.common.model.svc.SvcInvoice;
 import com.qxkj.common.model.svc.SvcProject;
 import com.qxkj.common.model.svc.SvcProjectProgress;
 import com.qxkj.common.page.CommonPage;
@@ -83,6 +85,91 @@ public class SvcController {
         }
         return CommonResult.failed("发送失败");
     }
+
+    // ---------- 以下为「客户在线签署」遗留接口 ----------
+    // 2026-10-02 第八批重构后已停用：合同在线下签署，线上只由后台选状态，客户在 H5 只读。
+    // 接口保留仅为兼容可能存在的旧 H5 产物，后续版本可整体移除。
+
+    // ==================== 服务需求 ====================
+
+    @ApiOperation(value = "提交服务需求")
+    @RequestMapping(value = "/demand/submit", method = RequestMethod.POST)
+    public CommonResult<String> submitDemand(@RequestBody @Validated SvcRequests.DemandSubmitRequest request) {
+        Integer id = svcService.submitDemand(currentUid(), request);
+        if (id != null) {
+            return CommonResult.success(String.valueOf(id));
+        }
+        return CommonResult.failed("提交失败，请稍后重试");
+    }
+
+    @ApiOperation(value = "我的需求分页列表")
+    @RequestMapping(value = "/demand/list", method = RequestMethod.GET)
+    public CommonResult<CommonPage<SvcDemand>> myDemandList(
+            @RequestParam(value = "status", required = false) Integer status,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(svcService.myDemandList(currentUid(), status, pageParamRequest));
+    }
+
+    @ApiOperation(value = "需求详情（含报价与跟进进度）")
+    @RequestMapping(value = "/demand/info", method = RequestMethod.GET)
+    public CommonResult<SvcDemand> demandInfo(@RequestParam Integer id) {
+        return CommonResult.success(svcService.myDemandDetail(currentUid(), id));
+    }
+
+    @ApiOperation(value = "撤销需求（仅「待受理」可撤销）")
+    @RequestMapping(value = "/demand/cancel", method = RequestMethod.POST)
+    public CommonResult<String> cancelDemand(@RequestParam Integer id) {
+        if (svcService.cancelDemand(currentUid(), id)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed("撤销失败");
+    }
+
+    @ApiOperation(value = "同意报价（需求进入「已成单」，等待生成合同）")
+    @RequestMapping(value = "/demand/accept", method = RequestMethod.POST)
+    public CommonResult<String> acceptDemandQuote(@RequestParam Integer id) {
+        if (svcService.acceptDemandQuote(currentUid(), id)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed("操作失败");
+    }
+
+    // ==================== 发票管理 ====================
+
+    @ApiOperation(value = "提交开票申请")
+    @RequestMapping(value = "/invoice/submit", method = RequestMethod.POST)
+    public CommonResult<String> submitInvoice(@RequestBody @Validated SvcRequests.InvoiceSubmitRequest request) {
+        Integer id = svcService.submitInvoice(currentUid(), request);
+        if (id != null) {
+            return CommonResult.success(String.valueOf(id));
+        }
+        return CommonResult.failed("提交失败，请稍后重试");
+    }
+
+    @ApiOperation(value = "我的开票申请分页列表")
+    @RequestMapping(value = "/invoice/list", method = RequestMethod.GET)
+    public CommonResult<CommonPage<SvcInvoice>> myInvoiceList(
+            @RequestParam(value = "status", required = false) Integer status,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(svcService.myInvoiceList(currentUid(), status, pageParamRequest));
+    }
+
+    @ApiOperation(value = "开票申请详情（含状态进度与成品发票）")
+    @RequestMapping(value = "/invoice/info", method = RequestMethod.GET)
+    public CommonResult<SvcInvoice> invoiceInfo(@RequestParam Integer id) {
+        return CommonResult.success(svcService.myInvoiceDetail(currentUid(), id));
+    }
+
+    @ApiOperation(value = "撤销开票申请（仅「待开票」可撤销）")
+    @RequestMapping(value = "/invoice/cancel", method = RequestMethod.POST)
+    public CommonResult<String> cancelInvoice(@RequestParam Integer id) {
+        if (svcService.cancelInvoice(currentUid(), id)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed("撤销失败");
+    }
+
+    // ==================== 项目进度 ====================
 
     @ApiOperation(value = "签约合同（手写签名 + 电子签章 + 短信验证）：把签署要素按后台设定的位置合成进合同正文，产出可下载的成品合同")
     @RequestMapping(value = "/contract/sign", method = RequestMethod.POST)

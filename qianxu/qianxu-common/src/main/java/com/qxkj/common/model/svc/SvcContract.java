@@ -27,14 +27,43 @@ public class SvcContract implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** 状态常量 */
-    public static final Integer STATUS_WAIT_SIGN = 0;   // 待签约
-    public static final Integer STATUS_SIGNED = 1;      // 已签约
-    public static final Integer STATUS_REJECT = 2;      // 已驳回
+    /**
+     * 签约状态常量（2026-10-02 第八批语义重构）
+     *
+     * 合同在线下签署，线上只做「登记 → 选状态 → 归档」，不做双方在线签署、不做客户确认。
+     * 状态由后台管理员直接选择，每次变更写一条日志进 status_log。
+     */
+    public static final Integer STATUS_DRAFT = 0;        // 草稿：刚登记，还没定稿
+    public static final Integer STATUS_WAIT_SIGN = 1;    // 待签署：定稿了，等线下签（已寄出 / 平台已发起）
+    public static final Integer STATUS_SIGNED = 2;       // 已签署：双方已签字盖章，原件在途或已回寄
+    public static final Integer STATUS_EFFECTIVE = 3;    // 已生效：已签收归档，正式生效（触发自动建项目）
+    public static final Integer STATUS_TERMINATED = -1;  // 已终止：作废或中止，不再推进
+
+    /** 签约渠道 */
+    public static final String CHANNEL_PAPER = "paper";       // 纸质合同（线下签署）
+    public static final String CHANNEL_ELECTRONIC = "electronic"; // 电子合同（第三方平台）
 
     /** 签约主体 */
     public static final Integer PARTY_COMPANY = 1;      // 企业
     public static final Integer PARTY_PERSON = 2;       // 个人
+
+    /** 状态中文名（后台与会员端共用，保证两端口径一致） */
+    public static String statusName(Integer status) {
+        if (status == null) return "";
+        switch (status) {
+            case 0: return "草稿";
+            case 1: return "待签署";
+            case 2: return "已签署";
+            case 3: return "已生效";
+            case -1: return "已终止";
+            default: return "";
+        }
+    }
+
+    /** 渠道中文名 */
+    public static String channelName(String channel) {
+        return CHANNEL_ELECTRONIC.equals(channel) ? "电子合同" : "纸质合同";
+    }
 
     /** 签章样式（电子签章） */
     public static final String SEAL_ROUND = "round";    // 圆形标准章
@@ -57,6 +86,62 @@ public class SvcContract implements Serializable {
 
     @ApiModelProperty(value = "关联项目ID（签约后自动生成）")
     private Integer projectId;
+
+    // ==================== 签约渠道（2026-10-02 第八批） ====================
+
+    @ApiModelProperty(value = "签约渠道：paper=纸质 electronic=电子")
+    private String signChannel;
+
+    @ApiModelProperty(value = "纸质签署方式：当面签/快递往返/扫描件回传")
+    private String signType;
+
+    @ApiModelProperty(value = "纸质打印份数")
+    private String printCount;
+
+    @ApiModelProperty(value = "快递公司")
+    private String expressCo;
+
+    @ApiModelProperty(value = "寄出快递单号")
+    private String expressNo;
+
+    @ApiModelProperty(value = "回寄快递单号")
+    private String expressNoBack;
+
+    @ApiModelProperty(value = "合同寄出日期 yyyy-MM-dd")
+    private String sentDate;
+
+    @ApiModelProperty(value = "回寄签收日期 yyyy-MM-dd")
+    private String backDate;
+
+    @ApiModelProperty(value = "电子签约平台名称")
+    private String signPlatform;
+
+    @ApiModelProperty(value = "平台合同编号/存证编号")
+    private String platformNo;
+
+    @ApiModelProperty(value = "平台查看链接")
+    private String platformUrl;
+
+    @ApiModelProperty(value = "电子合同发起日期 yyyy-MM-dd")
+    private String startDate;
+
+    @ApiModelProperty(value = "存证报告/出证报告URL")
+    private String voucherFile;
+
+    @ApiModelProperty(value = "存证报告文件名")
+    private String voucherName;
+
+    @ApiModelProperty(value = "关联服务需求ID（eb_svc_demand.id）")
+    private Integer demandId;
+
+    @ApiModelProperty(value = "服务期限描述，如 2026-10-02 ~ 2027-10-01")
+    private String serviceTerm;
+
+    @ApiModelProperty(value = "签约状态变更日志 JSON：[{time,status,statusName,operator,remark}]")
+    private String statusLog;
+
+    @ApiModelProperty(value = "状态语义迁移标记（内部用）")
+    private Integer statusMigrated;
 
     @ApiModelProperty(value = "合同名称")
     private String title;
@@ -174,7 +259,7 @@ public class SvcContract implements Serializable {
     @ApiModelProperty(value = "独立签署页图片URL（签章+签字+签署日期，附着到合同）")
     private String signSheet;
 
-    @ApiModelProperty(value = "状态：0=待签约 1=已签约 2=已驳回")
+    @ApiModelProperty(value = "签约状态：0=草稿 1=待签署 2=已签署 3=已生效 -1=已终止")
     private Integer status;
 
     @ApiModelProperty(value = "驳回原因")
@@ -239,4 +324,46 @@ public class SvcContract implements Serializable {
     @ApiModelProperty(value = "进度记录（详情用）")
     @TableField(exist = false)
     private List<SvcProjectProgress> progressList;
+
+    // ==================== 派生字段（不入库，接口返回给前端用） ====================
+
+    @ApiModelProperty(value = "签约状态中文名（派生字段）")
+    @TableField(exist = false)
+    private String statusText;
+
+    @ApiModelProperty(value = "签约渠道中文名：纸质合同/电子合同（派生字段）")
+    @TableField(exist = false)
+    private String channelText;
+
+    @ApiModelProperty(value = "关联项目名称（派生字段，合同详情展示「关联项目进度」用）")
+    @TableField(exist = false)
+    private String projectName;
+
+    @ApiModelProperty(value = "关联项目（派生字段，合同详情展示用）")
+    @TableField(exist = false)
+    private SvcProject project;
+
+    @ApiModelProperty(value = "关联需求编号（派生字段）")
+    @TableField(exist = false)
+    private String demandNo;
+
+    @ApiModelProperty(value = "状态变更日志（解析后的结构化数据，派生字段）")
+    @TableField(exist = false)
+    private List<StatusLogItem> statusLogList;
+
+    /** 一条状态变更记录 */
+    @Data
+    public static class StatusLogItem implements Serializable {
+        private static final long serialVersionUID = 1L;
+        /** 变更时间 yyyy-MM-dd HH:mm:ss */
+        private String time;
+        /** 变更后的状态值 */
+        private Integer status;
+        /** 变更后的状态名 */
+        private String statusName;
+        /** 经办人 */
+        private String operator;
+        /** 备注 */
+        private String remark;
+    }
 }

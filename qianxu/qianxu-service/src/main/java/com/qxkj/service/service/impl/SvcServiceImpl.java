@@ -9,6 +9,9 @@ import com.google.gson.reflect.TypeToken;
 import com.qxkj.common.constants.SmsConstants;
 import com.qxkj.common.model.svc.SvcCase;
 import com.qxkj.common.model.svc.SvcContract;
+import com.qxkj.common.model.svc.SvcDemand;
+import com.qxkj.common.model.svc.SvcInvoice;
+import com.qxkj.common.model.svc.SvcPlatform;
 import com.qxkj.common.model.svc.SvcProject;
 import com.qxkj.common.model.svc.SvcProjectProgress;
 import com.qxkj.common.model.user.User;
@@ -18,6 +21,9 @@ import com.qxkj.common.request.SvcRequests;
 import com.qxkj.common.utils.RedisUtil;
 import com.qxkj.service.dao.SvcCaseDao;
 import com.qxkj.service.dao.SvcContractDao;
+import com.qxkj.service.dao.SvcDemandDao;
+import com.qxkj.service.dao.SvcInvoiceDao;
+import com.qxkj.service.dao.SvcPlatformDao;
 import com.qxkj.service.dao.SvcProjectDao;
 import com.qxkj.service.dao.SvcProjectProgressDao;
 import com.qxkj.service.dao.UserDao;
@@ -58,6 +64,15 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
     private SvcCaseDao svcCaseDao;
 
     @Resource
+    private SvcDemandDao svcDemandDao;
+
+    @Resource
+    private SvcPlatformDao svcPlatformDao;
+
+    @Resource
+    private SvcInvoiceDao svcInvoiceDao;
+
+    @Resource
     private UserDao userDao;
 
     @Resource
@@ -93,6 +108,22 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         // 合同编号：HT + yyyyMMdd + 6 位随机数
         String date = cn.hutool.core.date.DateUtil.format(new Date(), "yyyyMMdd");
         return "HT" + date + cn.hutool.core.util.RandomUtil.randomNumbers(6);
+    }
+
+    private String makeDemandNo() {
+        // 需求编号：SRV + yyyyMMdd + 4 位随机数
+        String date = cn.hutool.core.date.DateUtil.format(new Date(), "yyyyMMdd");
+        return "SRV" + date + cn.hutool.core.util.RandomUtil.randomNumbers(4);
+    }
+
+    private String makeInvoiceNo() {
+        // 开票申请单号：IV + yyyyMMdd + 6 位随机数
+        String date = cn.hutool.core.date.DateUtil.format(new Date(), "yyyyMMdd");
+        return "IV" + date + cn.hutool.core.util.RandomUtil.randomNumbers(6);
+    }
+
+    private static String nowStr() {
+        return cn.hutool.core.date.DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss");
     }
 
     /** 当前登录者在合同中的角色：命中 uid=甲方，命中 our_uid=乙方，都不命中返回空串 */
@@ -153,6 +184,128 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         c.setOurSigned(ourSigned(c));
         c.setFinished(finished(c));
         c.setMyRole(roleOf(c, uid));
+        c.setStatusText(SvcContract.statusName(c.getStatus()));
+        c.setChannelText(SvcContract.channelName(c.getSignChannel()));
+    }
+
+    /**
+     * 详情专用：在列表字段之外，再补「状态日志 / 关联项目 / 关联需求编号」。
+     * 列表接口不调这个方法，避免 N+1 查询。
+     */
+    private void fillContractDetail(SvcContract c, Integer uid) {
+        if (c == null) return;
+        fillContract(c, uid);
+        c.setStatusLogList(parseStatusLog(c.getStatusLog()));
+        if (c.getProjectId() != null && c.getProjectId() > 0) {
+            SvcProject p = svcProjectDao.selectById(c.getProjectId());
+            if (p != null && p.getIsDel() != null && p.getIsDel() == 0) {
+                p.setStatusText(statusText(p.getStatus()));
+                c.setProject(p);
+                c.setProjectName(blankToEmpty(p.getName()));
+            }
+        }
+        if (c.getDemandId() != null && c.getDemandId() > 0) {
+            SvcDemand d = svcDemandDao.selectById(c.getDemandId());
+            if (d != null && d.getIsDel() != null && d.getIsDel() == 0) {
+                c.setDemandNo(blankToEmpty(d.getDemandNo()));
+            }
+        }
+    }
+
+    /** 状态日志 JSON → 结构化列表（解析失败返回空列表，不影响主流程） */
+    private List<SvcContract.StatusLogItem> parseStatusLog(String json) {
+        List<SvcContract.StatusLogItem> list = new ArrayList<>();
+        String s = blankToEmpty(json);
+        if (s.isEmpty()) return list;
+        try {
+            List<SvcContract.StatusLogItem> items = new Gson().fromJson(s,
+                    new TypeToken<List<SvcContract.StatusLogItem>>() { }.getType());
+            return items == null ? list : items;
+        } catch (Exception e) {
+            log.warn("解析合同状态日志失败：{}", e.getMessage());
+            return list;
+        }
+    }
+
+    /**
+     * 追加一条合同状态变更日志（最新的一条放最前，方便前端直接渲染时间线）。
+     */
+    private String appendStatusLog(String oldJson, Integer status, String operator, String remark) {
+        List<SvcContract.StatusLogItem> list = parseStatusLog(oldJson);
+        SvcContract.StatusLogItem item = new SvcContract.StatusLogItem();
+        item.setTime(nowStr());
+        item.setStatus(status);
+        item.setStatusName(SvcContract.statusName(status));
+        item.setOperator(blankToEmpty(operator));
+        item.setRemark(blankToEmpty(remark));
+        list.add(0, item);
+        return new Gson().toJson(list);
+    }
+
+    /** 需求单：补状态名、会员昵称手机、转出合同编号、跟进记录、附件清单 */
+    private void fillDemand(List<SvcDemand> list) {
+        if (list == null || list.isEmpty()) return;
+        for (SvcDemand d : list) {
+            fillDemand(d, false);
+        }
+    }
+
+    private void fillDemand(SvcDemand d, boolean detail) {
+        if (d == null) return;
+        d.setStatusText(SvcDemand.statusName(d.getStatus()));
+        if (d.getUid() != null && d.getUid() > 0) {
+            User u = userDao.selectById(d.getUid());
+            if (u != null) {
+                d.setNickname(blankToEmpty(u.getNickname()));
+                d.setPhone(blankToEmpty(u.getPhone()));
+            }
+        }
+        if (d.getContractId() != null && d.getContractId() > 0) {
+            SvcContract c = svcContractDao.selectById(d.getContractId());
+            if (c != null && c.getIsDel() != null && c.getIsDel() == 0) {
+                d.setContractNo(blankToEmpty(c.getContractNo()));
+            }
+        }
+        if (detail) {
+            d.setFollowList(parseFollowLog(d.getFollowLog()));
+            d.setAttachList(csvList(d.getAttach()));
+            d.setAttachNameList(csvList(d.getAttachName()));
+        }
+    }
+
+    /** 跟进记录 JSON → 结构化列表 */
+    private List<SvcDemand.FollowItem> parseFollowLog(String json) {
+        List<SvcDemand.FollowItem> list = new ArrayList<>();
+        String s = blankToEmpty(json);
+        if (s.isEmpty()) return list;
+        try {
+            List<SvcDemand.FollowItem> items = new Gson().fromJson(s,
+                    new TypeToken<List<SvcDemand.FollowItem>>() { }.getType());
+            return items == null ? list : items;
+        } catch (Exception e) {
+            log.warn("解析需求跟进记录失败：{}", e.getMessage());
+            return list;
+        }
+    }
+
+    /** 追加一条跟进记录（最新在前） */
+    private String appendFollowLog(String oldJson, String content, String operator) {
+        List<SvcDemand.FollowItem> list = parseFollowLog(oldJson);
+        SvcDemand.FollowItem item = new SvcDemand.FollowItem();
+        item.setTime(nowStr());
+        item.setContent(blankToEmpty(content));
+        item.setOperator(blankToEmpty(operator));
+        list.add(0, item);
+        return new Gson().toJson(list);
+    }
+
+    /** 需求必须存在且未删除 */
+    private SvcDemand mustDemand(Integer id) {
+        SvcDemand d = id == null ? null : svcDemandDao.selectById(id);
+        if (d == null || (d.getIsDel() != null && d.getIsDel() > 0)) {
+            throw new RuntimeException("需求不存在");
+        }
+        return d;
     }
 
     private void fillProject(List<SvcProject> list, boolean withProgress) {
@@ -185,15 +338,20 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
     // ==================== 后台：合同 ====================
 
     @Override
-    public CommonPage<SvcContract> adminContractList(Integer uid, String keywords, Integer status, PageParamRequest page) {
+    public CommonPage<SvcContract> adminContractList(Integer uid, String keywords, Integer status, String signChannel, PageParamRequest page) {
         PageHelper.startPage(page.getPage(), page.getLimit());
         LambdaQueryWrapper<SvcContract> lqw = new LambdaQueryWrapper<>();
         lqw.eq(SvcContract::getIsDel, 0);
         if (uid != null && uid > 0) lqw.eq(SvcContract::getUid, uid);
         if (status != null) lqw.eq(SvcContract::getStatus, status);
+        if (signChannel != null && !signChannel.trim().isEmpty()) {
+            lqw.eq(SvcContract::getSignChannel, signChannel.trim());
+        }
         if (keywords != null && !keywords.trim().isEmpty()) {
-            lqw.and(w -> w.like(SvcContract::getTitle, keywords.trim())
-                    .or().like(SvcContract::getContractNo, keywords.trim()));
+            String kw = keywords.trim();
+            lqw.and(w -> w.like(SvcContract::getTitle, kw)
+                    .or().like(SvcContract::getContractNo, kw)
+                    .or().like(SvcContract::getPartyName, kw));
         }
         lqw.orderByDesc(SvcContract::getId);
         List<SvcContract> list = svcContractDao.selectList(lqw);
@@ -204,7 +362,7 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
     @Override
     public SvcContract adminContractInfo(Integer id) {
         SvcContract contract = mustContract(id);
-        fillContract(contract, null);
+        fillContractDetail(contract, null);
         return contract;
     }
 
@@ -230,6 +388,7 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
             exist.setContent(request.getContent() == null ? "" : request.getContent());
             exist.setRemark(request.getRemark() == null ? "" : request.getRemark());
             fillSignParties(exist, request);
+            fillChannel(exist, request);
             if (annexChanged) {
                 // 正文换了 → 已转换的 PDF、已设定的用印位置、双方已签的件全部作废，需重新转、重新定位、重新签
                 exist.setSrcPdf("");
@@ -252,6 +411,12 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
                 exist.setOurSign("");
                 exist.setOurSignedAt(null);
                 exist.setStatus(SvcContract.STATUS_WAIT_SIGN);
+            }
+            // 签约状态：登记弹窗可直选；日常改状态走「变更签约状态」，此处只在真的变了时补一条日志
+            if (request.getStatus() != null && !request.getStatus().equals(exist.getStatus())) {
+                exist.setStatus(request.getStatus());
+                exist.setStatusLog(appendStatusLog(exist.getStatusLog(), request.getStatus(),
+                        blankToEmpty(request.getRemark()), "登记/编辑合同"));
             }
             svcContractDao.updateById(exist);
             return exist.getId();
@@ -282,7 +447,11 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         contract.setSignedFileName("");
         contract.setFileHash("");
         fillSignParties(contract, request);
-        contract.setStatus(SvcContract.STATUS_WAIT_SIGN);
+        fillChannel(contract, request);
+        // 登记时即可指定签约状态（默认「待签署」），并写入第一条状态日志
+        int initStatus = request.getStatus() == null ? SvcContract.STATUS_WAIT_SIGN : request.getStatus();
+        contract.setStatus(initStatus);
+        contract.setStatusLog(appendStatusLog(null, initStatus, blankToEmpty(request.getRemark()), "登记合同"));
         contract.setIsDel(0);
         svcContractDao.insert(contract);
         return contract.getId();
@@ -307,6 +476,44 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         target.setCustPhone(blankToEmpty(request.getCustPhone()));
         target.setCustAddr(blankToEmpty(request.getCustAddr()));
         target.setCustSeal(blankToEmpty(request.getCustSeal()));
+    }
+
+    /**
+     * 签约渠道字段（纸质 / 电子 + 成品件），update / insert 两支共用。
+     *
+     * 纸质：签署方式、打印份数、快递公司、寄出与回寄单号、寄出与签收日期；
+     * 电子：平台名称、平台合同编号/存证编号、平台查看链接、发起日期、存证报告。
+     * 两类字段一次只填一类，但列都存在，切换渠道不会丢已填内容（前端按渠道显隐）。
+     */
+    private void fillChannel(SvcContract target, SvcRequests.ContractSaveRequest request) {
+        // 渠道相关字段全部按字符串写。⚠️ sent_date / back_date / start_date 在库里是 varchar，
+        // 不要改成 date 列：空值统一写 ''，而 MySQL 严格模式下 date 列写 '' 会直接 500
+        // （Incorrect date value），且 MyBatis-Plus updateById 忽略 null，会导致日期填过就清不掉。
+        String channel = blankToEmpty(request.getSignChannel());
+        target.setSignChannel(SvcContract.CHANNEL_ELECTRONIC.equals(channel)
+                ? SvcContract.CHANNEL_ELECTRONIC : SvcContract.CHANNEL_PAPER);
+        target.setSignType(blankToEmpty(request.getSignType()));
+        target.setPrintCount(blankToEmpty(request.getPrintCount()));
+        target.setExpressCo(blankToEmpty(request.getExpressCo()));
+        target.setExpressNo(blankToEmpty(request.getExpressNo()));
+        target.setExpressNoBack(blankToEmpty(request.getExpressNoBack()));
+        target.setSentDate(blankToEmpty(request.getSentDate()));
+        target.setBackDate(blankToEmpty(request.getBackDate()));
+        target.setSignPlatform(blankToEmpty(request.getSignPlatform()));
+        target.setPlatformNo(blankToEmpty(request.getPlatformNo()));
+        target.setPlatformUrl(blankToEmpty(request.getPlatformUrl()));
+        target.setStartDate(blankToEmpty(request.getStartDate()));
+        target.setVoucherFile(blankToEmpty(request.getVoucherFile()));
+        target.setVoucherName(blankToEmpty(request.getVoucherName()));
+        target.setServiceTerm(blankToEmpty(request.getServiceTerm()));
+        if (request.getDemandId() != null && request.getDemandId() > 0) {
+            target.setDemandId(request.getDemandId());
+        }
+        // 成品件（双方签署完成的纸质扫描件 / 平台导出件）
+        if (request.getSignedFile() != null) {
+            target.setSignedFile(blankToEmpty(request.getSignedFile()));
+            target.setSignedFileName(blankToEmpty(request.getSignedFileName()));
+        }
     }
 
     @Override
@@ -375,6 +582,626 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         systemConfigService.updateOrSaveValueByName(CFG_OUR_PHONE, blankToEmpty(request.getOurPhone()));
         systemConfigService.updateOrSaveValueByName(CFG_OUR_ADDR, blankToEmpty(request.getOurAddr()));
         return true;
+    }
+
+    // ==================== 后台：合同签约状态（线上唯一要做的「留痕」） ====================
+
+    /**
+     * 变更合同签约状态（2026-10-02 定案：合同线下签署，线上只由管理员选状态）。
+     *
+     * 规则：
+     *   · 状态只由后台选择，客户不参与确认；每次变更追加一条日志（时间 + 状态 + 经办人 + 备注）；
+     *   · 从任意状态切到「已生效」时，自动建/挂项目，客户在 H5「我的项目」里就能看到进度；
+     *   · 切到「已终止」时不动项目，只标记合同不再推进。
+     */
+    @Override
+    public Boolean changeContractStatus(final SvcRequests.ContractStatusRequest request) {
+        Integer newStatus = request.getStatus();
+        if (newStatus == null || SvcContract.statusName(newStatus).isEmpty()) {
+            throw new RuntimeException("请选择有效的签约状态");
+        }
+        return transactionTemplate.execute(status -> {
+            SvcContract contract = mustContract(request.getId());
+            Integer oldStatus = contract.getStatus();
+            if (newStatus.equals(oldStatus)) {
+                throw new RuntimeException("当前已是「" + SvcContract.statusName(newStatus) + "」，无需变更");
+            }
+            contract.setStatus(newStatus);
+            contract.setStatusLog(appendStatusLog(contract.getStatusLog(), newStatus,
+                    blankToEmpty(request.getOperator()), blankToEmpty(request.getRemark())));
+            // 生效即触发建项目：合同签完自动建项目这条链不断
+            if (SvcContract.STATUS_EFFECTIVE.equals(newStatus)) {
+                attachProject(contract);
+            }
+            log.info("合同 {} 签约状态 {} → {}，经办人 {}",
+                    contract.getId(), SvcContract.statusName(oldStatus),
+                    SvcContract.statusName(newStatus), blankToEmpty(request.getOperator()));
+            return svcContractDao.updateById(contract) > 0;
+        });
+    }
+
+    @Override
+    public HashMap<String, Object> adminContractStats() {
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("waitSignCount", countContractByStatus(SvcContract.STATUS_WAIT_SIGN));
+        map.put("signedCount", countContractByStatus(SvcContract.STATUS_SIGNED));
+        map.put("effectiveCount", countContractByStatus(SvcContract.STATUS_EFFECTIVE));
+        // 本月签约总额：已签署 + 已生效（不含已终止与草稿）
+        LambdaQueryWrapper<SvcContract> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcContract::getIsDel, 0);
+        lqw.in(SvcContract::getStatus, SvcContract.STATUS_SIGNED, SvcContract.STATUS_EFFECTIVE);
+        lqw.ge(SvcContract::getUpdateTime, cn.hutool.core.date.DateUtil.beginOfMonth(new Date()));
+        List<SvcContract> list = svcContractDao.selectList(lqw);
+        BigDecimal total = BigDecimal.ZERO;
+        for (SvcContract c : list) {
+            total = total.add(c.getAmount() == null ? BigDecimal.ZERO : c.getAmount());
+        }
+        map.put("monthAmount", total);
+        return map;
+    }
+
+    private Integer countContractByStatus(Integer status) {
+        LambdaQueryWrapper<SvcContract> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcContract::getIsDel, 0);
+        lqw.eq(SvcContract::getStatus, status);
+        return svcContractDao.selectCount(lqw);
+    }
+
+    // ==================== 后台：服务需求 ====================
+
+    @Override
+    public CommonPage<SvcDemand> adminDemandList(Integer uid, String keywords, String type, Integer status, PageParamRequest page) {
+        PageHelper.startPage(page.getPage(), page.getLimit());
+        LambdaQueryWrapper<SvcDemand> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcDemand::getIsDel, 0);
+        if (uid != null && uid > 0) lqw.eq(SvcDemand::getUid, uid);
+        if (type != null && !type.trim().isEmpty()) lqw.eq(SvcDemand::getType, type.trim());
+        if (status != null) lqw.eq(SvcDemand::getStatus, status);
+        if (keywords != null && !keywords.trim().isEmpty()) {
+            String kw = keywords.trim();
+            lqw.and(w -> w.like(SvcDemand::getDemandNo, kw)
+                    .or().like(SvcDemand::getTitle, kw)
+                    .or().like(SvcDemand::getCompany, kw)
+                    .or().like(SvcDemand::getContactName, kw)
+                    .or().like(SvcDemand::getContactPhone, kw));
+        }
+        // 待办优先：待受理永远排最前；同状态下新的在前
+        lqw.orderByAsc(SvcDemand::getStatus).orderByDesc(SvcDemand::getId);
+        List<SvcDemand> list = svcDemandDao.selectList(lqw);
+        fillDemand(list);
+        return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    @Override
+    public SvcDemand adminDemandInfo(Integer id) {
+        SvcDemand demand = mustDemand(id);
+        fillDemand(demand, true);
+        return demand;
+    }
+
+    @Override
+    public Integer saveDemand(SvcRequests.DemandSaveRequest request) {
+        if (request.getId() != null && request.getId() > 0) {
+            SvcDemand exist = mustDemand(request.getId());
+            if (request.getUid() != null) exist.setUid(request.getUid());
+            exist.setType(blankToEmpty(request.getType()));
+            exist.setTitle(blankToEmpty(request.getTitle()));
+            exist.setContent(blankToEmpty(request.getContent()));
+            exist.setBudget(blankToEmpty(request.getBudget()));
+            exist.setHopeDate(blankToEmpty(request.getHopeDate()));
+            exist.setAttach(blankToEmpty(request.getAttach()));
+            exist.setAttachName(blankToEmpty(request.getAttachName()));
+            exist.setContactName(blankToEmpty(request.getContactName()));
+            exist.setContactPhone(blankToEmpty(request.getContactPhone()));
+            exist.setCompany(blankToEmpty(request.getCompany()));
+            if (request.getStatus() != null) exist.setStatus(request.getStatus());
+            exist.setFollowerUid(request.getFollowerUid() == null ? 0 : request.getFollowerUid());
+            exist.setFollower(blankToEmpty(request.getFollower()));
+            svcDemandDao.updateById(exist);
+            return exist.getId();
+        }
+        SvcDemand demand = new SvcDemand();
+        demand.setDemandNo(makeDemandNo());
+        demand.setUid(request.getUid() == null ? 0 : request.getUid());
+        demand.setType(blankToEmpty(request.getType()));
+        demand.setTitle(blankToEmpty(request.getTitle()));
+        demand.setContent(blankToEmpty(request.getContent()));
+        demand.setBudget(blankToEmpty(request.getBudget()));
+        demand.setHopeDate(blankToEmpty(request.getHopeDate()));
+        demand.setAttach(blankToEmpty(request.getAttach()));
+        demand.setAttachName(blankToEmpty(request.getAttachName()));
+        demand.setContactName(blankToEmpty(request.getContactName()));
+        demand.setContactPhone(blankToEmpty(request.getContactPhone()));
+        demand.setCompany(blankToEmpty(request.getCompany()));
+        demand.setStatus(request.getStatus() == null ? SvcDemand.STATUS_WAIT : request.getStatus());
+        demand.setFollowerUid(request.getFollowerUid() == null ? 0 : request.getFollowerUid());
+        demand.setFollower(blankToEmpty(request.getFollower()));
+        demand.setAmount(BigDecimal.ZERO);
+        demand.setFollowLog("[]");
+        demand.setIsDel(0);
+        svcDemandDao.insert(demand);
+        return demand.getId();
+    }
+
+    @Override
+    public Boolean deleteDemand(Integer id) {
+        SvcDemand exist = mustDemand(id);
+        exist.setIsDel(1);
+        return svcDemandDao.updateById(exist) > 0;
+    }
+
+    @Override
+    public Boolean quoteDemand(SvcRequests.DemandQuoteRequest request) {
+        SvcDemand demand = mustDemand(request.getId());
+        boolean publish = request.getPublish() == null || request.getPublish() == 1;
+        if (publish && request.getAmount() == null) {
+            throw new RuntimeException("请填写报价金额");
+        }
+        if (request.getAmount() != null) {
+            demand.setAmount(request.getAmount());
+        }
+        demand.setQuoteDesc(blankToEmpty(request.getQuoteDesc()));
+        demand.setQuoteFile(blankToEmpty(request.getQuoteFile()));
+        demand.setQuoteName(blankToEmpty(request.getQuoteName()));
+        if (request.getFollowerUid() != null) {
+            demand.setFollowerUid(request.getFollowerUid());
+        }
+        if (request.getFollower() != null) {
+            demand.setFollower(blankToEmpty(request.getFollower()));
+        }
+        if (publish) {
+            demand.setQuoteTime(new Date());
+            demand.setStatus(SvcDemand.STATUS_QUOTED);
+            demand.setFollowLog(appendFollowLog(demand.getFollowLog(),
+                    "已发布报价 ¥" + (demand.getAmount() == null ? "0" : demand.getAmount().toPlainString())
+                            + "，等待客户确认", blankToEmpty(request.getFollower())));
+        } else {
+            demand.setStatus(SvcDemand.STATUS_FOLLOWING);
+            demand.setFollowLog(appendFollowLog(demand.getFollowLog(),
+                    "已指派跟进人：" + blankToEmpty(request.getFollower()), "系统"));
+        }
+        return svcDemandDao.updateById(demand) > 0;
+    }
+
+    @Override
+    public Boolean saveDemandFollow(SvcRequests.DemandFollowRequest request) {
+        SvcDemand demand = mustDemand(request.getId());
+        demand.setFollowLog(appendFollowLog(demand.getFollowLog(),
+                blankToEmpty(request.getContent()), blankToEmpty(request.getOperator())));
+        // 客户提交后还没人管 → 有人跟进即进入「跟进中」
+        if (SvcDemand.STATUS_WAIT.equals(demand.getStatus())) {
+            demand.setStatus(SvcDemand.STATUS_FOLLOWING);
+        }
+        return svcDemandDao.updateById(demand) > 0;
+    }
+
+    @Override
+    public Boolean closeDemand(Integer id, String reason) {
+        SvcDemand demand = mustDemand(id);
+        demand.setStatus(SvcDemand.STATUS_CLOSED);
+        demand.setFollowLog(appendFollowLog(demand.getFollowLog(),
+                "已关闭" + (blankToEmpty(reason).isEmpty() ? "" : "：" + blankToEmpty(reason)), "系统"));
+        return svcDemandDao.updateById(demand) > 0;
+    }
+
+    /**
+     * 需求转合同：需求里的客户/企业/金额带进合同，登记成功后回写 demand.contract_id 并把需求置为「已成单」。
+     */
+    @Override
+    public Integer demandToContract(final Integer demandId, final SvcRequests.ContractSaveRequest request) {
+        final SvcDemand demand = mustDemand(demandId);
+        if (demand.getContractId() != null && demand.getContractId() > 0) {
+            SvcContract exist = svcContractDao.selectById(demand.getContractId());
+            if (exist != null && exist.getIsDel() != null && exist.getIsDel() == 0) {
+                throw new RuntimeException("该需求已转为合同：" + blankToEmpty(exist.getContractNo()));
+            }
+        }
+        return transactionTemplate.execute(status -> {
+            // 需求侧信息兜底：合同没填的，用需求里已登记的补上
+            if (request.getUid() == null || request.getUid() <= 0) {
+                request.setUid(demand.getUid());
+            }
+            if (blankToEmpty(request.getTitle()).isEmpty()) {
+                request.setTitle(demand.getTitle());
+            }
+            if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                request.setAmount(demand.getAmount() == null ? BigDecimal.ZERO : demand.getAmount());
+            }
+            if (request.getPartyName() == null || request.getPartyName().isEmpty()) {
+                request.setPartyName(blankToEmpty(demand.getCompany()).isEmpty()
+                        ? blankToEmpty(demand.getContactName()) : blankToEmpty(demand.getCompany()));
+            }
+            if (request.getCustPhone() == null || request.getCustPhone().isEmpty()) {
+                request.setCustPhone(blankToEmpty(demand.getContactPhone()));
+            }
+            request.setDemandId(demand.getId());
+            Integer contractId = saveContract(request);
+            if (contractId == null) {
+                throw new RuntimeException("转合同失败");
+            }
+            demand.setContractId(contractId);
+            demand.setStatus(SvcDemand.STATUS_DEAL);
+            demand.setFollowLog(appendFollowLog(demand.getFollowLog(), "已转为合同，等待线下签署", "系统"));
+            svcDemandDao.updateById(demand);
+            return contractId;
+        });
+    }
+
+    @Override
+    public HashMap<String, Object> adminDemandStats() {
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("waitCount", countDemandByStatus(SvcDemand.STATUS_WAIT));
+        map.put("followingCount", countDemandByStatus(SvcDemand.STATUS_FOLLOWING));
+        map.put("quotedCount", countDemandByStatus(SvcDemand.STATUS_QUOTED));
+        map.put("dealCount", countDemandByStatus(SvcDemand.STATUS_DEAL));
+        return map;
+    }
+
+    private Integer countDemandByStatus(Integer status) {
+        LambdaQueryWrapper<SvcDemand> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcDemand::getIsDel, 0);
+        lqw.eq(SvcDemand::getStatus, status);
+        return svcDemandDao.selectCount(lqw);
+    }
+
+    // ==================== 后台：签约渠道平台 ====================
+
+    @Override
+    public CommonPage<SvcPlatform> adminPlatformList(String keywords, PageParamRequest page) {
+        PageHelper.startPage(page.getPage(), page.getLimit());
+        LambdaQueryWrapper<SvcPlatform> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcPlatform::getIsDel, 0);
+        if (keywords != null && !keywords.trim().isEmpty()) {
+            lqw.like(SvcPlatform::getName, keywords.trim());
+        }
+        lqw.orderByDesc(SvcPlatform::getSort).orderByDesc(SvcPlatform::getId);
+        List<SvcPlatform> list = svcPlatformDao.selectList(lqw);
+        return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    @Override
+    public List<SvcPlatform> enabledPlatforms() {
+        LambdaQueryWrapper<SvcPlatform> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcPlatform::getIsDel, 0);
+        lqw.eq(SvcPlatform::getStatus, 1);
+        lqw.orderByDesc(SvcPlatform::getSort).orderByDesc(SvcPlatform::getId);
+        return svcPlatformDao.selectList(lqw);
+    }
+
+    @Override
+    public Boolean savePlatform(SvcRequests.PlatformSaveRequest request) {
+        if (request.getId() != null && request.getId() > 0) {
+            SvcPlatform exist = mustPlatform(request.getId());
+            exist.setName(blankToEmpty(request.getName()));
+            exist.setKind(blankToEmpty(request.getKind()));
+            exist.setDescription(blankToEmpty(request.getDescription()));
+            if (request.getStatus() != null) exist.setStatus(request.getStatus());
+            exist.setSort(request.getSort() == null ? 0 : request.getSort());
+            return svcPlatformDao.updateById(exist) > 0;
+        }
+        SvcPlatform platform = new SvcPlatform();
+        platform.setName(blankToEmpty(request.getName()));
+        platform.setKind(blankToEmpty(request.getKind()));
+        platform.setDescription(blankToEmpty(request.getDescription()));
+        platform.setStatus(request.getStatus() == null ? 1 : request.getStatus());
+        platform.setSort(request.getSort() == null ? 0 : request.getSort());
+        platform.setIsDel(0);
+        return svcPlatformDao.insert(platform) > 0;
+    }
+
+    @Override
+    public Boolean deletePlatform(Integer id) {
+        SvcPlatform exist = mustPlatform(id);
+        exist.setIsDel(1);
+        return svcPlatformDao.updateById(exist) > 0;
+    }
+
+    private SvcPlatform mustPlatform(Integer id) {
+        SvcPlatform p = id == null ? null : svcPlatformDao.selectById(id);
+        if (p == null || (p.getIsDel() != null && p.getIsDel() > 0)) {
+            throw new RuntimeException("平台不存在");
+        }
+        return p;
+    }
+
+    // ==================== 后台：发票管理 ====================
+
+    @Override
+    public CommonPage<SvcInvoice> adminInvoiceList(Integer uid, String keywords, Integer status, Integer type, PageParamRequest page) {
+        PageHelper.startPage(page.getPage(), page.getLimit());
+        LambdaQueryWrapper<SvcInvoice> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcInvoice::getIsDel, 0);
+        if (uid != null && uid > 0) lqw.eq(SvcInvoice::getUid, uid);
+        if (status != null) lqw.eq(SvcInvoice::getStatus, status);
+        if (type != null) lqw.eq(SvcInvoice::getType, type);
+        if (keywords != null && !keywords.trim().isEmpty()) {
+            String kw = keywords.trim();
+            lqw.and(w -> w.like(SvcInvoice::getInvoiceNo, kw)
+                    .or().like(SvcInvoice::getTitle, kw)
+                    .or().like(SvcInvoice::getTaxNo, kw)
+                    .or().like(SvcInvoice::getContractNo, kw));
+        }
+        // 待办优先：待开票永远排最前
+        lqw.orderByAsc(SvcInvoice::getStatus).orderByDesc(SvcInvoice::getId);
+        List<SvcInvoice> list = svcInvoiceDao.selectList(lqw);
+        fillInvoice(list);
+        return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    @Override
+    public SvcInvoice adminInvoiceInfo(Integer id) {
+        SvcInvoice invoice = mustInvoice(id);
+        fillInvoice(invoice, true);
+        return invoice;
+    }
+
+    /**
+     * 后台保存 / 开票 / 变更状态。
+     *
+     * 一次调用同时承担三件事，是因为设计稿里这就是「一张表单 + 一个状态下拉」：
+     *   · 补全或修正抬头信息（客户填错时后台可改）；
+     *   · 上传成品发票文件（PDF/图片）；
+     *   · 变更状态：填了成品件并选「已开票」即完成开票，选「已驳回」需填原因。
+     */
+    @Override
+    public Integer saveInvoice(SvcRequests.InvoiceSaveRequest request) {
+        SvcInvoice invoice;
+        if (request.getId() != null && request.getId() > 0) {
+            invoice = mustInvoice(request.getId());
+        } else {
+            invoice = new SvcInvoice();
+            invoice.setInvoiceNo(makeInvoiceNo());
+            invoice.setUid(request.getUid() == null ? 0 : request.getUid());
+            invoice.setStatus(SvcInvoice.STATUS_WAIT);
+            invoice.setLog("[]");
+            invoice.setIsDel(0);
+        }
+        Integer oldStatus = invoice.getStatus();
+        if (request.getUid() != null && request.getUid() > 0) invoice.setUid(request.getUid());
+        if (request.getContractId() != null) invoice.setContractId(request.getContractId());
+        if (request.getType() != null) invoice.setType(request.getType());
+        if (request.getTitleType() != null) invoice.setTitleType(request.getTitleType());
+        invoice.setTitle(blankToEmpty(request.getTitle()));
+        invoice.setTaxNo(blankToEmpty(request.getTaxNo()));
+        invoice.setBank(blankToEmpty(request.getBank()));
+        invoice.setBankAccount(blankToEmpty(request.getBankAccount()));
+        invoice.setAddr(blankToEmpty(request.getAddr()));
+        invoice.setPhone(blankToEmpty(request.getPhone()));
+        if (request.getAmount() != null) invoice.setAmount(request.getAmount());
+        invoice.setContent(blankToEmpty(request.getContent()));
+        invoice.setReceiver(blankToEmpty(request.getReceiver()));
+        invoice.setReceiverPhone(blankToEmpty(request.getReceiverPhone()));
+        invoice.setReceiverAddr(blankToEmpty(request.getReceiverAddr()));
+        invoice.setEmail(blankToEmpty(request.getEmail()));
+        invoice.setRemark(blankToEmpty(request.getRemark()));
+        // 合同：填了合同ID就同步冗余编号，便于列表直接展示
+        if (invoice.getContractId() != null && invoice.getContractId() > 0) {
+            SvcContract c = svcContractDao.selectById(invoice.getContractId());
+            if (c != null && c.getIsDel() != null && c.getIsDel() == 0) {
+                invoice.setContractNo(blankToEmpty(c.getContractNo()));
+            }
+        }
+        // 成品件与邮寄信息
+        if (request.getFileUrl() != null) {
+            invoice.setFileUrl(blankToEmpty(request.getFileUrl()));
+            invoice.setFileName(blankToEmpty(request.getFileName()));
+        }
+        invoice.setExpressCo(blankToEmpty(request.getExpressCo()));
+        invoice.setExpressNo(blankToEmpty(request.getExpressNo()));
+        invoice.setSentDate(blankToEmpty(request.getSentDate()));
+        invoice.setRejectReason(blankToEmpty(request.getRejectReason()));
+        if (request.getOperator() != null) {
+            invoice.setOperator(blankToEmpty(request.getOperator()));
+        }
+
+        // 状态流转
+        if (request.getStatus() != null) {
+            Integer newStatus = request.getStatus();
+            if (!newStatus.equals(oldStatus)) {
+                if (!SvcInvoice.statusName(newStatus).isEmpty()) {
+                    if (SvcInvoice.STATUS_REJECT.equals(newStatus) && blankToEmpty(request.getRejectReason()).isEmpty()) {
+                        throw new RuntimeException("驳回时请填写驳回原因");
+                    }
+                    if (SvcInvoice.STATUS_ISSUED.equals(newStatus) && blankToEmpty(invoice.getFileUrl()).isEmpty()) {
+                        throw new RuntimeException("请先上传成品发票文件，再置为「已开票」");
+                    }
+                    invoice.setStatus(newStatus);
+                    if (SvcInvoice.STATUS_ISSUED.equals(newStatus) && invoice.getIssueTime() == null) {
+                        invoice.setIssueTime(new Date());
+                    }
+                    invoice.setLog(appendInvoiceLog(invoice.getLog(), newStatus,
+                            blankToEmpty(request.getOperator()),
+                            blankToEmpty(request.getLogRemark()).isEmpty()
+                                    ? SvcInvoice.statusName(newStatus) : blankToEmpty(request.getLogRemark())));
+                }
+            }
+        }
+
+        if (invoice.getId() == null) {
+            svcInvoiceDao.insert(invoice);
+        } else {
+            svcInvoiceDao.updateById(invoice);
+        }
+        log.info("发票申请 {} 已保存，状态 {}", invoice.getInvoiceNo(), SvcInvoice.statusName(invoice.getStatus()));
+        return invoice.getId();
+    }
+
+    @Override
+    public Boolean deleteInvoice(Integer id) {
+        SvcInvoice exist = mustInvoice(id);
+        exist.setIsDel(1);
+        return svcInvoiceDao.updateById(exist) > 0;
+    }
+
+    @Override
+    public HashMap<String, Object> adminInvoiceStats() {
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("waitCount", countInvoiceByStatus(SvcInvoice.STATUS_WAIT));
+        map.put("issuingCount", countInvoiceByStatus(SvcInvoice.STATUS_ISSUING));
+        map.put("issuedCount", countInvoiceByStatus(SvcInvoice.STATUS_ISSUED));
+        // 本月开票金额
+        LambdaQueryWrapper<SvcInvoice> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcInvoice::getIsDel, 0);
+        lqw.eq(SvcInvoice::getStatus, SvcInvoice.STATUS_ISSUED);
+        lqw.ge(SvcInvoice::getUpdateTime, cn.hutool.core.date.DateUtil.beginOfMonth(new Date()));
+        List<SvcInvoice> list = svcInvoiceDao.selectList(lqw);
+        BigDecimal total = BigDecimal.ZERO;
+        for (SvcInvoice inv : list) {
+            total = total.add(inv.getAmount() == null ? BigDecimal.ZERO : inv.getAmount());
+        }
+        map.put("monthAmount", total);
+        return map;
+    }
+
+    private Integer countInvoiceByStatus(Integer status) {
+        LambdaQueryWrapper<SvcInvoice> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcInvoice::getIsDel, 0);
+        lqw.eq(SvcInvoice::getStatus, status);
+        return svcInvoiceDao.selectCount(lqw);
+    }
+
+    // ==================== 会员端：发票管理 ====================
+
+    @Override
+    public Integer submitInvoice(Integer uid, SvcRequests.InvoiceSubmitRequest request) {
+        SvcInvoice invoice = new SvcInvoice();
+        invoice.setInvoiceNo(makeInvoiceNo());
+        invoice.setUid(uid);
+        invoice.setContractId(request.getContractId() == null || request.getContractId() <= 0
+                ? null : request.getContractId());
+        if (invoice.getContractId() != null) {
+            SvcContract c = svcContractDao.selectById(invoice.getContractId());
+            if (c != null && c.getIsDel() != null && c.getIsDel() == 0 && uid.equals(c.getUid())) {
+                invoice.setContractNo(blankToEmpty(c.getContractNo()));
+            } else {
+                invoice.setContractId(null);
+            }
+        }
+        invoice.setType(request.getType() == null ? SvcInvoice.TYPE_NORMAL : request.getType());
+        invoice.setTitleType(request.getTitleType() == null ? SvcInvoice.TITLE_COMPANY : request.getTitleType());
+        invoice.setTitle(blankToEmpty(request.getTitle()));
+        invoice.setTaxNo(blankToEmpty(request.getTaxNo()));
+        invoice.setBank(blankToEmpty(request.getBank()));
+        invoice.setBankAccount(blankToEmpty(request.getBankAccount()));
+        invoice.setAddr(blankToEmpty(request.getAddr()));
+        invoice.setPhone(blankToEmpty(request.getPhone()));
+        invoice.setAmount(request.getAmount() == null ? BigDecimal.ZERO : request.getAmount());
+        invoice.setContent(blankToEmpty(request.getContent()));
+        invoice.setReceiver(blankToEmpty(request.getReceiver()));
+        invoice.setReceiverPhone(blankToEmpty(request.getReceiverPhone()));
+        invoice.setReceiverAddr(blankToEmpty(request.getReceiverAddr()));
+        invoice.setEmail(blankToEmpty(request.getEmail()));
+        invoice.setRemark(blankToEmpty(request.getRemark()));
+        invoice.setStatus(SvcInvoice.STATUS_WAIT);
+        invoice.setFileUrl("");
+        invoice.setFileName("");
+        invoice.setExpressCo("");
+        invoice.setExpressNo("");
+        invoice.setRejectReason("");
+        invoice.setOperator("");
+        invoice.setLog(appendInvoiceLog(null, SvcInvoice.STATUS_WAIT, "客户", "提交开票申请"));
+        invoice.setIsDel(0);
+        svcInvoiceDao.insert(invoice);
+        log.info("会员 {} 提交开票申请 {}，金额 {}", uid, invoice.getInvoiceNo(), invoice.getAmount());
+        return invoice.getId();
+    }
+
+    @Override
+    public CommonPage<SvcInvoice> myInvoiceList(Integer uid, Integer status, PageParamRequest page) {
+        PageHelper.startPage(page.getPage(), page.getLimit());
+        LambdaQueryWrapper<SvcInvoice> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcInvoice::getIsDel, 0);
+        lqw.eq(SvcInvoice::getUid, uid);
+        if (status != null) lqw.eq(SvcInvoice::getStatus, status);
+        lqw.orderByDesc(SvcInvoice::getId);
+        List<SvcInvoice> list = svcInvoiceDao.selectList(lqw);
+        fillInvoice(list);
+        return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    @Override
+    public SvcInvoice myInvoiceDetail(Integer uid, Integer id) {
+        SvcInvoice invoice = mustInvoice(id);
+        if (invoice.getUid() == null || !invoice.getUid().equals(uid)) {
+            throw new RuntimeException("开票申请不存在");
+        }
+        fillInvoice(invoice, true);
+        return invoice;
+    }
+
+    @Override
+    public Boolean cancelInvoice(Integer uid, Integer id) {
+        SvcInvoice invoice = mustInvoice(id);
+        if (invoice.getUid() == null || !invoice.getUid().equals(uid)) {
+            throw new RuntimeException("开票申请不存在");
+        }
+        if (!SvcInvoice.STATUS_WAIT.equals(invoice.getStatus())) {
+            throw new RuntimeException("发票已在处理中，无法撤销，请联系您的服务顾问");
+        }
+        invoice.setStatus(SvcInvoice.STATUS_REJECT);
+        invoice.setRejectReason("客户主动撤销");
+        invoice.setLog(appendInvoiceLog(invoice.getLog(), SvcInvoice.STATUS_REJECT, "客户", "客户撤销了开票申请"));
+        return svcInvoiceDao.updateById(invoice) > 0;
+    }
+
+    // ---------- 发票私有辅助 ----------
+
+    private SvcInvoice mustInvoice(Integer id) {
+        SvcInvoice inv = id == null ? null : svcInvoiceDao.selectById(id);
+        if (inv == null || (inv.getIsDel() != null && inv.getIsDel() > 0)) {
+            throw new RuntimeException("开票申请不存在");
+        }
+        return inv;
+    }
+
+    private void fillInvoice(List<SvcInvoice> list) {
+        if (list == null || list.isEmpty()) return;
+        for (SvcInvoice inv : list) {
+            fillInvoice(inv, false);
+        }
+    }
+
+    private void fillInvoice(SvcInvoice inv, boolean detail) {
+        if (inv == null) return;
+        inv.setStatusText(SvcInvoice.statusName(inv.getStatus()));
+        inv.setTypeText(SvcInvoice.typeName(inv.getType()));
+        inv.setTitleTypeText(SvcInvoice.titleTypeName(inv.getTitleType()));
+        if (inv.getUid() != null && inv.getUid() > 0) {
+            User u = userDao.selectById(inv.getUid());
+            if (u != null) {
+                inv.setNickname(blankToEmpty(u.getNickname()));
+                inv.setPhoneNo(blankToEmpty(u.getPhone()));
+            }
+        }
+        if (detail) {
+            inv.setLogList(parseInvoiceLog(inv.getLog()));
+        }
+    }
+
+    private List<SvcInvoice.LogItem> parseInvoiceLog(String json) {
+        List<SvcInvoice.LogItem> list = new ArrayList<>();
+        String s = blankToEmpty(json);
+        if (s.isEmpty()) return list;
+        try {
+            List<SvcInvoice.LogItem> items = new Gson().fromJson(s,
+                    new TypeToken<List<SvcInvoice.LogItem>>() { }.getType());
+            return items == null ? list : items;
+        } catch (Exception e) {
+            log.warn("解析发票状态日志失败：{}", e.getMessage());
+            return list;
+        }
+    }
+
+    private String appendInvoiceLog(String oldJson, Integer status, String operator, String remark) {
+        List<SvcInvoice.LogItem> list = parseInvoiceLog(oldJson);
+        SvcInvoice.LogItem item = new SvcInvoice.LogItem();
+        item.setTime(nowStr());
+        item.setStatus(status);
+        item.setStatusName(SvcInvoice.statusName(status));
+        item.setOperator(blankToEmpty(operator));
+        item.setRemark(blankToEmpty(remark));
+        list.add(0, item);
+        return new Gson().toJson(list);
     }
 
     /** 合同必须存在且未删除 */
@@ -686,6 +1513,86 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         return svcCaseDao.selectList(lqw);
     }
 
+    // ==================== 会员端：服务需求（客户只提交、只查看，不参与确认） ====================
+
+    @Override
+    public Integer submitDemand(Integer uid, SvcRequests.DemandSubmitRequest request) {
+        SvcDemand demand = new SvcDemand();
+        demand.setDemandNo(makeDemandNo());
+        demand.setUid(uid);
+        demand.setType(blankToEmpty(request.getType()));
+        demand.setTitle(blankToEmpty(request.getTitle()));
+        demand.setContent(blankToEmpty(request.getContent()));
+        demand.setBudget(blankToEmpty(request.getBudget()));
+        demand.setHopeDate(blankToEmpty(request.getHopeDate()));
+        demand.setAttach(blankToEmpty(request.getAttach()));
+        demand.setAttachName(blankToEmpty(request.getAttachName()));
+        demand.setContactName(blankToEmpty(request.getContactName()));
+        demand.setContactPhone(blankToEmpty(request.getContactPhone()));
+        demand.setCompany(blankToEmpty(request.getCompany()));
+        demand.setStatus(SvcDemand.STATUS_WAIT);
+        demand.setFollowerUid(0);
+        demand.setFollower("");
+        demand.setAmount(BigDecimal.ZERO);
+        // 首条跟进记录：让会员端「处理进度」从提交那一刻就有时间线
+        demand.setFollowLog(appendFollowLog(null, "客户提交了需求，等待顾问受理", "客户"));
+        demand.setIsDel(0);
+        svcDemandDao.insert(demand);
+        log.info("会员 {} 提交服务需求 {}：{}", uid, demand.getDemandNo(), demand.getTitle());
+        return demand.getId();
+    }
+
+    @Override
+    public CommonPage<SvcDemand> myDemandList(Integer uid, Integer status, PageParamRequest page) {
+        PageHelper.startPage(page.getPage(), page.getLimit());
+        LambdaQueryWrapper<SvcDemand> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(SvcDemand::getIsDel, 0);
+        lqw.eq(SvcDemand::getUid, uid);
+        if (status != null) lqw.eq(SvcDemand::getStatus, status);
+        lqw.orderByDesc(SvcDemand::getId);
+        List<SvcDemand> list = svcDemandDao.selectList(lqw);
+        fillDemand(list);
+        return CommonPage.restPage(new PageInfo<>(list));
+    }
+
+    @Override
+    public SvcDemand myDemandDetail(Integer uid, Integer id) {
+        SvcDemand demand = mustDemand(id);
+        if (demand.getUid() == null || !demand.getUid().equals(uid)) {
+            throw new RuntimeException("需求不存在");
+        }
+        fillDemand(demand, true);
+        return demand;
+    }
+
+    @Override
+    public Boolean cancelDemand(Integer uid, Integer id) {
+        SvcDemand demand = mustDemand(id);
+        if (demand.getUid() == null || !demand.getUid().equals(uid)) {
+            throw new RuntimeException("需求不存在");
+        }
+        if (!SvcDemand.STATUS_WAIT.equals(demand.getStatus())) {
+            throw new RuntimeException("需求已被受理，无法撤销，请联系您的服务顾问");
+        }
+        demand.setStatus(SvcDemand.STATUS_CLOSED);
+        demand.setFollowLog(appendFollowLog(demand.getFollowLog(), "客户撤销了该需求", "客户"));
+        return svcDemandDao.updateById(demand) > 0;
+    }
+
+    @Override
+    public Boolean acceptDemandQuote(Integer uid, Integer id) {
+        SvcDemand demand = mustDemand(id);
+        if (demand.getUid() == null || !demand.getUid().equals(uid)) {
+            throw new RuntimeException("需求不存在");
+        }
+        if (!SvcDemand.STATUS_QUOTED.equals(demand.getStatus())) {
+            throw new RuntimeException("当前没有待确认的报价");
+        }
+        demand.setStatus(SvcDemand.STATUS_DEAL);
+        demand.setFollowLog(appendFollowLog(demand.getFollowLog(), "客户已同意报价，等待生成合同", "客户"));
+        return svcDemandDao.updateById(demand) > 0;
+    }
+
     @Override
     public CommonPage<SvcContract> myContractList(Integer uid, Integer status, PageParamRequest page) {
         PageHelper.startPage(page.getPage(), page.getLimit());
@@ -708,7 +1615,7 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         if (contract == null || contract.getIsDel() > 0 || roleOf(contract, uid).isEmpty()) {
             throw new RuntimeException("合同不存在");
         }
-        fillContract(contract, uid);
+        fillContractDetail(contract, uid);
         return contract;
     }
 
@@ -1021,6 +1928,25 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         waitAccept.eq(SvcProject::getUid, uid);
         waitAccept.eq(SvcProject::getStatus, SvcProject.STATUS_WAIT_ACCEPT);
         map.put("waitAcceptCount", svcProjectDao.selectCount(waitAccept));
+
+        // 我的合同数（甲方或乙方都算）
+        LambdaQueryWrapper<SvcContract> contractQw = new LambdaQueryWrapper<>();
+        contractQw.eq(SvcContract::getIsDel, 0);
+        contractQw.and(w -> w.eq(SvcContract::getUid, uid).or().eq(SvcContract::getOurUid, uid));
+        map.put("contractCount", svcContractDao.selectCount(contractQw));
+
+        // 我的需求数（未关闭的）
+        LambdaQueryWrapper<SvcDemand> demandQw = new LambdaQueryWrapper<>();
+        demandQw.eq(SvcDemand::getIsDel, 0);
+        demandQw.eq(SvcDemand::getUid, uid);
+        demandQw.ne(SvcDemand::getStatus, SvcDemand.STATUS_CLOSED);
+        map.put("demandCount", svcDemandDao.selectCount(demandQw));
+
+        // 我的开票申请数（未撤销的）
+        LambdaQueryWrapper<SvcInvoice> invoiceQw = new LambdaQueryWrapper<>();
+        invoiceQw.eq(SvcInvoice::getIsDel, 0);
+        invoiceQw.eq(SvcInvoice::getUid, uid);
+        map.put("invoiceCount", svcInvoiceDao.selectCount(invoiceQw));
 
         User user = userDao.selectById(uid);
         map.put("balance", user == null || user.getNowMoney() == null ? BigDecimal.ZERO : user.getNowMoney());

@@ -51,3 +51,53 @@ export function getSvcStats() {
 export function getSvcDynamic(limit) {
   return request.get('svc/dynamic', { limit: limit || 5 });
 }
+
+// ==================== 服务需求 ====================
+// 客户只提交与查看，不需要任何确认动作
+
+/** 提交服务需求 */
+export function submitSvcDemand(data) {
+  return request.post('svc/demand/submit', data);
+}
+
+/** 我的需求分页列表 */
+export function getSvcDemands(data) {
+  return request.get('svc/demand/list', data);
+}
+
+/** 需求详情（含报价与跟进进度） */
+export function getSvcDemandInfo(id) {
+  return request.get('svc/demand/info', { id });
+}
+
+/** 撤销需求（仅「待受理」可撤销）—— id 走 query，后端 @RequestParam 取 */
+export function cancelSvcDemand(id) {
+  return request.post('svc/demand/cancel?id=' + id);
+}
+
+/** 同意报价 */
+export function acceptSvcDemandQuote(id) {
+  return request.post('svc/demand/accept?id=' + id);
+}
+
+// ==================== 发票管理 ====================
+
+/** 提交开票申请 */
+export function submitSvcInvoice(data) {
+  return request.post('svc/invoice/submit', data);
+}
+
+/** 我的开票申请分页列表 */
+export function getSvcInvoices(data) {
+  return request.get('svc/invoice/list', data);
+}
+
+/** 开票申请详情（含状态进度与成品发票） */
+export function getSvcInvoiceInfo(id) {
+  return request.get('svc/invoice/info', { id });
+}
+
+/** 撤销开票申请（仅「待开票」可撤销） */
+export function cancelSvcInvoice(id) {
+  return request.post('svc/invoice/cancel?id=' + id);
+}
