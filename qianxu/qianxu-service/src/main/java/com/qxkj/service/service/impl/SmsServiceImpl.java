@@ -255,7 +255,6 @@ public class SmsServiceImpl implements SmsService {
         record.set("mock", "0".equals(systemConfigService.getValueByKey(BinliSmsConstants.CONFIG_MOCK)) ? "0" : "1");
         record.set("register_captcha", "0".equals(systemConfigService.getValueByKey(SmsConstants.SMS_CONFIG_REGISTER_CAPTCHA)) ? "0" : "1");
         record.set("verify_content", systemConfigService.getValueByKey(BinliSmsConstants.CONFIG_VERIFY_CONTENT));
-        record.set("mock_aliyun", systemConfigService.getValueByKey(AliyunSmsConstants.CONFIG_MOCK));
         return record;
     }
 
