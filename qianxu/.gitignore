@@ -1,8 +1,11 @@
 HELP.md
 target/
-!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**
 !**/src/test/**
+
+# 运行时上传的合同产物与图片（业务数据不入库）
+qianxuimage/public/contract/
+qianxuimage/public/signed-p2.png
 
 
 ### STS ###
