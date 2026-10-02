@@ -11,6 +11,8 @@ const childAttrs = {
 
 window.addEventListener('message', init, false);
 
+const $previewApp = document.getElementById('previewApp');
+
 function buildLinks(links) {
   let strs = '';
   links.forEach((url) => {

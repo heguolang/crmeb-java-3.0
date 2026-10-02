@@ -129,12 +129,14 @@ public class SystemConfigController {
         return CommonResult.failed("保存失败");
     }
 
+    @PreAuthorize("hasAuthority('admin:system:config:bigdata:screen:get')")
     @ApiOperation(value = "获取数据中心大屏展示名称设置")
     @RequestMapping(value = "/get/bigdata/screen/setting", method = RequestMethod.GET)
     public CommonResult<String> getBigdataScreenSetting() {
         return CommonResult.success(systemConfigService.getBigdataScreenSetting());
     }
 
+    @PreAuthorize("hasAuthority('admin:system:config:bigdata:screen:save')")
     @ApiOperation(value = "保存数据中心大屏展示名称设置")
     @LogControllerAnnotation(intoDB = true, methodType = MethodType.UPDATE, description = "保存数据中心大屏展示名称设置")
     @RequestMapping(value = "/save/bigdata/screen/setting", method = RequestMethod.POST)

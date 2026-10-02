@@ -188,6 +188,8 @@ var _hmt = _hmt || [];
   var s = document.getElementsByTagName('script')[0];
   s.parentNode.insertBefore(hm, s);
 })();
+const $previewApp = document.getElementById('previewApp');
+
 function buildLinks(links) {
   let strs = '';
   links.forEach((url) => {

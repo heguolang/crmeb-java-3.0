@@ -23892,18 +23892,47 @@ WHERE `title` IN ('拼购未中奖补贴', '拼购分享奖励')
 -- 旧子菜单「运营大数据」「市场大数据」软删下线（is_delte=1，数据保留可恢复）
 -- 幂等：可重复执行
 -- ============================================================
--- 1) 大数据中心主菜单（id=731，挂在 数据中心大屏 728 下）
-INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`)
-SELECT 731, 728, '大数据中心', '', '', '/market/screen/hub', 'C', 1, 1, 0, NOW(), NOW()
+-- 1) 父级「数据中心大屏」：按 component 动态定位（库不存在则创建），不写死菜单 id
+SET @screen_pid := (SELECT `id` FROM `eb_system_menu` WHERE `component` = '/market/screen' AND `menu_type` = 'M' AND `is_delte` = 0 LIMIT 1);
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT p.`id`, '数据中心大屏', 's-data', '', '/market/screen', 'M', 0, 1, 0
+FROM `eb_system_menu` p
+WHERE p.`component` = '/market' AND p.`pid` = 0 AND p.`is_delte` = 0
+  AND @screen_pid IS NULL;
+SET @screen_pid := (SELECT `id` FROM `eb_system_menu` WHERE `component` = '/market/screen' AND `menu_type` = 'M' AND `is_delte` = 0 LIMIT 1);
+
+-- 2)「大数据中心」子菜单：按 component 幂等（任何 id 都能压住）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT @screen_pid, '大数据中心', 's-data', '', '/market/screen/hub', 'C', 1, 1, 0
 FROM (SELECT 1) x
-WHERE NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `id` = 731) t);
--- 兜底修正（旧版补丁可能已插入成「大数据名称设置」）
+WHERE @screen_pid IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `component` = '/market/screen/hub' AND `is_delte` = 0) t);
+-- 兜底修正（旧版补丁可能已插入成「大数据名称设置」，只修未删除的行）
 UPDATE `eb_system_menu`
-   SET `pid` = 728, `name` = '大数据中心', `icon` = '', `component` = '/market/screen/hub',
-       `menu_type` = 'C', `sort` = 1, `is_show` = 1, `is_delte` = 0, `update_time` = NOW()
- WHERE `id` = 731;
--- 2) 旧的「运营大数据」「市场大数据」子菜单下线（软删）
-UPDATE `eb_system_menu` SET `is_delte` = 1, `update_time` = NOW() WHERE `id` IN (729, 730);
+   SET `pid` = @screen_pid, `name` = '大数据中心', `component` = '/market/screen/hub',
+       `menu_type` = 'C', `sort` = 1, `is_show` = 1, `update_time` = NOW()
+ WHERE `component` = '/market/screen/hub' AND `is_delte` = 0;
+-- 3) 旧的「运营大数据」「市场大数据」子菜单下线（按 component 软删，不按 id）
+UPDATE `eb_system_menu` SET `is_delte` = 1, `update_time` = NOW()
+ WHERE `component` IN ('/market/screen/operation', '/market/screen/market') AND `is_delte` = 0;
+
+-- ============================================================
+-- 补丁：大屏「名称设置」按钮权限（2026-10-02）
+-- 背景：SystemConfigController 的 get/save bigdata screen setting 两个接口原先缺 @PreAuthorize，
+--       已补注解，需下发对应按钮权限，否则非超管角色调用会被拦（超管有旁路不受影响）。
+--       挂在「公共服务」目录下（与「获取主题色/保存主题色」同级），按 perms 幂等，不写死 id。
+-- ============================================================
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT p.`id`, '获取大屏名称设置', '', 'admin:system:config:bigdata:screen:get', '', 'A', 999, 1, 0
+FROM `eb_system_menu` p
+WHERE p.`menu_type` = 'M' AND p.`name` = '公共服务' AND p.`is_delte` = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `perms` = 'admin:system:config:bigdata:screen:get' AND `is_delte` = 0) t);
+
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT p.`id`, '保存大屏名称设置', '', 'admin:system:config:bigdata:screen:save', '', 'A', 999, 1, 0
+FROM `eb_system_menu` p
+WHERE p.`menu_type` = 'M' AND p.`name` = '公共服务' AND p.`is_delte` = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `perms` = 'admin:system:config:bigdata:screen:save' AND `is_delte` = 0) t);
 
 
 -- ============================================================

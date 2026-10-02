@@ -43,7 +43,7 @@
 </template>
 
 <script>
-import { getThemeInfo } from "@/api/api.js";
+import { getThemeInfo, getBottomNavigationApi } from "@/api/api.js";
 import { getCartCounts } from "@/api/order.js";
 import { mapGetters } from "vuex";
 
@@ -259,7 +259,27 @@ export default {
           const footerConfig = this.findFooterConfig(res.data);
           if (footerConfig) {
             this.setNavigationInfo(footerConfig);
+          } else {
+            this.getBottomNavigation();
           }
+        })
+        .catch(() => {
+          this.getBottomNavigation();
+        });
+    },
+    // 兜底：主题 DIY 数据缺 pageFoot 组件时，改用后台「底部导航」配置渲染
+    getBottomNavigation() {
+      getBottomNavigationApi()
+        .then((res) => {
+          const list =
+            res.data && Array.isArray(res.data.bottomNavigationList)
+              ? res.data.bottomNavigationList
+              : [];
+          if (!list.length) return;
+          this.setNavigationInfo({
+            name: "pageFoot",
+            menuList: list,
+          });
         })
         .catch(() => {});
     },
