@@ -35,4 +35,7 @@ public class SmsChannelConfigRequest implements Serializable {
 
     @ApiModelProperty(value = "注册短信验证码开关：1=注册需校验验证码，0=不校验")
     private String registerCaptcha;
+
+    @ApiModelProperty(value = "验证码短信内容模板，{code}=验证码 {time}=有效分钟数")
+    private String verifyContent;
 }

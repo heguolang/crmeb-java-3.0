@@ -286,6 +286,9 @@ public class SmsServiceImpl implements SmsService {
             }
             systemConfigService.updateOrSaveValueByName(SmsConstants.SMS_CONFIG_REGISTER_CAPTCHA, request.getRegisterCaptcha());
         }
+        if (request.getVerifyContent() != null) {
+            systemConfigService.updateOrSaveValueByName(BinliSmsConstants.CONFIG_VERIFY_CONTENT, request.getVerifyContent().trim());
+        }
         return Boolean.TRUE;
     }
 

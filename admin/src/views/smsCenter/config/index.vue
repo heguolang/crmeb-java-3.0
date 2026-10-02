@@ -149,9 +149,10 @@ export default {
   },
   methods: {
     loadConfig() {
+      // 拦截器已返回 CommonResult.data，此处 res 即配置 map
       smsChannelConfigApi()
         .then((res) => {
-          const d = res.data || {};
+          const d = res || {};
           this.form.channel = d.channel || 'binli';
           this.form.account = d.account || '';
           this.form.mock = d.mock === '0' ? '0' : '1';
@@ -165,8 +166,7 @@ export default {
     loadBalance() {
       smsBalanceApi()
         .then((res) => {
-          const d = res.data || {};
-          this.balance = d.balance;
+          this.balance = (res || {}).balance;
         })
         .catch(() => {
           this.balance = null;
@@ -181,6 +181,7 @@ export default {
         account: this.form.account,
         mock: this.form.mock,
         registerCaptcha: this.form.registerCaptcha,
+        verifyContent: this.form.verifyContent,
       };
       if (this.form.pwd) {
         data.pwd = this.form.pwd;
@@ -207,7 +208,7 @@ export default {
       this.testing = true;
       smsTestSendApi({ phone: this.test.phone, content: this.test.content })
         .then((res) => {
-          this.lastTaskId = (res.data && res.data.taskId) || '';
+          this.lastTaskId = (res && res.taskId) || '';
           this.testResult = '已提交';
           this.$message.success('发送成功');
           this.loadBalance();

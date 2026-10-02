@@ -143,7 +143,8 @@ export default {
       this.loading = true;
       smsRecordListApi(this.tableFrom)
         .then((res) => {
-          const d = res.data || {};
+          // 拦截器已返回 CommonResult.data，此处 res 即 {count, data}
+          const d = res || {};
           this.tableData.data = d.data || [];
           this.tableData.total = Number(d.count) || 0;
         })
@@ -168,7 +169,7 @@ export default {
     loadBalance() {
       smsBalanceApi()
         .then((res) => {
-          this.balance = (res.data || {}).balance;
+          this.balance = (res || {}).balance;
         })
         .catch(() => {
           this.balance = null;
@@ -178,7 +179,7 @@ export default {
       this.syncing = true;
       smsRecordSyncApi()
         .then((res) => {
-          const n = (res.data || 0);
+          const n = res || 0;
           this.$message.success(`回执同步完成，更新 ${n} 条记录`);
           this.getList(1);
           this.loadBalance();
