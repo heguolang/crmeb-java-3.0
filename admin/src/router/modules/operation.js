@@ -133,6 +133,30 @@ const operationRouter = {
       ],
     },
     {
+      path: 'smsCenter',
+      component: () => import('@/views/smsCenter'),
+      name: 'SmsCenter',
+      alwaysShow: true,
+      meta: {
+        title: '短信管理',
+        icon: 'clipboard',
+      },
+      children: [
+        {
+          path: 'config',
+          component: () => import('@/views/smsCenter/config'),
+          name: 'SmsCenterConfig',
+          meta: { title: '短信配置', noCache: true },
+        },
+        {
+          path: 'record',
+          component: () => import('@/views/smsCenter/record'),
+          name: 'SmsCenterRecord',
+          meta: { title: '发送记录', noCache: true },
+        },
+      ],
+    },
+    {
       path: 'deliverGoods',
       name: 'deliverGoods',
       alwaysShow: true,

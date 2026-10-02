@@ -5,6 +5,12 @@ package com.qxkj.common.constants;
  */
 public class SmsConstants {
 
+    /** 发送通道：binli=滨礼（默认），aliyun=阿里云（回退保留） */
+    public static final String SMS_CONFIG_CHANNEL = "sms_send_channel";
+
+    /** 注册短信验证码开关：1=注册必须校验短信验证码（默认），0=注册不校验 */
+    public static final String SMS_CONFIG_REGISTER_CAPTCHA = "register_sms_captcha_switch";
+
     /** 接口异常错误码 */
     public static final Integer SMS_ERROR_CODE = 400;
 

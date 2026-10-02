@@ -121,6 +121,22 @@ public class LoginServiceImpl implements LoginService {
             throw new QianxuException("该手机号已注册，请直接登录");
         }
 
+        // 短信验证码校验（后台可开关，默认开启；sendCode 发送，5 分钟内有效，一次性）
+        String captchaSwitch = systemConfigService.getValueByKey(SmsConstants.SMS_CONFIG_REGISTER_CAPTCHA);
+        if (!"0".equals(captchaSwitch)) {
+            if (StrUtil.isBlank(loginRequest.getCode())) {
+                throw new QianxuException("请输入短信验证码");
+            }
+            Object validateCode = redisUtil.get(userService.getValidateCodeRedisKey(phone));
+            if (validateCode == null) {
+                throw new QianxuException("验证码已过期，请重新获取");
+            }
+            if (!validateCode.toString().equals(loginRequest.getCode())) {
+                throw new QianxuException("验证码错误");
+            }
+            redisUtil.delete(userService.getValidateCodeRedisKey(phone));
+        }
+
         Integer spreadPid = Optional.ofNullable(loginRequest.getSpreadPid()).orElse(0);
         if (spreadPid > 0) {
             User spreadUser = userService.getById(spreadPid);

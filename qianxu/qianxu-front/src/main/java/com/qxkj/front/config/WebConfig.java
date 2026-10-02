@@ -137,6 +137,9 @@ public class WebConfig implements WebMvcConfigurer {
                 excludePathPatterns("/api/front/svc/config").
                 excludePathPatterns("/api/front/svc/case/list").
 
+                // 滨礼短信平台推送回调（状态推送 / 上行推送），平台侧无 token
+                excludePathPatterns("/api/front/sms/push/**").
+
                 excludePathPatterns("/swagger-resources/**", "/webjars/**", "/v2/**", "/swagger-ui.html/**");
     }
 

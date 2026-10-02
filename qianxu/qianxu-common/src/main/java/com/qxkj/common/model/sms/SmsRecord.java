@@ -63,4 +63,19 @@ public class SmsRecord implements Serializable {
 
     @ApiModelProperty(value = "备注")
     private String memo;
+
+    @ApiModelProperty(value = "短信平台批次 taskId（滨礼）")
+    private String taskId;
+
+    @ApiModelProperty(value = "回执状态，DELIVRD=成功，其他为失败原因码")
+    private String status;
+
+    @ApiModelProperty(value = "回执状态描述")
+    private String statusDesc;
+
+    @ApiModelProperty(value = "回执时间 yyyy-MM-dd HH:mm:ss")
+    private String statusTime;
+
+    @ApiModelProperty(value = "发送渠道：binli=滨礼，aliyun=阿里云")
+    private String channel;
 }

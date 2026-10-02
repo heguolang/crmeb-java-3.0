@@ -5974,3 +5974,100 @@ WHERE c.component = '/market/enterprise/invoice' AND c.menu_type = 'C' AND c.is_
                   WHERE x.perms = t.perms);
 
 -- ========== END: upgrade_20261002_contract_invoice.sql ==========
+
+-- ========== BEGIN: upgrade_20261003_binli_sms.sql ==========
+-- ============================================================
+-- 补丁：滨礼短信接入（2026-10-03）
+-- 说明：
+--   1) eb_sms_record 加回执列（taskId / status / status_desc / status_time / channel）
+--      —— 时间字段按铁律一律 varchar，绝不 date/datetime
+--   2) 系统配置写入滨礼账号/接口密码（后台「短信通道配置」接口可改）：
+--      binli_sms_account / binli_sms_pwd / binli_sms_mock / binli_sms_verify_content / sms_send_channel
+-- 幂等：可重复执行
+-- ============================================================
+SET @db = DATABASE();
+
+-- 1. eb_sms_record 加列
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_sms_record' AND COLUMN_NAME='task_id')=0,
+  'ALTER TABLE eb_sms_record ADD COLUMN task_id varchar(64) NOT NULL DEFAULT '''' COMMENT ''短信平台批次taskId（滨礼）'' AFTER memo', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_sms_record' AND COLUMN_NAME='status')=0,
+  'ALTER TABLE eb_sms_record ADD COLUMN status varchar(20) NOT NULL DEFAULT '''' COMMENT ''回执状态，DELIVRD=成功，其他为失败原因码'' AFTER task_id', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_sms_record' AND COLUMN_NAME='status_desc')=0,
+  'ALTER TABLE eb_sms_record ADD COLUMN status_desc varchar(50) NOT NULL DEFAULT '''' COMMENT ''回执状态描述'' AFTER status', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_sms_record' AND COLUMN_NAME='status_time')=0,
+  'ALTER TABLE eb_sms_record ADD COLUMN status_time varchar(20) NOT NULL DEFAULT '''' COMMENT ''回执时间 yyyy-MM-dd HH:mm:ss'' AFTER status_desc', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_sms_record' AND COLUMN_NAME='channel')=0,
+  'ALTER TABLE eb_sms_record ADD COLUMN channel varchar(20) NOT NULL DEFAULT '''' COMMENT ''发送渠道：binli=滨礼，aliyun=阿里云'' AFTER status_time', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 2. task_id 索引（回执按 taskId+手机号定位）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_sms_record' AND INDEX_NAME='idx_task_id')=0,
+  'ALTER TABLE eb_sms_record ADD INDEX idx_task_id (task_id)', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3. 系统配置：滨礼账号 / 接口密码（明文存配置，调用时 MD5 32 位传输）/ 模拟开关 / 验证码内容 / 通道选择
+--    mock 默认 1=模拟发送（只打日志不扣量），上线后确认无误再在后台改为 0=真实发送
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'binli_sms_account', '滨礼短信账号', '922081', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'binli_sms_account') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'binli_sms_pwd', '滨礼短信接口密码（明文，调用时自动MD5）', 'FGEwKmAA', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'binli_sms_pwd') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'binli_sms_mock', '滨礼短信模拟发送开关（1=模拟 0=真实）', '1', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'binli_sms_mock') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'binli_sms_verify_content', '滨礼验证码短信内容（{code}=验证码 {time}=有效分钟）', '【黔序科技】您的验证码是{code}，{time}分钟内有效，请勿泄露给他人。', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'binli_sms_verify_content') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'sms_send_channel', '短信发送通道（binli=滨礼 aliyun=阿里云）', 'binli', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'sms_send_channel') x);
+
+-- ========== END: upgrade_20261003_binli_sms.sql ==========
+
+-- ========== BEGIN: upgrade_20261003_register_captcha_switch.sql ==========
+-- 注册短信验证码开关（2026-10-03）：1=注册必须校验短信验证码（默认），0=注册不校验
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'register_sms_captcha_switch', '注册短信验证码开关（1=注册需短信验证码 0=不需要）', '1', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'register_sms_captcha_switch') x);
+-- ========== END: upgrade_20261003_register_captcha_switch.sql ==========
+
+-- ========== BEGIN: upgrade_20261003_sms_admin_menu.sql ==========
+-- 菜单：「设置」下新增目录「短信管理」+ 短信配置 / 发送记录 两页
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT 12, '短信管理', '', '', '/operation/smsCenter', 'M', 6, 1
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_menu` WHERE `component` = '/operation/smsCenter' AND `is_delte` = 0) x);
+
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT m.id, '短信配置', '', 'admin:sms:channel:get', '/operation/smsCenter/config', 'C', 1, 1
+FROM `eb_system_menu` m
+WHERE m.component = '/operation/smsCenter' AND m.menu_type = 'M' AND m.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_menu` WHERE `component` = '/operation/smsCenter/config' AND `is_delte` = 0) x);
+
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT m.id, '发送记录', '', 'admin:sms:record:list', '/operation/smsCenter/record', 'C', 2, 1
+FROM `eb_system_menu` m
+WHERE m.component = '/operation/smsCenter' AND m.menu_type = 'M' AND m.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_menu` WHERE `component` = '/operation/smsCenter/record' AND `is_delte` = 0) x);
+-- ========== END: upgrade_20261003_sms_admin_menu.sql ==========
+
+-- 菜单授权：给所有角色补上「短信管理」目录及两页（含超管全部角色）
+INSERT INTO `eb_system_role_menu` (`rid`, `menu_id`)
+SELECT r.id, m.id
+FROM `eb_system_role` r
+JOIN `eb_system_menu` m ON m.component IN ('/operation/smsCenter','/operation/smsCenter/config','/operation/smsCenter/record') AND m.is_delte = 0
+WHERE r.status = 1
+  AND NOT EXISTS (SELECT 1 FROM (SELECT rid, menu_id FROM `eb_system_role_menu`) x
+                  WHERE x.rid = r.id AND x.menu_id = m.id);

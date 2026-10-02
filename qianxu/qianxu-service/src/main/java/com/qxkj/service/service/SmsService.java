@@ -2,6 +2,7 @@ package com.qxkj.service.service;
 
 import com.qxkj.common.request.PageParamRequest;
 import com.qxkj.common.request.SmsApplyTempRequest;
+import com.qxkj.common.request.SmsChannelConfigRequest;
 import com.qxkj.common.request.SmsModifySignRequest;
 import com.qxkj.common.vo.MyRecord;
 
@@ -73,4 +74,26 @@ public interface SmsService {
      * 发送订单发货提醒短信
      */
     Boolean sendOrderDeliverNotice(String phone, String nickName, String storeName, String orderNo, String templateCode);
+
+    /**
+     * 按自由内容发送短信（滨礼通道，多号码逗号分割）
+     *
+     * @return 批次 taskId
+     */
+    String sendContent(String phones, String content);
+
+    /**
+     * 查询滨礼账户余额
+     */
+    MyRecord balance();
+
+    /**
+     * 读取短信通道配置（账号、密码掩码、mock 开关、通道选择）
+     */
+    MyRecord getChannelConfig();
+
+    /**
+     * 保存短信通道配置（账号、接口密码、mock 开关、通道选择）
+     */
+    Boolean saveChannelConfig(SmsChannelConfigRequest request);
 }

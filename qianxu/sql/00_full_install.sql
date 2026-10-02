@@ -9347,7 +9347,13 @@ CREATE TABLE `eb_sms_record` (
   `resultcode` int unsigned DEFAULT NULL COMMENT '状态码 100=成功,130=失败,131=空号,132=停机,133=关机,134=无状态',
   `record_id` int unsigned DEFAULT NULL COMMENT '发送记录id',
   `memo` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci COMMENT '短信平台返回信息',
-  PRIMARY KEY (`id`) USING BTREE
+  `task_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '短信平台批次taskId（滨礼）',
+  `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '回执状态，DELIVRD=成功，其他为失败原因码',
+  `status_desc` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '回执状态描述',
+  `status_time` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '回执时间 yyyy-MM-dd HH:mm:ss',
+  `channel` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '发送渠道：binli=滨礼，aliyun=阿里云',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_task_id` (`task_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='短信发送记录表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -24371,6 +24377,37 @@ SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=
   'ALTER TABLE eb_svc_contract ADD COLUMN sign_sheet varchar(500) NOT NULL DEFAULT '''' COMMENT ''独立签署页图片URL（签章+签字+签署日期）'' AFTER seal_image', 'SELECT 1');
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- ========== END: upgrade_20261002_contract_eseal.sql ==========
+
+-- ========== BEGIN: upgrade_20261003_binli_sms.sql ==========
+-- 滨礼短信接入（2026-10-03）：eb_sms_record 建表已含回执列（task_id/status/status_desc/status_time/channel）
+-- 此处补系统配置项（账号/接口密码/模拟开关/验证码内容/通道选择）
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'binli_sms_account', '滨礼短信账号', '922081', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'binli_sms_account') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'binli_sms_pwd', '滨礼短信接口密码（明文，调用时自动MD5）', 'FGEwKmAA', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'binli_sms_pwd') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'binli_sms_mock', '滨礼短信模拟发送开关（1=模拟 0=真实）', '1', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'binli_sms_mock') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'binli_sms_verify_content', '滨礼验证码短信内容（{code}=验证码 {time}=有效分钟）', '【黔序科技】您的验证码是{code}，{time}分钟内有效，请勿泄露给他人。', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'binli_sms_verify_content') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'sms_send_channel', '短信发送通道（binli=滨礼 aliyun=阿里云）', 'binli', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'sms_send_channel') x);
+-- ========== END: upgrade_20261003_binli_sms.sql ==========
+
+-- ========== BEGIN: upgrade_20261003_register_captcha_switch.sql ==========
+-- 注册短信验证码开关（2026-10-03）：1=注册必须校验短信验证码（默认），0=注册不校验
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'register_sms_captcha_switch', '注册短信验证码开关（1=注册需短信验证码 0=不需要）', '1', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'register_sms_captcha_switch') x);
+-- ========== END: upgrade_20261003_register_captcha_switch.sql ==========
 
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'QIANXU 00_full_install done' AS result;

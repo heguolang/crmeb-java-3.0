@@ -45,4 +45,8 @@ public class LoginRequest implements Serializable {
     @ApiModelProperty(value = "推广人id")
     @JsonProperty(value = "spread_spid")
     private Integer spreadPid = 0;
+
+    @ApiModelProperty(value = "短信验证码（注册必填，登录可不传）")
+    @JsonProperty(value = "code")
+    private String code;
 }

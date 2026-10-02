@@ -12,6 +12,15 @@
 							<input type="number" class="texts" placeholder="输入手机号码" v-model="account" maxlength="11" required/>
 						</div>
 					</div>
+					<div class="item" v-if="isRegister">
+						<div class="acea-row row-middle">
+							<image :src="urlDomain+'qianxuimage/perset/staticImg/code_2.png'" style="width: 28rpx; height: 32rpx;"></image>
+							<input type="number" placeholder="填写短信验证码" class="codeIput" v-model="captcha" maxlength="6" />
+							<button class="code main_color" :disabled="disabled" :class="disabled === true ? 'on' : ''" @click="code">
+								{{ text }}
+							</button>
+						</div>
+					</div>
 					<div class="item">
 						<div class="acea-row row-middle">
 							<image :src="urlDomain+'qianxuimage/perset/staticImg/code_2.png'" style="width: 28rpx; height: 32rpx;"></image>
@@ -118,6 +127,8 @@ import { required } from "@/utils/validate";
 				spreadId: "",
 				isRegister: false,
 				captcha: "",
+				disabled: false,
+				text: "获取验证码",
 				formItem: 1,
 				type: "login",
 				platform: '',
@@ -176,6 +187,26 @@ import { required } from "@/utils/validate";
 							title: err
 						});
 					});
+			},
+			//验证码 60s 倒计时
+			sendCode() {
+				let that = this;
+				const TIME_COUNT = 60;
+				if (that.timer) clearInterval(that.timer);
+				that.disabled = true;
+				let count = TIME_COUNT;
+				that.text = '重新发送(' + count + 's)';
+				that.timer = setInterval(() => {
+					count--;
+					if (count > 0) {
+						that.text = '重新发送(' + count + 's)';
+					} else {
+						clearInterval(that.timer);
+						that.timer = null;
+						that.disabled = false;
+						that.text = '获取验证码';
+					}
+				}, 1000);
 			},
 			userAgree(type) {
 				goToAgreement(type)
@@ -378,6 +409,7 @@ import { required } from "@/utils/validate";
 				this.password = '';
 				this.passwordConfirm = '';
 				this.spreadId = '';
+				this.captcha = '';
 			},
 			// 切换到登录
 			switchLogin() {
@@ -385,6 +417,7 @@ import { required } from "@/utils/validate";
 				this.password = '';
 				this.passwordConfirm = '';
 				this.spreadId = '';
+				this.captcha = '';
 			},
 			//手机号密码登录 / 注册（H5 会员端已统一为手机号 + 密码）
 			submit:Debounce(function() {
@@ -402,6 +435,12 @@ import { required } from "@/utils/validate";
 					// 注册需二次确认密码
 					if (!/^\S{6,18}$/.test(that.password)) return that.$util.Tips({
 						title: '密码长度需为6-18位'
+					});
+					if (!that.captcha) return that.$util.Tips({
+						title: '请填写短信验证码'
+					});
+					if (!/^\d{6}$/.test(that.captcha)) return that.$util.Tips({
+						title: '验证码为6位数字'
 					});
 					if (!that.passwordConfirm) return that.$util.Tips({
 						title: '请再次填写密码'
@@ -427,7 +466,8 @@ import { required } from "@/utils/validate";
 					register({
 						account: that.account,
 						password: that.password,
-						spread_spid: spreadSpid > 0 ? spreadSpid : 0
+						spread_spid: spreadSpid > 0 ? spreadSpid : 0,
+						code: that.captcha
 					}).then(({data}) => {
 						this.$store.commit("LOGIN", {
 							'token': data.token
