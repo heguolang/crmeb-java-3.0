@@ -138,14 +138,14 @@ public class SmsServiceImpl implements SmsService {
             }
             String content = contentTpl.replace("{code}", String.valueOf(code)).replace("{time}", codeExpireStr);
             try {
-                binliSmsClient.sendText(phone, content);
+                String taskId = binliSmsClient.sendText(phone, content);
+                saveBinliRecord(phone, content, "verify_code", taskId);
             } catch (QianxuException e) {
                 throw e;
             } catch (Exception e) {
                 logger.error("发送验证码失败: {}", e.getMessage());
                 throw new QianxuException("发送短信失败，请联系后台管理员");
             }
-            saveBinliRecord(phone, content, "verify_code", null);
         } else {
             // 阿里云：模板验证码
             JSONObject param = new JSONObject();
@@ -307,8 +307,8 @@ public class SmsServiceImpl implements SmsService {
                 return false;
             }
             try {
-                binliSmsClient.sendText(phone, content);
-                saveBinliRecord(phone, content, templateCode, null);
+                String taskId = binliSmsClient.sendText(phone, content);
+                saveBinliRecord(phone, content, templateCode, taskId);
                 return true;
             } catch (Exception e) {
                 logger.error("发送短信失败 phone={}, template={}, err={}", phone, templateCode, e.getMessage());
