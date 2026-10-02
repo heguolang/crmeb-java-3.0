@@ -419,24 +419,40 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
     }
 
     @Override
-    public Boolean signContract(Integer uid, Integer id, String signName, String signPhone, String signHand) {
-        SvcContract contract = svcContractDao.selectById(id);
+    public Boolean signContract(Integer uid, SvcRequests.ContractSignRequest request) {
+        SvcContract contract = svcContractDao.selectById(request.getId());
         if (contract == null || contract.getIsDel() > 0 || !contract.getUid().equals(uid)) {
             throw new RuntimeException("合同不存在");
         }
         if (!SvcContract.STATUS_WAIT_SIGN.equals(contract.getStatus())) {
             throw new RuntimeException("当前合同状态不可签约");
         }
+        String signHand = request.getSignImage();
         if (signHand == null || signHand.trim().isEmpty()) {
             throw new RuntimeException("请手写签名");
+        }
+        // 企业签约必须带电子签章（样式 + 用主体名称生成的签章图）
+        boolean isCompany = SvcContract.PARTY_COMPANY.equals(contract.getPartyType());
+        if (isCompany && (request.getSealImage() == null || request.getSealImage().trim().isEmpty())) {
+            throw new RuntimeException("请选择签章样式并生成电子签章");
         }
 
         return transactionTemplate.execute(status -> {
             contract.setStatus(SvcContract.STATUS_SIGNED);
             contract.setSignTime(new Date());
-            contract.setSignName(signName == null ? "" : signName.trim());
-            contract.setSignPhone(signPhone == null ? "" : signPhone.trim());
+            contract.setSignName(request.getSignName() == null ? "" : request.getSignName().trim());
+            contract.setSignPhone(request.getPhone() == null ? "" : request.getPhone().trim());
             contract.setSignHand(signHand.trim());
+            if (isCompany) {
+                contract.setSealStyle(normalizeSealStyle(request.getSealStyle()));
+                contract.setSealImage(request.getSealImage().trim());
+            } else {
+                // 个人签约无需盖章：清掉签章字段，避免残留旧值
+                contract.setSealStyle("");
+                contract.setSealImage("");
+            }
+            // 独立签署页（签章 + 签字 + 签署日期）：把签署要素真正附着到合同上
+            contract.setSignSheet(request.getSignSheet() == null ? "" : request.getSignSheet().trim());
             // 签约后自动生成并关联项目，会员端「我的项目」同步可见
             if (contract.getProjectId() == null
                     || svcProjectDao.selectById(contract.getProjectId()) == null
@@ -454,6 +470,15 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
             }
             return svcContractDao.updateById(contract) > 0;
         });
+    }
+
+    /** 签章样式收敛到已知四款，未识别的一律按「圆形标准章」处理 */
+    private String normalizeSealStyle(String style) {
+        String s = style == null ? "" : style.trim().toLowerCase();
+        if (SvcContract.SEAL_OVAL.equals(s) || SvcContract.SEAL_SQUARE.equals(s) || SvcContract.SEAL_MODERN.equals(s)) {
+            return s;
+        }
+        return SvcContract.SEAL_ROUND;
     }
 
     @Override

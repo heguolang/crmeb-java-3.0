@@ -54,6 +54,9 @@ export default {
       lastX: 0,
       lastY: 0,
       drawing: false,
+      /** 笔迹数据：签署页按矢量重绘用（避免 H5 跨域贴图污染画布） */
+      strokes: [],
+      curStroke: null,
       resizeHandler: null,
       resizeTimer: null
     };
@@ -207,6 +210,8 @@ export default {
       this.ctx.fillRect(0, 0, this.canvasW, this.canvasH);
       this.ctx.draw();
       this.empty = true;
+      this.strokes = [];
+      this.curStroke = null;
     },
     clear() {
       this.clearCanvas();
@@ -231,10 +236,16 @@ export default {
       this.lastX = p.x;
       this.lastY = p.y;
       if (this.empty) this.empty = false;
+      // 记录笔迹：线宽与绘制时保持一致，供签署页等比重绘
+      this.curStroke = { w: this.canvasW > 500 ? 5 : 4, pts: [{ x: p.x, y: p.y }] };
+      this.strokes.push(this.curStroke);
     },
     onMove(e) {
       if (!this.drawing || !this.ctx) return;
       const p = this.pointOf(e);
+      if (this.curStroke && this.curStroke.pts.length < 3000) {
+        this.curStroke.pts.push({ x: p.x, y: p.y });
+      }
       this.ctx.setStrokeStyle('#111111');
       // 横屏画布面积更大，线宽随之加粗，签名更清晰
       this.ctx.setLineWidth(this.canvasW > 500 ? 5 : 4);
@@ -250,6 +261,7 @@ export default {
     },
     onEnd() {
       this.drawing = false;
+      this.curStroke = null;
     },
 
     /* ---------- 导出 ---------- */
@@ -260,7 +272,12 @@ export default {
       }
       const finish = (path) => {
         this.close();
-        this.$emit('confirm', path);
+        // 第二个参数：笔迹数据包，供签署页按同一笔触矢量重绘
+        this.$emit('confirm', path, {
+          strokes: JSON.parse(JSON.stringify(this.strokes)),
+          w: this.canvasW,
+          h: this.canvasH
+        });
       };
       uni.canvasToTempFilePath(
         {

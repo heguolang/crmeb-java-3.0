@@ -48,7 +48,14 @@
         <view class="sign-block" :class="posClass(contract.sealPos)">
           <text class="block-label">客户签章</text>
           <template v-if="contract.partyType === 1">
-            <view v-if="contract.status === 1" class="seal-stamp">
+            <image
+              v-if="contract.sealImage"
+              :src="absUrl(contract.sealImage)"
+              class="seal-img"
+              mode="aspectFit"
+              @click="previewImg(contract.sealImage)"
+            />
+            <view v-else-if="contract.status === 1" class="seal-stamp">
               <text class="seal-name">{{ contract.partyName || '签约企业' }}</text>
               <text class="seal-sub">合同专用章</text>
             </view>
@@ -60,10 +67,28 @@
         <view class="sign-block" :class="posClass(contract.signPos)">
           <text class="block-label">客户签字</text>
           <template v-if="contract.status === 1 && contract.signHand">
-            <image :src="contract.signHand" class="sign-img" mode="aspectFit" @click="previewSign" />
+            <image :src="absUrl(contract.signHand)" class="sign-img" mode="aspectFit" @click="previewImg(contract.signHand)" />
             <text class="sign-date">{{ fmtDate(contract.signTime) }}</text>
           </template>
           <view v-else class="slot-empty">待客户手写签名</view>
+        </view>
+
+        <!-- 独立签署页：签章 + 签字 + 签署日期，附着到合同 -->
+        <view v-if="contract.signSheet" class="sheet-box">
+          <view class="sheet-head">
+            <text class="sheet-name">签署页</text>
+            <text class="sheet-badge">签章 · 签字 · 日期</text>
+          </view>
+          <image
+            :src="absUrl(contract.signSheet)"
+            class="sheet-img"
+            mode="widthFix"
+            @click="previewImg(contract.signSheet)"
+          />
+          <text class="sheet-op">点击查看大图，长按可保存</text>
+        </view>
+        <view v-else-if="contract.status === 1" class="sheet-empty">
+          <text>签署页生成中，稍后刷新查看</text>
         </view>
 
         <view v-if="contract.status === 1" class="info-box">
@@ -75,7 +100,7 @@
 
       <!-- 签约操作 -->
       <view class="section-card sign-card" v-if="contract.status === 0">
-        <view class="sign-guide">签约流程：查看合同文件 → 填写负责人信息 → 短信验证（如开启）→ 横屏手写签名 → 提交签约</view>
+        <view class="sign-guide">签约流程：查看合同文件 → 填写负责人信息 → 选择签章样式（企业）→ 短信验证（如开启）→ 横屏手写签名 → 提交签约</view>
         <view class="f-row">
           <text class="f-label">负责人姓名</text>
           <input v-model="form.signName" class="f-input" placeholder="请输入负责人真实姓名" placeholder-class="ph" />
@@ -91,9 +116,19 @@
             {{ counting ? countdown + 's' : '获取验证码' }}
           </view>
         </view>
+
+        <!-- 企业客户：签章样式选择（用主体名称自动生成） -->
+        <view v-if="contract.partyType === 1" class="seal-pick">
+          <view class="seal-pick-head">
+            <text class="sp-title">客户签章</text>
+            <text class="sp-tip">选一款样式，用主体名称自动生成</text>
+          </view>
+          <svc-seal v-model="sealStyle" :company="contract.partyName" />
+        </view>
+
         <view class="sign-area" @click="onOpenSign">
           <template v-if="signHand">
-            <image :src="signHand" class="sign-preview" mode="aspectFit" />
+            <image :src="absUrl(signHand)" class="sign-preview" mode="aspectFit" />
             <text class="sign-redo">点击重新签名</text>
           </template>
           <template v-else>
@@ -101,8 +136,10 @@
             <text class="sign-tip-inline">点击后进入全屏横向手写板书写姓名</text>
           </template>
         </view>
-        <view class="agree-tip">点击「确认签约」即视为已阅读并同意本合同全部条款</view>
-        <view class="sign-btn" @click="onSubmit">确认签约</view>
+        <view class="agree-tip">提交后将自动生成电子签章与签署页（含签章、签字、签署日期），并与合同一并归档</view>
+        <view class="sign-btn" :class="{ disabled: submitting }" @click="onSubmit">
+          {{ submitting ? '签署文件生成中...' : '确认签约' }}
+        </view>
       </view>
       <view class="section-card sign-card" v-else>
         <view class="sign-btn disabled">{{ statusText(contract.status) }}</view>
@@ -112,21 +149,29 @@
     </view>
 
     <svc-sign ref="signPad" @confirm="onSignDone" />
+    <svc-sign-sheet ref="sheetPad" />
   </view>
 </template>
 
 <script>
 import { getSvcContractInfo, signSvcContract, sendSvcSignCode, getSvcConfig } from '@/api/svc.js';
 import svcSign from '@/components/svcSign/index.vue';
+import svcSeal from '@/components/svcSeal/index.vue';
+import svcSignSheet from '@/components/svcSignSheet/index.vue';
 
 export default {
-  components: { svcSign },
+  components: { svcSign, svcSeal, svcSignSheet },
   data() {
     return {
       contract: null,
       signSms: true,
       config: {},
       signHand: '',
+      /** 手写签名笔迹包（签署页按同一笔触矢量重绘，避免跨域贴图） */
+      signPack: null,
+      /** 签章样式：round=圆形标准章 oval=椭圆公章 square=方形合同章 modern=现代电子章 */
+      sealStyle: 'round',
+      submitting: false,
       form: { signName: '', phone: '', code: '' },
       counting: false,
       countdown: 60,
@@ -239,10 +284,9 @@ export default {
       });
       // #endif
     },
-    previewSign() {
-      if (this.contract && this.contract.signHand) {
-        uni.previewImage({ urls: [this.contract.signHand] });
-      }
+    previewImg(u) {
+      const url = this.absUrl(u);
+      if (url) uni.previewImage({ urls: [url] });
     },
     onSendCode() {
       if (this.counting) return;
@@ -275,7 +319,9 @@ export default {
       }
       this.$refs.signPad.open();
     },
-    onSignDone(tempPath) {
+    onSignDone(tempPath, pack) {
+      // 留一份笔迹，签署页按同一笔触矢量重绘
+      this.signPack = pack || null;
       uni.showLoading({ title: '上传签名...' });
       this.$util.uploadImgs(
         tempPath,
@@ -297,6 +343,7 @@ export default {
       );
     },
     onSubmit() {
+      if (this.submitting) return;
       const f = this.form;
       if (!f.signName || !f.signName.trim()) {
         uni.showToast({ title: '请输入负责人姓名', icon: 'none' });
@@ -310,36 +357,119 @@ export default {
         uni.showToast({ title: '请输入短信验证码', icon: 'none' });
         return;
       }
-      if (!this.signHand) {
+      if (!this.signHand || !this.signPack) {
         uni.showToast({ title: '请手写签名', icon: 'none' });
         return;
       }
+      const who = f.signName.trim();
+      const isCompany = this.contract.partyType === 1;
       uni.showModal({
         title: '确认签约',
-        content: '确认以「' + f.signName.trim() + '」名义签署本合同？签署后不可撤销。',
+        content: isCompany
+          ? '确认以「' + who + '」名义签署本合同？系统将自动生成电子签章与签署页，签署后不可撤销。'
+          : '确认以「' + who + '」名义签署本合同？签署后不可撤销。',
         success: (res) => {
-          if (!res.confirm) return;
-          uni.showLoading({ title: '提交中...' });
-          signSvcContract({
-            id: this.contract.id,
-            signName: f.signName.trim(),
-            phone: f.phone.trim(),
-            code: f.code ? f.code.trim() : '',
-            signImage: this.signHand
-          })
-            .then(() => {
-              uni.hideLoading();
-              uni.showToast({ title: '签约成功', icon: 'success' });
-              this.signHand = '';
-              this.form.code = '';
-              this.loadDetail(this.contract.id);
-            })
-            .catch((e) => {
-              uni.hideLoading();
-              uni.showToast({ title: typeof e === 'string' ? e : (e && e.message) || '签约失败', icon: 'none' });
-            });
+          if (res.confirm) this.doSign();
         }
       });
+    },
+
+    /** 生成签章 + 签署页 → 上传 → 提交签约 */
+    doSign() {
+      const isCompany = this.contract.partyType === 1;
+      this.submitting = true;
+      uni.showLoading({ title: '正在生成签署文件...', mask: true });
+
+      Promise.resolve()
+        .then(() => (isCompany ? this.$refs.sealPad.toTempFile() : ''))
+        .then((sealPath) =>
+          this.$refs.sheetPad
+            .generate({
+              title: this.contract.title,
+              contractNo: this.contract.contractNo,
+              company: this.contract.partyName,
+              sealStyle: this.sealStyle,
+              needSeal: isCompany,
+              signerName: this.form.signName.trim(),
+              signPack: this.signPack,
+              dateText: this.cnDate(new Date())
+            })
+            .then((sheetPath) => ({ sealPath, sheetPath }))
+        )
+        .then((res) => {
+          const sealTask = isCompany ? this.uploadSealFile(res.sealPath) : Promise.resolve('');
+          return sealTask.then((sealUrl) =>
+            this.uploadSealFile(res.sheetPath).then((sheetUrl) => ({ sealUrl, sheetUrl }))
+          );
+        })
+        .then(({ sealUrl, sheetUrl }) => this.submitSign(sealUrl, sheetUrl))
+        .catch((e) => {
+          this.submitting = false;
+          uni.hideLoading();
+          uni.showToast({
+            title: (e && e.message) || (typeof e === 'string' ? e : '签署文件生成失败，请重试'),
+            icon: 'none'
+          });
+        });
+    },
+
+    /** 上传签章 / 签署页本地图片，返回服务器 URL */
+    uploadSealFile(path) {
+      return new Promise((resolve, reject) => {
+        if (!path) {
+          reject(new Error('签署文件生成失败，请重试'));
+          return;
+        }
+        uni.showLoading({ title: '上传签署文件...', mask: true });
+        this.$util.uploadImgs(
+          path,
+          { url: 'api/front/upload/image', name: 'multipart', model: 'user', pid: 7 },
+          (data) => {
+            const url = data.data && (data.data.url || data.data.fileUrl);
+            if (url) resolve(url);
+            else reject(new Error('签署文件上传失败，请重试'));
+          },
+          () => reject(new Error('签署文件上传失败，请重试'))
+        );
+      });
+    },
+
+    submitSign(sealUrl, sheetUrl) {
+      uni.showLoading({ title: '提交中...', mask: true });
+      signSvcContract({
+        id: this.contract.id,
+        signName: this.form.signName.trim(),
+        phone: this.form.phone.trim(),
+        code: this.form.code ? this.form.code.trim() : '',
+        signImage: this.signHand,
+        sealStyle: this.sealStyle,
+        sealImage: sealUrl,
+        signSheet: sheetUrl
+      })
+        .then(() => {
+          this.submitting = false;
+          uni.hideLoading();
+          uni.showToast({ title: '签约成功', icon: 'success' });
+          this.signHand = '';
+          this.signPack = null;
+          this.form.code = '';
+          this.loadDetail(this.contract.id);
+        })
+        .catch((e) => {
+          this.submitting = false;
+          uni.hideLoading();
+          uni.showToast({
+            title: typeof e === 'string' ? e : (e && e.message) || '签约失败',
+            icon: 'none'
+          });
+        });
+    },
+
+    /** 中文日期：2026年10月02日 */
+    cnDate(d) {
+      const t = d || new Date();
+      const p = (n) => (n < 10 ? '0' + n : '' + n);
+      return t.getFullYear() + '年' + p(t.getMonth() + 1) + '月' + p(t.getDate()) + '日';
     }
   }
 };
@@ -467,4 +597,36 @@ export default {
   display: flex; align-items: center; justify-content: center;
 }
 .sign-btn.disabled { background: #c3cad6; }
+
+/* 电子签章（生成图） */
+.seal-img { width: 150rpx; height: 150rpx; margin-top: 12rpx; }
+
+/* 独立签署页 */
+.sheet-box {
+  margin-top: 24rpx; padding: 20rpx; border: 1rpx solid #eef1f6;
+  border-radius: 16rpx; background: #fbfcfe;
+}
+.sheet-head { display: flex; align-items: center; justify-content: space-between; }
+.sheet-name { font-size: 26rpx; font-weight: 700; color: #222; }
+.sheet-badge {
+  font-size: 20rpx; color: #1d6bf3; background: #ecf5ff;
+  border-radius: 16rpx; padding: 4rpx 16rpx;
+}
+.sheet-img {
+  width: 100%; margin-top: 18rpx; border-radius: 10rpx;
+  background: #fff; border: 1rpx solid #eef1f6;
+}
+.sheet-op { display: block; text-align: center; font-size: 21rpx; color: #9aa4b2; margin-top: 12rpx; }
+.sheet-empty {
+  margin-top: 24rpx; text-align: center; font-size: 22rpx; color: #a8b3c4;
+  background: #f7faff; border-radius: 12rpx; padding: 22rpx 0;
+}
+
+/* 签约卡片内的签章选择 */
+.seal-pick {
+  margin-top: 30rpx; padding-top: 24rpx; border-top: 1rpx solid #eef1f6;
+}
+.seal-pick-head { display: flex; align-items: baseline; justify-content: space-between; }
+.sp-title { font-size: 27rpx; font-weight: 600; color: #222; }
+.sp-tip { font-size: 21rpx; color: #9aa4b2; }
 </style>

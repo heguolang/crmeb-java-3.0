@@ -24346,5 +24346,31 @@ ALTER TABLE `eb_template_message`        ROW_FORMAT=DYNAMIC;
 -- TRUNCATE TABLE `QRTZ_SCHEDULER_STATE`;
 -- ========== END: upgrade_20261002_system_config_align.sql ==========
 
+-- ========== BEGIN: upgrade_20261002_contract_eseal.sql ==========
+-- ============================================================
+-- 补丁：企业服务-合同电子签章（签章样式选择 + 自动生成签章 + 独立签署页）（2026-10-02 第五批）
+-- 说明：签约时由会员端选择签章样式，用合同已填写的主体名称（party_name）自动生成电子签章图，
+--       并把「签章 + 手写签字 + 签署日期」合成为一张独立签署页 PNG 一并归档，
+--       使签署要素真正附着到合同上（合同文件 + 签署页 = 完整合同）。
+-- 幂等：可重复执行
+-- ============================================================
+SET @db = DATABASE();
+
+-- 1. 签章样式：round=圆形标准章 / oval=椭圆公章 / square=方形合同章 / modern=现代电子章
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='seal_style')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN seal_style varchar(20) NOT NULL DEFAULT '''' COMMENT ''签章样式：round/oval/square/modern'' AFTER seal_pos', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 2. 自动生成的电子签章图 URL（用签约主体名称生成）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='seal_image')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN seal_image varchar(500) NOT NULL DEFAULT '''' COMMENT ''电子签章图片URL（用签约主体名称生成）'' AFTER seal_style', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3. 独立签署页图片 URL（签章 + 签字 + 签署日期）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sign_sheet')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sign_sheet varchar(500) NOT NULL DEFAULT '''' COMMENT ''独立签署页图片URL（签章+签字+签署日期）'' AFTER seal_image', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+-- ========== END: upgrade_20261002_contract_eseal.sql ==========
+
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'QIANXU 00_full_install done' AS result;

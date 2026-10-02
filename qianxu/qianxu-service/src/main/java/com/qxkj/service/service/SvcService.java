@@ -75,8 +75,8 @@ public interface SvcService extends IService<SvcProject> {
     /** 会员端-合同详情（校验归属） */
     SvcContract myContractDetail(Integer uid, Integer id);
 
-    /** 会员端-签约合同（手写签名，签约后自动生成并关联项目） */
-    Boolean signContract(Integer uid, Integer id, String signName, String signPhone, String signHand);
+    /** 会员端-签约合同（签章样式 + 手写签名 + 独立签署页，签约后自动生成并关联项目） */
+    Boolean signContract(Integer uid, SvcRequests.ContractSignRequest request);
 
     /** 会员端-发送签约短信验证码 */
     Boolean sendSignCode(String phone);

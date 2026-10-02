@@ -84,15 +84,14 @@ public class SvcController {
         return CommonResult.failed("发送失败");
     }
 
-    @ApiOperation(value = "签约合同（负责人手写签名 + 短信验证，签约后自动生成项目）")
+    @ApiOperation(value = "签约合同（签章样式 + 手写签名 + 独立签署页 + 短信验证，签约后自动生成项目）")
     @RequestMapping(value = "/contract/sign", method = RequestMethod.POST)
     public CommonResult<String> signContract(@RequestBody @Validated SvcRequests.ContractSignRequest request) {
         // 短信验证开关（后台可关）
         if ("1".equals(svcService.getSetting().get("svc_sign_sms"))) {
             svcService.checkSignCode(request.getPhone(), request.getCode());
         }
-        if (svcService.signContract(currentUid(), request.getId(), request.getSignName(),
-                request.getPhone(), request.getSignImage())) {
+        if (svcService.signContract(currentUid(), request)) {
             return CommonResult.success();
         }
         return CommonResult.failed();

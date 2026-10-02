@@ -122,6 +122,15 @@ public class SvcRequests {
         @ApiModelProperty(value = "手写签名图片URL")
         @NotBlank(message = "请手写签名")
         private String signImage;
+
+        @ApiModelProperty(value = "签章样式：round=圆形标准章 oval=椭圆公章 square=方形合同章 modern=现代电子章")
+        private String sealStyle;
+
+        @ApiModelProperty(value = "电子签章图片URL（企业签约时前端用主体名称自动生成后上传）")
+        private String sealImage;
+
+        @ApiModelProperty(value = "独立签署页图片URL（签章+签字+签署日期合成后上传，附着到合同）")
+        private String signSheet;
     }
 
     @Data

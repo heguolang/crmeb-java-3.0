@@ -23,6 +23,7 @@
 | `nginx/adminqf.qianxutec.com.conf` | 同上 |
 | `nginx/appqf.qianxutec.com.conf` | 同上 |
 | `local-service.sh` | （仅本地 macOS，admin 18080 / front 18081） |
+| `build-h5.sh` | （仅本地）会员端 H5 生产构建，产物落 `/tmp/qifu-h5-build` |
 | `线上部署说明-182.md` | 完整部署过程与全部坑位 |
 | `部署说明.md` | 本地 macOS 环境部署说明 |
 

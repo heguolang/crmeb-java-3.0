@@ -32,6 +32,16 @@ public class SvcContract implements Serializable {
     public static final Integer STATUS_SIGNED = 1;      // 已签约
     public static final Integer STATUS_REJECT = 2;      // 已驳回
 
+    /** 签约主体 */
+    public static final Integer PARTY_COMPANY = 1;      // 企业
+    public static final Integer PARTY_PERSON = 2;       // 个人
+
+    /** 签章样式（电子签章） */
+    public static final String SEAL_ROUND = "round";    // 圆形标准章
+    public static final String SEAL_OVAL = "oval";      // 椭圆公章
+    public static final String SEAL_SQUARE = "square";  // 方形合同章
+    public static final String SEAL_MODERN = "modern";  // 现代电子章
+
     @ApiModelProperty(value = "主键")
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
@@ -74,6 +84,15 @@ public class SvcContract implements Serializable {
 
     @ApiModelProperty(value = "签章位置：left/center/right（独立签署区内的排版位置）")
     private String sealPos;
+
+    @ApiModelProperty(value = "签章样式：round=圆形标准章 oval=椭圆公章 square=方形合同章 modern=现代电子章")
+    private String sealStyle;
+
+    @ApiModelProperty(value = "电子签章图片URL（用签约主体名称自动生成）")
+    private String sealImage;
+
+    @ApiModelProperty(value = "独立签署页图片URL（签章+签字+签署日期，附着到合同）")
+    private String signSheet;
 
     @ApiModelProperty(value = "状态：0=待签约 1=已签约 2=已驳回")
     private Integer status;
