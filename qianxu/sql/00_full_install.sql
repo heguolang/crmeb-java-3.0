@@ -23372,13 +23372,17 @@ INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu
 SELECT m.id, '运营大数据', 's-data', '', '/market/screen/operation', 'C', 1, 1, 0
 FROM `eb_system_menu` m
 WHERE m.component = '/market/screen' AND m.menu_type = 'M' AND m.is_delte = 0
-  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/market/screen/operation' AND `is_delte` = 0);
+  -- ⚠️ 2026-10-02：守卫不能带 `is_delte = 0`。该行被 09-30 聚合页补丁软删后守卫即失配，
+  --    每次执行都会插入新行 → 两个独立栏目「复活」（现象：侧边栏又出现「运营大数据」）。
+  --    改为「只要该 component 存在任意一行（含已软删）就不插」，配合上面 2d 去重规则稳定收敛。
+  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/market/screen/operation');
 
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
 SELECT m.id, '市场大数据', 'data-board', '', '/market/screen/market', 'C', 2, 1, 0
 FROM `eb_system_menu` m
 WHERE m.component = '/market/screen' AND m.menu_type = 'M' AND m.is_delte = 0
-  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/market/screen/market' AND `is_delte` = 0);
+  -- ⚠️ 同上，去掉 `is_delte = 0`（2026-10-02）
+  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/market/screen/market');
 
 SELECT 'upgrade_20260928_data_screen done' AS result;
 -- ========== END: upgrade_20260928_data_screen.sql ==========
@@ -23900,6 +23904,41 @@ UPDATE `eb_system_menu`
  WHERE `id` = 731;
 -- 2) 旧的「运营大数据」「市场大数据」子菜单下线（软删）
 UPDATE `eb_system_menu` SET `is_delte` = 1, `update_time` = NOW() WHERE `id` IN (729, 730);
+
+
+-- ============================================================
+-- 补丁：大屏菜单收敛修正 +「大数据中心」图标（2026-10-02）
+-- 背景：上面 09-30 的聚合页补丁按**固定 id** 软删 729/730，而 09-28 的补丁用
+--       NOT EXISTS(component='/market/screen/operation' AND is_delte=0) 判断，
+--       行被软删后下次执行会以**新 id** 重新插入 → 两个独立栏目「复活」。
+--       （2026-10-02 本地重跑增量脚本时复现：插入了 id 761/762）
+--       此处按 component 幂等收敛，任何 id 都能压住。
+-- 幂等：可重复执行
+-- ============================================================
+-- 1) 独立栏目「运营大数据」「市场大数据」下线（按 component，不按 id）
+UPDATE `eb_system_menu`
+   SET `is_delte` = 1, `update_time` = NOW()
+ WHERE `component` IN ('/market/screen/operation', '/market/screen/market')
+   AND `is_delte` = 0;
+
+-- 2)「大数据中心」补图标（原为空 → 侧边栏显示不出图标）
+--    s-data 是项目里已验证能渲染的图标（数据中心大屏在用）
+UPDATE `eb_system_menu`
+   SET `icon` = 's-data', `update_time` = NOW()
+ WHERE `component` = '/market/screen/hub' AND `menu_type` = 'C' AND `is_delte` = 0;
+
+
+-- ============================================================
+-- 补丁：「佣金记录」「团队奖记录」菜单下线（2026-09-30）
+-- 早期已在线上库直接 is_show=0 隐藏，但未同步本地与脚本，
+-- 导致本地环境菜单「财务」下重新出现。此处按 component 幂等对齐。
+-- 注：原只在 01_increment.sql 里有，2026-10-02 补入全量脚本，避免两边对不上。
+-- 幂等：可重复执行
+-- ============================================================
+UPDATE `eb_system_menu`
+   SET `is_show` = 0, `update_time` = NOW()
+ WHERE `component` IN ('/financial/brokerage', '/distribution/teamBrokerageRecord')
+   AND `name` IN ('佣金记录', '团队奖记录');
 
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'QIANXU 00_full_install done' AS result;
