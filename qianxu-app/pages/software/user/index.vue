@@ -149,6 +149,10 @@ export default {
       .then((res) => {
         this.config = res.data || {};
         this.navMode = this.config.navMode !== false;
+        // 后台关闭「软件开发会员中心」后，访问该页自动回归商城会员中心
+        if (!this.config.userMode) {
+          uni.switchTab({ url: '/pages/user/index' });
+        }
       })
       .catch(() => {});
   },

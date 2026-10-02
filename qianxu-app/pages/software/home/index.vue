@@ -167,6 +167,10 @@ export default {
         .then((res) => {
           this.config = res.data || {};
           this.navMode = this.config.navMode !== false;
+          // 后台关闭「软件开发首页设为商城主页」后，访问软件首页自动回归商城主题
+          if (!this.config.homeMode) {
+            uni.switchTab({ url: '/pages/index/index' });
+          }
         })
         .catch(() => {});
     },
