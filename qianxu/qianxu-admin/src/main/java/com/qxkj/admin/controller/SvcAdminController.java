@@ -59,11 +59,12 @@ public class SvcAdminController {
     }
 
     @PreAuthorize("hasAuthority('admin:svc:contract:save')")
-    @ApiOperation(value = "保存合同（新增/修改）")
+    @ApiOperation(value = "保存合同（新增/修改），返回合同 ID")
     @RequestMapping(value = "/contract/save", method = RequestMethod.POST)
     public CommonResult<String> saveContract(@RequestBody @Validated SvcRequests.ContractSaveRequest request) {
-        if (svcService.saveContract(request)) {
-            return CommonResult.success();
+        Integer id = svcService.saveContract(request);
+        if (id != null) {
+            return CommonResult.success(String.valueOf(id));
         }
         return CommonResult.failed();
     }
@@ -111,11 +112,21 @@ public class SvcAdminController {
         response.getOutputStream().flush();
     }
 
+    @PreAuthorize("hasAuthority('admin:svc:contract:list')")
+    @ApiOperation(value = "读取乙方（黔序）签约方默认值（新建合同时自动带出）")
+    @RequestMapping(value = "/contract/our-default/get", method = RequestMethod.GET)
+    public CommonResult<HashMap<String, Object>> ourDefault() {
+        return CommonResult.success(svcService.ourDefault());
+    }
+
     @PreAuthorize("hasAuthority('admin:svc:contract:save')")
-    @ApiOperation(value = "乙方（黔序）一键用印：按设定位置把乙方公章/法人签字/日期合成进正文 PDF")
-    @RequestMapping(value = "/contract/our-stamp", method = RequestMethod.POST)
-    public CommonResult<HashMap<String, Object>> ourStamp(@RequestParam Integer id) {
-        return CommonResult.success(svcService.ourStamp(id));
+    @ApiOperation(value = "保存乙方（黔序）签约方默认值：会员账号 + 名称/信用代码/法人/电话/地址")
+    @RequestMapping(value = "/contract/our-default/save", method = RequestMethod.POST)
+    public CommonResult<String> saveOurDefault(@RequestBody @Validated SvcRequests.ContractOurDefaultRequest request) {
+        if (svcService.saveOurDefault(request)) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
     }
 
     // ==================== 项目进度 ====================

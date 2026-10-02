@@ -29,9 +29,13 @@ export function svcContractPrepareApi(id) {
 export function svcContractLayoutSaveApi(data) {
   return request({ url: '/admin/svc/contract/layout/save', method: 'post', data });
 }
-/** 乙方（黔序）一键用印：按设定位置把乙方公章/法人签字/日期合成进正文 PDF */
-export function svcContractOurStampApi(id) {
-  return request({ url: '/admin/svc/contract/our-stamp', method: 'post', params: { id } });
+/** 读取乙方（黔序）签约方默认值（新建合同时自动带出） */
+export function svcContractOurDefaultApi() {
+  return request({ url: '/admin/svc/contract/our-default/get', method: 'get' });
+}
+/** 保存乙方（黔序）签约方默认值：会员账号 + 名称/信用代码/法人/电话/地址 */
+export function svcContractOurDefaultSaveApi(data) {
+  return request({ url: '/admin/svc/contract/our-default/save', method: 'post', data });
 }
 
 /**

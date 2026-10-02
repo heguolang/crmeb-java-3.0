@@ -5548,3 +5548,71 @@ SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=
 PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ========== END: upgrade_20261002_contract_cust_seal.sql ==========
+
+-- ========== BEGIN: upgrade_20261002_contract_dual_sign.sql ==========
+-- ============================================================
+-- 补丁：合同「甲乙双方各自登录 H5 签署」（2026-10-02 第七批）
+-- 说明：签署由「后台代甲方用印 + 客户单向签」改为「双方各自持会员账号登录 H5 各签一次」。
+--       ① 后台新增「乙方（黔序）会员账号」→ 新增 our_uid
+--       ② 甲方签约方信息补齐 4 项（此前只有 party_name 一个）→ cust_code/cust_legal/cust_phone/cust_addr
+--       ③ 甲方签署后的中间件（乙方签署时的底稿）→ cust_stamped_file/cust_stamped_name
+--       ④ 乙方签署人姓名 → our_signer
+--       公章/签字图沿用既有列，不新增：
+--         甲方 = sign_hand(手写签名) + cust_seal(圆形公章) + sign_name/sign_time
+--         乙方 = our_sign(手写签名) + our_seal(圆形公章) + our_signed_at
+--       双方齐备 → 服务端自动合成正式合同，写入 signed_file。
+-- 幂等：可重复执行
+-- ============================================================
+SET @db = DATABASE();
+
+-- 1. 乙方（黔序）签署会员账号UID
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_uid')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_uid int NOT NULL DEFAULT 0 COMMENT ''乙方（黔序）签署会员账号UID'' AFTER uid', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 2. 甲方统一社会信用代码
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='cust_code')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN cust_code varchar(32) NOT NULL DEFAULT '''' COMMENT ''甲方统一社会信用代码'' AFTER party_name', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3. 甲方法定代表人
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='cust_legal')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN cust_legal varchar(30) NOT NULL DEFAULT '''' COMMENT ''甲方法定代表人'' AFTER cust_code', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 4. 甲方联系电话
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='cust_phone')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN cust_phone varchar(20) NOT NULL DEFAULT '''' COMMENT ''甲方联系电话'' AFTER cust_legal', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 5. 甲方联系地址
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='cust_addr')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN cust_addr varchar(120) NOT NULL DEFAULT '''' COMMENT ''甲方联系地址'' AFTER cust_phone', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 6. 乙方（黔序）签署人姓名
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_signer')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_signer varchar(50) NOT NULL DEFAULT '''' COMMENT ''乙方（黔序）签署人姓名'' AFTER our_sign', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 7. 甲方已签署的 PDF（乙方签署时的底稿）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='cust_stamped_file')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN cust_stamped_file varchar(500) NOT NULL DEFAULT '''' COMMENT ''甲方已签署的PDF的URL（乙方签署时的底稿）'' AFTER our_stamped_name', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 8. 甲方已签署 PDF 的文件名
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='cust_stamped_name')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN cust_stamped_name varchar(255) NOT NULL DEFAULT '''' COMMENT ''甲方已签署PDF的文件名'' AFTER cust_stamped_file', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 9. 语义修正：our_signed_at 由「乙方用印时间」改为「乙方签署时间」（仅注释，幂等）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_signed_at' AND COLUMN_COMMENT='乙方用印时间')>0,
+  'ALTER TABLE eb_svc_contract MODIFY COLUMN our_signed_at datetime NULL COMMENT ''乙方（黔序）签署时间''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 10. 语义修正：cust_seal 由「后台预设」改为「甲方签署时生成的圆形公章」
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='cust_seal' AND COLUMN_COMMENT LIKE '%后台预设%')>0,
+  'ALTER TABLE eb_svc_contract MODIFY COLUMN cust_seal varchar(500) NOT NULL DEFAULT '''' COMMENT ''甲方（客户）圆形公章图片URL（签署时按签约方名称生成）''', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ========== END: upgrade_20261002_contract_dual_sign.sql ==========

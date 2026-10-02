@@ -40,6 +40,17 @@ public interface ContractDocService {
     int pageCount(String pdfUrl);
 
     /**
+     * 按签约方名称生成一颗「圆形标准公章」PNG（服务端 Java2D 绘制），返回相对 URL。
+     *
+     * 用途：甲方（客户）的公章不再由后台预设、也不需要客户在 H5 上传 —— 签署时服务端
+     * 直接按合同里的甲方主体名称画一颗圆章盖上去；乙方同理。
+     *
+     * @param companyName 签约方名称（企业全称）
+     * @return 生成的 PNG 相对 URL（qianxuimage/public/contract/...）
+     */
+    String makeRoundSeal(String companyName);
+
+    /**
      * 把 PDF 的某一页渲染成 PNG，供后台「用印位置设置」当底图。
      *
      * @param pdfUrl   正文 PDF 相对 URL

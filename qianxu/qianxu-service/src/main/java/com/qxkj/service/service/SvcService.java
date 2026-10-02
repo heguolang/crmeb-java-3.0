@@ -25,8 +25,8 @@ public interface SvcService extends IService<SvcProject> {
     /** 后台-合同详情（不做归属校验） */
     SvcContract adminContractInfo(Integer id);
 
-    /** 后台-保存合同（新增/修改） */
-    Boolean saveContract(SvcRequests.ContractSaveRequest request);
+    /** 后台-保存合同（新增/修改），返回合同 ID（失败返回 null） */
+    Integer saveContract(SvcRequests.ContractSaveRequest request);
 
     /** 后台-删除合同 */
     Boolean deleteContract(Integer id);
@@ -40,8 +40,11 @@ public interface SvcService extends IService<SvcProject> {
     /** 后台-把合同正文某页渲染成 PNG，供「用印位置设置」当底图 */
     byte[] renderContractPage(Integer id, int pageNo, int maxWidth);
 
-    /** 后台-乙方（黔序）用印：按布局把乙方公章/签字/日期盖到正文，生成待客户签署的 PDF */
-    HashMap<String, Object> ourStamp(Integer id);
+    /** 后台-读取乙方（黔序）签约方默认值，新建合同时自动带出 */
+    HashMap<String, Object> ourDefault();
+
+    /** 后台-保存乙方（黔序）签约方默认值（our_uid + 5 项信息），存 eb_system_config */
+    Boolean saveOurDefault(SvcRequests.ContractOurDefaultRequest request);
 
     /** 后台-项目分页列表 */
     CommonPage<SvcProject> adminProjectList(Integer uid, String keywords, Integer status, PageParamRequest page);
@@ -81,13 +84,13 @@ public interface SvcService extends IService<SvcProject> {
     /** 前台-客户案例列表（免登录） */
     List<SvcCase> frontCaseList(Integer limit);
 
-    /** 会员端-我的合同分页列表 */
+    /** 会员端-我的合同分页列表（uid 命中 uid=甲方 或 our_uid=乙方，带角色标记） */
     CommonPage<SvcContract> myContractList(Integer uid, Integer status, PageParamRequest page);
 
-    /** 会员端-合同详情（校验归属） */
+    /** 会员端-合同详情（甲方或乙方均可访问，带角色标记与双方签署进度） */
     SvcContract myContractDetail(Integer uid, Integer id);
 
-    /** 会员端-签约合同（签章样式 + 手写签名 + 独立签署页，签约后自动生成并关联项目） */
+    /** 会员端-签署合同（按登录账号自动判定甲/乙方；双方齐备时自动合成正式合同） */
     Boolean signContract(Integer uid, SvcRequests.ContractSignRequest request);
 
     /** 会员端-发送签约短信验证码 */

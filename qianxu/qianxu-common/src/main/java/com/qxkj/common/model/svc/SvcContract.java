@@ -49,8 +49,11 @@ public class SvcContract implements Serializable {
     @ApiModelProperty(value = "合同编号")
     private String contractNo;
 
-    @ApiModelProperty(value = "会员UID")
+    @ApiModelProperty(value = "会员UID（甲方：签约客户）")
     private Integer uid;
+
+    @ApiModelProperty(value = "乙方（黔序）签署会员账号UID，为 0 表示未指定")
+    private Integer ourUid;
 
     @ApiModelProperty(value = "关联项目ID（签约后自动生成）")
     private Integer projectId;
@@ -66,6 +69,18 @@ public class SvcContract implements Serializable {
 
     @ApiModelProperty(value = "签约主体名称（企业名称/个人姓名）")
     private String partyName;
+
+    @ApiModelProperty(value = "甲方统一社会信用代码")
+    private String custCode;
+
+    @ApiModelProperty(value = "甲方法定代表人")
+    private String custLegal;
+
+    @ApiModelProperty(value = "甲方联系电话")
+    private String custPhone;
+
+    @ApiModelProperty(value = "甲方联系地址")
+    private String custAddr;
 
     @ApiModelProperty(value = "合同内容")
     private String content;
@@ -111,25 +126,34 @@ public class SvcContract implements Serializable {
     @ApiModelProperty(value = "乙方法定代表人签字图片URL")
     private String ourSign;
 
-    @ApiModelProperty(value = "甲方（客户）公章图片URL（后台预设，可为空；为空时由客户现场生成）")
+    @ApiModelProperty(value = "乙方（黔序）签署人姓名")
+    private String ourSigner;
+
+    @ApiModelProperty(value = "甲方（客户）圆形公章图片URL（签署时按签约方名称生成）")
     private String custSeal;
 
-    @ApiModelProperty(value = "乙方用印时间")
+    @ApiModelProperty(value = "乙方（黔序）签署时间")
     private Date ourSignedAt;
 
-    @ApiModelProperty(value = "乙方已用印的 PDF 的 URL（客户签署时的底稿）")
+    @ApiModelProperty(value = "乙方单方签署版 PDF 的 URL（原稿+乙方章签，供乙方签完立刻查看）")
     private String ourStampedFile;
 
-    @ApiModelProperty(value = "乙方已用印 PDF 的文件名")
+    @ApiModelProperty(value = "乙方单方签署版 PDF 的文件名")
     private String ourStampedName;
 
-    @ApiModelProperty(value = "双方签署完成的成品 PDF 的 URL（带双方公章与签字）")
+    @ApiModelProperty(value = "甲方单方签署版 PDF 的 URL（原稿+甲方章签，供甲方签完立刻查看）")
+    private String custStampedFile;
+
+    @ApiModelProperty(value = "甲方单方签署版 PDF 的文件名")
+    private String custStampedName;
+
+    @ApiModelProperty(value = "双方签署完成的正式合同 PDF 的 URL（带双方圆形公章与双方签字）")
     private String signedFile;
 
-    @ApiModelProperty(value = "成品 PDF 的文件名")
+    @ApiModelProperty(value = "正式合同 PDF 的文件名")
     private String signedFileName;
 
-    @ApiModelProperty(value = "成品 PDF 的 sha256（存证）")
+    @ApiModelProperty(value = "正式合同 PDF 的 sha256（存证）")
     private String fileHash;
 
     @ApiModelProperty(value = "签字/签章所在合同图片页码（1开始，0=最后一页；文件模式下不再使用，仅兼容旧数据）")
@@ -156,16 +180,16 @@ public class SvcContract implements Serializable {
     @ApiModelProperty(value = "驳回原因")
     private String rejectReason;
 
-    @ApiModelProperty(value = "签约负责人姓名（手写人）")
+    @ApiModelProperty(value = "甲方签署人姓名（手写人）")
     private String signName;
 
-    @ApiModelProperty(value = "签约负责人手机号")
+    @ApiModelProperty(value = "甲方签署人手机号")
     private String signPhone;
 
-    @ApiModelProperty(value = "手写签名图片URL")
+    @ApiModelProperty(value = "甲方手写签名图片URL")
     private String signHand;
 
-    @ApiModelProperty(value = "签约时间")
+    @ApiModelProperty(value = "甲方签署时间")
     private Date signTime;
 
     @ApiModelProperty(value = "备注")
@@ -180,13 +204,37 @@ public class SvcContract implements Serializable {
     @ApiModelProperty(value = "是否删除")
     private Integer isDel;
 
-    @ApiModelProperty(value = "会员昵称")
+    @ApiModelProperty(value = "会员昵称（甲方）")
     @TableField(exist = false)
     private String nickname;
 
-    @ApiModelProperty(value = "会员手机号")
+    @ApiModelProperty(value = "会员手机号（甲方）")
     @TableField(exist = false)
     private String phone;
+
+    @ApiModelProperty(value = "乙方会员昵称")
+    @TableField(exist = false)
+    private String ourNickname;
+
+    @ApiModelProperty(value = "乙方会员手机号")
+    @TableField(exist = false)
+    private String ourPhoneNo;
+
+    @ApiModelProperty(value = "当前登录者在合同中的角色：cust=甲方 our=乙方（会员端返回）")
+    @TableField(exist = false)
+    private String myRole;
+
+    @ApiModelProperty(value = "甲方是否已签署（派生字段）")
+    @TableField(exist = false)
+    private Boolean custSigned;
+
+    @ApiModelProperty(value = "乙方是否已签署（派生字段）")
+    @TableField(exist = false)
+    private Boolean ourSigned;
+
+    @ApiModelProperty(value = "双方是否已签完、正式合同是否已生成（派生字段）")
+    @TableField(exist = false)
+    private Boolean finished;
 
     @ApiModelProperty(value = "进度记录（详情用）")
     @TableField(exist = false)

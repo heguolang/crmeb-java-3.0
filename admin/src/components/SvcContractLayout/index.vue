@@ -11,12 +11,25 @@
   >
     <div v-loading="loading" element-loading-text="正在生成合同正文预览，请稍候...">
       <div class="ly-bar">
+        <span class="ly-group ly-group--a">甲方 · 客户</span>
         <el-button-group>
           <el-button
-            v-for="t in palette"
+            v-for="t in groupItems('a')"
             :key="t.type"
             size="mini"
-            :type="hasType(t.type) ? 'info' : 'default'"
+            :type="hasType(t.type) ? 'warning' : 'default'"
+            :plain="!hasType(t.type)"
+            @click="addItem(t)"
+          >{{ t.label }}</el-button>
+        </el-button-group>
+        <span class="ly-gap" />
+        <span class="ly-group ly-group--b">乙方 · 黔序</span>
+        <el-button-group>
+          <el-button
+            v-for="t in groupItems('b')"
+            :key="t.type"
+            size="mini"
+            :type="hasType(t.type) ? 'primary' : 'default'"
             :plain="!hasType(t.type)"
             @click="addItem(t)"
           >{{ t.label }}</el-button>
@@ -49,8 +62,8 @@
             </div>
           </div>
           <div class="ly-hint">
-            在合同页面上拖拽摆放公章 / 签字 / 日期；拖右下角小方块缩放。
-            位置按百分比保存，与分辨率无关；保存后即用于生成成品合同。
+            点按钮把<b>公章 / 签字</b>摆到合同页面上，拖右下角小方块缩放；位置按百分比保存，与分辨率无关。
+            <b>日期不用摆</b>——双方各自在会员端签署时自动带在签字下方。公章由系统按签约方名称自动生成圆形章，无需上传。
           </div>
         </div>
 
@@ -103,12 +116,10 @@
 import { svcContractPageObjectUrl, svcContractLayoutSaveApi, releaseObjectUrl } from '@/api/enterprise';
 
 const PALETTE = [
-  { type: 'ourSeal', label: '乙方公章', w: 13, h: 13, tilt: -4 },
-  { type: 'ourSign', label: '乙方法人签字', w: 16, h: 7, tilt: 0 },
-  { type: 'ourDate', label: '乙方日期', w: 18, h: 3.6, tilt: 0 },
-  { type: 'custSeal', label: '客户公章', w: 13, h: 13, tilt: 5 },
-  { type: 'custSign', label: '客户签字', w: 16, h: 7, tilt: 0 },
-  { type: 'custDate', label: '客户日期', w: 18, h: 3.6, tilt: 0 }
+  { type: 'custSeal', label: '甲方公章', group: 'a', w: 13, h: 13, tilt: 5 },
+  { type: 'custSign', label: '甲方签字', group: 'a', w: 16, h: 7, tilt: 0 },
+  { type: 'ourSeal', label: '乙方公章', group: 'b', w: 13, h: 13, tilt: -4 },
+  { type: 'ourSign', label: '乙方签字', group: 'b', w: 16, h: 7, tilt: 0 }
 ];
 
 let uidSeed = 1;
@@ -159,6 +170,9 @@ export default {
   methods: {
     open() {
       this.show = true;
+    },
+    groupItems(group) {
+      return PALETTE.filter((t) => t.group === group);
     },
     onOpen() {
       this.items = this.parseLayout(this.layout);
@@ -377,6 +391,9 @@ export default {
 <style scoped lang="scss">
 .ly-bar { display: flex; align-items: center; flex-wrap: wrap; padding-bottom: 8px; }
 .ly-gap { display: inline-block; width: 14px; }
+.ly-group { font-size: 12px; font-weight: 600; margin-right: 6px; }
+.ly-group--a { color: #b88230; }
+.ly-group--b { color: #1f5f9e; }
 .ly-page { margin: 0 8px; font-size: 12px; color: #606266; }
 
 .ly-body { display: flex; gap: 12px; align-items: flex-start; }

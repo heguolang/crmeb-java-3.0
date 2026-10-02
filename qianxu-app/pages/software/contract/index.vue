@@ -16,6 +16,12 @@
             <view class="ct-status" :class="'st-' + c.status">{{ statusText(c.status) }}</view>
           </view>
           <view class="ct-no">编号 {{ c.contractNo }}</view>
+          <view class="ct-prog">
+            <text class="prog-chip" :class="c.custSigned ? 'is-ok' : 'is-wait'">甲方{{ c.custSigned ? '✓' : '…' }}</text>
+            <text class="prog-chip" :class="c.ourSigned ? 'is-ok' : 'is-wait'">乙方{{ c.ourSigned ? '✓' : '…' }}</text>
+            <text v-if="c.finished" class="prog-chip is-done">正式合同</text>
+            <text v-if="c.myRole" class="prog-chip is-mine">{{ c.myRole === 'cust' ? '我是甲方' : '我是乙方' }}</text>
+          </view>
           <view class="ct-foot">
             <text class="ct-amount">¥{{ c.amount }}</text>
             <text class="ct-time">{{ fmtTime(c.signTime || c.createTime) }}</text>
@@ -98,6 +104,15 @@ export default {
 .ct-status.st-1 { background: #16a34a; }
 .ct-status.st-2 { background: #ef4444; }
 .ct-no { font-size: 22rpx; color: #9aa4b2; margin-top: 12rpx; }
+.ct-prog { display: flex; align-items: center; margin-top: 14rpx; }
+.prog-chip {
+  font-size: 20rpx; line-height: 34rpx; padding: 0 14rpx;
+  border-radius: 18rpx; border: 1rpx solid; margin-right: 12rpx;
+}
+.prog-chip.is-ok { color: #1f8a4c; background: #eefaf1; border-color: #bfe6cd; }
+.prog-chip.is-wait { color: #b8781f; background: #fff7ec; border-color: #f3d19e; }
+.prog-chip.is-done { color: #1d6bf3; background: #ecf5ff; border-color: #d9ecff; }
+.prog-chip.is-mine { color: #5a6675; background: #f2f4f8; border-color: #dfe5ee; margin-right: 0; }
 .ct-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 18rpx; }
 .ct-amount { font-size: 32rpx; font-weight: 700; color: #1d6bf3; }
 .ct-time { font-size: 22rpx; color: #9aa4b2; }

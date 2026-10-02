@@ -97,6 +97,47 @@ public class SvcRequests {
 
         @ApiModelProperty(value = "甲方（客户）公章图片URL（后台预设，可为空）")
         private String custSeal;
+
+        // ==================== 双方各自登录 H5 签署（2026-10-02 第七批） ====================
+
+        @ApiModelProperty(value = "乙方（黔序）签署会员账号UID")
+        private Integer ourUid;
+
+        @ApiModelProperty(value = "甲方统一社会信用代码")
+        private String custCode;
+
+        @ApiModelProperty(value = "甲方法定代表人")
+        private String custLegal;
+
+        @ApiModelProperty(value = "甲方联系电话")
+        private String custPhone;
+
+        @ApiModelProperty(value = "甲方联系地址")
+        private String custAddr;
+    }
+
+    @Data
+    @ApiModel(value = "SvcContractOurDefaultRequest对象", description = "乙方（黔序）签约方默认值")
+    public static class ContractOurDefaultRequest implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        @ApiModelProperty(value = "乙方（黔序）签署会员账号UID")
+        private Integer ourUid;
+
+        @ApiModelProperty(value = "乙方（黔序）签约方名称")
+        private String ourCompany;
+
+        @ApiModelProperty(value = "乙方统一社会信用代码")
+        private String ourCode;
+
+        @ApiModelProperty(value = "乙方法定代表人")
+        private String ourLegal;
+
+        @ApiModelProperty(value = "乙方联系电话")
+        private String ourPhone;
+
+        @ApiModelProperty(value = "乙方地址")
+        private String ourAddr;
     }
 
     @Data

@@ -24,11 +24,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -242,6 +245,125 @@ public class ContractDocServiceImpl implements ContractDocService {
         } catch (Exception e) {
             logger.error("渲染 PDF 页面失败：{}", e.getMessage(), e);
             throw new QianxuException("渲染合同页面失败：" + e.getMessage());
+        }
+    }
+
+    // ============================================================
+    // ②.5 生成圆形标准公章
+    // ============================================================
+
+    /** 公章朱红（用户 2026-10-02 提供样章：贵州就业集团有限公司圆形章） */
+    private static final Color SEAL_RED = new Color(0xD4, 0x25, 0x1E);
+
+    @Override
+    public String makeRoundSeal(String companyName) {
+        BufferedImage img = renderRoundSeal(companyName);
+        Output out = newOutput("png");
+        try {
+            ImageIO.write(img, "png", out.file);
+        } catch (Exception e) {
+            out.file.delete();
+            logger.error("生成电子公章失败：{}", e.getMessage(), e);
+            throw new QianxuException("生成电子公章失败：" + e.getMessage());
+        }
+        return out.relativeUrl;
+    }
+
+    /**
+     * 纯绘制：按签约方名称画一颗圆形标准公章（透明底 PNG，480×480）。
+     * 版式对齐用户提供的样章：单圈粗环 + 中心五角星 + 上半圆环排企业名 + 下半圆弧排「合同专用章」。
+     * 不依赖 Spring，便于单独出图核对版式。
+     */
+    public static BufferedImage renderRoundSeal(String companyName) {
+        String name = StrUtil.isBlank(companyName) ? "" : companyName.trim();
+        if (name.isEmpty()) {
+            throw new QianxuException("缺少签约方名称，无法生成电子公章");
+        }
+        int size = 480;
+        float cx = size / 2f;
+        float cy = size / 2f;
+        BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        try {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            g.setColor(SEAL_RED);
+            // 单圈粗外环
+            g.setStroke(new BasicStroke(11f));
+            g.draw(new Ellipse2D.Float(cx - 190, cy - 190, 380, 380));
+            // 中心五角星
+            g.fill(star(cx, cy - 18, 50));
+            // 环排企业名称：上半圆、从左到右；跨度随字数自适应（每字约 36px，最多 150°）
+            float nameR = 158f;
+            int n = name.length();
+            double spanDeg = Math.min(150, Math.toDegrees(n * 36.0 / nameR));
+            drawArcText(g, name, cx, cy, nameR,
+                    (float) (90 + spanDeg / 2), (float) (90 - spanDeg / 2), false);
+            // 下半圆弧排「合同专用章」
+            drawArcText(g, "合同专用章", cx, cy, 142f, 240f, 300f, true);
+        } finally {
+            g.dispose();
+        }
+        return img;
+    }
+
+    /** 五角星（内接/外接半径交替的 10 点闭合路径） */
+    private static Path2D star(float cx, float cy, float r) {
+        Path2D p = new Path2D.Float();
+        for (int i = 0; i < 10; i++) {
+            double rr = (i % 2 == 0) ? r : r * 0.382;
+            double a = -Math.PI / 2 + i * Math.PI / 5;
+            float x = (float) (cx + rr * Math.cos(a));
+            float y = (float) (cy - rr * Math.sin(a));
+            if (i == 0) {
+                p.moveTo(x, y);
+            } else {
+                p.lineTo(x, y);
+            }
+        }
+        p.closePath();
+        return p;
+    }
+
+    /**
+     * 沿圆弧把文字逐字排开。
+     *
+     * 角度用「数学角」表述：0° 指向右、90° 指向**屏幕上方**（定位时 y 取 cy - r·sinA）。
+     *  · 上半圆（bottomArc=false）：角度从 90°+span 递减到 90°-span，从左排到右；
+     *    旋转量 φ = 90° - A，字头朝圆外（A=90° 正上方时不旋转，A 大（左侧）时逆时针）。
+     *  · 下半圆（bottomArc=true）：角度从 270°-span 增到 270°+span，从左排到右；
+     *    旋转量 φ = A - 270°，整行呈「微笑」弧、两端字小幅外扇（与样章一致）。
+     */
+    private static void drawArcText(Graphics2D g, String text, float cx, float cy,
+                                    float radius, float a0deg, float a1deg, boolean bottomArc) {
+        int n = text.length();
+        if (n == 0) {
+            return;
+        }
+        double a0 = Math.toRadians(a0deg);
+        double span = Math.toRadians(a1deg - a0deg);
+        double perChar = radius * Math.abs(span) / n;
+        float fs = (float) Math.min(46, Math.max(15, perChar * 0.98));
+        Font f = cjkFont().deriveFont(Font.PLAIN, fs);
+        g.setFont(f);
+        FontMetrics fm = g.getFontMetrics(f);
+        float baseline = (fm.getAscent() - fm.getDescent()) / 2f;
+        for (int i = 0; i < n; i++) {
+            double a = a0 + span * (i + 0.5) / n;
+            float px = (float) (cx + radius * Math.cos(a));
+            float py = (float) (cy - radius * Math.sin(a));
+            double adeg = Math.toDegrees(a);
+            float rot = (float) Math.toRadians(bottomArc ? (adeg - 270) : (90 - adeg));
+            String ch = String.valueOf(text.charAt(i));
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                g2.translate(px, py);
+                g2.rotate(rot);
+                g2.drawString(ch, -fm.stringWidth(ch) / 2f, baseline);
+            } finally {
+                g2.dispose();
+            }
         }
     }
 
