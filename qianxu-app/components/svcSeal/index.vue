@@ -121,19 +121,19 @@ export default {
 }
 .seal-opt:first-child { margin-left: 0; }
 .seal-opt:last-child { margin-right: 0; }
-.seal-opt.active { border-color: #d3232f; background: #fff7f7; }
+.seal-opt.active { border-color: #c8161e; background: #fff7f7; }
 .opt-mark {
-  width: 46rpx; height: 46rpx; border: 3rpx solid #d3232f; opacity: 0.75;
+  width: 46rpx; height: 46rpx; border: 3rpx solid #c8161e; opacity: 0.75;
   display: flex; align-items: center; justify-content: center;
 }
 .mk-round { border-radius: 50%; }
 .mk-oval { border-radius: 50%; width: 58rpx; height: 38rpx; }
 .mk-square { border-radius: 4rpx; }
-.mk-modern { border-radius: 12rpx; background: #d3232f; border-color: #d3232f; opacity: 1; }
-.opt-star { font-size: 18rpx; color: #d3232f; line-height: 1; }
-.mk-modern .opt-star { color: #fff; }
+/* 现代电子章在 v2 里是圆角描边（不再是实底色块），这里跟着改，保证「选项图标 = 实际章型」 */
+.mk-modern { border-radius: 12rpx; width: 56rpx; height: 34rpx; }
+.opt-star { font-size: 18rpx; color: #c8161e; line-height: 1; }
 .opt-name { font-size: 20rpx; color: #5a6675; margin-top: 10rpx; }
-.seal-opt.active .opt-name { color: #d3232f; font-weight: 600; }
+.seal-opt.active .opt-name { color: #c8161e; font-weight: 600; }
 
 /* 预览 */
 .seal-preview {

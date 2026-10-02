@@ -26,6 +26,20 @@ SRC=/Users/qianxu/WorkBuddy/qianxuqifu/qianxuqifu-app
 OUT=${OUT:-/tmp/qifu-h5-build}
 LOG="${OUT%/}.log"
 
+# ---- 构建前接线预检（ref / 组件方法）----
+# 2026-10-02 事故：模板漏 ref="sealPad" 但脚本里调 this.$refs.sealPad → 点「确认签署」必炸，
+# 编译与热编译都不报错，只有客户点下去才暴露。这里做机械卡点，拦住整类问题。
+WIRE_CHECK="$HOME/.workbuddy/skills/qianxu-build-deploy/tools/h5_wiring_check.py"
+PY_BIN="${PY_BIN:-$HOME/.workbuddy/binaries/python/versions/3.13.12/bin/python3}"
+if [ -f "$WIRE_CHECK" ] && [ "${WIRING_SKIP:-0}" != "1" ]; then
+  echo "---- 接线预检（ref / 组件方法）----"
+  if ! "$PY_BIN" "$WIRE_CHECK" "$SRC"; then
+    echo "‼️ 接线检查未通过 —— 已中断构建，避免把坏包发上线。"
+    echo "   （确认可忽略时用 WIRING_SKIP=1 再跑一次）"
+    exit 1
+  fi
+fi
+
 rm -rf "$OUT" && mkdir -p "$OUT"
 
 cd "$CLI" || exit 1

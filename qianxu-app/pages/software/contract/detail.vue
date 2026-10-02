@@ -123,7 +123,7 @@
             <text class="sp-title">客户签章</text>
             <text class="sp-tip">选一款样式，用主体名称自动生成</text>
           </view>
-          <svc-seal v-model="sealStyle" :company="contract.partyName" />
+          <svc-seal ref="sealPad" v-model="sealStyle" :company="contract.partyName" />
         </view>
 
         <view class="sign-area" @click="onOpenSign">
@@ -381,9 +381,21 @@ export default {
       uni.showLoading({ title: '正在生成签署文件...', mask: true });
 
       Promise.resolve()
-        .then(() => (isCompany ? this.$refs.sealPad.toTempFile() : ''))
-        .then((sealPath) =>
-          this.$refs.sheetPad
+        .then(() => {
+          // 组件就绪校验：缺 ref / 方法不存在时给可读提示，别把原生 TypeError 弹给客户
+          if (!isCompany) return '';
+          const seal = this.$refs.sealPad;
+          if (!seal || typeof seal.toTempFile !== 'function') {
+            throw new Error('签章组件未就绪，请退出后重新进入合同页');
+          }
+          return seal.toTempFile();
+        })
+        .then((sealPath) => {
+          const sheet = this.$refs.sheetPad;
+          if (!sheet || typeof sheet.generate !== 'function') {
+            throw new Error('签署页组件未就绪，请退出后重新进入合同页');
+          }
+          return sheet
             .generate({
               title: this.contract.title,
               contractNo: this.contract.contractNo,
@@ -394,8 +406,8 @@ export default {
               signPack: this.signPack,
               dateText: this.cnDate(new Date())
             })
-            .then((sheetPath) => ({ sealPath, sheetPath }))
-        )
+            .then((sheetPath) => ({ sealPath, sheetPath }));
+        })
         .then((res) => {
           const sealTask = isCompany ? this.uploadSealFile(res.sealPath) : Promise.resolve('');
           return sealTask.then((sealUrl) =>

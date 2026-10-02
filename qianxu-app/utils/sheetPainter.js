@@ -9,6 +9,22 @@ import { paintSeal } from './sealPainter.js';
 
 const PAD = 56;
 
+/* 页码正文字族（与签章的宋体区分开：正文用无衬线，签章用宋体） */
+const SANS = '-apple-system,"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif';
+
+/**
+ * 显式设置字体。两个原因必须每次都设：
+ *   ① uni 的 ctx.font 解析只认整数 px，传小数会静默丢掉字族（退回 sans-serif）；
+ *   ② 签章绘制会把画布的 font 改成宋体字族，若不重设，后面的正文会跟着变宋体。
+ */
+function setFont(ctx, size, weight) {
+  const px = Math.max(1, Math.round(size));
+  try {
+    ctx.font = (weight ? weight + ' ' : '') + px + 'px ' + SANS;
+  } catch (e) { /* 某些端不支持 font 属性，忽略 */ }
+  ctx.setFontSize(px);
+}
+
 /** 带字距的居中标题 */
 function spaced(ctx, text, cx, y, fs, color, gap) {
   const chars = String(text).split('');
@@ -17,7 +33,7 @@ function spaced(ctx, text, cx, y, fs, color, gap) {
   ctx.setTextAlign('center');
   ctx.setTextBaseline('middle');
   ctx.setFillStyle(color);
-  ctx.setFontSize(fs);
+  setFont(ctx, fs);
   chars.forEach((ch) => {
     ctx.fillText(ch, x, y);
     x += unit;
@@ -26,12 +42,12 @@ function spaced(ctx, text, cx, y, fs, color, gap) {
 
 /** 左侧竖色条 + 区块标题 */
 function blockTitle(ctx, text, x, y, fs) {
-  ctx.setFillStyle('#d3232f');
+  ctx.setFillStyle('#c8161e');
   ctx.fillRect(x, y - fs * 0.64, 6, fs * 1.22);
   ctx.setTextAlign('left');
   ctx.setTextBaseline('middle');
   ctx.setFillStyle('#1a1a1a');
-  ctx.setFontSize(fs);
+  setFont(ctx, fs);
   ctx.fillText(text, x + 18, y);
 }
 
@@ -187,18 +203,18 @@ export function paintSheet(ctx, o, W, H) {
   let y = 186;
   wrap(data.title || '—', IN, 24, 2).forEach((ln) => {
     ctx.setFillStyle('#1a1a1a');
-    ctx.setFontSize(24);
+    setFont(ctx, 24);
     ctx.fillText(ln, PAD, y);
     y += 34;
   });
   ctx.setFillStyle('#8a94a3');
-  ctx.setFontSize(20);
+  setFont(ctx, 20);
   ctx.fillText('合同编号：' + (data.contractNo || '—'), PAD, y + 6);
   y += 42;
 
   // 说明
   ctx.setFillStyle('#5a6675');
-  ctx.setFontSize(19);
+  setFont(ctx, 19);
   wrap('以下为本合同签署要素，与合同正文具有同等法律效力。', IN, 19, 3).forEach((ln) => {
     ctx.fillText(ln, PAD, y + 14);
     y += 30;
@@ -212,20 +228,22 @@ export function paintSheet(ctx, o, W, H) {
   box(ctx, PAD, y, IN, box1);
   ctx.setTextAlign('center');
   ctx.setFillStyle('#1a1a1a');
-  ctx.setFontSize(23);
+  setFont(ctx, 23);
   ctx.fillText(clip(data.company || '—', 16), W / 2, y + 44);
   if (data.needSeal === false) {
     ctx.setFillStyle('#a8b3c4');
-    ctx.setFontSize(19);
+    setFont(ctx, 19);
     ctx.fillText('个人签约，无需盖章', W / 2, y + 130);
   } else {
     // 签章与预览用同一套笔触直接绘制（不走图片，避免画布被跨域污染）
+    // tilt：盖印时手不会端得笔直，轻微倾斜更像真章（-0.07 rad ≈ -4°）
     paintSeal(ctx, {
       style: data.sealStyle || 'round',
       size: 140,
       name: data.company,
       x: (W - 140) / 2,
-      y: y + 62
+      y: y + 62,
+      tilt: -0.07
     });
   }
   y += box1;
@@ -246,12 +264,12 @@ export function paintSheet(ctx, o, W, H) {
   if (!drawn) {
     ctx.setTextAlign('center');
     ctx.setFillStyle('#c3cad6');
-    ctx.setFontSize(18);
+    setFont(ctx, 18);
     ctx.fillText('（手写签名）', W / 2, y + 74);
   }
   ctx.setTextAlign('center');
   ctx.setFillStyle('#1a1a1a');
-  ctx.setFontSize(22);
+  setFont(ctx, 22);
   ctx.fillText('负责人：' + (data.signerName || '—'), W / 2, y + box2 - 34);
   y += box2;
 
@@ -259,7 +277,7 @@ export function paintSheet(ctx, o, W, H) {
   y += 50;
   ctx.setTextAlign('left');
   ctx.setFillStyle('#1a1a1a');
-  ctx.setFontSize(21);
+  setFont(ctx, 21);
   ctx.fillText('签署日期：' + (data.dateText || '—'), PAD, y);
 
   // ---- 页脚 ----
@@ -271,7 +289,7 @@ export function paintSheet(ctx, o, W, H) {
   ctx.stroke();
   ctx.setTextAlign('center');
   ctx.setFillStyle('#9aa4b2');
-  ctx.setFontSize(17);
+  setFont(ctx, 17);
   ctx.fillText('本签署页由系统根据合同签署数据自动生成', W / 2, H - 56);
 }
 
