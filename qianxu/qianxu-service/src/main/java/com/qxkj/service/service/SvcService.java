@@ -31,6 +31,18 @@ public interface SvcService extends IService<SvcProject> {
     /** 后台-删除合同 */
     Boolean deleteContract(Integer id);
 
+    /** 后台-把合同正文（annex 第一份）转换成 PDF 并记录页数，返回 {srcPdf, srcPdfName, pageCount} */
+    HashMap<String, Object> prepareContractPdf(Integer id);
+
+    /** 后台-保存合同用印位置布局（sign_layout JSON） */
+    Boolean saveContractLayout(Integer id, String signLayout);
+
+    /** 后台-把合同正文某页渲染成 PNG，供「用印位置设置」当底图 */
+    byte[] renderContractPage(Integer id, int pageNo, int maxWidth);
+
+    /** 后台-乙方（黔序）用印：按布局把乙方公章/签字/日期盖到正文，生成待客户签署的 PDF */
+    HashMap<String, Object> ourStamp(Integer id);
+
     /** 后台-项目分页列表 */
     CommonPage<SvcProject> adminProjectList(Integer uid, String keywords, Integer status, PageParamRequest page);
 

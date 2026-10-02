@@ -5425,3 +5425,126 @@ PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET FOREIGN_KEY_CHECKS = 1;
 SELECT 'QIANXU 01_increment done' AS result;
+
+-- ========== BEGIN: upgrade_20261002_contract_stamp.sql ==========
+-- ============================================================
+-- 补丁：合同「用印位置 + 双方电子签章」（2026-10-02 第六批）
+-- 说明：把原来的「独立签署页 PNG」升级为「按后台设定的位置，把公章/签字/日期直接合成进合同正文 PDF」。
+--       ① 后台在合同正文 PDF 上拖拽设置用印位置，存 sign_layout（百分比坐标，与分辨率无关）
+--       ② 后台填写乙方（黔序）签约方信息，预设乙方公章与法人签字图，后台一键用印
+--       ③ 会员端签署后，服务端用 PDFBox 把甲方公章+签字+日期叠到「乙方已用印件」上，输出成品 PDF
+--       ④ doc/docx/xls 正文由服务端 LibreOffice 转成 PDF 后再定位（位置设在转换产物上，吸收跑版风险）
+-- 幂等：可重复执行
+-- ============================================================
+SET @db = DATABASE();
+
+-- 1. 合同正文 PDF 的 URL（doc/docx/xls 转换产物，或原 PDF/图片）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='src_pdf')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN src_pdf varchar(500) NOT NULL DEFAULT '''' COMMENT ''合同正文 PDF 的 URL（doc/docx/xls 转换产物，或原 PDF/图片）'' AFTER annex_name', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 2. 合同正文 PDF 的文件名
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='src_pdf_name')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN src_pdf_name varchar(255) NOT NULL DEFAULT '''' COMMENT ''合同正文 PDF 的文件名'' AFTER src_pdf', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 3. 合同正文 PDF 页数
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='page_count')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN page_count int(11) NOT NULL DEFAULT 0 COMMENT ''合同正文 PDF 页数'' AFTER src_pdf_name', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 4. 用印位置布局 JSON（相对页面宽高的百分比坐标）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='sign_layout')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN sign_layout text COMMENT ''用印位置布局 JSON（相对页面宽高的百分比坐标）'' AFTER page_count', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 5. 乙方（黔序）签约方名称
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_company')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_company varchar(120) NOT NULL DEFAULT '''' COMMENT ''乙方（黔序）签约方名称'' AFTER sign_layout', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 6. 乙方统一社会信用代码
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_code')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_code varchar(64) NOT NULL DEFAULT '''' COMMENT ''乙方统一社会信用代码'' AFTER our_company', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 7. 乙方法定代表人
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_legal')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_legal varchar(60) NOT NULL DEFAULT '''' COMMENT ''乙方法定代表人'' AFTER our_code', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 8. 乙方联系电话
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_phone')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_phone varchar(32) NOT NULL DEFAULT '''' COMMENT ''乙方联系电话'' AFTER our_legal', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 9. 乙方地址
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_addr')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_addr varchar(255) NOT NULL DEFAULT '''' COMMENT ''乙方地址'' AFTER our_phone', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 10. 乙方公章图片URL
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_seal')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_seal varchar(500) NOT NULL DEFAULT '''' COMMENT ''乙方公章图片URL'' AFTER our_addr', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 11. 乙方法定代表人签字图片URL
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_sign')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_sign varchar(500) NOT NULL DEFAULT '''' COMMENT ''乙方法定代表人签字图片URL'' AFTER our_seal', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 12. 乙方用印时间
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_signed_at')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_signed_at datetime NULL DEFAULT NULL COMMENT ''乙方用印时间'' AFTER our_sign', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 13. 乙方已用印的 PDF 的 URL（客户签署时的底稿）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_stamped_file')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_stamped_file varchar(500) NOT NULL DEFAULT '''' COMMENT ''乙方已用印的 PDF 的 URL（客户签署时的底稿）'' AFTER our_signed_at', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 14. 乙方已用印 PDF 的文件名
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='our_stamped_name')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN our_stamped_name varchar(255) NOT NULL DEFAULT '''' COMMENT ''乙方已用印 PDF 的文件名'' AFTER our_stamped_file', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 15. 双方签署完成的成品 PDF 的 URL（带双方公章与签字）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='signed_file')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN signed_file varchar(500) NOT NULL DEFAULT '''' COMMENT ''双方签署完成的成品 PDF 的 URL（带双方公章与签字）'' AFTER our_stamped_name', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 16. 成品 PDF 的文件名
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='signed_file_name')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN signed_file_name varchar(255) NOT NULL DEFAULT '''' COMMENT ''成品 PDF 的文件名'' AFTER signed_file', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 17. 成品 PDF 的 sha256（存证）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='file_hash')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN file_hash varchar(64) NOT NULL DEFAULT '''' COMMENT ''成品 PDF 的 sha256（存证）'' AFTER signed_file_name', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 迁移：把已有合同的正文（annex 的第一个 PDF）回填到 src_pdf，老数据也有正文可定位
+UPDATE eb_svc_contract SET src_pdf = SUBSTRING_INDEX(annex, ',', 1),
+       src_pdf_name = SUBSTRING_INDEX(annex_name, ',', 1)
+ WHERE (src_pdf IS NULL OR src_pdf = '')
+   AND annex IS NOT NULL AND annex <> ''
+   AND LOWER(SUBSTRING_INDEX(annex, ',', 1)) LIKE '%.pdf';
+
+-- ========== END: upgrade_20261002_contract_stamp.sql ==========
+
+-- ========== BEGIN: upgrade_20261002_contract_cust_seal.sql ==========
+-- ============================================================
+-- 补丁：合同「甲方（客户）公章可后台预设」（2026-10-02 第六批补充）
+-- 说明：甲方公章支持两条路——① 后台预先上传客户公章扫描图（本字段）
+--       ② 后台没预设时，客户在会员端现场用签章生成器生成（兜底）。
+--       甲方签字必须由客户本人手写，故不提供预设。
+-- 幂等：可重复执行
+-- ============================================================
+SET @db = DATABASE();
+
+-- 1. 甲方（客户）公章图片URL（后台预设，可为空）
+SET @s = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='eb_svc_contract' AND COLUMN_NAME='cust_seal')=0,
+  'ALTER TABLE eb_svc_contract ADD COLUMN cust_seal varchar(500) NOT NULL DEFAULT '''' COMMENT ''甲方（客户）公章图片URL（后台预设，可为空）'' AFTER our_sign', 'SELECT 1');
+PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- ========== END: upgrade_20261002_contract_cust_seal.sql ==========

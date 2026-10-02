@@ -19,6 +19,7 @@ import com.qxkj.service.dao.SvcContractDao;
 import com.qxkj.service.dao.SvcProjectDao;
 import com.qxkj.service.dao.SvcProjectProgressDao;
 import com.qxkj.service.dao.UserDao;
+import com.qxkj.service.service.ContractDocService;
 import com.qxkj.service.service.SmsService;
 import com.qxkj.service.service.SvcService;
 import com.qxkj.service.service.SystemConfigService;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 企业服务实现（合同签约 + 项目进度 + 客户案例 + 服务设置）
@@ -67,6 +69,9 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
 
     @Autowired
     private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private ContractDocService contractDocService;
 
     // ==================== 私有辅助 ====================
 
@@ -144,23 +149,36 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
 
     @Override
     public Boolean saveContract(SvcRequests.ContractSaveRequest request) {
+        String annex = request.getAnnex() == null ? "" : request.getAnnex().trim();
         if (request.getId() != null && request.getId() > 0) {
             SvcContract exist = svcContractDao.selectById(request.getId());
             if (exist == null || exist.getIsDel() > 0) {
                 throw new RuntimeException("合同不存在");
             }
+            boolean annexChanged = !annex.equals(exist.getAnnex() == null ? "" : exist.getAnnex().trim());
             exist.setUid(request.getUid());
             exist.setTitle(request.getTitle());
             exist.setAmount(request.getAmount() == null ? BigDecimal.ZERO : request.getAmount());
             if (request.getPartyType() != null) exist.setPartyType(request.getPartyType());
             exist.setPartyName(request.getPartyName() == null ? "" : request.getPartyName());
-            exist.setAnnex(request.getAnnex() == null ? "" : request.getAnnex());
+            exist.setAnnex(annex);
             exist.setAnnexName(request.getAnnexName() == null ? "" : request.getAnnexName());
             exist.setSignPage(request.getSignPage() == null ? 0 : request.getSignPage());
             exist.setSignPos(request.getSignPos() == null ? "center" : request.getSignPos());
             exist.setSealPos(request.getSealPos() == null ? "center" : request.getSealPos());
             exist.setContent(request.getContent() == null ? "" : request.getContent());
             exist.setRemark(request.getRemark() == null ? "" : request.getRemark());
+            fillSignParties(exist, request);
+            if (annexChanged) {
+                // 正文换了 → 已转换的 PDF / 已设定的用印位置 / 已用印件全部作废，需重新转、重新定位
+                exist.setSrcPdf("");
+                exist.setSrcPdfName("");
+                exist.setPageCount(0);
+                exist.setSignLayout("");
+                exist.setOurStampedFile("");
+                exist.setOurStampedName("");
+                exist.setOurSignedAt(null);
+            }
             return svcContractDao.updateById(exist) > 0;
         }
         SvcContract contract = new SvcContract();
@@ -170,16 +188,38 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         contract.setAmount(request.getAmount() == null ? BigDecimal.ZERO : request.getAmount());
         contract.setPartyType(request.getPartyType() == null ? 2 : request.getPartyType());
         contract.setPartyName(request.getPartyName() == null ? "" : request.getPartyName());
-        contract.setAnnex(request.getAnnex() == null ? "" : request.getAnnex());
+        contract.setAnnex(annex);
         contract.setAnnexName(request.getAnnexName() == null ? "" : request.getAnnexName());
         contract.setSignPage(request.getSignPage() == null ? 0 : request.getSignPage());
         contract.setSignPos(request.getSignPos() == null ? "center" : request.getSignPos());
         contract.setSealPos(request.getSealPos() == null ? "center" : request.getSealPos());
         contract.setContent(request.getContent() == null ? "" : request.getContent());
         contract.setRemark(request.getRemark() == null ? "" : request.getRemark());
+        contract.setSrcPdf("");
+        contract.setSrcPdfName("");
+        contract.setPageCount(0);
+        contract.setSignLayout("");
+        contract.setOurStampedFile("");
+        contract.setOurStampedName("");
+        contract.setSignedFile("");
+        contract.setSignedFileName("");
+        contract.setFileHash("");
+        fillSignParties(contract, request);
         contract.setStatus(SvcContract.STATUS_WAIT_SIGN);
         contract.setIsDel(0);
         return svcContractDao.insert(contract) > 0;
+    }
+
+    /** 乙方（黔序）签约方信息 + 双方签章预设图，update / insert 两支共用 */
+    private void fillSignParties(SvcContract target, SvcRequests.ContractSaveRequest request) {
+        target.setOurCompany(request.getOurCompany() == null ? "" : request.getOurCompany().trim());
+        target.setOurCode(request.getOurCode() == null ? "" : request.getOurCode().trim());
+        target.setOurLegal(request.getOurLegal() == null ? "" : request.getOurLegal().trim());
+        target.setOurPhone(request.getOurPhone() == null ? "" : request.getOurPhone().trim());
+        target.setOurAddr(request.getOurAddr() == null ? "" : request.getOurAddr().trim());
+        target.setOurSeal(request.getOurSeal() == null ? "" : request.getOurSeal().trim());
+        target.setOurSign(request.getOurSign() == null ? "" : request.getOurSign().trim());
+        target.setCustSeal(request.getCustSeal() == null ? "" : request.getCustSeal().trim());
     }
 
     @Override
@@ -190,6 +230,152 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         }
         exist.setIsDel(1);
         return svcContractDao.updateById(exist) > 0;
+    }
+
+    // ==================== 后台：合同用印位置 + 双方签章 ====================
+
+    @Override
+    public HashMap<String, Object> prepareContractPdf(Integer id) {
+        SvcContract contract = mustContract(id);
+        ensureContractPdf(contract);
+        return contractMeta(contract);
+    }
+
+    @Override
+    public Boolean saveContractLayout(Integer id, String signLayout) {
+        SvcContract contract = mustContract(id);
+        contract.setSignLayout(signLayout == null ? "" : signLayout.trim());
+        return svcContractDao.updateById(contract) > 0;
+    }
+
+    @Override
+    public byte[] renderContractPage(Integer id, int pageNo, int maxWidth) {
+        SvcContract contract = mustContract(id);
+        String pdfUrl = blankToEmpty(contract.getSrcPdf());
+        if (pdfUrl.isEmpty()) {
+            pdfUrl = ensureContractPdf(contract);
+        }
+        return contractDocService.renderPagePng(pdfUrl, pageNo, maxWidth);
+    }
+
+    @Override
+    public HashMap<String, Object> ourStamp(Integer id) {
+        SvcContract contract = mustContract(id);
+        if (blankToEmpty(contract.getSrcPdf()).isEmpty()) {
+            ensureContractPdf(contract);
+        }
+        String layout = blankToEmpty(contract.getSignLayout());
+        if (layout.isEmpty()) {
+            throw new RuntimeException("请先在「用印位置设置」里拖拽设置公章/签字位置");
+        }
+        Map<String, String> imgs = new HashMap<>();
+        if (!blankToEmpty(contract.getOurSeal()).isEmpty()) {
+            imgs.put("ourSeal", contract.getOurSeal().trim());
+        }
+        if (!blankToEmpty(contract.getOurSign()).isEmpty()) {
+            imgs.put("ourSign", contract.getOurSign().trim());
+        }
+        if (imgs.isEmpty()) {
+            throw new RuntimeException("请先上传或生成乙方（黔序）公章与法定代表人签字");
+        }
+        Map<String, String> texts = new HashMap<>();
+        texts.put("ourDate", cn.hutool.core.date.DateUtil.format(new Date(), "yyyy年MM月dd日"));
+
+        ContractDocService.StampedFile f = contractDocService.stamp(
+                contract.getSrcPdf(), layout, imgs, texts);
+        contract.setOurStampedFile(f.url);
+        contract.setOurStampedName(f.name);
+        contract.setOurSignedAt(new Date());
+        svcContractDao.updateById(contract);
+
+        HashMap<String, Object> map = contractMeta(contract);
+        map.put("ourStampedFile", f.url);
+        map.put("ourStampedName", f.name);
+        map.put("ourSignedAt", contract.getOurSignedAt());
+        return map;
+    }
+
+    /** 合同必须存在且未删除 */
+    private SvcContract mustContract(Integer id) {
+        SvcContract contract = id == null ? null : svcContractDao.selectById(id);
+        if (contract == null || contract.getIsDel() > 0) {
+            throw new RuntimeException("合同不存在");
+        }
+        return contract;
+    }
+
+    /**
+     * 确保合同正文有可用的 PDF：没有 srcPdf 时取 annex 第一份文件转换，并把结果落库。
+     * doc/docx/xls 由 ContractDocService 走服务器上的 LibreOffice 转换。
+     */
+    private String ensureContractPdf(SvcContract contract) {
+        String url = blankToEmpty(contract.getSrcPdf());
+        String name = blankToEmpty(contract.getSrcPdfName());
+        if (url.isEmpty()) {
+            List<String> urls = csvList(contract.getAnnex());
+            List<String> names = csvList(contract.getAnnexName());
+            if (urls.isEmpty()) {
+                throw new RuntimeException("请先上传合同正文文件（PDF / Word / Excel / 图片）");
+            }
+            url = urls.get(0);
+            name = names.isEmpty() ? "" : names.get(0);
+        }
+        String pdfUrl = contractDocService.ensurePdf(url, name);
+        int pages = contractDocService.pageCount(pdfUrl);
+        contract.setSrcPdf(pdfUrl);
+        contract.setSrcPdfName(name);
+        contract.setPageCount(pages);
+        svcContractDao.updateById(contract);
+        log.info("合同 {} 正文就绪：{}（{} 页）", contract.getId(), pdfUrl, pages);
+        return pdfUrl;
+    }
+
+    /** 合同「用印相关」的元信息（后台定位编辑器 / 合同详情用） */
+    private HashMap<String, Object> contractMeta(SvcContract c) {
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("id", c.getId());
+        map.put("srcPdf", blankToEmpty(c.getSrcPdf()));
+        map.put("srcPdfName", blankToEmpty(c.getSrcPdfName()));
+        map.put("pageCount", c.getPageCount() == null ? 0 : c.getPageCount());
+        map.put("signLayout", blankToEmpty(c.getSignLayout()));
+        map.put("ourCompany", blankToEmpty(c.getOurCompany()));
+        map.put("ourSeal", blankToEmpty(c.getOurSeal()));
+        map.put("ourSign", blankToEmpty(c.getOurSign()));
+        map.put("custSeal", blankToEmpty(c.getCustSeal()));
+        map.put("ourStampedFile", blankToEmpty(c.getOurStampedFile()));
+        map.put("ourStampedName", blankToEmpty(c.getOurStampedName()));
+        map.put("ourSignedAt", c.getOurSignedAt());
+        map.put("signedFile", blankToEmpty(c.getSignedFile()));
+        map.put("signedFileName", blankToEmpty(c.getSignedFileName()));
+        map.put("fileHash", blankToEmpty(c.getFileHash()));
+        return map;
+    }
+
+    private static String blankToEmpty(String s) {
+        return s == null ? "" : s.trim();
+    }
+
+    /** 逗号分隔 → 列表（去空、去空白） */
+    private static List<String> csvList(String s) {
+        List<String> list = new ArrayList<>();
+        if (s == null || s.trim().isEmpty()) {
+            return list;
+        }
+        for (String it : s.split(",")) {
+            String v = it.trim();
+            if (!v.isEmpty()) {
+                list.add(v);
+            }
+        }
+        return list;
+    }
+
+    /** 用印布局里是否包含乙方（黔序）的元素 */
+    private static boolean layoutHasOur(String layout) {
+        if (layout == null) {
+            return false;
+        }
+        return layout.contains("\"ourSeal\"") || layout.contains("\"ourSign\"") || layout.contains("\"ourDate\"");
     }
 
     // ==================== 后台：项目 ====================
@@ -431,28 +617,66 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         if (signHand == null || signHand.trim().isEmpty()) {
             throw new RuntimeException("请手写签名");
         }
-        // 企业签约必须带电子签章（样式 + 用主体名称生成的签章图）
+        // 甲方公章：优先用后台预设的（custSeal），没有则用客户现场生成的签章图兜底
         boolean isCompany = SvcContract.PARTY_COMPANY.equals(contract.getPartyType());
-        if (isCompany && (request.getSealImage() == null || request.getSealImage().trim().isEmpty())) {
+        String presetSeal = blankToEmpty(contract.getCustSeal());
+        String custSeal = !presetSeal.isEmpty() ? presetSeal
+                : (request.getSealImage() == null ? "" : request.getSealImage().trim());
+        if (isCompany && custSeal.isEmpty()) {
             throw new RuntimeException("请选择签章样式并生成电子签章");
         }
+        // 新的用印流程：先合成成品 PDF（乙方要素已在底稿上，这里补甲方公章/签字/日期）
+        String layout = blankToEmpty(contract.getSignLayout());
+        String finalBase = "";
+        if (!layout.isEmpty()) {
+            if (layoutHasOur(layout) && blankToEmpty(contract.getOurStampedFile()).isEmpty()) {
+                throw new RuntimeException("合同尚未完成乙方用印，请联系客服处理");
+            }
+            finalBase = !blankToEmpty(contract.getOurStampedFile()).isEmpty()
+                    ? contract.getOurStampedFile() : blankToEmpty(contract.getSrcPdf());
+            if (finalBase.isEmpty()) {
+                throw new RuntimeException("合同正文尚未生成，请联系客服处理");
+            }
+        }
+        final String signHandFinal = signHand.trim();
+        final String custSealFinal = custSeal;
+        final String baseFinal = finalBase;
 
         return transactionTemplate.execute(status -> {
             contract.setStatus(SvcContract.STATUS_SIGNED);
             contract.setSignTime(new Date());
             contract.setSignName(request.getSignName() == null ? "" : request.getSignName().trim());
             contract.setSignPhone(request.getPhone() == null ? "" : request.getPhone().trim());
-            contract.setSignHand(signHand.trim());
+            contract.setSignHand(signHandFinal);
             if (isCompany) {
                 contract.setSealStyle(normalizeSealStyle(request.getSealStyle()));
-                contract.setSealImage(request.getSealImage().trim());
+                contract.setSealImage(custSealFinal);
             } else {
                 // 个人签约无需盖章：清掉签章字段，避免残留旧值
                 contract.setSealStyle("");
                 contract.setSealImage("");
             }
-            // 独立签署页（签章 + 签字 + 签署日期）：把签署要素真正附着到合同上
-            contract.setSignSheet(request.getSignSheet() == null ? "" : request.getSignSheet().trim());
+            if (!baseFinal.isEmpty()) {
+                // 把甲方公章 + 手写签字 + 签署日期按后台设定的位置合成到正文上，产出客户可下载的成品合同
+                Map<String, String> imgs = new HashMap<>();
+                if (isCompany && !custSealFinal.isEmpty()) {
+                    imgs.put("custSeal", custSealFinal);
+                }
+                imgs.put("custSign", signHandFinal);
+                Map<String, String> texts = new HashMap<>();
+                texts.put("custDate", cn.hutool.core.date.DateUtil.format(new Date(), "yyyy年MM月dd日"));
+
+                ContractDocService.StampedFile stamped =
+                        contractDocService.stamp(baseFinal, layout, imgs, texts);
+                contract.setSignedFile(stamped.url);
+                contract.setSignedFileName(stamped.name);
+                contract.setFileHash(stamped.hash);
+                // 旧字段留空：不再另出独立签署页
+                contract.setSignSheet("");
+            } else {
+                // 老合同（未启用用印位置）：保持原行为，保留前端传来的独立签署页
+                contract.setSignSheet(request.getSignSheet() == null ? "" : request.getSignSheet().trim());
+            }
             // 签约后自动生成并关联项目，会员端「我的项目」同步可见
             if (contract.getProjectId() == null
                     || svcProjectDao.selectById(contract.getProjectId()) == null
@@ -472,12 +696,8 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
         });
     }
 
-    /** 签章样式收敛到已知四款，未识别的一律按「圆形标准章」处理 */
+    /** 公章统一用「圆形标准章」（2026-10-02 用户确认：只保留圆形），老数据里的其它样式也归一到 round */
     private String normalizeSealStyle(String style) {
-        String s = style == null ? "" : style.trim().toLowerCase();
-        if (SvcContract.SEAL_OVAL.equals(s) || SvcContract.SEAL_SQUARE.equals(s) || SvcContract.SEAL_MODERN.equals(s)) {
-            return s;
-        }
         return SvcContract.SEAL_ROUND;
     }
 

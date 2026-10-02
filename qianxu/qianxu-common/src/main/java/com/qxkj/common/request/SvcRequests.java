@@ -62,6 +62,54 @@ public class SvcRequests {
 
         @ApiModelProperty(value = "备注")
         private String remark;
+
+        // ==================== 用印位置 + 乙方（黔序）签约方信息（2026-10-02 第六批） ====================
+
+        @ApiModelProperty(value = "合同正文 PDF 的 URL（上传后由服务端转换生成）")
+        private String srcPdf;
+
+        @ApiModelProperty(value = "合同正文 PDF 的文件名")
+        private String srcPdfName;
+
+        @ApiModelProperty(value = "用印位置布局 JSON（相对页面宽高的百分比坐标）")
+        private String signLayout;
+
+        @ApiModelProperty(value = "乙方（黔序）签约方名称")
+        private String ourCompany;
+
+        @ApiModelProperty(value = "乙方统一社会信用代码")
+        private String ourCode;
+
+        @ApiModelProperty(value = "乙方法定代表人")
+        private String ourLegal;
+
+        @ApiModelProperty(value = "乙方联系电话")
+        private String ourPhone;
+
+        @ApiModelProperty(value = "乙方地址")
+        private String ourAddr;
+
+        @ApiModelProperty(value = "乙方公章图片URL")
+        private String ourSeal;
+
+        @ApiModelProperty(value = "乙方法定代表人签字图片URL")
+        private String ourSign;
+
+        @ApiModelProperty(value = "甲方（客户）公章图片URL（后台预设，可为空）")
+        private String custSeal;
+    }
+
+    @Data
+    @ApiModel(value = "SvcContractLayoutRequest对象", description = "保存合同用印位置")
+    public static class ContractLayoutRequest implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        @ApiModelProperty(value = "合同ID")
+        @NotNull(message = "请选择合同")
+        private Integer id;
+
+        @ApiModelProperty(value = "用印位置布局 JSON")
+        private String signLayout;
     }
 
     @Data

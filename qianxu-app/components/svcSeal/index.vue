@@ -1,22 +1,6 @@
 <template>
   <view class="seal-picker">
-    <!-- 样式选择 -->
-    <view class="seal-grid">
-      <view
-        v-for="s in styles"
-        :key="s.key"
-        class="seal-opt"
-        :class="{ active: value === s.key }"
-        @click="pick(s.key)"
-      >
-        <view class="opt-mark" :class="'mk-' + s.key">
-          <text class="opt-star">★</text>
-        </view>
-        <text class="opt-name">{{ s.name }}</text>
-      </view>
-    </view>
-
-    <!-- 实时预览 -->
+    <!-- 实时预览（公章统一用圆形标准章，不再提供其它样式） -->
     <view class="seal-preview">
       <view class="seal-canvas-wrap" :style="{ width: canvasW + 'px', height: canvasH + 'px' }">
         <canvas
@@ -26,34 +10,30 @@
           :style="{ width: canvasW + 'px', height: canvasH + 'px' }"
         ></canvas>
       </view>
-      <text class="seal-cap">依据签约主体「{{ company || '—' }}」自动生成</text>
+      <text class="seal-cap">依据签约主体「{{ company || '—' }}」自动生成圆形公章</text>
     </view>
   </view>
 </template>
 
 <script>
-import { paintSeal, SEAL_STYLES } from '@/utils/sealPainter.js';
+import { paintSeal } from '@/utils/sealPainter.js';
 
 export default {
   name: 'SvcSeal',
   props: {
     /** 公司名称（取合同签约主体 partyName） */
     company: { type: String, default: '' },
-    /** 当前选中的签章样式 key */
+    /** 兼容旧调用（v-model），现在固定为 round，不再可选 */
     value: { type: String, default: 'round' }
   },
   data() {
     return {
       canvasW: 260,
-      canvasH: 260,
-      styles: SEAL_STYLES
+      canvasH: 260
     };
   },
   watch: {
     company() {
-      this.render();
-    },
-    value() {
       this.render();
     }
   },
@@ -63,16 +43,11 @@ export default {
     });
   },
   methods: {
-    pick(key) {
-      if (this.value === key) return;
-      this.$emit('input', key);
-      this.$emit('change', key);
-    },
     /** 用同一套笔触在预览画布上画一遍 */
     render() {
       const ctx = uni.createCanvasContext('svcSealCanvas', this);
       paintSeal(ctx, {
-        style: this.value,
+        style: 'round',
         size: this.canvasW,
         name: this.company
       });
@@ -112,32 +87,9 @@ export default {
 <style scoped lang="scss">
 .seal-picker { margin-top: 20rpx; }
 
-/* 样式选择 */
-.seal-grid { display: flex; justify-content: space-between; }
-.seal-opt {
-  flex: 1; margin: 0 8rpx; padding: 16rpx 6rpx 14rpx;
-  border: 2rpx solid #eef1f6; border-radius: 14rpx;
-  background: #fbfcfe; display: flex; flex-direction: column; align-items: center;
-}
-.seal-opt:first-child { margin-left: 0; }
-.seal-opt:last-child { margin-right: 0; }
-.seal-opt.active { border-color: #c8161e; background: #fff7f7; }
-.opt-mark {
-  width: 46rpx; height: 46rpx; border: 3rpx solid #c8161e; opacity: 0.75;
-  display: flex; align-items: center; justify-content: center;
-}
-.mk-round { border-radius: 50%; }
-.mk-oval { border-radius: 50%; width: 58rpx; height: 38rpx; }
-.mk-square { border-radius: 4rpx; }
-/* 现代电子章在 v2 里是圆角描边（不再是实底色块），这里跟着改，保证「选项图标 = 实际章型」 */
-.mk-modern { border-radius: 12rpx; width: 56rpx; height: 34rpx; }
-.opt-star { font-size: 18rpx; color: #c8161e; line-height: 1; }
-.opt-name { font-size: 20rpx; color: #5a6675; margin-top: 10rpx; }
-.seal-opt.active .opt-name { color: #c8161e; font-weight: 600; }
-
 /* 预览 */
 .seal-preview {
-  margin-top: 22rpx; display: flex; flex-direction: column; align-items: center;
+  display: flex; flex-direction: column; align-items: center;
   background: #fbfcfe; border: 1rpx dashed #e2e8f2; border-radius: 16rpx; padding: 20rpx 0 16rpx;
 }
 .seal-canvas-wrap { position: relative; }

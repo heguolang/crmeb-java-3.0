@@ -84,7 +84,7 @@ public class SvcController {
         return CommonResult.failed("发送失败");
     }
 
-    @ApiOperation(value = "签约合同（签章样式 + 手写签名 + 独立签署页 + 短信验证，签约后自动生成项目）")
+    @ApiOperation(value = "签约合同（手写签名 + 电子签章 + 短信验证）：把签署要素按后台设定的位置合成进合同正文，产出可下载的成品合同")
     @RequestMapping(value = "/contract/sign", method = RequestMethod.POST)
     public CommonResult<String> signContract(@RequestBody @Validated SvcRequests.ContractSignRequest request) {
         // 短信验证开关（后台可关）

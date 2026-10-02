@@ -76,6 +76,62 @@ public class SvcContract implements Serializable {
     @ApiModelProperty(value = "合同文件名，与 annex 的URL按顺序一一对应，多个逗号分隔")
     private String annexName;
 
+    // ==================== 用印位置 + 双方电子签章（2026-10-02 第六批） ====================
+
+    @ApiModelProperty(value = "合同正文 PDF 的 URL（doc/docx/xls 转换产物，或原 PDF/图片）")
+    private String srcPdf;
+
+    @ApiModelProperty(value = "合同正文 PDF 的文件名")
+    private String srcPdfName;
+
+    @ApiModelProperty(value = "合同正文 PDF 页数")
+    private Integer pageCount;
+
+    @ApiModelProperty(value = "用印位置布局 JSON（相对页面宽高的百分比坐标）")
+    private String signLayout;
+
+    @ApiModelProperty(value = "乙方（黔序）签约方名称")
+    private String ourCompany;
+
+    @ApiModelProperty(value = "乙方统一社会信用代码")
+    private String ourCode;
+
+    @ApiModelProperty(value = "乙方法定代表人")
+    private String ourLegal;
+
+    @ApiModelProperty(value = "乙方联系电话")
+    private String ourPhone;
+
+    @ApiModelProperty(value = "乙方地址")
+    private String ourAddr;
+
+    @ApiModelProperty(value = "乙方公章图片URL")
+    private String ourSeal;
+
+    @ApiModelProperty(value = "乙方法定代表人签字图片URL")
+    private String ourSign;
+
+    @ApiModelProperty(value = "甲方（客户）公章图片URL（后台预设，可为空；为空时由客户现场生成）")
+    private String custSeal;
+
+    @ApiModelProperty(value = "乙方用印时间")
+    private Date ourSignedAt;
+
+    @ApiModelProperty(value = "乙方已用印的 PDF 的 URL（客户签署时的底稿）")
+    private String ourStampedFile;
+
+    @ApiModelProperty(value = "乙方已用印 PDF 的文件名")
+    private String ourStampedName;
+
+    @ApiModelProperty(value = "双方签署完成的成品 PDF 的 URL（带双方公章与签字）")
+    private String signedFile;
+
+    @ApiModelProperty(value = "成品 PDF 的文件名")
+    private String signedFileName;
+
+    @ApiModelProperty(value = "成品 PDF 的 sha256（存证）")
+    private String fileHash;
+
     @ApiModelProperty(value = "签字/签章所在合同图片页码（1开始，0=最后一页；文件模式下不再使用，仅兼容旧数据）")
     private Integer signPage;
 

@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
@@ -74,6 +76,46 @@ public class SvcAdminController {
             return CommonResult.success();
         }
         return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:contract:save')")
+    @ApiOperation(value = "准备合同正文：doc/docx/xls/图片 自动转 PDF，返回页数与用印元信息")
+    @RequestMapping(value = "/contract/prepare", method = RequestMethod.POST)
+    public CommonResult<HashMap<String, Object>> prepareContractPdf(@RequestParam Integer id) {
+        return CommonResult.success(svcService.prepareContractPdf(id));
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:contract:save')")
+    @ApiOperation(value = "保存合同用印位置（百分比坐标布局）")
+    @RequestMapping(value = "/contract/layout/save", method = RequestMethod.POST)
+    public CommonResult<String> saveContractLayout(@RequestBody @Validated SvcRequests.ContractLayoutRequest request) {
+        if (svcService.saveContractLayout(request.getId(), request.getSignLayout())) {
+            return CommonResult.success();
+        }
+        return CommonResult.failed();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:contract:list')")
+    @ApiOperation(value = "渲染合同正文某页为 PNG（用印位置设置的底图）")
+    @RequestMapping(value = "/contract/page", method = RequestMethod.GET)
+    public void contractPage(@RequestParam Integer id,
+                             @RequestParam(value = "page", defaultValue = "1") Integer page,
+                             @RequestParam(value = "maxWidth", required = false) Integer maxWidth,
+                             HttpServletResponse response) throws IOException {
+        byte[] png = svcService.renderContractPage(id, page, maxWidth == null || maxWidth <= 0 ? 1240 : maxWidth);
+        response.reset();
+        response.setContentType("image/png");
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        response.setContentLength(png.length);
+        response.getOutputStream().write(png);
+        response.getOutputStream().flush();
+    }
+
+    @PreAuthorize("hasAuthority('admin:svc:contract:save')")
+    @ApiOperation(value = "乙方（黔序）一键用印：按设定位置把乙方公章/法人签字/日期合成进正文 PDF")
+    @RequestMapping(value = "/contract/our-stamp", method = RequestMethod.POST)
+    public CommonResult<HashMap<String, Object>> ourStamp(@RequestParam Integer id) {
+        return CommonResult.success(svcService.ourStamp(id));
     }
 
     // ==================== 项目进度 ====================

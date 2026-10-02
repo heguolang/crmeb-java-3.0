@@ -50,6 +50,15 @@ public class ResponseFilter implements Filter {
         byte[] content = wrapperResponse.getContent();//获取返回值
         //判断是否有值
         if (content.length > 0) {
+            // 二进制响应（图片/PDF/压缩包等）必须原样回写。
+            // 把 byte[] 当 UTF-8 字符串往返，非法字节会被替换成 U+FFFD（EF BF BD），
+            // PNG 的 0x89 签名一变浏览器直接拒绝解码 —— 表现为「底图/图片裂了」。
+            if (isBinaryContent(wrapperResponse.getContentType())) {
+                ServletOutputStream rawOut = response.getOutputStream();
+                rawOut.write(content);
+                rawOut.flush();
+                return;
+            }
             String str = new String(content, StandardCharsets.UTF_8);
 
             try {
@@ -68,5 +77,21 @@ public class ResponseFilter implements Filter {
                 response.flushBuffer();
             }
         }
+    }
+
+    /**
+     * 是否为二进制响应类型。
+     * <p>只识别「明确的二进制 MIME」，其余（含 contentType 为空）一律按文本走原有的 URL 改写逻辑，
+     * 保证既有行为零变化。</p>
+     */
+    private static boolean isBinaryContent(String contentType) {
+        if (contentType == null || contentType.isEmpty()) {
+            return false;
+        }
+        String ct = contentType.toLowerCase();
+        return ct.startsWith("image/") || ct.startsWith("video/") || ct.startsWith("audio/")
+                || ct.startsWith("font/")
+                || ct.contains("octet-stream") || ct.contains("/pdf") || ct.contains("zip")
+                || ct.contains("vnd.") || ct.contains("protobuf");
     }
 }

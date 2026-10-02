@@ -41,54 +41,75 @@
       <!-- 签署区（独立于合同文件） -->
       <view class="section-card">
         <view class="sec-head">
-          <text class="sec-title">签署区</text>
-          <text class="sec-link">客户签章与签字</text>
+          <text class="sec-title">签署信息</text>
+          <text class="sec-link">{{ contract.signedFile ? '双方已签署' : '待签署' }}</text>
         </view>
 
-        <view class="sign-block" :class="posClass(contract.sealPos)">
-          <text class="block-label">客户签章</text>
-          <template v-if="contract.partyType === 1">
+        <!-- 乙方（黔序）签约方信息 -->
+        <view v-if="contract.ourCompany || contract.ourLegal" class="party-box">
+          <view class="party-head">
+            <text class="party-role">乙方（黔序）</text>
+            <text v-if="contract.ourStampedFile" class="party-badge">已用印</text>
+          </view>
+          <view class="info-row"><text class="info-label">签约方</text><text>{{ contract.ourCompany || '—' }}</text></view>
+          <view v-if="contract.ourCode" class="info-row"><text class="info-label">信用代码</text><text>{{ contract.ourCode }}</text></view>
+          <view v-if="contract.ourLegal" class="info-row"><text class="info-label">法定代表人</text><text>{{ contract.ourLegal }}</text></view>
+          <view v-if="contract.ourSignedAt" class="info-row"><text class="info-label">用印时间</text><text>{{ fmtTime(contract.ourSignedAt, true) }}</text></view>
+        </view>
+
+        <!-- 已签署完成的成品合同：带双方公章与签字 -->
+        <view v-if="contract.signedFile" class="done-box">
+          <view class="done-head">
+            <text class="done-title">已签署合同</text>
+            <text class="done-badge">公章 · 签字 · 日期</text>
+          </view>
+          <view class="file-item" @click="openFile({ url: contract.signedFile, name: contract.signedFileName })">
+            <text class="file-badge ext-pdf">PDF</text>
+            <view class="file-main">
+              <text class="file-name">{{ contract.signedFileName || '已签署合同.pdf' }}</text>
+              <text class="file-op">点击查看 / 下载，手机上可直接保存原件</text>
+            </view>
+            <text class="file-arrow">›</text>
+          </view>
+          <text v-if="contract.fileHash" class="hash-tip">存证摘要 SHA-256：{{ contract.fileHash }}</text>
+        </view>
+
+        <!-- 尚未签署时，以缩略形式告知双方用印状态 -->
+        <template v-else>
+          <view class="sign-block">
+            <text class="block-label">乙方（黔序）公章与法人签字</text>
+            <view v-if="contract.ourStampedFile" class="slot-done">已用印，见合同正文</view>
+            <view v-else class="slot-empty">待乙方用印</view>
+          </view>
+          <view class="sign-block">
+            <text class="block-label">甲方（本人 / 本单位）签字</text>
+            <template v-if="contract.status === 1 && contract.signHand">
+              <image :src="absUrl(contract.signHand)" class="sign-img" mode="aspectFit" @click="previewImg(contract.signHand)" />
+              <text class="sign-date">{{ fmtDate(contract.signTime) }}</text>
+            </template>
+            <view v-else class="slot-empty">待您手写签名</view>
+          </view>
+          <view v-if="contract.partyType === 1" class="sign-block">
+            <text class="block-label">甲方（企业）公章</text>
             <image
-              v-if="contract.sealImage"
-              :src="absUrl(contract.sealImage)"
+              v-if="contract.custSeal || contract.sealImage"
+              :src="absUrl(contract.custSeal || contract.sealImage)"
               class="seal-img"
               mode="aspectFit"
-              @click="previewImg(contract.sealImage)"
+              @click="previewImg(contract.custSeal || contract.sealImage)"
             />
-            <view v-else-if="contract.status === 1" class="seal-stamp">
-              <text class="seal-name">{{ contract.partyName || '签约企业' }}</text>
-              <text class="seal-sub">合同专用章</text>
-            </view>
-            <view v-else class="slot-empty">待客户加盖公章</view>
-          </template>
-          <view v-else class="slot-empty">个人签约，无需盖章</view>
-        </view>
+            <view v-else class="slot-empty">待加盖公章</view>
+          </view>
+        </template>
 
-        <view class="sign-block" :class="posClass(contract.signPos)">
-          <text class="block-label">客户签字</text>
-          <template v-if="contract.status === 1 && contract.signHand">
-            <image :src="absUrl(contract.signHand)" class="sign-img" mode="aspectFit" @click="previewImg(contract.signHand)" />
-            <text class="sign-date">{{ fmtDate(contract.signTime) }}</text>
-          </template>
-          <view v-else class="slot-empty">待客户手写签名</view>
-        </view>
-
-        <!-- 独立签署页：签章 + 签字 + 签署日期，附着到合同 -->
-        <view v-if="contract.signSheet" class="sheet-box">
+        <!-- 旧数据：独立签署页（仅当历史合同还带签署页时才展示） -->
+        <view v-if="!contract.signedFile && contract.signSheet" class="sheet-box">
           <view class="sheet-head">
             <text class="sheet-name">签署页</text>
             <text class="sheet-badge">签章 · 签字 · 日期</text>
           </view>
-          <image
-            :src="absUrl(contract.signSheet)"
-            class="sheet-img"
-            mode="widthFix"
-            @click="previewImg(contract.signSheet)"
-          />
+          <image :src="absUrl(contract.signSheet)" class="sheet-img" mode="widthFix" @click="previewImg(contract.signSheet)" />
           <text class="sheet-op">点击查看大图，长按可保存</text>
-        </view>
-        <view v-else-if="contract.status === 1" class="sheet-empty">
-          <text>签署页生成中，稍后刷新查看</text>
         </view>
 
         <view v-if="contract.status === 1" class="info-box">
@@ -100,7 +121,9 @@
 
       <!-- 签约操作 -->
       <view class="section-card sign-card" v-if="contract.status === 0">
-        <view class="sign-guide">签约流程：查看合同文件 → 填写负责人信息 → 选择签章样式（企业）→ 短信验证（如开启）→ 横屏手写签名 → 提交签约</view>
+        <view class="sign-guide">签约流程：核对合同文件 → 填写负责人信息 → 短信验证（如开启）→ 横屏手写签名 → 提交签约。提交后系统会把您的签字按约定位置合成到合同正文上。</view>
+        <view v-if="contract.ourStampedFile" class="our-stamp-tip">本合同正文已加盖乙方（黔序）公章与法定代表人签字，请核对后签署</view>
+        <view v-else class="our-stamp-tip is-warn">本合同尚未完成乙方用印，如有疑问请联系客服</view>
         <view class="f-row">
           <text class="f-label">负责人姓名</text>
           <input v-model="form.signName" class="f-input" placeholder="请输入负责人真实姓名" placeholder-class="ph" />
@@ -117,13 +140,20 @@
           </view>
         </view>
 
-        <!-- 企业客户：签章样式选择（用主体名称自动生成） -->
-        <view v-if="contract.partyType === 1" class="seal-pick">
+        <!-- 企业客户且后台未预设公章：现场用主体名称自动生成圆形公章 -->
+        <view v-if="contract.partyType === 1 && !contract.custSeal" class="seal-pick">
           <view class="seal-pick-head">
-            <text class="sp-title">客户签章</text>
-            <text class="sp-tip">选一款样式，用主体名称自动生成</text>
+            <text class="sp-title">客户公章</text>
+            <text class="sp-tip">用主体名称自动生成，签署时盖到约定位置</text>
           </view>
           <svc-seal ref="sealPad" v-model="sealStyle" :company="contract.partyName" />
+        </view>
+        <view v-else-if="contract.partyType === 1 && contract.custSeal" class="seal-preset">
+          <view class="seal-pick-head">
+            <text class="sp-title">客户公章</text>
+            <text class="sp-tip">由平台预先设置，签署时自动加盖</text>
+          </view>
+          <image :src="absUrl(contract.custSeal)" class="seal-img" mode="aspectFit" @click="previewImg(contract.custSeal)" />
         </view>
 
         <view class="sign-area" @click="onOpenSign">
@@ -136,9 +166,9 @@
             <text class="sign-tip-inline">点击后进入全屏横向手写板书写姓名</text>
           </template>
         </view>
-        <view class="agree-tip">提交后将自动生成电子签章与签署页（含签章、签字、签署日期），并与合同一并归档</view>
+        <view class="agree-tip">提交即表示您已阅读并认可合同内容。系统会将您的签字与公章按约定位置合成到合同正文，生成带双方公章与签字的成品合同，可随时查看与下载。</view>
         <view class="sign-btn" :class="{ disabled: submitting }" @click="onSubmit">
-          {{ submitting ? '签署文件生成中...' : '确认签约' }}
+          {{ submitting ? '成品合同生成中...' : '确认签约' }}
         </view>
       </view>
       <view class="section-card sign-card" v-else>
@@ -216,9 +246,6 @@ export default {
     },
     statusText(s) {
       return { 0: '待签约', 1: '已签约', 2: '已驳回' }[s] || '—';
-    },
-    posClass(pos) {
-      return pos === 'left' ? 'pos-left' : pos === 'right' ? 'pos-right' : 'pos-center';
     },
     fmtTime(t, full) {
       if (!t) return '';
@@ -363,10 +390,11 @@ export default {
       }
       const who = f.signName.trim();
       const isCompany = this.contract.partyType === 1;
+      const presetSeal = !!(this.contract.custSeal && String(this.contract.custSeal).trim());
       uni.showModal({
         title: '确认签约',
-        content: isCompany
-          ? '确认以「' + who + '」名义签署本合同？系统将自动生成电子签章与签署页，签署后不可撤销。'
+        content: isCompany && !presetSeal
+          ? '确认以「' + who + '」名义签署本合同？系统将自动生成电子公章，并把公章与您的签字按约定位置合成到合同上，签署后不可撤销。'
           : '确认以「' + who + '」名义签署本合同？签署后不可撤销。',
         success: (res) => {
           if (res.confirm) this.doSign();
@@ -374,16 +402,23 @@ export default {
       });
     },
 
-    /** 生成签章 + 签署页 → 上传 → 提交签约 */
+    /**
+     * 签署流程
+     *   新流程（后台已设置用印位置）：只上传手写签名（企业且后台未预设公章时再生成公章图），
+     *                                由服务端把公章 / 签字 / 日期按坐标合成进合同正文，产出成品 PDF。
+     *   旧流程（历史合同没有用印位置）：沿用「生成独立签署页」的老做法，保证老数据不受影响。
+     */
     doSign() {
       const isCompany = this.contract.partyType === 1;
+      const newFlow = !!(this.contract.signLayout && String(this.contract.signLayout).trim());
+      const presetSeal = !!(this.contract.custSeal && String(this.contract.custSeal).trim());
       this.submitting = true;
-      uni.showLoading({ title: '正在生成签署文件...', mask: true });
+      uni.showLoading({ title: newFlow ? '正在生成成品合同...' : '正在生成签署文件...', mask: true });
 
       Promise.resolve()
         .then(() => {
           // 组件就绪校验：缺 ref / 方法不存在时给可读提示，别把原生 TypeError 弹给客户
-          if (!isCompany) return '';
+          if (!isCompany || presetSeal) return '';
           const seal = this.$refs.sealPad;
           if (!seal || typeof seal.toTempFile !== 'function') {
             throw new Error('签章组件未就绪，请退出后重新进入合同页');
@@ -391,6 +426,10 @@ export default {
           return seal.toTempFile();
         })
         .then((sealPath) => {
+          if (newFlow) {
+            // 新流程不再生成独立签署页
+            return { sealPath, sheetPath: '' };
+          }
           const sheet = this.$refs.sheetPad;
           if (!sheet || typeof sheet.generate !== 'function') {
             throw new Error('签署页组件未就绪，请退出后重新进入合同页');
@@ -409,10 +448,12 @@ export default {
             .then((sheetPath) => ({ sealPath, sheetPath }));
         })
         .then((res) => {
-          const sealTask = isCompany ? this.uploadSealFile(res.sealPath) : Promise.resolve('');
-          return sealTask.then((sealUrl) =>
-            this.uploadSealFile(res.sheetPath).then((sheetUrl) => ({ sealUrl, sheetUrl }))
-          );
+          const needSealUpload = isCompany && !presetSeal;
+          const sealTask = needSealUpload ? this.uploadSealFile(res.sealPath) : Promise.resolve('');
+          return sealTask.then((sealUrl) => {
+            if (!res.sheetPath) return { sealUrl, sheetUrl: '' };
+            return this.uploadSealFile(res.sheetPath).then((sheetUrl) => ({ sealUrl, sheetUrl }));
+          });
         })
         .then(({ sealUrl, sheetUrl }) => this.submitSign(sealUrl, sheetUrl))
         .catch((e) => {
@@ -573,6 +614,35 @@ export default {
 .seal-sub { font-size: 16rpx; color: #d3232f; margin-top: 4rpx; }
 .sign-img { width: 380rpx; height: 150rpx; margin-top: 10rpx; }
 .sign-date { font-size: 20rpx; color: #667; margin-top: 6rpx; }
+.slot-done {
+  margin-top: 14rpx; font-size: 23rpx; color: #1f8a4c;
+  background: #eefaf1; border: 2rpx solid #bfe6cd; border-radius: 12rpx; padding: 20rpx 26rpx;
+}
+
+/* 乙方（黔序）签约方信息 */
+.party-box {
+  margin-top: 20rpx; padding: 22rpx; border-radius: 16rpx; background: #f7faff;
+  border: 1rpx solid #e6eefb;
+}
+.party-head { display: flex; align-items: center; margin-bottom: 12rpx; }
+.party-role { font-size: 26rpx; font-weight: 700; color: #222; }
+.party-badge {
+  margin-left: 14rpx; font-size: 20rpx; color: #1f8a4c;
+  background: #eefaf1; border-radius: 16rpx; padding: 2rpx 14rpx;
+}
+
+/* 已签署成品合同 */
+.done-box {
+  margin-top: 22rpx; padding: 22rpx; border-radius: 16rpx;
+  background: #f4fbf5; border: 1rpx solid #cfe9d8;
+}
+.done-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16rpx; }
+.done-title { font-size: 27rpx; font-weight: 700; color: #1f8a4c; }
+.done-badge {
+  font-size: 20rpx; color: #1f8a4c; background: #e3f5e8;
+  border-radius: 16rpx; padding: 4rpx 16rpx;
+}
+.hash-tip { display: block; margin-top: 12rpx; font-size: 19rpx; color: #9aa4b2; word-break: break-all; line-height: 1.6; }
 
 .info-box {
   margin-top: 24rpx; padding-top: 20rpx; border-top: 1rpx solid #eef1f6;
@@ -583,6 +653,11 @@ export default {
 
 /* 签约表单 */
 .sign-guide { font-size: 22rpx; color: #7c8798; background: #f5f8ff; border-radius: 12rpx; padding: 16rpx 20rpx; }
+.our-stamp-tip {
+  margin-top: 18rpx; font-size: 22rpx; line-height: 1.7; color: #1f8a4c;
+  background: #eefaf1; border-radius: 12rpx; padding: 16rpx 20rpx;
+}
+.our-stamp-tip.is-warn { color: #b8781f; background: #fff7ec; }
 .f-row { display: flex; align-items: center; margin-top: 26rpx; }
 .f-label { width: 170rpx; font-size: 26rpx; color: #333; }
 .f-input { flex: 1; font-size: 28rpx; border-bottom: 1rpx solid #e6ebf3; padding: 10rpx 4rpx; }
@@ -638,6 +713,7 @@ export default {
 .seal-pick {
   margin-top: 30rpx; padding-top: 24rpx; border-top: 1rpx solid #eef1f6;
 }
+.seal-preset { margin-top: 30rpx; padding-top: 24rpx; border-top: 1rpx solid #eef1f6; }
 .seal-pick-head { display: flex; align-items: baseline; justify-content: space-between; }
 .sp-title { font-size: 27rpx; font-weight: 600; color: #222; }
 .sp-tip { font-size: 21rpx; color: #9aa4b2; }
