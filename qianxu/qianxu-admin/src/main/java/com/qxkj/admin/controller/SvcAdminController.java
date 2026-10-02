@@ -117,7 +117,9 @@ public class SvcAdminController {
     @ApiOperation(value = "需求转合同：带出需求里的客户与企业信息，登记成功后回写需求")
     @RequestMapping(value = "/demand/to-contract", method = RequestMethod.POST)
     public CommonResult<String> demandToContract(@RequestParam Integer demandId,
-                                                 @RequestBody @Validated SvcRequests.ContractSaveRequest request) {
+                                                 @RequestBody SvcRequests.ContractSaveRequest request) {
+        // 注意：这里【不能】加 @Validated —— ContractSaveRequest.uid 标了 @NotNull("请选择会员")，
+        // 而转合同弹窗没有会员选择项，uid 由服务层从需求单兜底带入；整包校验会把兜底拦死在参数层。
         Integer contractId = svcService.demandToContract(demandId, request);
         if (contractId != null) {
             return CommonResult.success(String.valueOf(contractId));

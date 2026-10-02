@@ -87,7 +87,6 @@ export default {
       tabs: [
         { name: '全部', value: undefined },
         { name: '待受理', value: 0 },
-        { name: '跟进中', value: 1 },
         { name: '已报价', value: 2 },
         { name: '已成单', value: 3 }
       ]

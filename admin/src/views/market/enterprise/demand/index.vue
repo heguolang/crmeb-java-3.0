@@ -222,6 +222,15 @@
         <el-form-item label="关联需求">
           <span>{{ convertForm.demandNo }} · {{ convertForm.demandTitle }}</span>
         </el-form-item>
+        <el-form-item label="归属会员">
+          <span v-if="convertForm.uid">
+            {{ convertForm.nickname || 'UID ' + convertForm.uid }}
+            <span class="c-gray">（UID {{ convertForm.uid }}）· 客户端「我的合同」可见</span>
+          </span>
+          <span v-else class="c-gray">
+            该需求未关联会员 —— 请先在「代客录入 / 修改需求」里补填会员UID，否则无法转合同
+          </span>
+        </el-form-item>
         <el-row :gutter="12">
           <el-col :span="14">
             <el-form-item label="合同名称" prop="title">
@@ -660,6 +669,8 @@ export default {
         demandId: row.id,
         demandNo: row.demandNo,
         demandTitle: row.title,
+        uid: row.uid || null,
+        nickname: row.nickname || '',
         title: row.title || '',
         amount: Number(row.amount || 0),
         signChannel: 'paper',

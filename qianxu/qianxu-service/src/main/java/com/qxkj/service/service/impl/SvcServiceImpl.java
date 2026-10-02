@@ -801,6 +801,10 @@ public class SvcServiceImpl extends ServiceImpl<SvcProjectDao, SvcProject> imple
             if (request.getUid() == null || request.getUid() <= 0) {
                 request.setUid(demand.getUid());
             }
+            if (request.getUid() == null || request.getUid() <= 0) {
+                // 需求本身没关联会员（代客录入时没填 UID），合同必须挂到会员上否则会员端看不到
+                throw new RuntimeException("该需求未关联会员，请先在「代客录入/修改需求」里补填会员UID，再转合同");
+            }
             if (blankToEmpty(request.getTitle()).isEmpty()) {
                 request.setTitle(demand.getTitle());
             }
