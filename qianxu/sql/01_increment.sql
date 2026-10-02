@@ -6061,7 +6061,6 @@ SELECT m.id, '发送记录', '', 'admin:sms:record:list', '/operation/smsCenter/
 FROM `eb_system_menu` m
 WHERE m.component = '/operation/smsCenter' AND m.menu_type = 'M' AND m.is_delte = 0
   AND NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_menu` WHERE `component` = '/operation/smsCenter/record' AND `is_delte` = 0) x);
--- ========== END: upgrade_20261003_sms_admin_menu.sql ==========
 
 -- 菜单授权：给所有角色补上「短信管理」目录及两页（含超管全部角色）
 INSERT INTO `eb_system_role_menu` (`rid`, `menu_id`)
@@ -6071,3 +6070,4 @@ JOIN `eb_system_menu` m ON m.component IN ('/operation/smsCenter','/operation/sm
 WHERE r.status = 1
   AND NOT EXISTS (SELECT 1 FROM (SELECT rid, menu_id FROM `eb_system_role_menu`) x
                   WHERE x.rid = r.id AND x.menu_id = m.id);
+-- ========== END: upgrade_20261003_sms_admin_menu.sql ==========
