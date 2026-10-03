@@ -243,25 +243,50 @@ export default {
     },
   },
   watch: {
-    $route(to, from) {
-      if (this.$route.params.id) {
-        // this.formValidate.keywords = this.$route.params.key
-        this.details();
-      } else {
-        // this.labelarr = []
-        // this.$refs['formValidate'].resetFields()
-      }
+    // follow（微信关注回复）/ replyIndex（无效关键词回复）/ keyword/save（关键字编辑）三条路由共用本组件，
+    // 路由出口无 key + keep-alive 按组件名缓存 → 复用同一实例，切路由不会再走 mounted。
+    // 不重载就会出现「关注回复的文案残留到无效关键词回复页 / 新增关键字页」。
+    '$route.path'() {
+      this.initByRoute();
     },
   },
   mounted() {
-    if (this.$route.params.id) {
-      this.details();
-    }
-    if (this.$route.path.indexOf('keyword') === -1) {
-      this.followDetails();
-    }
+    this.initByRoute();
   },
   methods: {
+    // 按当前路由装载：带 id 取详情；关注/无效关键词取对应规则；关键字新增则清空表单
+    initByRoute() {
+      if (this.$route.params.id) {
+        this.details();
+        return;
+      }
+      if (this.$route.path.indexOf('keyword') === -1) {
+        this.followDetails();
+      } else {
+        this.resetForm();
+      }
+    },
+    // 关键字「新增」页复用本组件时，必须清掉上一条路由残留的内容与校验态
+    resetForm() {
+      this.labelarr = [];
+      this.val = '';
+      this.formValidate = {
+        status: true,
+        type: '',
+        keywords: '',
+        contents: {
+          content: '',
+          articleData: {},
+          mediaId: '',
+          srcUrl: '',
+          articleId: null,
+        },
+        id: null,
+      };
+      this.$nextTick(() => {
+        if (this.$refs['formValidate']) this.$refs['formValidate'].clearValidate();
+      });
+    },
     change(e) {
       this.$forceUpdate();
     },

@@ -99,6 +99,18 @@ export default {
       },
     };
   },
+  watch: {
+    // /user/label（用户标签）与 /user/group（用户分组）共用本组件，
+    // 路由出口无 key + keep-alive 按组件名缓存 → 两者复用同一实例，切路由不会再走 mounted。
+    // 不重拉就会出现「分组页显示标签数据、名称空白，删除时把标签 id 传给分组接口」，
+    // 命中 0 行后后端返回 CommonResult.failed() 的兜底文案「系统异常，请稍后重试」。
+    '$route.path'() {
+      this.tableFrom.page = 1;
+      this.tableData.data = [];
+      this.tableData.total = 0;
+      this.getList();
+    },
+  },
   mounted() {
     this.getList();
   },

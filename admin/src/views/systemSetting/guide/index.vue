@@ -244,11 +244,38 @@ export default {
     },
     handlerGetSettingInfo(id, level) {
       systemSettingApi.systemConfigInfo({ id: id }).then((data) => {
+        // 后端 config 值统一按字符串返回（HashMap<String,String>），
+        // 而 el-checkbox-group 需要数组 —— 不转换会出现
+        // 「多选开关无法独立设置、选一个另一个也跟着变」。
+        // 注：系统设置页（systemSetting/setting）也有同样处理，别再漏。
+        this.normalizeCheckboxGroups(data);
         this.currentEditData = data;
         if (level === 1) {
           this.formConf.isEdit = this.currentEditData !== null;
           this.formConf.render = true;
         }
+      });
+    },
+    // 把 "," 分隔的字符串还原成数组（按选项值还原类型，历史脏值 ",1" 的空段丢弃）
+    normalizeCheckboxGroups(data) {
+      const fields = (this.formConf.content && this.formConf.content.fields) || [];
+      fields.forEach((field) => {
+        const config = field.__config__ || {};
+        const model = field.__vModel__;
+        if (!model || config.tag !== 'el-checkbox-group') return;
+        const raw = data[model];
+        if (raw === undefined || raw === null || raw === '') {
+          data[model] = [];
+          return;
+        }
+        const options = (field.__slot__ && field.__slot__.options) || [];
+        data[model] = String(raw)
+          .split(',')
+          .filter(Boolean)
+          .map((v) => {
+            const hit = options.find((opt) => String(opt.value) === v);
+            return hit ? hit.value : v;
+          });
       });
     },
     handlerSubmit: Debounce(function (formValue) {
@@ -272,7 +299,9 @@ export default {
         _fields.push({
           name: key,
           title: key,
-          value: formValue[key],
+          // 后端字段是 String，数组（如 el-checkbox-group）必须拼成 "," 分隔串，
+          // 否则 Jackson 反序列化直接 400：Cannot deserialize String out of START_ARRAY
+          value: formValue[key] instanceof Array ? formValue[key].join(',') : formValue[key],
         });
       });
       _pram.fields = _fields;

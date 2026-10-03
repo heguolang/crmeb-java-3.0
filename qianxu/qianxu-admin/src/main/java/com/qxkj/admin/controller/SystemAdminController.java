@@ -84,7 +84,8 @@ public class SystemAdminController {
         if (systemAdminService.removeById(id)) {
             return CommonResult.success();
         } else {
-            return CommonResult.failed();
+            // 影响 0 行 = 记录本就不存在；这里要说清，不能回落到「系统异常，请稍后重试」
+            return CommonResult.failed("该管理员不存在或已被删除");
         }
     }
 
