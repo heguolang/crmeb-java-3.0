@@ -4947,6 +4947,12 @@ UPDATE `eb_system_menu`
    SET `pid` = @hub_dir, `name` = '大数据中心', `icon` = '', `component` = '/market/screen/hub',
        `menu_type` = 'C', `sort` = 3, `is_show` = 1, `is_delte` = 0, `update_time` = NOW()
  WHERE (`component` = '/market/screen/hub' OR `id` = 731) AND @hub_dir IS NOT NULL;
+-- 3) 旧的两个大屏菜单下线：已收敛进「大数据中心」页，菜单不再单列
+--    与后台「删除菜单」同一语义（is_delte=1 软删，数据保留，改回 0 即恢复）
+--    页面本身仍可访问：前端路由在 constantRoutes，hub 页按钮新标签打开
+--    ⚠️ 按 component 判，不写死 id（同 728 的坑）
+UPDATE `eb_system_menu` SET `is_delte` = 1, `update_time` = NOW()
+ WHERE `component` IN ('/market/screen/operation', '/market/screen/market') AND `is_delte` = 0;
 
 
 -- ============================================================
