@@ -5,6 +5,15 @@
 -- 适用：全新部署 / 测试环境重建
 --   ⚠️ PART 2 会 DROP 并重建同名表 —— 有业务数据的生产库【禁止】执行本文件！
 --
+-- ⚠️⚠️ 本文件【不是】最新版结构：它冻结于 2026-09-30。
+--   2026-10 之后新增的业务表（eb_svc_contract / eb_svc_demand / eb_svc_platform /
+--   eb_svc_invoice / eb_sms_record / eb_sms_template 等）只存在于 01_increment.sql。
+--   全新安装后【必须】再跑一遍 01_increment.sql，否则后台菜单点了就报「表不存在」。
+--   推荐直接用 qianxu/sql/install_all.sh，它会按正确顺序把两份都导完。
+--
+-- ⚠️ PART 1 的库名默认是 qianxu_java3（主项目）。自用副库请用 qianxuqifu：
+--   install_all.sh 已支持 DB=qianxuqifu；手工导就先改下面两行的库名。
+--
 -- 已有库只想补功能  → 执行 01_increment.sql（幂等，不动业务数据）
 --
 -- 内容三部分：

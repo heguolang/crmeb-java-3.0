@@ -60,10 +60,62 @@
 ```
 qianxu-mall
 ├── admin/          PC端管理端（Vue + ElementUI）
-├── app/            移动商城（UniApp标准开发，支持H5 + 微信小程序）
-├── qianxu/          后端API服务（Java SpringBoot + MybatisPlus）
-└── 接口文档/        部署后也可在线查看 Swagger 文档
+├── qianxu-app/     移动商城（UniApp标准开发，支持H5 + 微信小程序）
+├── qianxu/         后端API服务（Java SpringBoot + MybatisPlus，mvnw 可直接离线构建）
+├── db-data/        初始图片资源与说明
+├── qianxu/sql/     00_full_install.sql（全新安装）+ 01_increment.sql（增量，幂等可重复执行）
+├── deploy/         部署脚本与 nginx 配置（含 qianxuqifu-182 自用副库全套）
+└── 接口文档/       部署后也可在线查看 Swagger 文档
 ```
+
+---
+
+### 🚀 下游部署速查（clone 后照这个顺序走）
+
+**1. 建库 + 导数据**
+
+```bash
+DB=qianxuqifu bash qianxu/sql/install_all.sh
+```
+
+它会自动建库、按正确顺序导 `00_full_install.sql` + `01_increment.sql`、导完校验关键表。
+**两份都要导**：`00` 冻结于 2026-09-30，合同 / 服务需求 / 签约渠道 / 发票 / 短信这几批表只在 `01` 里，
+只导 `00` 的结果是「后台菜单都在、点进去报表不存在」。手工导的话：
+
+```bash
+mysql -uroot -p qianxuqifu < qianxu/sql/00_full_install.sql
+mysql -uroot -p qianxuqifu < qianxu/sql/01_increment.sql   # 幂等，可重复执行
+```
+
+**2. 改配置（三处不改就一定会踩坑）**
+
+| 位置 | 默认值（仓库内） | 上线必须改成 |
+|---|---|---|
+| `admin` 构建 | `admin/.env.production` = `http://api.qianxutec.com` | 你自己的后台 API 域名，且**必须 https**（http 会被浏览器按混合内容拦截，页面接口全挂但接口本身是好的，极难查） |
+| `qianxu-app` 构建 | `qianxu-app/config/app.js` = `127.0.0.1:8081` / `HTTP_H5_URL` = `127.0.0.1:8090` | 线上 API / H5 域名（忘了改 = 编译出一个装上线必定连不上的包，编译过程完全不报错） |
+| 后端启动 | `application-prod.yml` 里 `password: __SET_MYSQL_PASSWORD__` | 真实口令用命令行传入，不要写进文件 |
+
+> 两个构建脚本已内置「接线预检」，域名不对会直接判坏包并中断，别绕过：
+> `bash deploy/qianxuqifu-182/build-admin.sh`（后台）、`bash deploy/qianxuqifu-182/build-h5.sh`（H5）。
+
+**3. 构建后端**
+
+```bash
+cd qianxu && ./mvnw clean package -DskipTests   # wrapper 已入库，离线可用（首次会下载 Maven 发行包）
+# 产物：qianxu/qianxu-admin/target/Qianxu-admin.jar、qianxu/qianxu-front/target/Qianxu-front.jar
+```
+
+**4. 启动**
+
+```bash
+DB_PASS='真实口令' bash deploy/qianxuqifu-182/qifu-service.sh start
+```
+
+脚本用命令行覆盖 `url / username / password / port / imagePath / redis.database`，
+优先级高于 `application-prod.yml`；端口 admin 21800 / front 21810，Redis 主库 db12（**admin 与 front 必须共用同一 db**，分库会导致「后台改配置前台不生效」）。
+
+**平台限制**：H5 构建脚本依赖 HBuilderX 自带的 node18（`vue-cli 4 + node-sass`，系统 node22 编不了），
+目前只在 macOS 验证过；Linux/Windows 需自行替换 `build-h5.sh` 里的 `HBX / NODE / CLI` 三个路径。
 
 ---
 

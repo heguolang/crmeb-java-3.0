@@ -20,7 +20,13 @@ set -u
 HOST="${ONLINE_HOST:-root@8.163.105.182}"
 ONL_DB="${ONL_DB:-qianxu_java3}"
 ONL_USER="${ONL_USER:-qianxu_java3}"
-ONL_PASS="${ONL_DB_PASS:-ktXMTiAxTTyMyPKk}"
+# 2026-10-03 安全整改：线上库口令原本明文写在本文件（且已随 git 推送到远端），
+# 现改为占位符。真口令从环境变量传入，别再写回文件。
+ONL_PASS="${ONL_DB_PASS:-__SET_ONLINE_DB_PASSWORD__}"
+if [ "$ONL_PASS" = "__SET_ONLINE_DB_PASSWORD__" ]; then
+  echo "‼️ 线上库口令未设置。用环境变量传：ONL_DB_PASS='真实口令' bash $0 --dry-run"
+  exit 1
+fi
 LOCAL_DB="${LOCAL_DB:-qianxu}"
 MY="/opt/homebrew/opt/mysql@8.0/bin/mysql"
 DUMP="/opt/homebrew/opt/mysql@8.0/bin/mysqldump"

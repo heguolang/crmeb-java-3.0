@@ -10,3 +10,14 @@
 
 # SQL 脚本保持原样，不做 CRLF/LF 转换（导入过程中的换行敏感）
 *.sql -text
+
+# 2026-10-03：脚本类强制 LF。
+# Windows 下游若 core.autocrlf=true，checkout 时 .sh 会被写成 CRLF，
+# 传到 Linux 执行直接报 `/bin/bash^M: bad interpreter` —— 构建/启停全线卡死，
+# 且报错信息完全指不到换行问题上。这里在仓库层面钉死 LF，与下游本地配置无关。
+*.sh text eol=lf
+mvnw text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.java text eol=lf
