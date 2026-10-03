@@ -4922,23 +4922,31 @@ WHERE `title` IN ('拼购未中奖补贴', '拼购分享奖励')
 
 -- ============================================================
 -- 补丁：大数据中心聚合页菜单（2026-09-30 改版）
--- 数据中心大屏(=728)下收敛为单一入口「大数据中心」：
---   运营/市场两个大屏做成页面缩略图入口 + 名称设置，三合一在同一页面
--- 旧子菜单「运营大数据」「市场大数据」软删下线（is_delte=1，数据保留可恢复）
+-- 「数据中心大屏」目录下新增聚合入口「大数据中心」(/market/screen/hub)：
+--   运营/市场两个大屏做成页面缩略图入口 + 名称设置（两个大屏各自菜单保持不动）
+-- ⚠️ 2026-10-03 修复：父菜单原先写死 id=728，而本环境目录是按 component 动态建的
+--    （实际 id=755）→ 728 不存在 → 该菜单成孤儿节点 → 后台侧边栏完全看不见。
+--    现改为按 component 动态查父目录，任何环境都不会再挂空；父目录缺失时不插，
+--    避免再次造出孤儿节点。
 -- 幂等：可重复执行
 -- ============================================================
--- 1) 大数据中心主菜单（id=731，挂在 数据中心大屏 728 下）
-INSERT INTO `eb_system_menu` (`id`, `pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`)
-SELECT 731, 728, '大数据中心', '', '', '/market/screen/hub', 'C', 1, 1, 0, NOW(), NOW()
-FROM (SELECT 1) x
-WHERE NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `id` = 731) t);
--- 兜底修正（旧版补丁可能已插入成「大数据名称设置」）
+-- 父目录 id：按 component 查（❌不再写死 728）
+SET @hub_dir := (
+  SELECT id FROM (SELECT id FROM `eb_system_menu`
+                   WHERE `component` = '/market/screen' AND `menu_type` = 'M' AND `is_delte` = 0
+                   LIMIT 1) t
+);
+-- 1) 大数据中心主菜单（不存在才插，且父目录必须存在）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT @hub_dir, '大数据中心', '', '', '/market/screen/hub', 'C', 3, 1, 0
+FROM DUAL
+WHERE @hub_dir IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `component` = '/market/screen/hub') t);
+-- 2) 兜底修正：无论历史上叫什么名字 / 挂在哪个父级 / 是否被软删，都挂回目录
 UPDATE `eb_system_menu`
-   SET `pid` = 728, `name` = '大数据中心', `icon` = '', `component` = '/market/screen/hub',
-       `menu_type` = 'C', `sort` = 1, `is_show` = 1, `is_delte` = 0, `update_time` = NOW()
- WHERE `id` = 731;
--- 2) 旧的「运营大数据」「市场大数据」子菜单下线（软删）
-UPDATE `eb_system_menu` SET `is_delte` = 1, `update_time` = NOW() WHERE `id` IN (729, 730);
+   SET `pid` = @hub_dir, `name` = '大数据中心', `icon` = '', `component` = '/market/screen/hub',
+       `menu_type` = 'C', `sort` = 3, `is_show` = 1, `is_delte` = 0, `update_time` = NOW()
+ WHERE (`component` = '/market/screen/hub' OR `id` = 731) AND @hub_dir IS NOT NULL;
 
 
 -- ============================================================
