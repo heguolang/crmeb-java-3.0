@@ -2,8 +2,8 @@
 # ============================================================
 # 黔序自用副库(qianxuqifu) · 本地 macOS 服务管理
 #
-#   源码目录 : /Users/qianxu/WorkBuddy/qianxuqifu/repo/qianxu
-#   MySQL    : 127.0.0.1:3306 / qianxu_java3 (root/root)
+#   源码目录 : 从脚本位置自动推导（repo/qianxu），可用 R= 覆盖
+#   MySQL    : 127.0.0.1:3306 / qianxu_java3（账号口令用 LOCAL_DB_USER/LOCAL_DB_PASS，默认 root/root）
 #   Redis    : 127.0.0.1:6379, 密码 123456
 #              主库 db12（admin+front **共用**）/ 副库 db9（微信 accessToken 共用）
 #   端口     : admin 18080 / front 18081
@@ -20,9 +20,15 @@
 # ============================================================
 set -uo pipefail
 
-JAVA=/Users/qianxu/.jdks/zulu8.96.0.205-ca-jdk8.0.504-macosx_aarch64/Contents/Home/bin/java
-R=/Users/qianxu/WorkBuddy/qianxuqifu/repo/qianxu
-DBURL='jdbc:mysql://127.0.0.1:3306/qianxu_java3?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true'
+# 源码目录：从脚本位置自动推导；本机 MySQL / 本地口令可用环境变量覆盖
+#   （本地弱口令不再写死在脚本里：LOCAL_DB_USER / LOCAL_DB_PASS，默认 root/root）
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+R=${R:-$ROOT/qianxu}
+# JVM：优先系统默认 java，没装 JDK 时回退到本机 zulu8（可用 JAVA=/path/to/java 覆盖）
+JAVA=${JAVA:-$(command -v java || echo /Users/qianxu/.jdks/zulu8.96.0.205-ca-jdk8.0.504-macosx_aarch64/Contents/Home/bin/java)}
+LOCAL_DB_USER=${LOCAL_DB_USER:-root}
+LOCAL_DB_PASS=${LOCAL_DB_PASS:-root}
+DBURL=${DBURL:-'jdbc:mysql://127.0.0.1:3306/qianxu_java3?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true'}
 REDIS_DB=12
 REDIS_SECOND_DB=9
 
@@ -36,14 +42,14 @@ start_one() {
   #   父 shell 退出时子进程会被整组回收 —— 表现是「启动日志有 Started，进程却没了」。
   #   macOS 默认没有 setsid 命令，故借 python 起进程。
   /usr/bin/python3 - "$JAVA" "$R/$jar" "$port" "$DBURL" "$REDIS_DB" "$REDIS_SECOND_DB" \
-      "/tmp/qifu_${name}_${port}.log" "$R/" <<'PY'
+      "/tmp/qifu_${name}_${port}.log" "$R/" "$LOCAL_DB_USER" "$LOCAL_DB_PASS" <<'PY'
 import subprocess, sys
-java, jar, port, url, db, db2, log, img = sys.argv[1:9]
+java, jar, port, url, db, db2, log, img, dbuser, dbpass = sys.argv[1:11]
 cmd = [java, "-Dfile.encoding=UTF-8", "-jar", jar,
        "--server.port=" + port,
        "--spring.datasource.url=" + url,
-       "--spring.datasource.username=root",
-       "--spring.datasource.password=root",
+       "--spring.datasource.username=" + dbuser,
+       "--spring.datasource.password=" + dbpass,
        "--qianxu.imagePath=" + img,
        "--spring.redis.database=" + db,
        "--spring.redis.second.database=" + db2]

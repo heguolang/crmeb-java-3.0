@@ -15,8 +15,15 @@ D=/www/wwwroot/apiqf.qianxutec.com
 ADMIN_JAR=$D/Qianxu-admin.jar
 FRONT_JAR=$D/Qianxu-front.jar
 DB_URL='jdbc:mysql://127.0.0.1:3306/qianxuqifu?characterEncoding=utf-8&useSSL=false&serverTimeZone=GMT+8'
-DB_USER=qianxuqifu
-DB_PASS='__SET_MYSQL_PASSWORD__'   # 入库脱敏：真实口令见线上该文件（chmod 700 root）
+DB_USER=${DB_USER:-qianxuqifu}
+# 入库脱敏：默认占位符，真实口令只在本机工作区 deploy-182/qifu-service.sh 与线上
+# /www/wwwroot/apiqf.qianxutec.com/qifu-service.sh（chmod 700 root）—— 切勿提交进 git
+DB_PASS=${DB_PASS:-'__SET_MYSQL_PASSWORD__'}
+if [ "$DB_PASS" = "__SET_MYSQL_PASSWORD__" ]; then
+  echo "‼️ DB_PASS 还是占位符：请 DB_PASS=真实口令 bash $0 $1"
+  echo "   或从线上/本机工作区那份脱敏前的文件复制过来（那份不入 git）"
+  exit 1
+fi
 JAVA=$(command -v java || echo /usr/bin/java)
 # 同机还有 main(1g+1g) 与 xml168(768m+768m)，本套限堆，避免把机器内存吃满
 JVM_OPTS=(-server -Xms256m -Xmx512m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=256m -Xss512k

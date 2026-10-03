@@ -96,7 +96,7 @@ admin/dist_*/
 local-dev/线上会员账号_*.md
 local-dev/audit_skills.py
 
-# ���ؿ���ƽ̨��ַ�����ύ��
+# ���ؿ���ƽ̨��ַ�����ύ��
 local-dev/one-pass.local.env
 
 
@@ -112,3 +112,8 @@ local-dev/tools/probe_*.js
 
 # 2026-09-30 SQL 旧脚本归档（仅本地追溯，不进远端）
 qianxu/sql/_archive/
+
+# 2026-10-03：Maven Wrapper 的启动 jar 是「工具」而非构建产物，需要入库 ——
+# 否则下游 `./mvnw package` 要联网下载，离线/内网环境直接卡住。这是唯一的 jar 例外，
+# 其余 .jar / .class 仍然一律不入库（见上面 target/ 与 *.class 规则）。
+!qianxu/.mvn/wrapper/maven-wrapper.jar
