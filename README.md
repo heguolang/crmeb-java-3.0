@@ -51,7 +51,7 @@
 | PC管理端 | Vue 2.x + Element UI 2.13 |
 | 移动端 | uni-app（H5 + 公众号 + 微信小程序） |
 | 开发工具 | HBuilderX（移动端） |
-| 运行环境 | Java 1.8、Node 14、npm 6 |
+| 运行环境 | Java 1.8、Node 16（实测 v16.20.2 / npm 8；node ≥17 构建前端需加 `NODE_OPTIONS=--openssl-legacy-provider`，node ≤16 加了会构建失败） |
 
 ---
 

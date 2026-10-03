@@ -19,5 +19,7 @@ selenium-debug.log
 *.sln
 *.local
 
-package-lock.json
+# 依赖锁定文件：yarn.lock 不入库（本项目用 npm）；package-lock.json 必须入库，
+# 否则下游 npm i 会按 semver 重新解析，拉到不同版本就可能编不过
+# （本机 node v16.20.2 / npm 8.19.4 验证通过）
 yarn.lock
