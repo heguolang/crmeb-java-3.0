@@ -351,7 +351,7 @@ export default {
 }
 .type-tag--primary {
   background: #ecf5ff;
-  color: #409eff;
+  color: #1F5EFF;
 }
 .type-tag--warn {
   background: #fdf6ec;
@@ -368,7 +368,7 @@ export default {
 
 /* 关联单号：链接蓝 + 等宽数字 */
 .order-no {
-  color: #409eff;
+  color: #1F5EFF;
   font-variant-numeric: tabular-nums;
 }
 </style>

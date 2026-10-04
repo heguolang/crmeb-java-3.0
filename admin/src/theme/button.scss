@@ -1,0 +1,139 @@
+/* ============================================================
+   按钮体系 · 方案 B「极光科技」（2026-10-04）
+
+   改造背景：改造前按钮就是 element 默认样式换个主色，跟普通后台没区别。
+   改造手法（六条）：
+     ① 主操作改用「蓝→青双色渐变」（#1F5EFF → #2E7BFF → #22D3EE）
+     ② 顶部 1px 高光线 + 底部内阴影，做出玻璃/金属厚度
+     ③ 悬停时一道斜向扫光掠过，同时上浮 1px、光晕加倍
+     ④ 次级按钮用内描边 + 主色外圈，悬停时亮起
+     ⑤ 圆角统一 8px（mini/small 6px），过渡统一 180ms
+     ⑥ 危险按钮只用弱光晕 —— 破坏性操作不该抢注意力
+
+   边界：本文件只作用于 element 标准按钮类型（primary/default/danger/text），
+   不碰 .op-btn / .op-tag 等业务自定义按钮（它们在 element.scss 里另有定义）。
+   ============================================================ */
+
+/* ---------- 统一圆角与过渡 ---------- */
+.el-button {
+  border-radius: var(--prev-radius-ctl);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease, color 0.18s ease,
+    border-color 0.18s ease, background-color 0.18s ease;
+}
+.el-button--small {
+  border-radius: 7px;
+}
+.el-button--mini {
+  border-radius: 6px;
+}
+
+/* ---------- 主操作 ---------- */
+.el-button--primary:not(.is-plain):not(.is-text):not(.el-button--text) {
+  position: relative;
+  overflow: hidden;
+  background: var(--prev-color-primary-gradient-strong);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), inset 0 -1px 0 rgba(4, 20, 60, 0.22),
+    0 4px 14px rgba(31, 94, 255, 0.42), 0 1px 2px rgba(16, 24, 40, 0.12);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.28);
+}
+
+/* 顶部高光线 */
+.el-button--primary:not(.is-plain):not(.is-text):not(.el-button--text)::before {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+  pointer-events: none;
+}
+
+/* 悬停扫光 */
+.el-button--primary:not(.is-plain):not(.is-text):not(.el-button--text)::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 34%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-18deg) translateX(-280%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.el-button--primary:not(.is-plain):not(.is-text):not(.el-button--text):hover {
+  transform: translateY(-1px);
+  filter: saturate(1.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 8px 24px rgba(31, 94, 255, 0.52),
+    0 0 0 4px rgba(31, 94, 255, 0.1);
+}
+.el-button--primary:not(.is-plain):not(.is-text):not(.el-button--text):hover::after {
+  transform: skewX(-18deg) translateX(340%);
+}
+.el-button--primary:not(.is-plain):not(.is-text):not(.el-button--text):active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 2px 8px rgba(31, 94, 255, 0.48);
+}
+
+/* ---------- 次级 / 默认 ---------- */
+.el-button--default:hover,
+.el-button:not([class*='el-button--']):hover {
+  color: var(--prev-color-primary);
+  border-color: #8fb8ff;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(31, 94, 255, 0.1), inset 0 0 12px rgba(31, 94, 255, 0.05);
+}
+
+/* ---------- 文字按钮 ---------- */
+.el-button--text:hover,
+.el-button.el-button--text:focus {
+  background: rgba(31, 94, 255, 0.07);
+}
+
+/* ---------- 危险操作：只用弱光晕 ---------- */
+.el-button--danger:not(.is-plain):not(.is-text):not(.el-button--text) {
+  background: linear-gradient(135deg, #e8352a 0%, #ff6b5e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 rgba(90, 10, 5, 0.22),
+    0 2px 8px rgba(232, 53, 42, 0.22);
+}
+.el-button--danger:not(.is-plain):not(.is-text):not(.el-button--text):hover {
+  filter: brightness(1.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 4px 12px rgba(232, 53, 42, 0.3);
+}
+
+/* ---------- 输入框聚焦：主色外圈（方案 B 规范） ---------- */
+.el-input__inner:focus,
+.el-textarea__inner:focus,
+.el-select .el-input__inner:focus {
+  border-color: var(--prev-color-primary) !important;
+  box-shadow: var(--prev-shadow-focus) !important;
+}
+
+/* ---------- 控件圆角统一 ----------
+   Element 默认输入框 4px，而按钮已按方案 B 用 8px，两者并排放会一尖一圆。
+   这里只把「输入类控件」拉到 --prev-radius-ctl，不动复选框/标签/警告框
+   （它们的圆角跟控件不是一套语义，跟着改会变成怪形状）。 */
+.el-input__inner,
+.el-textarea__inner,
+.el-range-editor.el-input__inner,
+.el-input-number .el-input__inner {
+  border-radius: var(--prev-radius-ctl);
+}
+
+/* 输入框组合（前置/后置插槽，如「搜索」按钮）：只圆外侧两角 */
+.el-input-group > .el-input-group__append,
+.el-input-group > .el-input-group__prepend {
+  border-radius: 0 var(--prev-radius-ctl) var(--prev-radius-ctl) 0;
+}
+.el-input-group--prepend > .el-input__inner {
+  border-radius: 0 var(--prev-radius-ctl) var(--prev-radius-ctl) 0;
+}
+.el-input-group--prepend > .el-input-group__prepend {
+  border-radius: var(--prev-radius-ctl) 0 0 var(--prev-radius-ctl);
+}
+.el-input-group--append > .el-input__inner {
+  border-radius: var(--prev-radius-ctl) 0 0 var(--prev-radius-ctl);
+}

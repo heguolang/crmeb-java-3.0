@@ -2490,8 +2490,8 @@ export default {
 }
 
 .priamry_border {
-  border: 1px solid #1890ff;
-  color: #1890ff;
+  border: 1px solid var(--prev-color-primary, #1f5eff);
+  color: var(--prev-color-primary, #1f5eff);
 }
 
 .color-item {
@@ -2770,7 +2770,7 @@ export default {
         font-size: 12px;
         font-weight: 600;
         line-height: 20px;
-        color: var(--prev-color-primary, #0256ff);
+        color: var(--prev-color-primary, #1f5eff);
         background: var(--prev-color-primary-light-9, #ecf5ff);
       }
     }
@@ -2869,7 +2869,7 @@ export default {
     }
 
     &.cm-stat--dist {
-      border-left-color: #0256ff;
+      border-left-color: #1f5eff;
     }
 
     &.cm-stat--agent {
@@ -2887,7 +2887,7 @@ export default {
 
   /* ---------- 分组卡片 ---------- */
   .cm-sec {
-    --cm-accent: #0256ff;
+    --cm-accent: #1f5eff;
     --cm-accent-soft: rgba(2, 86, 255, 0.07);
 
     margin-bottom: 16px;
@@ -3310,7 +3310,7 @@ export default {
     }
 
     i.el-icon-edit-outline {
-      color: var(--prev-color-primary, #0256ff);
+      color: var(--prev-color-primary, #1f5eff);
     }
   }
 

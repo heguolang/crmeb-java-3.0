@@ -263,11 +263,11 @@ export default {
             {
               name: '参与人数(人)',
               count: res.countPeople,
-              color: '#1890FF',
+              color: '#1F5EFF',
               class: 'one',
               icon: 'iconleijiyonghushu',
             },
-            { name: '成团数量(个)', count: res.countTeam, color: '#A277FF', class: 'two', icon: 'iconxinzengyonghu' },
+            { name: '成团数量(个)', count: res.countTeam, color: '#7C3AED', class: 'two', icon: 'iconxinzengyonghu' },
           ];
         })
         .catch(() => {

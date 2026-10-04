@@ -200,10 +200,10 @@ export default {
 <style lang="scss">
 .el-input-group__append,
 .el-input-group__prepend {
-  background-color: #1890ff !important;
+  background-color: var(--prev-color-primary, #1f5eff) !important;
   color: #fff !important;
-  border-color: #1890ff !important;
-  border-radius: 0 4px 4px 0;
+  border-color: var(--prev-color-primary, #1f5eff) !important;
+  border-radius: 0 var(--prev-radius-ctl, 8px) var(--prev-radius-ctl, 8px) 0;
 }
 .block {
   text-align: right;

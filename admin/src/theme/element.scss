@@ -205,12 +205,28 @@
   color: var(--prev-bg-topBarColor) !important;
 }
 
-// 选中：亮色文字 + 底部高亮条 + 轻微提亮底色
+// 选中：方案 B —— 白色文字 + 提亮玻璃底 + 底部青色发光指示条
+// （原为 3px 主色下边框，视觉太重且和渐变顶栏抢注意力，改为发光条）
 .el-menu--horizontal > .el-menu-item.is-active,
 .el-menu--horizontal > .el-submenu.is-active .el-submenu__title {
-  color: var(--prev-MenuActiveColor) !important;
-  border-bottom: 3px solid var(--prev-color-primary) !important;
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border-bottom: none !important;
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26) !important;
+  position: relative;
+  font-weight: 500;
+}
+.el-menu--horizontal > .el-menu-item.is-active::after,
+.el-menu--horizontal > .el-submenu.is-active .el-submenu__title::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 8px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--prev-color-cyan);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.9);
 }
 
 // 外部链接时
@@ -653,7 +669,7 @@ input::-webkit-outer-spin-button {
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid #f0f2f5;
+    border-bottom: 1px solid var(--prev-border-color-light, #edf0f5);
     cursor: default;
   }
 
@@ -683,7 +699,7 @@ input::-webkit-outer-spin-button {
     flex-shrink: 0;
     border-radius: 50%;
     object-fit: cover;
-    background: #f0f2f5;
+    background: var(--prev-border-color-light, #edf0f5);
   }
 
   .user-avatar--text {

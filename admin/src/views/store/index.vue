@@ -754,7 +754,7 @@ export default {
   grid-template-columns: 44px 92px 80px minmax(220px, 2.35fr) minmax(120px, 1fr) minmax(125px, 1fr) minmax(60px, 0.5fr) minmax(125px, 1fr);
   align-items: center;
   height: 46px;
-  background: #ecf3fd;
+  background: var(--prev-color-primary-light-9, #eef3ff);
 }
 .list-head .list-cell {
   font-size: 14px;

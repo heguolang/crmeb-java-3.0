@@ -1511,7 +1511,7 @@ export default {
 /*}*/
 .el-dropdown-link {
   cursor: pointer;
-  color: #409eff;
+  color: #1F5EFF;
   font-size: 12px;
 }
 

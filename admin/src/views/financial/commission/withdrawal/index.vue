@@ -339,16 +339,16 @@ export default {
     getBalance() {
       applyBalanceApi({ dateLimit: this.tableFrom.dateLimit }).then((res) => {
         this.cardLists = [
-          { name: '待提现金额', count: res.toBeWithdrawn, color: '#1890FF', class: 'one', icon: 'iconzhichujine1' },
+          { name: '待提现金额', count: res.toBeWithdrawn, color: '#1F5EFF', class: 'one', icon: 'iconzhichujine1' },
           {
             name: '佣金总金额',
             count: res.commissionTotal,
-            color: '#A277FF',
+            color: '#7C3AED',
             class: 'two',
             icon: 'iconzhifuyongjinjine1',
           },
-          { name: '已提现金额', count: res.withdrawn, color: '#EF9C20', class: 'three', icon: 'iconyingyee1' },
-          { name: '未提现金额', count: res.unDrawn, color: '#1BBE6B', class: 'four', icon: 'iconyuezhifujine2' },
+          { name: '已提现金额', count: res.withdrawn, color: '#F59E0B', class: 'three', icon: 'iconyingyee1' },
+          { name: '未提现金额', count: res.unDrawn, color: '#12B76A', class: 'four', icon: 'iconyuezhifujine2' },
         ];
       });
     },

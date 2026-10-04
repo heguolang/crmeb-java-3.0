@@ -37,14 +37,14 @@
   justify-content: space-between;
   height: 48px;
   padding: 0 20px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--prev-border-color-light, #edf0f5);
 
   &__title {
     position: relative;
     padding-left: 10px;
     font-size: 14px;
     font-weight: 600;
-    color: #303133;
+    color: var(--prev-color-text-title, #0f172a);
 
     &::before {
       content: '';
@@ -55,13 +55,13 @@
       width: 3px;
       height: 14px;
       border-radius: 2px;
-      background: var(--prev-color-primary, #409eff);
+      background: var(--prev-color-primary-gradient, linear-gradient(135deg, #1f5eff, #4f8cff));
     }
   }
 
   &__toggle {
     font-size: 12px;
-    color: var(--prev-color-primary, #409eff);
+    color: var(--prev-color-primary, #1f5eff);
     cursor: pointer;
   }
 }
@@ -74,14 +74,14 @@
   & + & {
     margin-top: 6px;
     padding-top: 14px;
-    border-top: 1px dashed #ebeef5;
+    border-top: 1px dashed var(--prev-border-color-light, #edf0f5);
   }
 
   &__title {
     margin-bottom: 12px;
     font-size: 14px;
     font-weight: 600;
-    color: #303133;
+    color: var(--prev-color-text-title, #0f172a);
   }
 }
 
@@ -109,7 +109,7 @@
     padding: 0 0 6px;
     line-height: 20px;
     font-size: 13px;
-    color: #909399;
+    color: var(--prev-color-text-secondary, #94a3b8);
   }
 
   .el-form-item__content {
@@ -127,7 +127,7 @@
   display: flex;
   justify-content: flex-end;
   padding: 16px 0;
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid var(--prev-border-color-light, #edf0f5);
 
   .el-button + .el-button {
     margin-left: 10px;
@@ -154,7 +154,7 @@
   &__tip {
     margin-right: 6px;
     font-size: 13px;
-    color: #909399;
+    color: var(--prev-color-text-secondary, #94a3b8);
   }
 
   /* 分类 tab 用轻盈的下划线样式，避免深色块压住列表 */
@@ -165,14 +165,14 @@
 
   .el-tabs__nav-wrap::after {
     height: 1px;
-    background-color: #f0f2f5;
+    background-color: var(--prev-border-color-light, #edf0f5);
   }
 
   .el-tabs__item {
     height: 54px;
     line-height: 54px;
     font-size: 14px;
-    color: #606266;
+    color: var(--prev-color-text-primary, #334155);
 
     &.is-active {
       font-weight: 600;
@@ -185,8 +185,8 @@
   /* 各栏目覆盖此变量即可调整列；表头与数据行共用，保证严格对齐 */
   --list-cols: 1fr;
 
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
+  border: 1px solid var(--prev-border-color-light, #edf0f5);
+  border-radius: 8px;
   overflow-x: auto;
   overflow-y: hidden;
   background: #fff;
@@ -198,14 +198,15 @@
   align-items: center;
   height: 46px;
   padding: 0 16px;
-  background: #ecf3fd;
-  border-bottom: 1px solid #dbe7f8;
+  /* 与全站 el-table 表头同色（--prev-color-primary-light-9），不再自成一套浅蓝 */
+  background: var(--prev-color-primary-light-9, #eef3ff);
+  border-bottom: 1px solid var(--prev-border-color-base, #e2e8f0);
 
   &__cell {
     min-width: 0;
     font-size: 14px;
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--prev-color-text-title, #0f172a);
     letter-spacing: 0.01em;
   }
 }
@@ -220,7 +221,7 @@
   /* 内容垂直居中：各列行数不同也能上下对齐 */
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--prev-border-color-lighter, #f1f4f9);
   transition: background-color 0.18s ease;
 
   &:last-child {
@@ -249,7 +250,7 @@
 .list-empty {
   padding: 60px 0;
   text-align: center;
-  color: #c0c4cc;
+  color: var(--prev-color-text-placeholder, #c0c9d6);
 
   i {
     font-size: 36px;
@@ -272,12 +273,12 @@
   &__k {
     flex-shrink: 0;
     margin-right: 2px;
-    color: #909399;
+    color: var(--prev-color-text-secondary, #94a3b8);
   }
 
   &__v {
     min-width: 0;
-    color: #303133;
+    color: var(--prev-color-text-primary, #334155);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -288,10 +289,10 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* 金额：加粗强调 */
+  /* 金额：加粗强调（语义色与全站 danger 一致） */
   &__v--money {
     font-weight: 600;
-    color: #e04c4c;
+    color: var(--prev-color-prompt-color, #f04438);
   }
 
   /* 内嵌 ID 角标，如「ID:69」 */
@@ -302,8 +303,8 @@
     border-radius: 2px;
     font-size: 12px;
     line-height: 18px;
-    color: var(--prev-color-primary, #2f7de1);
-    background: var(--prev-color-primary-light-9, #ecf5ff);
+    color: var(--prev-color-primary, #1f5eff);
+    background: var(--prev-color-primary-light-9, #eef3ff);
     font-variant-numeric: tabular-nums;
   }
 
@@ -317,7 +318,7 @@
     transition: color 0.16s ease;
 
     &:hover {
-      color: var(--prev-color-primary, #409eff);
+      color: var(--prev-color-primary, #1f5eff);
     }
   }
 }
@@ -331,37 +332,37 @@
   margin: 0 4px 4px 0;
   border-radius: 3px;
   font-size: 12px;
-  background: #f0f2f5;
-  color: #909399;
+  background: var(--prev-color-info-light, #f4f4f5);
+  color: var(--prev-color-endTag-color, #64748b);
 
   /* 等级 / 主色标签 */
   &--primary {
-    background: var(--prev-color-primary-light-9, #ecf5ff);
-    color: var(--prev-color-primary, #2f7de1);
+    background: var(--prev-color-primary-light-9, #eef3ff);
+    color: var(--prev-color-primary, #1f5eff);
   }
 
   /* 推广员 */
   &--warning {
-    background: #fdf6ec;
-    color: #d98b1f;
+    background: var(--prev-color-warning-light, rgba(217, 135, 0, 0.1));
+    color: var(--prev-color-warning-color, #d98700);
   }
 
   /* 普通会员 / 中性 */
   &--info {
-    background: #f4f4f5;
-    color: #7d838c;
+    background: var(--prev-color-info-light, #f4f4f5);
+    color: var(--prev-color-endTag-color, #64748b);
   }
 
   /* 已注销 / 异常 */
   &--danger {
-    background: #fef0f0;
-    color: #e04c4c;
+    background: var(--prev-color-danger-light, rgba(240, 68, 56, 0.1));
+    color: var(--prev-color-prompt-color, #f04438);
   }
 
   /* 正常 / 成功 */
   &--success {
-    background: #f0f9eb;
-    color: #52a832;
+    background: var(--prev-color-success-light, rgba(18, 183, 106, 0.1));
+    color: var(--prev-color-Auxiliary-color, #12b76a);
   }
 }
 
@@ -371,10 +372,10 @@
   font-size: 13px;
 
   &--on {
-    color: #52a832;
+    color: var(--prev-color-Auxiliary-color, #12b76a);
   }
 
   &--off {
-    color: #909399;
+    color: var(--prev-color-text-secondary, #94a3b8);
   }
 }

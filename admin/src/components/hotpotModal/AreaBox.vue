@@ -13,7 +13,7 @@
   >
     <div class="prompt-text">
       <div class="prompt-item num">{{ areaInit.name }}</div>
-      <div class="prompt-item" :style="{ color: isSet ? '#2d8cf0' : '#f00' }">
+      <div class="prompt-item" :style="{ color: isSet ? '#1F5EFF' : '#f00' }">
         {{ isSet ? '(已设置)' : '(未设置)' }}
       </div>
     </div>
@@ -220,8 +220,8 @@ export default {
 <style scoped lang="scss">
 .areaBox {
   position: absolute;
-  background: rgba(24, 144, 255, 0.5);
-  border: 1px dashed #1890ff;
+  background: rgba(31, 94, 255, 0.5);
+  border: 1px dashed #1f5eff;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -259,7 +259,7 @@ export default {
     height: 16px;
     line-height: 16px;
     font-size: 12px;
-    background: #1890ff;
+    background: #1f5eff;
     color: #fff;
     text-align: center;
     border-radius: 0 0 0 3px;

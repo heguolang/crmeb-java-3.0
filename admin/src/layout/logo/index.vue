@@ -93,17 +93,25 @@ export default {
   font-size: 16px;
   cursor: pointer;
   animation: logoAnimation 0.3s ease-in-out;
-  height: 64px;
-  line-height: 64px;
+  /* 2026-10-04：顶栏导航层为 56px，原 64px 会溢出 8px（横向布局下尤其明显）。
+     width 保持 206px 不动 —— classic 侧栏布局依赖这个值。 */
+  height: 56px;
+  line-height: 56px;
   width: 206px;
+  flex: 0 0 auto;
   &:hover {
     span {
       opacity: 0.9;
     }
   }
   &-medium-img {
-    height: 32px;
+    height: 30px;
+    border-radius: 8px;
   }
+}
+/* 方案 B：logo 在深空渐变底上加一点柔和光晕，增强品牌块的存在感 */
+.nav-row .layout-logo-medium-img {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 }
 .layout-logo-size {
   display: flex;

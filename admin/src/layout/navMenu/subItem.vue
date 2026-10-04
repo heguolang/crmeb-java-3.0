@@ -85,6 +85,6 @@ export default {
   white-space: nowrap;
 }
 .qx-newtab-item:hover {
-  background: rgba(64, 158, 255, 0.08);
+  background: rgba(31, 94, 255, 0.08);
 }
 </style>

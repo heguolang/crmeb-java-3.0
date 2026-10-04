@@ -668,7 +668,7 @@ export default {
     height: 14px;
     margin-right: 8px;
     border-radius: 2px;
-    background: var(--prev-color-primary, #0256ff);
+    background: var(--prev-color-primary, #1f5eff);
   }
 
   &__n {
@@ -792,7 +792,7 @@ export default {
   }
 
   &:hover {
-    border-color: var(--prev-color-primary, #0256ff);
+    border-color: var(--prev-color-primary, #1f5eff);
     box-shadow: 0 2px 8px rgba(2, 86, 255, 0.16);
   }
 }

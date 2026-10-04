@@ -536,7 +536,7 @@ export default {
   line-height: 30px !important;
 }
 .iconrequwenzitishi {
-  color: #2d8cf0;
+  color: #1F5EFF;
 }
 .ml5 {
   margin-left: 5px;

@@ -574,7 +574,7 @@ export default {
 }
 
 .on {
-  background-color: #2d8cf0 !important;
+  background-color: #1F5EFF !important;
   color: #fff !important;
 }
 
@@ -701,8 +701,8 @@ export default {
     .ok {
       width: 70px;
       height: 32px;
-      background: #1890ff;
-      border-radius: 2px;
+      background: var(--prev-color-primary, #1f5eff);
+      border-radius: var(--prev-radius-ctl, 8px);
       font-size: 14px;
       color: #ffffff;
       line-height: 32px;
@@ -713,7 +713,7 @@ export default {
 }
 
 ::v-deep .el-tree-node:focus > .el-tree-node__content {
-  color: #409eff; //节点的字体颜色
+  color: #1F5EFF; //节点的字体颜色
 }
 ::v-deep .el-pagination {
   margin-top: 20px;

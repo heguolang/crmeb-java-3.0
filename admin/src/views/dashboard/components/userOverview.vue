@@ -212,7 +212,7 @@ export default {
                 normal: {
                   color: function (params) {
                     //自定义颜色
-                    var colorList = ['#1BBE6B', '#1890FF', '#EF9C20', '#4BCAD5'];
+                    var colorList = ['#12B76A', '#1F5EFF', '#F59E0B', '#22D3EE'];
                     return colorList[params.dataIndex];
                   },
                 },
@@ -236,20 +236,20 @@ export default {
 }
 
 .header_title {
-  font-size: 16px;
-  font-family: PingFangSC-Semibold, PingFang SC;
+  font-size: 15px;
   font-weight: 600;
-  color: #000000;
-  padding-left: 8px;
+  color: var(--prev-color-text-title, #0f172a);
+  letter-spacing: 0.2px;
+  padding-left: 11px;
   position: relative;
-
   &::before {
     position: absolute;
     content: '';
-    width: 2px;
-    height: 18px;
-    background: #1890ff;
-    top: 0;
+    width: 3px;
+    height: 15px;
+    border-radius: 2px;
+    background: var(--prev-color-primary-gradient-strong, linear-gradient(135deg, #1f5eff, #22d3ee));
+    top: 2px;
     left: 0;
   }
 }
@@ -327,7 +327,7 @@ export default {
 }
 
 .lan {
-  background: #1890ff;
+  background: var(--prev-color-primary, #1f5eff);
 }
 
 .iconshangpinliulanliang {
@@ -402,7 +402,10 @@ export default {
 .user-visitUser-ti {
   width: 310px;
   height: 100px;
-  background: #1890ff;
+  /* 原纯色 #1890ff 大色块 → 方案 B 渐变 + 柔和投影 */
+  background: var(--prev-color-primary-gradient-strong, linear-gradient(135deg, #1f5eff, #22d3ee));
+  border-radius: var(--prev-radius-card, 12px);
+  box-shadow: 0 8px 22px rgba(31, 94, 255, 0.28);
   transform: perspective(5em) rotateX(-11deg);
   margin-left: -104px;
   margin-top: 8px;
@@ -451,7 +454,9 @@ export default {
 .user-orderUser-ti {
   width: 226px;
   height: 98px;
-  background: #4bcad5;
+  background: linear-gradient(135deg, #22d3ee, #0891b2);
+  border-radius: var(--prev-radius-card, 12px);
+  box-shadow: 0 8px 22px rgba(8, 145, 178, 0.26);
   transform: perspective(7em) rotateX(-20deg);
   margin-left: -62px;
   margin-top: 7px;

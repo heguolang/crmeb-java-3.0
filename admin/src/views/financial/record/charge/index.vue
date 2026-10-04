@@ -236,9 +236,9 @@ export default {
       balanceApi().then((res) => {
         const stat = res;
         this.cardLists = [
-          { name: '充值总金额', count: stat.total, color: '#1890FF', class: 'one', icon: 'iconchongzhijine' },
-          { name: '小程序充值金额', count: stat.routine, color: '#A277FF', class: 'two', icon: 'iconweixinzhifujine' },
-          { name: '公众号充值金额', count: stat.weChat, color: '#EF9C20', class: 'three', icon: 'iconyuezhifujine1' },
+          { name: '充值总金额', count: stat.total, color: '#1F5EFF', class: 'one', icon: 'iconchongzhijine' },
+          { name: '小程序充值金额', count: stat.routine, color: '#7C3AED', class: 'two', icon: 'iconweixinzhifujine' },
+          { name: '公众号充值金额', count: stat.weChat, color: '#F59E0B', class: 'three', icon: 'iconyuezhifujine1' },
         ];
       });
     },

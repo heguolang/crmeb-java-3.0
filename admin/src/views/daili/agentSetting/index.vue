@@ -146,7 +146,7 @@ export default {
   color: #303133;
   line-height: 18px;
   padding-left: 10px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid #1F5EFF;
   margin: 4px 0 20px;
 
   &--gap {

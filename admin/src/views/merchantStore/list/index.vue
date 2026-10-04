@@ -351,7 +351,7 @@ export default {
 .switch-tip { margin-left: 10px; color: #999; font-size: 12px; }
 .svc-tag { display: inline-block; font-size: 12px; line-height: 20px; padding: 0 6px; border-radius: 3px; margin-right: 6px; white-space: nowrap; }
 .svc-pickup { background: #e8f8f0; color: #0f9a58; }
-.svc-delivery { background: #e8f1ff; color: #0256ff; }
+.svc-delivery { background: var(--prev-color-primary-light-9, #eef3ff); color: var(--prev-color-primary, #1f5eff); }
 /* 选择负责人（与「代理-代理管理」同款） */
 .user-picker { display: inline-block; }
 </style>

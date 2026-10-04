@@ -124,7 +124,7 @@ div:focus {
 }
 
 .link {
-  color: #409eff;
+  color: var(--prev-color-primary, #1f5eff);
   cursor: pointer;
 }
 

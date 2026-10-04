@@ -294,7 +294,7 @@ export default {
   border-radius: 50%;
   background: #ecf5ff;
   border: 1px solid #d9ecff;
-  color: #409eff;
+  color: #1F5EFF;
   font-size: 13px;
   font-weight: 600;
   display: flex;
@@ -302,8 +302,8 @@ export default {
   justify-content: center;
 }
 .is-top .rank-badge {
-  background: #409eff;
-  border-color: #409eff;
+  background: #1F5EFF;
+  border-color: #1F5EFF;
   color: #fff;
   font-size: 12px;
 }
@@ -366,7 +366,7 @@ export default {
   padding: 24px 0;
 }
 .empty-tip a {
-  color: #409eff;
+  color: #1F5EFF;
   cursor: pointer;
 }
 .board-foot {

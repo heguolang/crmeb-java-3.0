@@ -14,10 +14,11 @@ export default {
   },
   computed: {
     // 设置顶部 header 的具体高度
-    // 顶栏菜单行高已提高到 56px，这里同步调整，否则菜单底部会被裁切
+    // 2026-10-04 方案 B：顶栏拆为双层 —— 导航层 56px + 页面层 48px = 104px。
+    // 这里必须同步，否则第二层页面层会被裁切。
     // 顶部标签栏（tagsView）已删除，固定高度
     setHeaderHeight() {
-      return '56px';
+      return '104px';
     },
   },
 };

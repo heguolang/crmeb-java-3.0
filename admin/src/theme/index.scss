@@ -1,6 +1,9 @@
 @import './base.scss';
 @import './variables.scss';
 @import './element.scss';
+/* 按钮体系（方案 B）：放在 element.scss 之后，确保覆盖 element 默认按钮；
+   放在 list-page.scss 之前，避免影响页面级按钮规则 */
+@import './button.scss';
 @import './list-page.scss';
 @import './app.scss';
 @import './styles.scss';

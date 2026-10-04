@@ -646,11 +646,11 @@ table .el-image-viewer__wrapper {
       }
 
       .value1 {
-        color: #f56022;
+        color: var(--prev-color-warning-color, #d98700);
       }
 
       .value2 {
-        color: #1bbe6b;
+        color: var(--prev-color-Auxiliary-color, #12b76a);
       }
 
       .value3 {
@@ -658,11 +658,11 @@ table .el-image-viewer__wrapper {
       }
 
       .value4 {
-        color: #6a7b9d;
+        color: var(--prev-color-endTag-color, #64748b);
       }
 
       .value5 {
-        color: #f5222d;
+        color: var(--prev-color-prompt-color, #f04438);
       }
     }
   }

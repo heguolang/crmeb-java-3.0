@@ -567,7 +567,7 @@ export default {
 
     .time {
       font-size: 12px;
-      color: #2d8cf0;
+      color: #1F5EFF;
     }
   }
 }

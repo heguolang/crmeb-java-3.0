@@ -410,7 +410,7 @@ export default {
   font-size: 14px;
 }
 .head-status.is-warn { color: #ff9900; }
-.head-status.is-info { color: #409eff; }
+.head-status.is-info { color: #1F5EFF; }
 .head-status.is-ok { color: #19be6b; }
 .head-status.is-danger { color: #f56c6c; }
 /* 库存类型小标签：实体蓝灰、虚拟橙 */
@@ -420,7 +420,7 @@ export default {
   border-radius: 3px;
   background: #ecf5ff;
   border: 1px solid #d9ecff;
-  color: #409eff;
+  color: #1F5EFF;
   font-size: 12px;
   line-height: 20px;
   white-space: nowrap;
@@ -472,7 +472,7 @@ export default {
 .goods-arrow {
   margin-top: 6px;
   font-size: 12px;
-  color: #409eff;
+  color: #1F5EFF;
   line-height: 16px;
 }
 .goods-diff {
@@ -551,7 +551,7 @@ export default {
   height: 34px;
   border-radius: 50%;
   background: #ecf5ff;
-  color: #409eff;
+  color: #1F5EFF;
   font-size: 14px;
   display: inline-flex;
   align-items: center;
@@ -638,7 +638,7 @@ export default {
   border-color: #c6e2ff;
 }
 .ship-type.active {
-  border-color: #409eff;
+  border-color: #1F5EFF;
   background: #f0f7ff;
 }
 .ship-type .st-icon {
@@ -646,7 +646,7 @@ export default {
   color: #909399;
 }
 .ship-type.active .st-icon {
-  color: #409eff;
+  color: #1F5EFF;
 }
 .ship-type .st-name {
   margin-top: 4px;
@@ -655,7 +655,7 @@ export default {
   font-weight: 600;
 }
 .ship-type.active .st-name {
-  color: #409eff;
+  color: #1F5EFF;
 }
 .ship-type .st-desc {
   margin-top: 2px;
@@ -671,7 +671,7 @@ export default {
 }
 .rc-icon {
   font-size: 18px;
-  color: #409eff;
+  color: #1F5EFF;
   margin: 2px 10px 0 0;
 }
 .rc-main {
@@ -749,7 +749,7 @@ export default {
   border-color: #c6e2ff;
 }
 .audit-type.active {
-  border-color: #409eff;
+  border-color: #1F5EFF;
   background: #f0f7ff;
 }
 .audit-type.reject.active {
@@ -761,7 +761,7 @@ export default {
   color: #909399;
 }
 .audit-type.active .st-icon {
-  color: #409eff;
+  color: #1F5EFF;
 }
 .audit-type.reject.active .st-icon {
   color: #f56c6c;
@@ -773,7 +773,7 @@ export default {
   font-weight: 600;
 }
 .audit-type.active .st-name {
-  color: #409eff;
+  color: #1F5EFF;
 }
 .audit-type.reject.active .st-name {
   color: #f56c6c;

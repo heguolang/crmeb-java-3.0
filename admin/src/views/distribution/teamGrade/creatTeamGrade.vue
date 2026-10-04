@@ -529,7 +529,7 @@ export default {
     top: 3px;
     width: 3px;
     height: 16px;
-    background: #1890ff;
+    background: var(--prev-color-primary-gradient-strong, linear-gradient(135deg, #1f5eff, #22d3ee));
     border-radius: 2px;
   }
 }
@@ -621,7 +621,7 @@ export default {
     color: rgba(0, 0, 0, 0.65);
     margin-bottom: 4px;
     i {
-      color: #1890ff;
+      color: var(--prev-color-primary, #1f5eff);
       margin-right: 4px;
     }
   }
@@ -657,7 +657,7 @@ export default {
     justify-content: center;
     transition: border-color 0.2s;
     &:hover {
-      border-color: #1890ff;
+      border-color: var(--prev-color-primary, #1f5eff);
     }
     .cameraIconfont {
       font-size: 24px;

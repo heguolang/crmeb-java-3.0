@@ -257,7 +257,7 @@ export default {
   font-variant-numeric: tabular-nums;
 }
 .summary-value.is-primary {
-  color: #409eff;
+  color: #1F5EFF;
 }
 .summary-value.is-warning {
   color: #e6a23c;
@@ -318,7 +318,7 @@ export default {
   padding: 0 6px;
   border-radius: 3px;
   background: #ecf5ff;
-  color: #409eff;
+  color: #1F5EFF;
   font-size: 12px;
   line-height: 18px;
   font-variant-numeric: tabular-nums;

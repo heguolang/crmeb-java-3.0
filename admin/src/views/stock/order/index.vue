@@ -495,7 +495,7 @@ export default {
   font-size: 14px;
 }
 .head-status.is-warn { color: #ff9900; }
-.head-status.is-info { color: #409eff; }
+.head-status.is-info { color: #1F5EFF; }
 .head-status.is-ok { color: #19be6b; }
 .head-status.is-danger { color: #f56c6c; }
 .head-reason {
@@ -617,7 +617,7 @@ export default {
   height: 34px;
   border-radius: 50%;
   background: #ecf5ff;
-  color: #409eff;
+  color: #1F5EFF;
   font-size: 14px;
   display: inline-flex;
   align-items: center;
@@ -658,7 +658,7 @@ export default {
   line-height: 22px;
 }
 .state-text.is-warn { color: #ff9900; }
-.state-text.is-info { color: #409eff; }
+.state-text.is-info { color: #1F5EFF; }
 .state-text.is-ok { color: #19be6b; }
 .state-text.is-danger { color: #f56c6c; }
 
@@ -690,7 +690,7 @@ export default {
 }
 .rc-icon {
   font-size: 18px;
-  color: #409eff;
+  color: #1F5EFF;
   margin: 2px 10px 0 0;
 }
 .rc-main {
@@ -736,7 +736,7 @@ export default {
   border-color: #c6e2ff;
 }
 .ship-type.active {
-  border-color: #409eff;
+  border-color: #1F5EFF;
   background: #f0f7ff;
 }
 .st-icon {
@@ -744,7 +744,7 @@ export default {
   color: #909399;
 }
 .ship-type.active .st-icon {
-  color: #409eff;
+  color: #1F5EFF;
 }
 .st-name {
   margin-top: 6px;
@@ -753,7 +753,7 @@ export default {
   font-weight: 600;
 }
 .ship-type.active .st-name {
-  color: #409eff;
+  color: #1F5EFF;
 }
 .st-desc {
   margin-top: 2px;

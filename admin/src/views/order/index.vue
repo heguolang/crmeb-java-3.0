@@ -692,16 +692,16 @@ export default {
     getOrderListData() {
       orderListDataApi({ dateLimit: this.tableFrom.dateLimit }).then((res) => {
         this.cardLists = [
-          { name: '订单数量', count: res.count, color: '#1890FF', class: 'one', icon: 'icondingdan' },
-          { name: '订单金额', count: res.amount, color: '#A277FF', class: 'two', icon: 'icondingdanjine' },
+          { name: '订单数量', count: res.count, color: '#1F5EFF', class: 'one', icon: 'icondingdan' },
+          { name: '订单金额', count: res.amount, color: '#7C3AED', class: 'two', icon: 'icondingdanjine' },
           {
             name: '微信支付金额',
             count: res.weChatAmount,
-            color: '#EF9C20',
+            color: '#F59E0B',
             class: 'three',
             icon: 'iconweixinzhifujine',
           },
-          { name: '余额支付金额', count: res.yueAmount, color: '#1BBE6B', class: 'four', icon: 'iconyuezhifujine2' },
+          { name: '余额支付金额', count: res.yueAmount, color: '#12B76A', class: 'four', icon: 'iconyuezhifujine2' },
         ];
       });
     },
@@ -800,7 +800,7 @@ export default {
   cursor: pointer;
 }
 .head-status.is-warn { color: #ff9900; }
-.head-status.is-info { color: #409eff; }
+.head-status.is-info { color: #1F5EFF; }
 .head-status.is-ok { color: #19be6b; }
 .head-status.is-danger { color: #f56c6c; }
 .head-status.is-muted { color: #909399; }
@@ -824,7 +824,7 @@ export default {
   cursor: pointer;
 }
 .head-links a:hover {
-  color: #0256ff;
+  color: var(--prev-color-primary, #1f5eff);
 }
 .card-head .mini-chip {
   margin-left: 14px;
@@ -1020,7 +1020,7 @@ export default {
 }
 .op-more .el-dropdown-link {
   cursor: pointer;
-  color: #409eff;
+  color: #1F5EFF;
   font-size: 12px;
 }
 .op-more .el-icon-arrow-down {

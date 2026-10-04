@@ -3,11 +3,13 @@
 * So I modified the default color and you can modify it to your liking.
 **/
 
-/* theme color */
-$--color-primary: #0256ff;
-$--color-success: #19be6b;
-$--color-warning: #ff7d00;
-$--color-danger: #f56464;
+/* theme color —— 方案 B「极光科技」（2026-10-04）
+   主色：#0256ff → #1f5eff（与 app.scss 令牌、顶栏渐变统一，消除三蓝并存）
+   状态色同步收敛到方案 B 色板 */
+$--color-primary: #1f5eff;
+$--color-success: #12b76a;
+$--color-warning: #d98700;
+$--color-danger: #f04438;
 // $--color-info: #1E1E1E;
 
 $--button-font-weight: 400;

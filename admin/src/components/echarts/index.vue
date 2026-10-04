@@ -103,7 +103,7 @@ export default {
           legend: {
             data: this.legendData || [],
           },
-          color: ['#1495EB', '#00CC66', '#F9D249', '#ff9900', '#9860DF'],
+          color: ['#1F5EFF', '#12B76A', '#F59E0B', '#7C3AED', '#22D3EE'],
           grid: {
             left: 16,
             right: 25,

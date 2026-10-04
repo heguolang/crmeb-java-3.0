@@ -151,7 +151,7 @@ export default {
             type: 'bar',
             itemStyle: {
               normal: {
-                color: '#5B8FF9',
+                color: '#4F8CFF',
               },
             },
             data: pices,
@@ -162,7 +162,7 @@ export default {
             smooth: true,
             itemStyle: {
               normal: {
-                color: '#4BCAD5',
+                color: '#22D3EE',
               },
             },
             yAxisIndex: 1,
@@ -200,7 +200,7 @@ export default {
             type: 'bar',
             itemStyle: {
               normal: {
-                color: '#5B8FF9',
+                color: '#4F8CFF',
               },
             },
             data: prePrice,
@@ -209,7 +209,7 @@ export default {
             name: '本周金额',
             type: 'bar',
             itemStyle: {
-              normal: { color: '#4BCAD5' },
+              normal: { color: '#22D3EE' },
             },
             data: price,
           },
@@ -265,7 +265,7 @@ export default {
             type: 'bar',
             itemStyle: {
               normal: {
-                color: '#5B8FF9',
+                color: '#4F8CFF',
               },
             },
             data: prePrice,
@@ -275,7 +275,7 @@ export default {
             type: 'bar',
             itemStyle: {
               normal: {
-                color: '#4BCAD5',
+                color: '#22D3EE',
               },
             },
             data: price,
@@ -286,7 +286,7 @@ export default {
             smooth: true,
             itemStyle: {
               normal: {
-                color: '#E6A23C',
+                color: '#F59E0B',
               },
             },
             yAxisIndex: 1,
@@ -337,7 +337,7 @@ export default {
             type: 'bar',
             itemStyle: {
               normal: {
-                color: '#5B8FF9',
+                color: '#4F8CFF',
               },
             },
             data: prePrice,
@@ -347,7 +347,7 @@ export default {
             type: 'bar',
             itemStyle: {
               normal: {
-                color: '#4BCAD5',
+                color: '#22D3EE',
               },
             },
             data: price,
@@ -358,7 +358,7 @@ export default {
             smooth: true,
             itemStyle: {
               normal: {
-                color: '#E6A23C',
+                color: '#F59E0B',
               },
             },
             yAxisIndex: 1,
@@ -398,19 +398,20 @@ export default {
   }
 }
 .header_title {
-  font-size: 16px;
-  font-family: PingFangSC-Semibold, PingFang SC;
+  font-size: 15px;
   font-weight: 600;
-  color: #000000;
-  padding-left: 8px;
+  color: var(--prev-color-text-title, #0f172a);
+  letter-spacing: 0.2px;
+  padding-left: 11px;
   position: relative;
   &::before {
     position: absolute;
     content: '';
-    width: 2px;
-    height: 18px;
-    background: #1890ff;
-    top: 0;
+    width: 3px;
+    height: 15px;
+    border-radius: 2px;
+    background: var(--prev-color-primary-gradient-strong, linear-gradient(135deg, #1f5eff, #22d3ee));
+    top: 2px;
     left: 0;
   }
 }

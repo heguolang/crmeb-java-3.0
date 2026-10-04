@@ -13,7 +13,7 @@ import Cache from '@/plugins/cache';
 const { showSettings, tagsView, fixedHeader, sidebarLogo, topNav, sideTheme, navIcon } = defaultSettings;
 const storageSetting = Cache.local.has('layout-setting') ? Cache.local.getJSON('layout-setting') : '';
 const state = {
-  theme: storageSetting.theme || '#409EFF',
+  theme: storageSetting.theme || '#1F5EFF',
   sideTheme: storageSetting.sideTheme || sideTheme,
   topNav: storageSetting.topNav === undefined ? topNav : storageSetting.topNav,
   showSettings: showSettings,

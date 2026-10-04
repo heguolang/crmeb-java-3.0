@@ -1,3 +1,12 @@
+<!--
+  首页 快捷入口 / 经营数据 · 方案 B「极光科技」（2026-10-04 视觉改造）
+
+  改造点（功能零变更）：
+  1. 快捷入口图标：单色 bgColor 方块 + iconfont → 渐变色圆角块 + 白色线性 SVG + 同色光晕
+  2. 卡片标题：细色条 → 渐变短条 + 加粗字距
+  3. 数字卡：28px 等宽数字（tabular-nums）+ 悬停上浮
+  数据源、权限过滤（checkPermi）、跳转 path 全部保持原样。
+-->
 <template>
   <div class="divBox">
     <el-row :gutter="14">
@@ -6,8 +15,45 @@
           <div class="header_title">快捷入口</div>
           <div class="nav_grid">
             <div class="nav_grid_item" v-for="(item, index) in permList" :key="index" @click="navigatorTo(item.url)">
-              <div class="pic_badge" :style="{ backgroundColor: item.bgColor }">
-                <span class="iconfont" :class="item.icon"></span>
+              <div class="pic_badge" :style="{ background: item.bg, boxShadow: item.glow }">
+                <!-- 图标：内联 SVG（不用 v-html，v-html 插入的节点拿不到 scoped 的 data-v 属性，样式会失效） -->
+                <svg v-if="item.key === 'user'" viewBox="0 0 24 24">
+                  <circle cx="12" cy="8" r="3.6" />
+                  <path d="M4.5 20c0-3.6 3.4-6.4 7.5-6.4s7.5 2.8 7.5 6.4" />
+                </svg>
+                <svg v-else-if="item.key === 'setting'" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 2.6v2.2M12 19.2v2.2M21.4 12h-2.2M4.8 12H2.6M18.6 5.4 17 7M7 17l-1.6 1.6M18.6 18.6 17 17M7 7 5.4 5.4" />
+                </svg>
+                <svg v-else-if="item.key === 'goods'" viewBox="0 0 24 24">
+                  <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z" />
+                  <path d="M3 7.5 12 12l9-4.5" />
+                  <path d="M12 12v9" />
+                </svg>
+                <svg v-else-if="item.key === 'order'" viewBox="0 0 24 24">
+                  <path d="M6 3h9l5 5v13H6z" />
+                  <path d="M15 3v5h5" />
+                  <path d="M9 13h7" />
+                  <path d="M9 17h5" />
+                </svg>
+                <svg v-else-if="item.key === 'article'" viewBox="0 0 24 24">
+                  <rect x="5" y="3" width="14" height="18" rx="2" />
+                  <path d="M9 8h6" />
+                  <path d="M9 12h6" />
+                  <path d="M9 16h4" />
+                </svg>
+                <svg v-else-if="item.key === 'distribution'" viewBox="0 0 24 24">
+                  <circle cx="6" cy="12" r="2.4" />
+                  <circle cx="18" cy="6" r="2.4" />
+                  <circle cx="18" cy="18" r="2.4" />
+                  <path d="M8.2 11 15.8 7" />
+                  <path d="M8.2 13 15.8 17" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24">
+                  <rect x="3.5" y="6.5" width="17" height="11" rx="2" />
+                  <path d="M14.5 6.5v11" stroke-dasharray="2.5 2.5" />
+                  <path d="M7.5 12h2.5" />
+                </svg>
               </div>
               <p>{{ item.title }}</p>
             </div>
@@ -37,6 +83,7 @@
 import echartsNew from '@/components/echartsNew/index';
 import { businessData } from '@/api/dashboard';
 import { checkPermi } from '@/utils/permission'; // 权限判断函数
+
 export default {
   components: {
     echartsNew,
@@ -52,50 +99,57 @@ export default {
       },
       nav_list: [
         {
-          bgColor: '#1890FF',
-          icon: 'iconhuiyuanguanli',
+          key: 'user',
+          bg: 'linear-gradient(135deg, #4f8cff, #1f5eff)',
+          glow: '0 6px 14px rgba(31,94,255,.32)',
           title: '用户管理',
           url: '/user/index',
           perms: ['admin:user:list'],
         },
         {
-          bgColor: '#1BBE6B',
-          icon: 'iconxitongshezhi',
+          key: 'setting',
+          bg: 'linear-gradient(135deg, #34d399, #12b76a)',
+          glow: '0 6px 14px rgba(18,183,106,.3)',
           title: '系统设置',
           url: '/operation/setting',
           perms: ['admin:system:config:info'],
         },
         {
-          bgColor: '#EF9C20',
-          icon: 'iconshangpinguanli',
+          key: 'goods',
+          bg: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+          glow: '0 6px 14px rgba(245,158,11,.3)',
           title: '商品管理',
           url: '/store/index',
           perms: ['admin:product:list'],
         },
         {
-          bgColor: '#F56C6C',
-          icon: 'icondingdanguanli',
+          key: 'order',
+          bg: 'linear-gradient(135deg, #fb7185, #f04438)',
+          glow: '0 6px 14px rgba(240,68,56,.3)',
           title: '订单管理',
           url: '/order/index',
           perms: ['admin:order:list'],
         },
         {
-          bgColor: '#E8B600',
-          icon: 'iconwenzhangguanli',
+          key: 'article',
+          bg: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
+          glow: '0 6px 14px rgba(124,58,237,.3)',
           title: '文章管理',
           url: '/content/articleManager',
           perms: ['admin:article:list'],
         },
         {
-          bgColor: '#4BCAD5',
-          icon: 'iconfenxiaoguanli',
+          key: 'distribution',
+          bg: 'linear-gradient(135deg, #22d3ee, #0891b2)',
+          glow: '0 6px 14px rgba(8,145,178,.3)',
           title: '分销管理',
           url: '/distribution/index',
           perms: ['admin:retail:list'],
         },
         {
-          bgColor: '#1890FF',
-          icon: 'iconyouhuiquan',
+          key: 'coupon',
+          bg: 'linear-gradient(135deg, #f472b6, #db2777)',
+          glow: '0 6px 14px rgba(219,39,119,.28)',
           title: '优惠券',
           url: '/marketing/coupon/list',
           perms: ['admin:coupon:list'],
@@ -184,20 +238,22 @@ export default {
 .mb20 {
   margin-bottom: 20px;
 }
+/* 与 KPI 卡同一语言的标题：渐变短条 + 加粗 */
 .header_title {
-  font-size: 16px;
-  font-family: PingFangSC-Semibold, PingFang SC;
+  font-size: 15px;
   font-weight: 600;
-  color: #000000;
-  padding-left: 8px;
+  color: var(--prev-color-text-title, #0f172a);
+  letter-spacing: 0.2px;
+  padding-left: 11px;
   position: relative;
   &::before {
     position: absolute;
     content: '';
-    width: 2px;
-    height: 18px;
-    background: #1890ff;
-    top: 0;
+    width: 3px;
+    height: 15px;
+    border-radius: 2px;
+    background: var(--prev-color-primary-gradient-strong, linear-gradient(135deg, #1f5eff, #22d3ee));
+    top: 2px;
     left: 0;
   }
 }
@@ -210,7 +266,7 @@ export default {
 .nav_grid_item {
   width: 20%;
   height: 90px;
-  margin-top: 30px;
+  margin-top: 26px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -221,37 +277,57 @@ export default {
     height: 58px;
   }
   .pic_badge {
-    width: 58px;
-    height: 58px;
+    width: 54px;
+    height: 54px;
     display: flex;
     justify-content: center;
     align-items: center;
     color: #fff;
-    border-radius: 4px;
-    .iconfont {
-      font-size: 30px;
+    border-radius: 14px;
+    background: var(--prev-color-primary-gradient, linear-gradient(135deg, #1f5eff, #4f8cff));
+    box-shadow: 0 6px 14px rgba(31, 94, 255, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    svg {
+      width: 26px;
+      height: 26px;
+      display: block;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
+  }
+  &:hover .pic_badge {
+    /* 各入口的投影是行内 style，优先级高于样式表，这里只做上浮 + 微提亮 */
+    transform: translateY(-2px);
+    filter: brightness(1.07);
   }
   p {
     height: 17px;
     font-size: 14px;
-    font-family: PingFangSC-Regular, PingFang SC;
     font-weight: 400;
-    color: #000000;
+    color: var(--prev-color-text-regular, #1f2937);
     line-height: 17px;
     margin-top: 12px;
   }
   .num_data {
     font-size: 28px;
-    font-weight: 600;
-    color: #333;
+    font-weight: 700;
+    color: var(--prev-color-text-title, #0f172a);
     text-align: center;
     margin-bottom: 18px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+    transition: color 0.2s ease;
   }
   .label {
-    font-size: 14px;
-    color: #666666;
+    font-size: 13px;
+    color: var(--prev-color-text-secondary, #94a3b8);
     text-align: center;
+  }
+  &:hover .num_data {
+    color: var(--prev-color-primary, #1f5eff);
   }
 }
 </style>

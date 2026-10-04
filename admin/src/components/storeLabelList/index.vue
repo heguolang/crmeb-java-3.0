@@ -117,7 +117,7 @@ export default {
       display: flex;
       align-items: center;
       &.on {
-        border: 1px solid #2d8cf0;
+        border: 1px solid #1F5EFF;
       }
     }
     .label-item {
@@ -139,7 +139,7 @@ export default {
       bottom: 0;
       width: 20px;
       height: 20px;
-      background: #2d8cf0;
+      background: #1F5EFF;
       clip-path: polygon(100% 100%, 100% 0, 0 100%);
       color: #fff;
       text-align: right;

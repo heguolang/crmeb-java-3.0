@@ -418,19 +418,19 @@ export default {
 .ly-item {
   position: absolute;
   box-sizing: border-box;
-  border: 1px dashed #409eff;
-  background: rgba(64, 158, 255, 0.08);
+  border: 1px dashed #1F5EFF;
+  background: rgba(31, 94, 255, 0.08);
   cursor: move;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
 }
 .ly-item.is-active { border-color: #d3232f; background: rgba(211, 35, 47, 0.1); box-shadow: 0 0 0 1px rgba(211, 35, 47, 0.35); }
 .ly-item-img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
-.ly-item-label { color: #409eff; font-size: 12px; white-space: nowrap; pointer-events: none; }
+.ly-item-label { color: #1F5EFF; font-size: 12px; white-space: nowrap; pointer-events: none; }
 .ly-handle {
   position: absolute; right: -5px; bottom: -5px;
   width: 10px; height: 10px; border-radius: 2px;
-  background: #409eff; border: 1px solid #fff; cursor: nwse-resize;
+  background: #1F5EFF; border: 1px solid #fff; cursor: nwse-resize;
 }
 .ly-item.is-active .ly-handle { background: #d3232f; }
 

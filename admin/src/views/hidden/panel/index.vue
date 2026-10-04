@@ -272,7 +272,7 @@ export default {
   color: #303133;
   margin-bottom: 14px;
   padding-left: 8px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid #1F5EFF;
 }
 .switch-cell {
   background: #fafbfc;
@@ -322,7 +322,7 @@ export default {
 .clear-cell-count {
   font-size: 12px;
   font-weight: normal;
-  color: #409eff;
+  color: #1F5EFF;
   margin-left: 8px;
 }
 .clear-cell-desc {

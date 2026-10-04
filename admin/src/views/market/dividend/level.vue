@@ -668,7 +668,7 @@ export default {
     height: 14px;
     margin-right: 8px;
     border-radius: 2px;
-    background: var(--prev-color-primary, #0256ff);
+    background: var(--prev-color-primary, #1f5eff);
   }
 
   &__bd {

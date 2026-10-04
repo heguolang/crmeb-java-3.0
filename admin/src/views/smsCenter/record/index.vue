@@ -250,7 +250,7 @@ export default {
   color: #909399;
 }
 .balance-text b {
-  color: #409eff;
+  color: #1F5EFF;
   font-weight: 500;
 }
 .w150 {
@@ -267,7 +267,7 @@ export default {
   padding: 2px 6px;
   border-radius: 3px;
   background: #ecf5ff;
-  color: #409eff;
+  color: #1F5EFF;
   font-size: 12px;
 }
 .content-line {
@@ -287,7 +287,7 @@ export default {
   padding: 0 6px;
   border-radius: 3px;
   background: #ecf5ff;
-  color: #409eff;
+  color: #1F5EFF;
   font-size: 12px;
   line-height: 18px;
   font-variant-numeric: tabular-nums;
@@ -300,7 +300,7 @@ export default {
   transition: color 0.15s;
 }
 .copy-btn:hover {
-  color: #409eff;
+  color: #1F5EFF;
 }
 .fail-reason {
   color: #f56c6c;

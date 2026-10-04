@@ -922,8 +922,9 @@ body {
 .admin-table {
   &.el-table th.el-table__cell,
   &.el-table th {
-    background-color: #f5f7fa;
-    color: #303133;
+    /* 与全站表头同色（--prev-color-primary-light-9），不再用 Element 的灰底自成一套 */
+    background-color: var(--prev-color-primary-light-9, #eef3ff) !important;
+    color: var(--prev-color-text-title, #0f172a);
     font-weight: 600;
   }
 
@@ -1010,19 +1011,19 @@ body {
    全局单一来源，页面只加 class，禁止再写 scoped 副本
    ============================================================ */
 
-/* 顶部统计条：白底 + 左侧蓝色强调条，数字主题蓝 */
+/* 顶部统计条：白底 + 左侧主色渐变强调条，数字主题蓝 */
 .summary-bar {
   padding: 10px 14px;
   background: #fff;
-  border: 1px solid #ebeef5;
-  border-left: 3px solid #409eff;
-  border-radius: 4px;
+  border: 1px solid var(--prev-border-color-light, #edf0f5);
+  border-left: 3px solid var(--prev-color-primary, #1f5eff);
+  border-radius: var(--prev-radius-ctl, 8px);
   font-size: 15px;
-  color: #606266;
+  color: var(--prev-color-text-primary, #334155);
   margin-bottom: 14px;
 
   b {
-    color: #409eff;
+    color: var(--prev-color-primary, #1f5eff);
     font-size: 17px;
     font-weight: 400;
     margin: 0 2px;
@@ -1190,8 +1191,8 @@ body {
   margin-left: 2px;
   padding: 0 6px;
   border-radius: 3px;
-  background: #ecf5ff;
-  color: #409eff;
+  background: var(--prev-color-primary-light-9, #eef3ff);
+  color: var(--prev-color-primary, #1f5eff);
   font-size: 12px;
   line-height: 18px;
   font-variant-numeric: tabular-nums;
@@ -1205,7 +1206,7 @@ body {
   transition: color 0.15s;
 }
 .copy-btn:hover {
-  color: #409eff;
+  color: var(--prev-color-primary, #1f5eff);
 }
 
 .hq {

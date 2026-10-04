@@ -6,48 +6,92 @@
   box-sizing: border-box;
   outline: none;
 }
+/* ============================================================
+   设计令牌 · 方案 B「极光科技」（2026-10-04）
+   改造原则：只换视觉值，不改变量名，保证所有已有引用不失效。
+   改造前问题：顶栏渐变(#1a3f8f→#2f7de1)、主色(#0256ff)、标签页三套蓝并存。
+   改造后：全站蓝收敛为 #1F5EFF 一支，另设霓虹青 #22D3EE 作点缀。
+   ============================================================ */
 :root {
-  /* 左侧菜单：白色底 + 深色文字（2026-09-22 按视觉参考改为白底） */
+  /* 左侧菜单（classic/columns 布局用；当前 transverse 横向模式不渲染侧栏） */
   --prev-bg-menuBar: #ffffff;
-  --prev-bg-menuBarColor: #515a6e;
-  /* 顶栏：品牌蓝渐变（原为纯色，按参考改为渐变）+ 白色文字 */
-  --prev-bg-topBar: linear-gradient(90deg, #1a3f8f 0%, #2f7de1 100%);
+  --prev-bg-menuBarColor: #334155;
+  /* 顶栏：深空渐变，100deg 更饱和（原 90deg #1a3f8f→#2f7de1） */
+  --prev-bg-topBar: linear-gradient(100deg, #08132b 0%, #133c8c 48%, #1f5eff 100%);
   --prev-bg-topBarColor: #ffffff;
-  --prev-bg-columnsMenuBar: #282c34;
+  --prev-bg-columnsMenuBar: #0a1220;
   --prev-bg-columnsMenuBarColor: #e6e6e6;
   --prev-bg-columnsMenuActiveColor: #ffffff;
-  /* 左侧（白底）菜单的悬停底色：淡蓝。深色顶栏的悬停单独写死，见 element.scss */
-  --prev-bg-menu-hover-ba-color: rgba(2, 86, 255, 0.08);
-  --prev-bg-menu-active-color: #0256ff;
-  --prev-bg-main-color: #f0f2f5;
-  --prev-bg-color: #f5f7fa;
+  /* 菜单悬停 / 选中 */
+  --prev-bg-menu-hover-ba-color: rgba(31, 94, 255, 0.10);
+  --prev-bg-menu-active-color: #1f5eff;
+  /* 页面底色：#f0f2f5 偏冷旧 → #F4F7FB 浅蓝灰 */
+  --prev-bg-main-color: #f4f7fb;
+  --prev-bg-color: #f4f7fb;
   --prev-bg-white: #ffffff;
-  /* 与 element 主题色（$--color-primary: #0256ff）保持一致，避免两套蓝色并存 */
-  --prev-color-primary: #0256ff;
+  /* 品牌主色（与 element-variables.scss 的 $--color-primary 保持一致） */
+  --prev-color-primary: #1f5eff;
   --prev-color-text-white: #ffffff;
   --prev-color-text-black: #000000;
-  --prev-color-text-primary: #606266;
-  --prev-color-text-regular: #303133;
-  --prev-color-text-secondary: #909399;
-  --prev-color-text-placeholder: #c0c4cc;
-  --prev-color-hover: rgba(0, 0, 0, 0.04);
+  /* 文字层级：标题 #0F172A / 正文 #334155 / 辅助 #94A3B8 / 占位 #C0C9D6 */
+  --prev-color-text-primary: #334155;
+  --prev-color-text-regular: #1f2937;
+  --prev-color-text-secondary: #94a3b8;
+  --prev-color-text-placeholder: #c0c9d6;
+  --prev-color-text-title: #0f172a;
+  --prev-color-hover: rgba(16, 24, 40, 0.04);
   --prev-color-seting-main: #e9eef3;
   --prev-color-seting-aside: #d3dce6;
   --prev-color-seting-header: #b3c0d1;
-  --prev-border-color-hover: #c0c4cc;
-  --prev-border-color-base: #dcdfe6;
-  --prev-border-color-light: #e4e7ed;
-  --prev-border-color-lighter: #ebeef5;
-  --prev-border-color-extra-light: #f2f6fc;
+  /* 描边：统一到蓝灰系，比原 #dcdfe6 更干净 */
+  --prev-border-color-hover: #c0c9d6;
+  --prev-border-color-base: #e2e8f0;
+  --prev-border-color-light: #edf0f5;
+  --prev-border-color-lighter: #f1f4f9;
+  --prev-border-color-extra-light: #f5f7fb;
   --prev-tag-active-color: #fff;
   --prev-MenuActiveColor: #fff;
-  --prev-table-header-bag: #f2f6ff;
-  --prev-color-Auxiliary-color: #19be6b;
+  --prev-table-header-bag: #eef3ff;
+
+  /* ===== 新增：方案 B 专用令牌 ===== */
+  /* 点缀色：顶栏流光边、菜单选中指示条 */
+  --prev-color-cyan: #22d3ee;
+  /* 主色明度阶（原 --prev-color-primary-light-9 未定义导致表头无底色，这里补齐） */
+  --prev-color-primary-light-1: #4f8cff;
+  --prev-color-primary-light-2: #6fa8ff;
+  --prev-color-primary-light-7: #dfe8fb;
+  --prev-color-primary-light-8: #e8efff;
+  /* 浅底主色：原来给成中性灰 #f7f9fc，把 tagsView / 上传区 / 表格头的蓝色底一并洗掉了，
+     这里回到淡蓝，保证「表头浅蓝」这条全站视觉基线成立 */
+  --prev-color-primary-light-9: #eef3ff;
+  /* 语义色浅底：与 element-variables.scss 的语义主色同源，供 list-page 标签使用 */
+  --prev-color-success-light: rgba(18, 183, 106, 0.1);
+  --prev-color-warning-light: rgba(217, 135, 0, 0.1);
+  --prev-color-danger-light: rgba(240, 68, 56, 0.1);
+  --prev-color-info-light: #f4f4f5;
+  --prev-color-primary-gradient: linear-gradient(135deg, #1f5eff 0%, #4f8cff 100%);
+  --prev-color-primary-gradient-strong: linear-gradient(135deg, #1f5eff 0%, #2e7bff 40%, #22d3ee 140%);
+  /* 圆角：卡片 12 / 控件 8 / 胶囊 999 */
+  --prev-radius-card: 12px;
+  --prev-radius-ctl: 8px;
+  --prev-radius-pill: 999px;
+  /* 阴影：卡片双层柔和；主操作发光；输入聚焦外圈 */
+  --prev-shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 14px rgba(16, 24, 40, 0.05);
+  --prev-shadow-card-hover: 0 4px 10px rgba(16, 24, 40, 0.06), 0 12px 28px rgba(16, 24, 40, 0.09);
+  --prev-shadow-glow: 0 5px 16px rgba(31, 94, 255, 0.38);
+  --prev-shadow-focus: 0 0 0 3px rgba(31, 94, 255, 0.14);
+  /* 内容区顶部光晕（方案 B 的“极光”来源） */
+  --prev-bg-halo: radial-gradient(70% 100% at 18% 0%, rgba(31, 94, 255, 0.15), transparent 68%);
+  /* 语义色：与 element-variables.scss 保持一致 */
+  --prev-color-Auxiliary-color: #12b76a;
   --prev-color-other-color: #9fdb1d;
-  --prev-color-prompt-color: #f56464;
-  --prev-color-warning-color: #ff7d00;
-  --prev-color-endTag-color: #666666;
-  --prev-color-endTag-border: #cccccc;
+  --prev-color-prompt-color: #f04438;
+  --prev-color-warning-color: #d98700;
+  --prev-color-endTag-color: #64748b;
+  --prev-color-endTag-border: #e2e8f0;
+  /* 涨红跌绿（中国市场习惯，用于环比 / 涨跌） */
+  --prev-color-up: #f5483b;
+  --prev-color-down: #12b76a;
 }
 
 html,
@@ -126,12 +170,22 @@ body,
 
   .layout-scrollbar {
     @extend .el-scrollbar;
-    padding: 14px;
+    padding: 16px;
   }
 
   .layout-mian-height-50 {
-    /* 顶栏高度已从 50px 调整为 56px，这里同步，否则下方内容会溢出 6px */
-    height: calc(100vh - 56px);
+    /* 顶栏高度已从 56px 调整为双层 104px，这里同步，否则下方内容会溢出 48px。
+       与 layout/component/header.vue 的 setHeaderHeight() 联动。 */
+    height: calc(100vh - 104px);
+  }
+
+  /* 方案 B：内容区顶部光晕（「极光」的来源）。
+     用 background-image 而不是 ::before，避免 absolute 伪元素盖在内容上方影响点击。 */
+  .layout-main {
+    background-image: var(--prev-bg-halo);
+    background-repeat: no-repeat;
+    background-position: top left;
+    background-size: 100% 320px;
   }
 
   .layout-columns-warp {

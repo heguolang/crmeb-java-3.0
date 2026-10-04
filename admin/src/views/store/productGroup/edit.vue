@@ -869,7 +869,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-$primary: var(--prev-color-primary, #1890ff);
+$primary: var(--prev-color-primary, #1f5eff);
 
 .pg-editor {
   display: flex;
@@ -1090,11 +1090,11 @@ $primary: var(--prev-color-primary, #1890ff);
     margin-right: 0;
   }
   &:hover {
-    box-shadow: 0 0 5px 0 rgba(24, 144, 255, 0.3);
+    box-shadow: 0 0 5px 0 rgba(31, 94, 255, 0.3);
     transform: scale(1.06);
   }
   &.on {
-    background: rgba(24, 144, 255, 0.08);
+    background: rgba(31, 94, 255, 0.08);
     color: $primary;
   }
   &__icon {
@@ -1209,7 +1209,7 @@ $primary: var(--prev-color-primary, #1890ff);
       padding: 2px 8px;
       font-size: 11px;
       color: $primary;
-      background: rgba(24, 144, 255, 0.08);
+      background: rgba(31, 94, 255, 0.08);
       border-radius: 3px;
       &.is-off {
         color: #e6a23c;
@@ -1524,7 +1524,7 @@ $primary: var(--prev-color-primary, #1890ff);
     margin-top: 3px;
     margin-right: 6px;
     font-size: 15px;
-    color: var(--prev-color-primary, #409eff);
+    color: var(--prev-color-primary, #1F5EFF);
   }
 
   b {
@@ -1581,7 +1581,7 @@ $primary: var(--prev-color-primary, #1890ff);
 }
 
 .pv__phone-refresh {
-  color: var(--prev-color-primary, #409eff);
+  color: var(--prev-color-primary, #1F5EFF);
   cursor: pointer;
 
   &:hover {

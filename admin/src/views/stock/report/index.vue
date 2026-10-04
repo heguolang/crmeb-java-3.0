@@ -134,7 +134,7 @@ export default {
     cards() {
       const s = this.summary || {};
       return [
-        { label: '订货总金额', value: this.fmtMoney(s.totalAmount || 0), sub: '共 ' + (s.totalCount || 0) + ' 单', color: '#409eff' },
+        { label: '订货总金额', value: this.fmtMoney(s.totalAmount || 0), sub: '共 ' + (s.totalCount || 0) + ' 单', color: '#1F5EFF' },
         { label: '已完成金额', value: this.fmtMoney(s.doneAmount || 0), sub: (s.doneCount || 0) + ' 单已完成', color: '#19be6b' },
         { label: '差价奖励', value: this.fmtMoney(s.diffSum || 0), sub: '已入账', color: '#ff9900' },
         { label: '阶梯+平级奖励', value: this.fmtMoney(Number(s.ladderSum || 0) + Number(s.peerSum || 0)), sub: '已入账', color: '#9041d9' }

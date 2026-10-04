@@ -751,7 +751,7 @@ export default {
 
 .switch-tip { margin-left: 12px; font-size: 12px; color: #909399; line-height: 1.5; }
 .team-tip { font-size: 13px; color: #909399; margin-bottom: 10px; }
-.depth-tag { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #ecf5ff; color: #409eff; font-size: 12px; }
+.depth-tag { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #ecf5ff; color: #1F5EFF; font-size: 12px; }
 /* 选择订货用户（与「代理-代理管理」同款） */
 .user-picker { display: inline-block; }
 /* 选择上级订货商弹窗里的「总部」固定项 */

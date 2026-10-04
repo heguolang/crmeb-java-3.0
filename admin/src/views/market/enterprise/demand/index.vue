@@ -802,7 +802,7 @@ export default {
     color: #303133;
     line-height: 1.3;
     &.warn { color: #e6a23c; }
-    &.primary { color: #409eff; }
+    &.primary { color: #1F5EFF; }
     &.purple { color: #8e6ad8; }
     &.success { color: #67c23a; }
   }
@@ -821,7 +821,7 @@ export default {
   color: #303133;
   margin: 18px 0 10px;
   padding-left: 8px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid #1F5EFF;
 }
 .grp-title:first-child { margin-top: 0; }
 
@@ -830,7 +830,7 @@ export default {
 .attach-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .attach-chip {
   font-size: 12.5px;
-  color: #409eff;
+  color: #1F5EFF;
   background: #f4f6f9;
   border: 1px solid #e4e7ed;
   border-radius: 4px;
@@ -852,7 +852,7 @@ export default {
   padding: 5px 10px;
 }
 .file-badge {
-  background: #409eff;
+  background: #1F5EFF;
   color: #fff;
   font-size: 11px;
   border-radius: 3px;
@@ -861,7 +861,7 @@ export default {
 .file-name { font-size: 12.5px; color: #303133; }
 .file-act {
   font-size: 12.5px;
-  color: #409eff;
+  color: #1F5EFF;
   cursor: pointer;
   text-decoration: none;
   &.danger { color: #f56c6c; }
