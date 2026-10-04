@@ -379,6 +379,40 @@ public interface StoreOrderService extends IService<StoreOrder> {
      */
     Integer getNotWriteOffNum();
 
+    // ==================== 业绩统计（2026-10-04 新增，纯增量）====================
+    // 全部只统计 paid=1（已付款）的商城订单，时间维度统一用 create_time。
+    // ⚠️ 切勿改用 pay_time：未付款订单 pay_time 为 NULL，会把当天已下单未付款的订单漏掉。
+
+    /**
+     * 首页业绩汇总（一次查询算全 8 张卡要用到的数，避免首页打 8 次库）
+     *
+     * @param startDate 统计起始日期（含），yyyy-MM-dd；传 null 表示不限（累计口径）
+     * @param endDate   统计结束日期（含），yyyy-MM-dd；传 null 表示不限
+     * @return key 见 HomeServiceImpl 中的常量说明；无数据时各项为 0
+     */
+    Map<String, Object> getHomePerformance(String startDate, String endDate);
+
+    /**
+     * 获取改价订单数量（is_alter_price = 1，需人工确认，属运营异常）
+     * @param startDate 起始日期（含），可传 null
+     * @param endDate   结束日期（含），可传 null
+     */
+    Integer getAlterPriceCount(String startDate, String endDate);
+
+    /**
+     * 获取累计支付用户数（distinct uid，已付款订单）
+     */
+    Integer getPaidUserCount();
+
+    /**
+     * 环比增长率（本月 vs 上月）
+     *
+     * @param current 本期值
+     * @param previous 上期值
+     * @return 百分比，保留两位小数；上期为 0 时返回 null（前端隐藏环比，不显示 NaN/Infinity）
+     */
+    BigDecimal calcGrowthRate(BigDecimal current, BigDecimal previous);
+
     /**
      * 获取佣金相关数据
      * @param uid 用户uid

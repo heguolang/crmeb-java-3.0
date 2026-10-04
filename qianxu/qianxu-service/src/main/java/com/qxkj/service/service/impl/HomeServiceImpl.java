@@ -6,6 +6,8 @@ import com.qxkj.common.utils.QianxuDateUtil;
 import com.qxkj.common.response.HomeRateResponse;
 import com.qxkj.common.model.order.StoreOrder;
 import com.qxkj.service.service.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +28,8 @@ import java.util.*;
  */
 @Service
 public class HomeServiceImpl implements HomeService {
+
+    private static final Logger logger = LoggerFactory.getLogger(HomeServiceImpl.class);
 
     @Autowired
     private StoreOrderService storeOrderService;
@@ -298,6 +302,7 @@ public class HomeServiceImpl implements HomeService {
         String today = cn.hutool.core.date.DateUtil.date().toString("yyyy-MM-dd");
         String yesterday = cn.hutool.core.date.DateUtil.yesterday().toString("yyyy-MM-dd");
         HomeRateResponse response = new HomeRateResponse();
+        // ↓↓↓ 原有 4 个指标：算法与字段一字未改，保持向后兼容 ↓↓↓
         response.setSales(storeOrderService.getPayOrderAmountByDate(today));
         response.setYesterdaySales(storeOrderService.getPayOrderAmountByDate(yesterday));
         response.setPageviews(userVisitRecordService.getPageviewsByDate(today));
@@ -306,7 +311,142 @@ public class HomeServiceImpl implements HomeService {
         response.setYesterdayOrderNum(storeOrderService.getOrderNumByDate(yesterday));
         response.setNewUserNum(userService.getRegisterNumByDate(today));
         response.setYesterdayNewUserNum(userService.getRegisterNumByDate(yesterday));
+
+        // ↓↓↓ 2026-10-04 新增：业绩统计（纯增量，老字段不受影响）↓↓↓
+        fillPerformance(response);
         return response;
+    }
+
+    /**
+     * 填充业绩统计字段（首页 8 张卡的数据源）
+     *
+     * 口径（用户已确认）：**只算商城订单 eb_store_order，且只算 paid=1 已付款订单**。
+     * 时间维度：累计不限 / 本月与本年按 create_time；环比基准为「上月同期」。
+     *
+     * 三个周期各查一次聚合，避免为了出图反复打库：
+     *   累计 = startDate=null, endDate=null
+     *   本月 = 当月 1 号 ~ 今天
+     *   上月同期 = 上月 1 号 ~ 上月与今天同号（**不是上月全月**，否则月中环比恒降）
+     *   本年 = 1 月 1 日 ~ 今天
+     */
+    private void fillPerformance(HomeRateResponse response) {
+        try {
+            // ---- 累计 ----
+            Map<String, Object> total = storeOrderService.getHomePerformance(null, null);
+            BigDecimal totalGmv = toDec(total, "totalGmv");
+            Integer totalOrderNum = toInt(total, "orderNum");
+            BigDecimal refundAmount = toDec(total, "refundAmount");
+            BigDecimal discountAmount = toDec(total, "discountAmount");
+
+            response.setTotalGmv(totalGmv);
+            response.setTotalOrderNum(totalOrderNum);
+            response.setRefundAmount(refundAmount);
+            response.setDiscountAmount(discountAmount);
+            response.setRefundCount(toInt(total, "refundCount"));
+            response.setAlterPriceCount(toInt(total, "alterPriceNum"));
+            response.setPaidUserCount(toInt(total, "paidUserCount"));
+            // 净业绩 = GMV - 退款。理论上不会为负（退款必属某笔订单），
+            // 但历史数据脏或退款金额被改大时可能出现负数，负数会显示成 "-¥xxx" 更要命，
+            // 所以这里做一次兜底钳制为 0，并在注释里留痕。
+            response.setNetGmv(maxZero(totalGmv.subtract(refundAmount)));
+            response.setAvgOrderPrice(divide(totalGmv, totalOrderNum));
+            // 退款率 = 退款单数 / 总单数 × 100，保留两位
+            response.setRefundRate(totalOrderNum == null || totalOrderNum == 0
+                    ? BigDecimal.ZERO
+                    : toDec(total, "refundCount")
+                    .multiply(new BigDecimal("100"))
+                    .divide(new BigDecimal(totalOrderNum), 2, java.math.RoundingMode.HALF_UP));
+
+            // ---- 本月 / 上月同期（环比基数）----
+            String today = cn.hutool.core.date.DateUtil.date().toString("yyyy-MM-dd");
+            String monthStart = today.substring(0, 7) + "-01";
+            // 环比基数取「上月同期」而不是「上月全月」——
+            // 本月只过了 10 天却跟上月 30 天比，环比会天然偏低（月中恒降），数字没法看。
+            // 同期口径 = 上月 1 号 ~ 上月与今天相同的日号，跨月边界（如今天 31 号、上月 30 天）
+            // 由 offsetMonth 自然收敛到上月的最后一天，不会溢出。
+            String lastMonthStart = cn.hutool.core.date.DateUtil.offsetMonth(
+                    cn.hutool.core.date.DateUtil.parse(monthStart), -1).toString("yyyy-MM-dd");
+            String lastMonthEnd = cn.hutool.core.date.DateUtil.offsetMonth(
+                    cn.hutool.core.date.DateUtil.parse(today), -1).toString("yyyy-MM-dd");
+
+            Map<String, Object> month = storeOrderService.getHomePerformance(monthStart, today);
+            Map<String, Object> lastMonth = storeOrderService.getHomePerformance(lastMonthStart, lastMonthEnd);
+
+            BigDecimal monthGmv = toDec(month, "totalGmv");
+            Integer monthOrderNum = toInt(month, "orderNum");
+            BigDecimal lastMonthGmv = toDec(lastMonth, "totalGmv");
+            Integer lastMonthOrderNum = toInt(lastMonth, "orderNum");
+
+            response.setMonthGmv(monthGmv);
+            response.setMonthOrderNum(monthOrderNum);
+            response.setLastMonthGmv(lastMonthGmv);
+            response.setLastMonthOrderNum(lastMonthOrderNum);
+            response.setLastMonthAvgOrderPrice(divide(lastMonthGmv, lastMonthOrderNum));
+            response.setMonthGmvRatio(storeOrderService.calcGrowthRate(monthGmv, lastMonthGmv));
+            response.setMonthOrderRatio(storeOrderService.calcGrowthRate(
+                    new BigDecimal(monthOrderNum == null ? 0 : monthOrderNum),
+                    new BigDecimal(lastMonthOrderNum == null ? 0 : lastMonthOrderNum)));
+
+            // ---- 本年 ----
+            String yearStart = today.substring(0, 4) + "-01-01";
+            response.setYearGmv(toDec(storeOrderService.getHomePerformance(yearStart, today), "totalGmv"));
+        } catch (Exception e) {
+            // 首页业绩统计是「锦上添花」，绝不能因为它把整个首页接口打挂（旧 4 个指标要照常返回）
+            logger.error("[首页业绩统计] 计算失败，首页将只显示原有 4 个指标", e);        }
+    }
+
+    /** 聚合结果取 BigDecimal，null / 非数字给 0 */
+    private BigDecimal toDec(Map<String, Object> row, String key) {
+        if (row == null) {
+            return BigDecimal.ZERO;
+        }
+        Object v = row.get(key);
+        if (v == null) {
+            return BigDecimal.ZERO;
+        }
+        if (v instanceof BigDecimal) {
+            return (BigDecimal) v;
+        }
+        try {
+            return new BigDecimal(v.toString());
+        } catch (NumberFormatException e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /** 聚合结果取 Integer，null / 非数字给 0 */
+    private Integer toInt(Map<String, Object> row, String key) {
+        if (row == null) {
+            return 0;
+        }
+        Object v = row.get(key);
+        if (v == null) {
+            return 0;
+        }
+        if (v instanceof Number) {
+            return ((Number) v).intValue();
+        }
+        try {
+            return new BigDecimal(v.toString()).intValue();
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /** 除法防零：分母为 0 时给 0，不要返回 null 或抛 ArithmeticException */
+    private BigDecimal divide(BigDecimal a, Integer b) {
+        if (a == null || b == null || b == 0) {
+            return BigDecimal.ZERO;
+        }
+        return a.divide(new BigDecimal(b), 2, java.math.RoundingMode.HALF_UP);
+    }
+
+    /** 负数钳制为 0 */
+    private BigDecimal maxZero(BigDecimal v) {
+        if (v == null) {
+            return BigDecimal.ZERO;
+        }
+        return v.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : v;
     }
 
     /**

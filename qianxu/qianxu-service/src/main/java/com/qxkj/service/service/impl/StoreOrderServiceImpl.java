@@ -51,6 +51,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -1662,6 +1663,140 @@ public class StoreOrderServiceImpl extends ServiceImpl<StoreOrderDao, StoreOrder
     @Override
     public Integer getNotWriteOffNum() {
         return getCount("", Constants.ORDER_STATUS_TOBE_WRITTEN_OFF);
+    }
+
+    // ==================== 业绩统计（2026-10-04 新增，纯增量）====================
+    // 设计要点：
+    // 1) 只统计 paid=1 的商城订单，与既有 getPayOrderAmountByDate 口径保持一致；
+    // 2) 时间维度用 create_time，**不用 pay_time**（未付款订单 pay_time 为 NULL 会漏单）；
+    // 3) 首页 8 张卡合并成一次聚合查询，避免为了出图打 8 次库。
+
+    /** 累计已付款订单实付金额（GMV） */
+    private static final String HP_TOTAL_GMV = "totalGmv";
+    /** 退款金额合计 */
+    private static final String HP_REFUND = "refundAmount";
+    /** 优惠让利（优惠券 + 抵扣） */
+    private static final String HP_DISCOUNT = "discountAmount";
+    /** 已付款订单量 */
+    private static final String HP_ORDER_NUM = "orderNum";
+    /** 退款单数（申请中 + 退款中 + 已退款） */
+    private static final String HP_REFUND_COUNT = "refundCount";
+    /** 改价单数 */
+    private static final String HP_ALTER_PRICE = "alterPriceNum";
+    /** 支付用户数（distinct uid） */
+    private static final String HP_PAID_USER = "paidUserCount";
+
+    @Override
+    public Map<String, Object> getHomePerformance(String startDate, String endDate) {
+        // 刻意用 selectMaps 拿原始列，而不是 selectOne 转实体：
+        // COUNT(*) / SUM(CASE WHEN...) 这些聚合值在 StoreOrder 实体里没有对应字段，
+        // 转实体后会丢成 null。（曾踩过：拿 vo.getId() 顶替计数，页面全显示 0）
+        QueryWrapper<StoreOrder> wrapper = new QueryWrapper<>();
+        wrapper.select("IFNULL(SUM(pay_price), 0) AS totalGmv",
+                "IFNULL(SUM(refund_price), 0) AS refundAmount",
+                "IFNULL(SUM(coupon_price + deduction_price), 0) AS discountAmount",
+                "COUNT(*) AS orderNum",
+                "IFNULL(SUM(CASE WHEN refund_status IN (1, 2, 3) THEN 1 ELSE 0 END), 0) AS refundCount",
+                "IFNULL(SUM(CASE WHEN is_alter_price = 1 THEN 1 ELSE 0 END), 0) AS alterPriceNum",
+                "COUNT(DISTINCT uid) AS paidUserCount");
+        // 与既有金额统计保持同一口径：只算已付款订单
+        wrapper.eq("paid", 1);
+        // ⚠️ 刻意不用 pay_time：未付款订单 pay_time 为 NULL，用它会漏掉当天已下单未付款的订单
+        if (startDate != null) {
+            wrapper.apply("date_format(create_time, '%Y-%m-%d') >= {0}", startDate);
+        }
+        if (endDate != null) {
+            wrapper.apply("date_format(create_time, '%Y-%m-%d') <= {0}", endDate);
+        }
+        List<Map<String, Object>> rows = dao.selectMaps(wrapper);
+        Map<String, Object> row = CollUtil.isEmpty(rows) ? null : rows.get(0);
+
+        Map<String, Object> map = new HashMap<>(8);
+        map.put(HP_TOTAL_GMV, toDecimal(row, "totalGmv"));
+        map.put(HP_REFUND, toDecimal(row, "refundAmount"));
+        map.put(HP_DISCOUNT, toDecimal(row, "discountAmount"));
+        map.put(HP_ORDER_NUM, toInt(row, "orderNum"));
+        map.put(HP_REFUND_COUNT, toInt(row, "refundCount"));
+        map.put(HP_ALTER_PRICE, toInt(row, "alterPriceNum"));
+        map.put(HP_PAID_USER, toInt(row, "paidUserCount"));
+        return map;
+    }
+
+    /** 聚合结果取值：转 BigDecimal，null / 非数字一律给 0（前端不用判空） */
+    private BigDecimal toDecimal(Map<String, Object> row, String key) {
+        if (row == null) {
+            return BigDecimal.ZERO;
+        }
+        Object v = row.get(key);
+        if (v == null) {
+            return BigDecimal.ZERO;
+        }
+        if (v instanceof BigDecimal) {
+            return (BigDecimal) v;
+        }
+        try {
+            return new BigDecimal(v.toString());
+        } catch (NumberFormatException e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /** 聚合结果取值：转 Integer，null / 非数字一律给 0 */
+    private Integer toInt(Map<String, Object> row, String key) {
+        if (row == null) {
+            return 0;
+        }
+        Object v = row.get(key);
+        if (v == null) {
+            return 0;
+        }
+        if (v instanceof Number) {
+            return ((Number) v).intValue();
+        }
+        try {
+            return new BigDecimal(v.toString()).intValue();
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    @Override
+    public Integer getAlterPriceCount(String startDate, String endDate) {
+        QueryWrapper<StoreOrder> wrapper = new QueryWrapper<>();
+        wrapper.select("id");
+        wrapper.eq("paid", 1);
+        wrapper.eq("is_alter_price", 1);
+        if (startDate != null) {
+            wrapper.apply("date_format(create_time, '%Y-%m-%d') >= {0}", startDate);
+        }
+        if (endDate != null) {
+            wrapper.apply("date_format(create_time, '%Y-%m-%d') <= {0}", endDate);
+        }
+        return dao.selectCount(wrapper);
+    }
+
+    @Override
+    public Integer getPaidUserCount() {
+        // 用聚合而不是 list+stream 去重：一次 COUNT(DISTINCT) 交给数据库，
+        // 避免把全部订单拉到 JVM 内存再排重（订单量大时这是慢查询的主要来源）
+        QueryWrapper<StoreOrder> wrapper = new QueryWrapper<>();
+        wrapper.select("COUNT(DISTINCT uid) AS c");
+        wrapper.eq("paid", 1);
+        List<Map<String, Object>> rows = dao.selectMaps(wrapper);
+        return CollUtil.isEmpty(rows) ? 0 : toInt(rows.get(0), "c");
+    }
+
+    @Override
+    public BigDecimal calcGrowthRate(BigDecimal current, BigDecimal previous) {
+        // 上期为 0（或负）时无法算增长率，返回 null 让前端隐藏环比，
+        // 不能返回 0 也不能抛异常 —— 前端会直接把它显示成 "0%"，误导性强
+        if (current == null || previous == null || previous.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        BigDecimal rate = current.subtract(previous)
+                .divide(previous, 4, RoundingMode.HALF_UP)
+                .multiply(new BigDecimal("100"));
+        return rate.setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
