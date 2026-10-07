@@ -563,12 +563,7 @@ export default {
 /* ---------- 列表页 ---------- */
 /* 列表范式（summary-bar / table-lg / op-grid / op-tag / info-line）
    已统一提升到 theme/styles.scss 全局定义，本页不再写 scoped 副本 */
-/* 无筛选页变体：统计条左侧文案 + 右侧操作按钮 */
-.summary-bar--flex {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+/* 无筛选页变体 summary-bar--flex 同样已全局化（2026-10-07） */
 /* 操作列：胶囊强制横排不换行（与分销商管理同款） */
 ::v-deep .op-cell .op-tag {
   white-space: nowrap;

@@ -1030,6 +1030,27 @@ body {
   }
 }
 
+/* 统计条弹性变体：左侧说明文案 + 右侧操作按钮（无筛选页用）。
+   2026-10-07：此前 7 个页面（招聘职位 / 企业管理 6 页）写了这个修饰类但全局从未定义，
+   块级布局把按钮挤到文案下一行左侧；另有 2 页（拼购等级 / 分红等级）各自写过 scoped 副本。
+   现统一提升到全局单一来源，页面只加 class，禁止再写 scoped 副本。 */
+.summary-bar--flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap; /* 窄窗口文案过长时按钮整体换行，不与文字互相挤压 */
+  gap: 6px 12px;
+
+  > span {
+    flex: 1 1 auto;
+    min-width: 0; /* 允许文案收缩换行，不把按钮组顶出容器 */
+  }
+
+  > div {
+    flex: 0 0 auto; /* 按钮组不参与收缩，保持完整一排 */
+  }
+}
+
 /* 筛选面板：浅灰底块，与白卡片区分层次 */
 .filter-panel {
   border: 1px solid #ebeef5;
