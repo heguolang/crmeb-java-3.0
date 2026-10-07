@@ -116,6 +116,25 @@ export default {
       component: () => import('@/views/market/enterprise/setting/index'),
       name: 'SvcSetting',
       meta: { title: '服务设置', icon: '' }
+    },
+    // ==================== 招聘系统 ====================
+    {
+      path: 'recruit/job',
+      component: () => import('@/views/market/recruit/job/index'),
+      name: 'RecruitJob',
+      meta: { title: '职位管理', icon: '' }
+    },
+    {
+      path: 'recruit/apply',
+      component: () => import('@/views/market/recruit/apply/index'),
+      name: 'RecruitApply',
+      meta: { title: '应聘管理', icon: '' }
+    },
+    {
+      path: 'recruit/setting',
+      component: () => import('@/views/market/recruit/setting/index'),
+      name: 'RecruitSetting',
+      meta: { title: '招聘设置', icon: '' }
     }
   ]
 };

@@ -137,6 +137,14 @@ public class WebConfig implements WebMvcConfigurer {
                 excludePathPatterns("/api/front/svc/config").
                 excludePathPatterns("/api/front/svc/case/list").
 
+                // 招聘系统：职位浏览与留资投递免登录（游客也能留电话）
+                excludePathPatterns("/api/front/recruit/config").
+                excludePathPatterns("/api/front/recruit/job/list").
+                excludePathPatterns("/api/front/recruit/job/info").
+                excludePathPatterns("/api/front/recruit/category/list").
+                excludePathPatterns("/api/front/recruit/apply/submit").
+                excludePathPatterns("/api/front/recruit/apply/code").
+
                 // 滨礼短信平台推送回调（状态推送 / 上行推送），平台侧无 token
                 excludePathPatterns("/api/front/sms/push/**").
 

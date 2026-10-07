@@ -6085,3 +6085,172 @@ WHERE r.status = 1
   AND NOT EXISTS (SELECT 1 FROM (SELECT rid, menu_id FROM `eb_system_role_menu`) x
                   WHERE x.rid = r.id AND x.menu_id = m.id);
 -- ========== END: upgrade_20261003_sms_admin_menu.sql ==========
+
+-- ========== BEGIN: upgrade_20261007_recruit.sql ==========
+-- ============================================================
+-- 新模块：招聘系统（2026-10-07）
+--
+-- 业务口径：后台发布招聘职位 → 会员端 H5 展示职位列表/详情 → 用户留资投递
+--           （姓名/电话/意向/简历）→ 后台跟进（待联系→已联系→面试中→已录用/不合适）
+-- 后台入口：大市场 → 招聘系统（职位管理 / 应聘管理 / 招聘设置）
+-- 会员端  ：招聘首页（可设为商城主页，替换装修首页）/ 职位详情 / 投递表单 / 我的投递
+--
+-- 幂等：可重复执行
+-- ============================================================
+SET @db = DATABASE();
+
+-- 1. 招聘职位表 -------------------------------------------------
+CREATE TABLE IF NOT EXISTS `eb_recruit_job` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `title` varchar(64) NOT NULL DEFAULT '' COMMENT '职位名称',
+  `category` varchar(32) NOT NULL DEFAULT '' COMMENT '职位类别（技术/产品/运营/销售/职能）',
+  `dept` varchar(64) NOT NULL DEFAULT '' COMMENT '所属部门',
+  `city` varchar(32) NOT NULL DEFAULT '' COMMENT '工作城市',
+  `address` varchar(128) NOT NULL DEFAULT '' COMMENT '详细工作地点',
+  `job_type` varchar(16) NOT NULL DEFAULT '全职' COMMENT '工作性质：全职/兼职/实习/远程',
+  `salary` varchar(32) NOT NULL DEFAULT '' COMMENT '薪资范围文本，如 8K-12K',
+  `salary_min` int NOT NULL DEFAULT '0' COMMENT '月薪下限（元），便于筛选排序',
+  `salary_max` int NOT NULL DEFAULT '0' COMMENT '月薪上限（元）',
+  `recruit_num` int NOT NULL DEFAULT '1' COMMENT '招聘人数',
+  `experience` varchar(32) NOT NULL DEFAULT '不限' COMMENT '经验要求',
+  `education` varchar(32) NOT NULL DEFAULT '不限' COMMENT '学历要求',
+  `tags` varchar(255) NOT NULL DEFAULT '' COMMENT '福利标签，逗号分隔（如 五险一金,双休,年终奖）',
+  `description` text COMMENT '职位描述',
+  `requirement` text COMMENT '任职要求',
+  `hr_name` varchar(32) NOT NULL DEFAULT '' COMMENT '招聘联系人',
+  `hr_phone` varchar(20) NOT NULL DEFAULT '' COMMENT '招聘联系电话',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态：1=招聘中 0=已关闭',
+  `is_hot` tinyint NOT NULL DEFAULT '0' COMMENT '热门推荐：1=是 0=否',
+  `sort` int NOT NULL DEFAULT '0' COMMENT '排序（降序，越大越靠前）',
+  `view_count` int NOT NULL DEFAULT '0' COMMENT '浏览量',
+  `apply_count` int NOT NULL DEFAULT '0' COMMENT '投递数（冗余，列表展示用）',
+  `online_date` varchar(20) NOT NULL DEFAULT '' COMMENT '发布日期 yyyy-MM-dd（varchar：见铁律，业务日期一律不建 date 列）',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_category` (`category`),
+  KEY `idx_sort` (`sort`),
+  KEY `idx_del` (`is_del`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='招聘系统-招聘职位';
+
+-- 2. 应聘登记表 -------------------------------------------------
+CREATE TABLE IF NOT EXISTS `eb_recruit_apply` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `apply_no` varchar(32) NOT NULL DEFAULT '' COMMENT '报名编号 REC+yyyyMMdd+序号',
+  `job_id` int NOT NULL DEFAULT '0' COMMENT '应聘职位ID（eb_recruit_job.id）',
+  `job_title` varchar(64) NOT NULL DEFAULT '' COMMENT '应聘职位名称（冗余，避免职位删除后查不到）',
+  `uid` int NOT NULL DEFAULT '0' COMMENT '会员UID（0=游客投递）',
+  `name` varchar(32) NOT NULL DEFAULT '' COMMENT '姓名',
+  `phone` varchar(20) NOT NULL DEFAULT '' COMMENT '联系电话',
+  `gender` varchar(8) NOT NULL DEFAULT '' COMMENT '性别：男/女',
+  `age` varchar(8) NOT NULL DEFAULT '' COMMENT '年龄',
+  `experience` varchar(32) NOT NULL DEFAULT '' COMMENT '工作年限',
+  `education` varchar(32) NOT NULL DEFAULT '' COMMENT '最高学历',
+  `school` varchar(64) NOT NULL DEFAULT '' COMMENT '毕业院校',
+  `expect_city` varchar(32) NOT NULL DEFAULT '' COMMENT '意向城市',
+  `expect_salary` varchar(32) NOT NULL DEFAULT '' COMMENT '期望薪资',
+  `resume` varchar(500) NOT NULL DEFAULT '' COMMENT '简历附件URL',
+  `resume_name` varchar(255) NOT NULL DEFAULT '' COMMENT '简历文件名',
+  `remark` varchar(500) NOT NULL DEFAULT '' COMMENT '个人留言 / 自我评价',
+  `source` varchar(16) NOT NULL DEFAULT 'h5' COMMENT '来源：h5=会员端投递 admin=后台登记',
+  `status` tinyint NOT NULL DEFAULT '0' COMMENT '处理状态：0=待联系 1=已联系 2=面试中 3=已录用 4=不合适',
+  `interview_date` varchar(20) NOT NULL DEFAULT '' COMMENT '面试时间 yyyy-MM-dd HH:mm（varchar）',
+  `admin_remark` varchar(500) NOT NULL DEFAULT '' COMMENT '后台备注 / 面试评价',
+  `handler` varchar(32) NOT NULL DEFAULT '' COMMENT '处理人（后台账号名）',
+  `log` text COMMENT '跟进日志 JSON 数组',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '投递时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_job` (`job_id`),
+  KEY `idx_uid` (`uid`),
+  KEY `idx_phone` (`phone`),
+  KEY `idx_status` (`status`),
+  KEY `idx_del` (`is_del`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='招聘系统-应聘登记';
+
+-- 3. 菜单：大市场下新增目录「招聘系统」（带图标）-----------------
+-- 父级按 component 定位「大市场」，不写死 pid（不同库 id 可能不同）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT m.id, '招聘系统', 'suitcase', '', '/market/recruit', 'M', 3, 1
+FROM `eb_system_menu` m
+WHERE m.component = '/market' AND m.menu_type = 'M' AND m.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_menu` WHERE `component` = '/market/recruit' AND `is_delte` = 0) x);
+
+-- 4. 菜单：三个页面（职位管理 / 应聘管理 / 招聘设置）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT m.id, t.name, '', t.perms, t.component, 'C', t.sort, 1
+FROM `eb_system_menu` m
+JOIN (
+  SELECT '职位管理' AS name, 'admin:recruit:job:list'   AS perms, '/market/recruit/job'     AS component, 3 AS sort
+  UNION ALL SELECT '应聘管理', 'admin:recruit:apply:list', '/market/recruit/apply',   2
+  UNION ALL SELECT '招聘设置', 'admin:recruit:setting:list', '/market/recruit/setting', 1
+) t
+WHERE m.component = '/market/recruit' AND m.menu_type = 'M' AND m.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT component FROM `eb_system_menu` WHERE `is_delte` = 0) x
+                  WHERE x.component = t.component);
+
+-- 5. 菜单：按钮权限（A）
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`)
+SELECT c.id, t.name, '', t.perms, '', 'A', t.sort, 0
+FROM `eb_system_menu` c
+JOIN (
+  SELECT '/market/recruit/job' AS component, '发布 / 编辑职位' AS name, 'admin:recruit:job:save'   AS perms, 1 AS sort
+  UNION ALL SELECT '/market/recruit/job', '职位上下架',   'admin:recruit:job:status', 2
+  UNION ALL SELECT '/market/recruit/job', '删除职位',     'admin:recruit:job:delete', 3
+  UNION ALL SELECT '/market/recruit/apply', '处理应聘',   'admin:recruit:apply:save', 1
+  UNION ALL SELECT '/market/recruit/apply', '删除应聘记录', 'admin:recruit:apply:delete', 2
+  UNION ALL SELECT '/market/recruit/setting', '保存招聘设置', 'admin:recruit:setting:save', 1
+) t ON t.component = c.component
+WHERE c.menu_type = 'C' AND c.is_delte = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT perms FROM `eb_system_menu` WHERE `menu_type` = 'A' AND `is_delte` = 0) x
+                  WHERE x.perms = t.perms);
+
+-- 6. 菜单授权：给所有启用角色补上「招聘系统」目录及页面（超管同步可见）
+INSERT INTO `eb_system_role_menu` (`rid`, `menu_id`)
+SELECT r.id, m.id
+FROM `eb_system_role` r
+JOIN `eb_system_menu` m ON m.component IN ('/market/recruit','/market/recruit/job','/market/recruit/apply','/market/recruit/setting') AND m.is_delte = 0
+WHERE r.status = 1
+  AND NOT EXISTS (SELECT 1 FROM (SELECT rid, menu_id FROM `eb_system_role_menu`) x
+                  WHERE x.rid = r.id AND x.menu_id = m.id);
+
+-- 7. 招聘系统配置（后台「招聘设置」页读写）------------------------
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'rec_home_mode', '招聘首页设为商城主页（1=开启 0=关闭）', '0', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_home_mode') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'rec_sms_verify', '投递短信验证（1=投递需短信验证码 0=不需要）', '0', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_sms_verify') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'rec_company_name', '招聘公司名称', '贵州黔序科技有限公司', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_company_name') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'rec_banner_title', '招聘首页主标题', '加入我们 · 与优秀的人一起做有价值的事', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_banner_title') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'rec_banner_desc', '招聘首页副标题', '这里有开放的团队氛围、清晰的成长通道与有竞争力的回报', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_banner_desc') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'rec_contact_name', '招聘联系人', '人事部', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_contact_name') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'rec_contact_phone', '招聘联系电话', '', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_contact_phone') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'rec_contact_wechat', '招聘联系微信', '', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_contact_wechat') x);
+
+INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
+SELECT 'rec_tip', '投递页提示文案', '提交后我们会在 1-3 个工作日内与你联系，请保持电话畅通', 0
+WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_tip') x);
+-- ========== END: upgrade_20261007_recruit.sql ==========
