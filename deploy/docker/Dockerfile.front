@@ -1,0 +1,19 @@
+# 黔序会员端 API（Qianxu-front.jar）
+# 构建上下文：仓库根目录
+FROM eclipse-temurin:8-jre-jammy
+
+WORKDIR /app
+RUN mkdir -p /data/qianxu /app/logs \
+ && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+ && echo "Asia/Shanghai" > /etc/timezone
+
+COPY qianxu/qianxu-front/target/Qianxu-front.jar /app/app.jar
+
+ENV JAVA_OPTS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Xms512m -Xmx1024m" \
+    TZ=Asia/Shanghai \
+    SERVER_PORT=8081
+
+EXPOSE 8081
+VOLUME ["/data/qianxu", "/app/logs"]
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar --server.port=${SERVER_PORT}"]

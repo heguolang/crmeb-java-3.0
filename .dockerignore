@@ -1,0 +1,20 @@
+.git
+**/node_modules
+**/qianxu_log
+**/qianxu_admin_log
+local-dev
+customers
+deploy/data
+**/*.md
+app
+crmeb
+*.zip
+*.rar
+**/.idea
+**/.vscode
+admin/dist
+qianxu/**/target/**/*.class
+qianxu/**/target/**/*.jar.original
+# keep jars needed by Dockerfiles
+!qianxu/qianxu-admin/target/Qianxu-admin.jar
+!qianxu/qianxu-front/target/Qianxu-front.jar

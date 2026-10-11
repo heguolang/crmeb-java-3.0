@@ -1,0 +1,10 @@
+# 可选：把 MySQL/Redis 映射到宿主机（仅本机调试用，勿对公网开放）
+# 用法：
+#   docker compose -f docker-compose.yml -f docker-compose.ports.yml up -d
+services:
+  mysql:
+    ports:
+      - "${MYSQL_PORT:-127.0.0.1:3306}:3306"
+  redis:
+    ports:
+      - "${REDIS_PORT:-127.0.0.1:6379}:6379"
