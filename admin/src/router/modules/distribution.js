@@ -62,54 +62,6 @@ const distributionRouter = {
       name: 'TeamLevelRecord',
       meta: { title: '团队变更记录', icon: '' },
     },
-    {
-      path: 'chainDashboard',
-      component: () => import('@/views/distribution/chainDashboard/index'),
-      name: 'ChainDashboard',
-      meta: { title: '链动看板', icon: '' },
-    },
-    {
-      path: 'chainConfig',
-      component: () => import('@/views/distribution/chainConfig/index'),
-      name: 'ChainConfig',
-      meta: { title: '链动配置', icon: '' },
-    },
-    {
-      path: 'chainAudit',
-      component: () => import('@/views/distribution/chainAudit/index'),
-      name: 'ChainAudit',
-      meta: { title: '关系审计', icon: '' },
-    },
-    {
-      path: 'chainUsers',
-      component: () => import('@/views/distribution/chainUsers/index'),
-      name: 'ChainUsers',
-      meta: { title: '链动用户', icon: '' },
-    },
-    {
-      path: 'chainCommission',
-      component: () => import('@/views/distribution/chainCommission/index'),
-      name: 'ChainCommission',
-      meta: { title: '链动佣金', icon: '' },
-    },
-    {
-      path: 'chainSlide',
-      component: () => import('@/views/distribution/chainSlide/index'),
-      name: 'ChainSlide',
-      meta: { title: '滑落日志', icon: '' },
-    },
-    {
-      path: 'chainRisk',
-      component: () => import('@/views/distribution/chainRisk/index'),
-      name: 'ChainRisk',
-      meta: { title: '风控日志', icon: '' },
-    },
-    {
-      path: 'chainDividend',
-      component: () => import('@/views/distribution/chainDividend/index'),
-      name: 'ChainDividend',
-      meta: { title: '团队分红', icon: '' },
-    },
   ],
 };
 
