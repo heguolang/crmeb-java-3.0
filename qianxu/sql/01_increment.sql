@@ -1596,25 +1596,25 @@ SELECT 'qxtec', 'bDVAF6/lBMg=', '系统运维', '1', '', 0, 1, 1, 0, 0, NOW(), N
 -- 原来的写法是 DELETE + INSERT，每跑一次就换一批自增 id、update_time 也跟着变；
 -- 改成 UPDATE + 缺失才补插，重复执行不再产生任何变化。
 UPDATE eb_system_config
-   SET title = '隐藏面板-团队奖开关', value = '1', status = 0, update_time = NOW()
+   SET title = '隐藏面板-团队奖开关', status = 0, update_time = NOW()
  WHERE name = 'sys_switch_team_reward'
-   AND NOT (title <=> '隐藏面板-团队奖开关' AND value <=> '1' AND status <=> 0);
+   AND NOT (title <=> '隐藏面板-团队奖开关' AND status <=> 0);
 UPDATE eb_system_config
-   SET title = '隐藏面板-订货商开关', value = '1', status = 0, update_time = NOW()
+   SET title = '隐藏面板-订货商开关', status = 0, update_time = NOW()
  WHERE name = 'sys_switch_stock'
-   AND NOT (title <=> '隐藏面板-订货商开关' AND value <=> '1' AND status <=> 0);
+   AND NOT (title <=> '隐藏面板-订货商开关' AND status <=> 0);
 UPDATE eb_system_config
-   SET title = '隐藏面板-门店开关', value = '1', status = 0, update_time = NOW()
+   SET title = '隐藏面板-门店开关', status = 0, update_time = NOW()
  WHERE name = 'sys_switch_store'
-   AND NOT (title <=> '隐藏面板-门店开关' AND value <=> '1' AND status <=> 0);
+   AND NOT (title <=> '隐藏面板-门店开关' AND status <=> 0);
 UPDATE eb_system_config
-   SET title = '隐藏面板-区域代理开关', value = '1', status = 0, update_time = NOW()
+   SET title = '隐藏面板-区域代理开关', status = 0, update_time = NOW()
  WHERE name = 'sys_switch_daili'
-   AND NOT (title <=> '隐藏面板-区域代理开关' AND value <=> '1' AND status <=> 0);
+   AND NOT (title <=> '隐藏面板-区域代理开关' AND status <=> 0);
 UPDATE eb_system_config
-   SET title = '隐藏面板-分销开关', value = '1', status = 0, update_time = NOW()
+   SET title = '隐藏面板-分销开关', status = 0, update_time = NOW()
  WHERE name = 'sys_switch_spread'
-   AND NOT (title <=> '隐藏面板-分销开关' AND value <=> '1' AND status <=> 0);
+   AND NOT (title <=> '隐藏面板-分销开关' AND status <=> 0);
 INSERT INTO eb_system_config (name, title, form_id, value, status, create_time, update_time)
 SELECT t.name, t.title, 0, '1', 0, NOW(), NOW() FROM (
   SELECT 'sys_switch_team_reward' AS name, '隐藏面板-团队奖开关' AS title
@@ -1672,25 +1672,25 @@ UPDATE `eb_system_menu`
 -- 原来的写法是 DELETE + INSERT，每跑一次就换一批自增 id、update_time 也跟着变；
 -- 改成 UPDATE + 缺失才补插，重复执行不再产生任何变化。
 UPDATE eb_system_config
-   SET title = '隐藏面板-积分开关', value = '1', status = 0, update_time = NOW()
+   SET title = '隐藏面板-积分开关', status = 0, update_time = NOW()
  WHERE name = 'sys_switch_integral'
-   AND NOT (title <=> '隐藏面板-积分开关' AND value <=> '1' AND status <=> 0);
+   AND NOT (title <=> '隐藏面板-积分开关' AND status <=> 0);
 UPDATE eb_system_config
-   SET title = '隐藏面板-秒杀开关', value = '1', status = 0, update_time = NOW()
+   SET title = '隐藏面板-秒杀开关', status = 0, update_time = NOW()
  WHERE name = 'sys_switch_seckill'
-   AND NOT (title <=> '隐藏面板-秒杀开关' AND value <=> '1' AND status <=> 0);
+   AND NOT (title <=> '隐藏面板-秒杀开关' AND status <=> 0);
 UPDATE eb_system_config
-   SET title = '隐藏面板-砍价开关', value = '1', status = 0, update_time = NOW()
+   SET title = '隐藏面板-砍价开关', status = 0, update_time = NOW()
  WHERE name = 'sys_switch_bargain'
-   AND NOT (title <=> '隐藏面板-砍价开关' AND value <=> '1' AND status <=> 0);
+   AND NOT (title <=> '隐藏面板-砍价开关' AND status <=> 0);
 UPDATE eb_system_config
-   SET title = '隐藏面板-拼团开关', value = '1', status = 0, update_time = NOW()
+   SET title = '隐藏面板-拼团开关', status = 0, update_time = NOW()
  WHERE name = 'sys_switch_combination'
-   AND NOT (title <=> '隐藏面板-拼团开关' AND value <=> '1' AND status <=> 0);
+   AND NOT (title <=> '隐藏面板-拼团开关' AND status <=> 0);
 UPDATE eb_system_config
-   SET title = '隐藏面板-优惠券开关', value = '1', status = 0, update_time = NOW()
+   SET title = '隐藏面板-优惠券开关', status = 0, update_time = NOW()
  WHERE name = 'sys_switch_coupon'
-   AND NOT (title <=> '隐藏面板-优惠券开关' AND value <=> '1' AND status <=> 0);
+   AND NOT (title <=> '隐藏面板-优惠券开关' AND status <=> 0);
 INSERT INTO eb_system_config (name, title, form_id, value, status, create_time, update_time)
 SELECT t.name, t.title, 0, '1', 0, NOW(), NOW() FROM (
   SELECT 'sys_switch_integral' AS name, '隐藏面板-积分开关' AS title
@@ -1744,20 +1744,16 @@ SET NAMES utf8mb4;
 
 
 -- ========== BEGIN: update_http_domain.sql ==========
--- 生产环境改为 HTTP（幂等，可重复执行）
--- 接口域名 / 图片域名 / 移动商城接口统一走 api 站点
--- 加「值不同才写」守卫：否则每执行一次都会刷 update_time，重复跑不幂等。
-UPDATE `eb_system_config` SET `value` = 'http://api.qianxutec.com', `update_time` = NOW()
-WHERE `name` IN ('api_url', 'localUploadUrl', 'front_api_url')
-  AND NOT (`value` <=> 'http://api.qianxutec.com');
-
--- ⚠️ site_url 不能和上面混在一起改：
---    它的语义是「移动端站点域名」，被微信 H5 支付当作 h5_info.wap_url 使用
---    （见 OrderPayServiceImpl#getUnifiedorderVo），必须指向 H5 部署域名，
---    否则微信 H5 支付的 wap_url 与后台配置的支付域名不一致。
-UPDATE `eb_system_config` SET `value` = 'http://app.qianxutec.com', `update_time` = NOW()
-WHERE `name` = 'site_url'
-  AND NOT (`value` <=> 'http://app.qianxutec.com');
+-- ⛔ 2026-10-12 已禁用：本段会把线上 api_url/front_api_url/localUploadUrl 强改成
+--    http://api.qianxutec.com、site_url 改成 http://app.qianxutec.com。
+--    线上现已全站 https 且图片走七牛（oss.qxjz66.top），环境相关配置不属于增量脚本
+--    的管辖范围，任何库执行本脚本都不允许覆写它们。仅留档备查：
+-- UPDATE `eb_system_config` SET `value` = 'http://api.qianxutec.com', `update_time` = NOW()
+-- WHERE `name` IN ('api_url', 'localUploadUrl', 'front_api_url')
+--   AND NOT (`value` <=> 'http://api.qianxutec.com');
+-- UPDATE `eb_system_config` SET `value` = 'http://app.qianxutec.com', `update_time` = NOW()
+-- WHERE `name` = 'site_url'
+--   AND NOT (`value` <=> 'http://app.qianxutec.com');
 -- ========== END: update_http_domain.sql ==========
 
 
@@ -2804,14 +2800,17 @@ INSERT INTO `tmp_cfg_sync` (`name`, `title`, `value`) VALUES
 ('telephone_service_switch', 'telephone_service_switch', 'close'),
 ('user_extract_min_price', '', '1'),
 ('wechat_routine_shipping_switch', '', '1');
--- 1) 已存在的项：值或标题不同才写，避免无谓刷新 update_time
-UPDATE eb_system_config c
-  JOIN tmp_cfg_sync t ON c.`name` = t.`name`
-   SET c.`value`       = t.`value`,
-       c.`title`       = IF(t.`title` = '', c.`title`, t.`title`),
-       c.`update_time` = NOW()
- WHERE NOT (c.`value` <=> t.`value`)
-    OR (t.`title` <> '' AND NOT (c.`title` <=> t.`title`));
+-- 1) ⛔ 2026-10-12 已禁用「覆写已存在项」：原 UPDATE JOIN 会把约 80 个已有配置项
+--    （api_url/localUploadUrl/site_url/brokerage_func_status/user_extract_switch 等）
+--    的线上真实值刷成脚本内置默认值（2026-10-12 线上部署实测踩雷，跑完被迫回滚 16 项）。
+--    增量脚本的定位是「补缺」，已存在的配置一律不碰。原语句留档：
+-- UPDATE eb_system_config c
+--   JOIN tmp_cfg_sync t ON c.`name` = t.`name`
+--    SET c.`value`       = t.`value`,
+--        c.`title`       = IF(t.`title` = '', c.`title`, t.`title`),
+--        c.`update_time` = NOW()
+--  WHERE NOT (c.`value` <=> t.`value`)
+--     OR (t.`title` <> '' AND NOT (c.`title` <=> t.`title`));
 
 -- 2) 线上缺失的项：补插（不覆盖任何已有行）
 INSERT INTO eb_system_config (`name`, `title`, `form_id`, `value`, `status`, `create_time`, `update_time`)

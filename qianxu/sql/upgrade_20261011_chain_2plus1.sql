@@ -1059,7 +1059,7 @@ CREATE TEMPORARY TABLE `tmp_chain_keep` (
   `component` varchar(255) NOT NULL,
   `keep_id` int NOT NULL,
   PRIMARY KEY (`component`)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 INSERT INTO `tmp_chain_keep` (`component`, `keep_id`)
 SELECT `component`, MIN(`id`) FROM `eb_system_menu`
  WHERE `component` LIKE '/chain/%'
