@@ -1,12 +1,7 @@
 # 黔序商城 - 一客户一套标准编排
-# 用法见 deploy/README.md
-#
-# 目录（相对本文件）：
-#   .env                 客户配置（从 .env.example 复制）
-#   data/mysql           MySQL 数据
-#   data/redis           Redis 数据
-#   data/qianxu          上传文件（qianxuimage）
-#   sql/init             首次启动自动导入的 .sql（可选）
+# 默认：MySQL/Redis 仅容器内网访问，不映射到宿主机（更安全）
+# 调试需要宿主机连库时：docker compose -f docker-compose.yml -f docker-compose.ports.yml up -d
+# 用法见 README.md / 服务器试跑步骤
 
 services:
   mysql:
@@ -25,8 +20,7 @@ services:
       - --default-authentication-plugin=mysql_native_password
       - --max_connections=500
       - --innodb_buffer_pool_size=512M
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
+    # 不映射 ports：公网扫不到 3306；应用通过服务名 mysql 访问
     volumes:
       - ./data/mysql:/var/lib/mysql
       - ./sql/init:/docker-entrypoint-initdb.d:ro
@@ -41,8 +35,7 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME:-qianxu}_redis
     restart: unless-stopped
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    # 不映射 ports：公网扫不到 6379
     volumes:
       - ./data/redis:/data
     healthcheck:
@@ -64,11 +57,12 @@ services:
       TZ: Asia/Shanghai
       JAVA_OPTS: ${JAVA_OPTS_ADMIN}
       SERVER_PORT: "8080"
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-qianxu}?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      # 默认连 compose 内 mysql/redis；外置库时在 .env 覆盖下面整项
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-qianxu}?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-qianxu}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: "6379"
+      SPRING_REDIS_HOST: ${SPRING_REDIS_HOST:-redis}
+      SPRING_REDIS_PORT: ${SPRING_REDIS_PORT:-6379}
       SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
       SPRING_REDIS_DATABASE: ${REDIS_DB_ADMIN:-10}
       SPRING_REDIS_SECOND_DATABASE: ${REDIS_DB_ADMIN_SECOND:-14}
@@ -78,9 +72,6 @@ services:
       - ./data/qianxu:/data/qianxu
       - ./data/logs/admin:/app/logs
       - ./data/logs/admin-app:/app/qianxu_log
-    # 生产建议注释掉，仅经 nginx 暴露
-    # ports:
-    #   - "${ADMIN_API_PORT:-8080}:8080"
 
   front:
     image: qianxu-front:${IMAGE_TAG:-3.0.0}
@@ -95,11 +86,11 @@ services:
       TZ: Asia/Shanghai
       JAVA_OPTS: ${JAVA_OPTS_FRONT}
       SERVER_PORT: "8081"
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-qianxu}?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-qianxu}?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-qianxu}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: "6379"
+      SPRING_REDIS_HOST: ${SPRING_REDIS_HOST:-redis}
+      SPRING_REDIS_PORT: ${SPRING_REDIS_PORT:-6379}
       SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
       SPRING_REDIS_DATABASE: ${REDIS_DB_FRONT:-11}
       SPRING_REDIS_SECOND_DATABASE: ${REDIS_DB_FRONT_SECOND:-13}
@@ -109,8 +100,6 @@ services:
       - ./data/qianxu:/data/qianxu
       - ./data/logs/front:/app/logs
       - ./data/logs/front-app:/app/qianxu_log
-    # ports:
-    #   - "${FRONT_API_PORT:-8081}:8081"
 
   nginx:
     image: qianxu-admin-web:${IMAGE_TAG:-3.0.0}
