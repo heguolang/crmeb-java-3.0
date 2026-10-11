@@ -49,21 +49,8 @@
           <el-input-number v-model="form.chain_help_freeze_ratio" :min="0" :max="100" :precision="2" />
           <span style="margin-left:8px;color:#999">未解锁时见单按此比例进帮扶基金；0=关闭该机制；解锁后解冻且以后不再冻</span>
         </el-form-item>
-        <el-form-item label="帮扶超时天数">
-          <el-input-number v-model="form.chain_help_timeout_days" :min="0" :max="365" />
-          <span style="margin-left:8px;color:#999">旧滑落帮扶超时释放，0=不超时</span>
-        </el-form-item>
         <el-form-item label="见单奖代数">
           <el-input-number v-model="form.chain_see_generations" :min="1" :max="10" />
-        </el-form-item>
-        <el-form-item label="规则说明文案">
-          <el-input v-model="form.chain_rules_content" type="textarea" :rows="5" class="selWidth" placeholder="前端规则页展示，留空用默认文案" />
-        </el-form-item>
-        <el-form-item label="退款降级身份">
-          <el-radio-group v-model="form.chain_identity_downgrade">
-            <el-radio label="0">否</el-radio>
-            <el-radio label="1">是</el-radio>
-          </el-radio-group>
         </el-form-item>
         <el-form-item label="礼包跳过普通分销">
           <el-radio-group v-model="form.chain_skip_normal_brokerage">
@@ -71,50 +58,66 @@
             <el-radio label="0">否</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-divider content-position="left">二期：风控 / 通知 / 分红</el-divider>
-        <el-form-item label="风控开关">
-          <el-radio-group v-model="form.chain_risk_status">
-            <el-radio label="1">开启</el-radio>
-            <el-radio label="0">关闭</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="风控时间窗(分钟)">
-          <el-input-number v-model="form.chain_risk_window_minutes" :min="1" :max="1440" />
-        </el-form-item>
-        <el-form-item label="同用户上限">
-          <el-input-number v-model="form.chain_risk_max_uid" :min="1" :max="100" />
-        </el-form-item>
-        <el-form-item label="同手机上限">
-          <el-input-number v-model="form.chain_risk_max_phone" :min="1" :max="100" />
-        </el-form-item>
-        <el-form-item label="同IP上限">
-          <el-input-number v-model="form.chain_risk_max_ip" :min="1" :max="200" />
-        </el-form-item>
-        <el-form-item label="同设备上限">
-          <el-input-number v-model="form.chain_risk_max_device" :min="1" :max="100" />
-          <span style="margin-left:8px;color:#999">需前端传 Header: X-Device-Id</span>
-        </el-form-item>
-        <el-form-item label="站内通知">
-          <el-radio-group v-model="form.chain_notify_status">
-            <el-radio label="1">开启</el-radio>
-            <el-radio label="0">关闭</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="团队分红">
-          <el-radio-group v-model="form.chain_dividend_status">
-            <el-radio label="1">开启</el-radio>
-            <el-radio label="0">关闭</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="分红比例%">
-          <el-input-number v-model="form.chain_dividend_ratio" :min="0" :max="100" :precision="2" />
-        </el-form-item>
-        <el-form-item label="分红最低团队人数">
-          <el-input-number v-model="form.chain_dividend_min_team" :min="1" :max="1000" />
-        </el-form-item>
+        <el-collapse v-model="advancedOpen" style="margin-bottom: 12px">
+          <el-collapse-item title="更多选项（规则文案 / 退款 / 风控 / 分红）" name="adv">
+            <el-form-item label="规则说明文案">
+              <el-input v-model="form.chain_rules_content" type="textarea" :rows="4" class="selWidth" placeholder="前端规则页展示，留空用默认文案" />
+            </el-form-item>
+            <el-form-item label="退款降级身份">
+              <el-radio-group v-model="form.chain_identity_downgrade">
+                <el-radio label="0">否</el-radio>
+                <el-radio label="1">是</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="帮扶超时天数">
+              <el-input-number v-model="form.chain_help_timeout_days" :min="0" :max="365" />
+              <span style="margin-left:8px;color:#999">旧滑落帮扶超时，0=不超时</span>
+            </el-form-item>
+            <el-form-item label="风控开关">
+              <el-radio-group v-model="form.chain_risk_status">
+                <el-radio label="1">开启</el-radio>
+                <el-radio label="0">关闭</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="风控时间窗(分钟)">
+              <el-input-number v-model="form.chain_risk_window_minutes" :min="1" :max="1440" />
+            </el-form-item>
+            <el-form-item label="同用户上限">
+              <el-input-number v-model="form.chain_risk_max_uid" :min="1" :max="100" />
+            </el-form-item>
+            <el-form-item label="同手机上限">
+              <el-input-number v-model="form.chain_risk_max_phone" :min="1" :max="100" />
+            </el-form-item>
+            <el-form-item label="同IP上限">
+              <el-input-number v-model="form.chain_risk_max_ip" :min="1" :max="200" />
+            </el-form-item>
+            <el-form-item label="同设备上限">
+              <el-input-number v-model="form.chain_risk_max_device" :min="1" :max="100" />
+            </el-form-item>
+            <el-form-item label="站内通知">
+              <el-radio-group v-model="form.chain_notify_status">
+                <el-radio label="1">开启</el-radio>
+                <el-radio label="0">关闭</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="团队分红">
+              <el-radio-group v-model="form.chain_dividend_status">
+                <el-radio label="1">开启</el-radio>
+                <el-radio label="0">关闭</el-radio>
+              </el-radio-group>
+              <span style="margin-left:8px;color:#999">记录与手动发放在「链动看板 → 团队分红」</span>
+            </el-form-item>
+            <el-form-item label="分红比例%">
+              <el-input-number v-model="form.chain_dividend_ratio" :min="0" :max="100" :precision="2" />
+            </el-form-item>
+            <el-form-item label="分红最低团队人数">
+              <el-input-number v-model="form.chain_dividend_min_team" :min="1" :max="1000" />
+            </el-form-item>
+          </el-collapse-item>
+        </el-collapse>
       </el-form>
 
-      <el-divider>奖励规则</el-divider>
+      <el-divider>全局奖励规则（无链动产品配置时生效）</el-divider>
       <el-table :data="rules" border size="small">
         <el-table-column prop="type" label="类型" width="100" />
         <el-table-column prop="genLevel" label="代数" width="80" />
@@ -150,6 +153,7 @@ export default {
   data() {
     return {
       loading: false,
+      advancedOpen: [],
       form: {
         chain_func_status: '0',
         chain_gift_product_ids: '',
