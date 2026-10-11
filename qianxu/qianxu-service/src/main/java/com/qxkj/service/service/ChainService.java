@@ -4,6 +4,7 @@ import com.qxkj.common.model.chain.ChainAuditLog;
 import com.qxkj.common.model.chain.ChainCommission;
 import com.qxkj.common.model.chain.ChainDividendRecord;
 import com.qxkj.common.model.chain.ChainNotifyLog;
+import com.qxkj.common.model.chain.ChainProduct;
 import com.qxkj.common.model.chain.ChainRewardRule;
 import com.qxkj.common.model.chain.ChainRiskLog;
 import com.qxkj.common.model.chain.ChainSlideLog;
@@ -75,6 +76,14 @@ public interface ChainService {
     List<ChainRewardRule> listRules();
 
     void saveRules(List<ChainRewardRule> rules);
+
+    /** 链动产品分页 */
+    CommonPage<ChainProduct> chainProductPage(String keywords, Integer status, PageParamRequest page);
+
+    /** 新增/更新链动产品（按商品ID唯一） */
+    void saveChainProduct(ChainProduct product);
+
+    void deleteChainProduct(Integer id);
 
     CommonPage<Map<String, Object>> adminUserPage(String keywords, Integer identity, PageParamRequest page);
 

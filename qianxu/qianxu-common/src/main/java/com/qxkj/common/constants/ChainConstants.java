@@ -31,8 +31,12 @@ public class ChainConstants {
     public static final String CONFIG_SEE_GENERATIONS = "chain_see_generations";
     public static final String CONFIG_IDENTITY_DOWNGRADE = "chain_identity_downgrade";
     public static final String CONFIG_SKIP_NORMAL_BROKERAGE = "chain_skip_normal_brokerage";
-    /** 帮扶超时天数，0=关闭 */
+    /** 帮扶超时天数，0=关闭（旧滑落帮扶超时释放） */
     public static final String CONFIG_HELP_TIMEOUT_DAYS = "chain_help_timeout_days";
+    /** 帮扶解锁：每位留下的代理需直推完成的礼包单数 X */
+    public static final String CONFIG_HELP_UNLOCK_ORDERS = "chain_help_unlock_orders";
+    /** 未解锁时见单奖冻结进帮扶基金的比例%（默认50） */
+    public static final String CONFIG_HELP_FREEZE_RATIO = "chain_help_freeze_ratio";
     /** 规则说明文案（前端展示） */
     public static final String CONFIG_RULES_CONTENT = "chain_rules_content";
 
@@ -50,12 +54,18 @@ public class ChainConstants {
     public static final String REWARD_SEE = "see";
     public static final String REWARD_PEER = "peer";
     public static final String REWARD_HELP = "help";
+    /** 见单帮扶基金（未解锁冻结部分） */
+    public static final String REWARD_SEE_HELP = "see_help";
 
     public static final int COMMISSION_PENDING = 1;
     public static final int COMMISSION_FROZEN = 2;
     public static final int COMMISSION_SETTLED = 3;
     public static final int COMMISSION_INVALID = 4;
+    /** 帮扶基金冻结（见单未解锁部分，不进可提现佣金） */
+    public static final int COMMISSION_HELP_FUND = 5;
     public static final int COMMISSION_CLAWBACK = 6;
+
+    public static final String TITLE_SEE_HELP = "链动见单帮扶基金";
 
     public static final int HELP_DOING = 0;
     public static final int HELP_DONE = 1;

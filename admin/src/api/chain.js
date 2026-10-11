@@ -59,3 +59,15 @@ export function chainDividendApi(params) {
 export function chainDividendRunApi(params) {
   return request({ url: '/admin/chain/dividend/run', method: 'post', params });
 }
+
+export function chainProductListApi(params) {
+  return request({ url: '/admin/chain/product/list', method: 'get', params });
+}
+
+export function chainProductSaveApi(data) {
+  return request({ url: '/admin/chain/product/save', method: 'post', data });
+}
+
+export function chainProductDeleteApi(params) {
+  return request({ url: '/admin/chain/product/delete', method: 'post', params });
+}

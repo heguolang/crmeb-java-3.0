@@ -31,9 +31,11 @@ import com.qxkj.common.utils.QianxuDateUtil;
 import com.qxkj.common.utils.QianxuUtil;
 import com.qxkj.common.vo.ChainCommissionExcelVo;
 import com.qxkj.service.dao.*;
+import com.qxkj.common.model.product.StoreProduct;
 import com.qxkj.service.service.ChainService;
 import com.qxkj.service.service.StoreOrderInfoService;
 import com.qxkj.service.service.StoreOrderService;
+import com.qxkj.service.service.StoreProductService;
 import com.qxkj.service.service.SystemConfigService;
 import com.qxkj.service.service.SystemGroupDataService;
 import com.qxkj.service.service.UserBrokerageRecordService;
@@ -82,6 +84,10 @@ public class ChainServiceImpl implements ChainService {
     private QianxuConfig qianxuConfig;
     @Autowired
     private ChainPhase2Helper chainPhase2Helper;
+    @Autowired
+    private ChainProductDao chainProductDao;
+    @Autowired
+    private StoreProductService storeProductService;
 
     @Override
     public boolean isEnabled() {
@@ -238,6 +244,8 @@ public class ChainServiceImpl implements ChainService {
                         "订单" + storeOrder.getOrderId() + "产生链动奖励，请到链动中心查看");
             }
         }
+        // 新人礼包单可能推进其邀请人所属老板的帮扶解锁
+        tryUnlockHelpRelated(buyer);
         return records;
     }
 
@@ -270,6 +278,7 @@ public class ChainServiceImpl implements ChainService {
                 userBrokerageRecordService.saveBatch(created);
             }
         }
+        tryUnlockHelpRelated(buyer);
     }
 
     @Override
@@ -344,10 +353,17 @@ public class ChainServiceImpl implements ChainService {
         resp.setEffectiveDirectCount(effective);
         resp.setBossNeedCount(need);
         resp.setBossRemainCount(Math.max(0, need - effective));
+        boolean helpUnlocked = identity >= ChainConstants.IDENTITY_BOSS
+                && ObjectUtil.defaultIfNull(user.getChainHelpUnlocked(), 0) == 1;
+        resp.setHelpUnlocked(helpUnlocked);
+        resp.setHelpUnlockNeedOrders(intCfg(ChainConstants.CONFIG_HELP_UNLOCK_ORDERS, 1));
+        resp.setHelpNeedSeatCount(need);
+        resp.setHelpUnlockedSeatCount(countHelpQualifiedSeats(uid));
         Map<String, Object> sum = commissionSummary(uid);
         resp.setTodayAmount((BigDecimal) sum.get("today"));
         resp.setTotalAmount((BigDecimal) sum.get("total"));
         resp.setFreezeAmount((BigDecimal) sum.get("freeze"));
+        resp.setHelpFundAmount((BigDecimal) sum.get("helpFund"));
         return resp;
     }
 
@@ -376,14 +392,18 @@ public class ChainServiceImpl implements ChainService {
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal today = BigDecimal.ZERO;
         BigDecimal freeze = BigDecimal.ZERO;
+        BigDecimal helpFund = BigDecimal.ZERO;
         for (ChainCommission c : all) {
             BigDecimal amt = ObjectUtil.defaultIfNull(c.getAmount(), BigDecimal.ZERO);
             total = total.add(amt);
             if (c.getCreateTime() != null && !c.getCreateTime().before(todayStart)) {
                 today = today.add(amt);
             }
-            if (ObjectUtil.defaultIfNull(c.getStatus(), 0) == ChainConstants.COMMISSION_FROZEN
-                    || ObjectUtil.defaultIfNull(c.getStatus(), 0) == ChainConstants.COMMISSION_PENDING) {
+            int st = ObjectUtil.defaultIfNull(c.getStatus(), 0);
+            if (st == ChainConstants.COMMISSION_HELP_FUND) {
+                helpFund = helpFund.add(amt);
+                freeze = freeze.add(amt);
+            } else if (st == ChainConstants.COMMISSION_FROZEN || st == ChainConstants.COMMISSION_PENDING) {
                 freeze = freeze.add(amt);
             }
         }
@@ -393,6 +413,7 @@ public class ChainServiceImpl implements ChainService {
         map.put("today", today);
         map.put("total", total);
         map.put("freeze", freeze);
+        map.put("helpFund", helpFund);
         map.put("withdrawable", withdrawable);
         return map;
     }
@@ -437,11 +458,11 @@ public class ChainServiceImpl implements ChainService {
             return content;
         }
         return "【2+1链动规则】\n"
-                + "1. 购买代理礼包成为代理，获得推荐与直推分佣权。\n"
-                + "2. 直推满2名有效代理自动晋升老板，解锁见单奖/平级奖。\n"
-                + "3. 老板直推位满员后，新成员按规则滑落至下级空位。\n"
-                + "4. 滑落产生的帮扶对象晋升老板后，帮扶人获一次性帮扶奖。\n"
-                + "5. 奖励含直推奖、见单奖、平级奖、帮扶奖，具体金额以后台配置为准。";
+                + "1. 购买代理礼包成为代理，享受直推奖。\n"
+                + "2. 直推满N名有效代理晋升老板，享受直推奖、见单奖、平级奖。\n"
+                + "3. 升老板后，留下的N个代理需各再直推完成X单礼包，才算帮扶解锁。\n"
+                + "4. 未解锁前，见单奖按配置比例进入帮扶基金冻结；解锁后解冻，且以后见单不再冻结。\n"
+                + "5. 直推位满员后新成员自动滑落；具体金额以后台配置为准。";
     }
 
     @Override
@@ -481,6 +502,8 @@ public class ChainServiceImpl implements ChainService {
         map.put(ChainConstants.CONFIG_IDENTITY_DOWNGRADE, cfg(ChainConstants.CONFIG_IDENTITY_DOWNGRADE, "0"));
         map.put(ChainConstants.CONFIG_SKIP_NORMAL_BROKERAGE, cfg(ChainConstants.CONFIG_SKIP_NORMAL_BROKERAGE, "1"));
         map.put(ChainConstants.CONFIG_HELP_TIMEOUT_DAYS, cfg(ChainConstants.CONFIG_HELP_TIMEOUT_DAYS, "0"));
+        map.put(ChainConstants.CONFIG_HELP_UNLOCK_ORDERS, cfg(ChainConstants.CONFIG_HELP_UNLOCK_ORDERS, "1"));
+        map.put(ChainConstants.CONFIG_HELP_FREEZE_RATIO, cfg(ChainConstants.CONFIG_HELP_FREEZE_RATIO, "50"));
         map.put(ChainConstants.CONFIG_RULES_CONTENT, cfg(ChainConstants.CONFIG_RULES_CONTENT, ""));
         chainPhase2Helper.putPhase2Config(map);
         map.put("rules", listRules());
@@ -522,6 +545,89 @@ public class ChainServiceImpl implements ChainService {
                 chainRewardRuleDao.updateById(rule);
             }
         }
+    }
+
+    @Override
+    public CommonPage<ChainProduct> chainProductPage(String keywords, Integer status, PageParamRequest pageParam) {
+        PageHelper.startPage(pageParam.getPage(), pageParam.getLimit());
+        LambdaQueryWrapper<ChainProduct> lqw = Wrappers.lambdaQuery();
+        if (ObjectUtil.isNotNull(status)) {
+            lqw.eq(ChainProduct::getStatus, status);
+        }
+        boolean kwIsId = false;
+        if (StrUtil.isNotBlank(keywords)) {
+            String kw = keywords.trim();
+            if (kw.matches("\\d+")) {
+                lqw.eq(ChainProduct::getProductId, Integer.parseInt(kw));
+                kwIsId = true;
+            }
+        }
+        lqw.orderByDesc(ChainProduct::getSort).orderByDesc(ChainProduct::getId);
+        List<ChainProduct> list = chainProductDao.selectList(lqw);
+        PageInfo<ChainProduct> pageInfo = new PageInfo<>(list);
+        for (ChainProduct p : list) {
+            fillProductInfo(p);
+        }
+        if (StrUtil.isNotBlank(keywords) && !kwIsId) {
+            String kw = keywords.trim();
+            list = list.stream()
+                    .filter(p -> StrUtil.containsIgnoreCase(StrUtil.blankToDefault(p.getStoreName(), ""), kw))
+                    .collect(Collectors.toList());
+            pageInfo.setList(list);
+            pageInfo.setTotal(list.size());
+        }
+        return CommonPage.restPage(pageInfo);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void saveChainProduct(ChainProduct product) {
+        if (ObjectUtil.isNull(product) || ObjectUtil.isNull(product.getProductId()) || product.getProductId() <= 0) {
+            throw new QianxuException("请选择商品");
+        }
+        StoreProduct sp = loadStoreProductBrief(product.getProductId());
+        if (ObjectUtil.isNull(sp)) {
+            throw new QianxuException("商品不存在");
+        }
+        if (ObjectUtil.isNull(product.getDirectAmount())) {
+            product.setDirectAmount(new BigDecimal("100"));
+        }
+        if (ObjectUtil.isNull(product.getSeeAmount())) {
+            product.setSeeAmount(new BigDecimal("100"));
+        }
+        if (ObjectUtil.isNull(product.getPeerRatio())) {
+            product.setPeerRatio(new BigDecimal("10"));
+        }
+        if (ObjectUtil.isNull(product.getStatus())) {
+            product.setStatus(1);
+        }
+        if (ObjectUtil.isNull(product.getSort())) {
+            product.setSort(0);
+        }
+        product.setUpdateTime(DateUtil.date());
+        ChainProduct exists = chainProductDao.selectOne(Wrappers.<ChainProduct>lambdaQuery()
+                .eq(ChainProduct::getProductId, product.getProductId()).last("limit 1"));
+        if (ObjectUtil.isNotNull(exists)) {
+            product.setId(exists.getId());
+            chainProductDao.updateById(product);
+        } else if (ObjectUtil.isNotNull(product.getId())) {
+            chainProductDao.updateById(product);
+        } else {
+            product.setCreateTime(DateUtil.date());
+            chainProductDao.insert(product);
+        }
+        // 同步到全局礼包ID配置，兼容旧逻辑
+        syncGiftProductIdsConfig();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteChainProduct(Integer id) {
+        if (ObjectUtil.isNull(id)) {
+            return;
+        }
+        chainProductDao.deleteById(id);
+        syncGiftProductIdsConfig();
     }
 
     @Override
@@ -794,6 +900,8 @@ public class ChainServiceImpl implements ChainService {
         Integer freezeDays = intCfg(ChainConstants.CONFIG_FREEZE_DAYS, 1);
         boolean creditOnPay = SysConfigConstants.CREDIT_TIMING_ON_PAY.equals(
                 cfg(ChainConstants.CONFIG_CREDIT_TIMING, SysConfigConstants.CREDIT_TIMING_ON_PAY));
+        // 订单内链动产品奖励（优先于全局规则）
+        ChainProduct chainProduct = resolveOrderChainProduct(storeOrder);
 
         // 1 直推奖：邀请人
         Integer inviteUid = ObjectUtil.defaultIfNull(buyer.getChainInviteUid(), 0);
@@ -803,8 +911,7 @@ public class ChainServiceImpl implements ChainService {
         if (inviteUid > 0) {
             User invite = userService.getById(inviteUid);
             if (ObjectUtil.isNotNull(invite) && ObjectUtil.defaultIfNull(invite.getChainIdentity(), 0) >= ChainConstants.IDENTITY_AGENT) {
-                ChainRewardRule directRule = findRule(ChainConstants.REWARD_DIRECT, 1);
-                BigDecimal amount = ruleAmount(directRule, storeOrder.getPayPrice());
+                BigDecimal amount = resolveDirectAmount(chainProduct, storeOrder.getPayPrice());
                 if (amount.compareTo(BigDecimal.ZERO) > 0) {
                     UserBrokerageRecord r = buildBrokerage(inviteUid, amount, ChainConstants.BROKERAGE_LEVEL_DIRECT,
                             ChainConstants.TITLE_DIRECT, freezeDays, creditOnPay,
@@ -819,7 +926,7 @@ public class ChainServiceImpl implements ChainService {
 
         // 2 见单奖：沿安置链找老板
         int maxGen = intCfg(ChainConstants.CONFIG_SEE_GENERATIONS, 3);
-        BigDecimal peerRatio = peerRatio();
+        BigDecimal peerRatio = resolvePeerRatio(chainProduct);
         Integer cursor = ObjectUtil.defaultIfNull(buyer.getChainParentId(), 0);
         int gen = 0;
         while (cursor != null && cursor > 0 && gen < maxGen) {
@@ -829,8 +936,7 @@ public class ChainServiceImpl implements ChainService {
             }
             if (ObjectUtil.defaultIfNull(parent.getChainIdentity(), 0) >= ChainConstants.IDENTITY_BOSS) {
                 gen++;
-                ChainRewardRule seeRule = findRule(ChainConstants.REWARD_SEE, gen);
-                BigDecimal seeAmount = ruleAmount(seeRule, storeOrder.getPayPrice());
+                BigDecimal seeAmount = resolveSeeAmount(chainProduct, gen, storeOrder.getPayPrice());
                 if (seeAmount.compareTo(BigDecimal.ZERO) > 0) {
                     BigDecimal peerPart = BigDecimal.ZERO;
                     // 平级：当前老板的上级也是老板时，从本代见单抽成
@@ -844,14 +950,30 @@ public class ChainServiceImpl implements ChainService {
                     }
                     BigDecimal realSee = seeAmount.subtract(peerPart);
                     if (realSee.compareTo(BigDecimal.ZERO) > 0) {
-                        UserBrokerageRecord r = buildBrokerage(parent.getUid(), realSee, ChainConstants.BROKERAGE_LEVEL_SEE,
-                                ChainConstants.TITLE_SEE, freezeDays, creditOnPay,
-                                StrUtil.format("见单奖第{}代，来源用户{}", gen, buyer.getUid()));
-                        if (saveCommissionMirror(storeOrder.getOrderId(), parent.getUid(), buyer.getUid(),
-                                ChainConstants.REWARD_SEE + gen, realSee, r, creditOnPay)) {
-                            // reward_type 用 see，唯一键用 see+gen 会破坏类型筛选；改用 see，唯一靠 user+order+type
-                            // 多代见单同 reward_type=see 会冲突，改存 see1/see2...
-                            records.add(r);
+                        BigDecimal helpPart = BigDecimal.ZERO;
+                        BigDecimal paySee = realSee;
+                        // 老板未帮扶解锁：见单按比例进帮扶基金
+                        if (!isBossHelpUnlocked(parent) && helpFreezeRatio().compareTo(BigDecimal.ZERO) > 0) {
+                            helpPart = realSee.multiply(helpFreezeRatio())
+                                    .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                            if (helpPart.compareTo(realSee) > 0) {
+                                helpPart = realSee;
+                            }
+                            paySee = realSee.subtract(helpPart);
+                        }
+                        if (paySee.compareTo(BigDecimal.ZERO) > 0) {
+                            UserBrokerageRecord r = buildBrokerage(parent.getUid(), paySee, ChainConstants.BROKERAGE_LEVEL_SEE,
+                                    ChainConstants.TITLE_SEE, freezeDays, creditOnPay,
+                                    StrUtil.format("见单奖第{}代，来源用户{}", gen, buyer.getUid()));
+                            if (saveCommissionMirror(storeOrder.getOrderId(), parent.getUid(), buyer.getUid(),
+                                    ChainConstants.REWARD_SEE + gen, paySee, r, creditOnPay)) {
+                                records.add(r);
+                            }
+                        }
+                        if (helpPart.compareTo(BigDecimal.ZERO) > 0) {
+                            saveHelpFundMirror(storeOrder.getOrderId(), parent.getUid(), buyer.getUid(),
+                                    ChainConstants.REWARD_SEE_HELP + gen, helpPart,
+                                    StrUtil.format("见单帮扶基金第{}代，待解锁，来源用户{}", gen, buyer.getUid()));
                         }
                     }
                     if (peerPart.compareTo(BigDecimal.ZERO) > 0) {
@@ -906,6 +1028,199 @@ public class ChainServiceImpl implements ChainService {
             return false;
         }
         return true;
+    }
+
+    /** 见单帮扶基金：不入佣金钱包，待解锁后释放 */
+    private void saveHelpFundMirror(String orderId, Integer uid, Integer sourceUid, String rewardType,
+                                    BigDecimal amount, String mark) {
+        Integer exists = chainCommissionDao.selectCount(Wrappers.<ChainCommission>lambdaQuery()
+                .eq(ChainCommission::getOrderId, orderId)
+                .eq(ChainCommission::getRewardType, rewardType)
+                .eq(ChainCommission::getUserId, uid));
+        if (exists != null && exists > 0) {
+            return;
+        }
+        ChainCommission c = new ChainCommission();
+        c.setUserId(uid);
+        c.setSourceUid(sourceUid);
+        c.setOrderId(orderId);
+        c.setRewardType(rewardType);
+        c.setAmount(amount);
+        c.setStatus(ChainConstants.COMMISSION_HELP_FUND);
+        c.setBrokerageRecordId(0);
+        c.setMark(mark);
+        c.setCreateTime(DateUtil.date());
+        c.setUpdateTime(DateUtil.date());
+        try {
+            chainCommissionDao.insert(c);
+        } catch (Exception e) {
+            log.warn("chain help fund duplicate orderId={} type={} uid={}", orderId, rewardType, uid);
+        }
+    }
+
+    private boolean isBossHelpUnlocked(User boss) {
+        if (ObjectUtil.isNull(boss)) {
+            return true;
+        }
+        if (ObjectUtil.defaultIfNull(boss.getChainIdentity(), 0) < ChainConstants.IDENTITY_BOSS) {
+            return true;
+        }
+        // 冻结比例为0视为不启用帮扶冻结
+        if (helpFreezeRatio().compareTo(BigDecimal.ZERO) <= 0) {
+            return true;
+        }
+        return ObjectUtil.defaultIfNull(boss.getChainHelpUnlocked(), 0) == 1;
+    }
+
+    private BigDecimal helpFreezeRatio() {
+        return new BigDecimal(cfg(ChainConstants.CONFIG_HELP_FREEZE_RATIO, "50"));
+    }
+
+    private void tryUnlockHelpRelated(User buyer) {
+        if (ObjectUtil.isNull(buyer)) {
+            return;
+        }
+        Integer inviteUid = ObjectUtil.defaultIfNull(buyer.getChainInviteUid(), 0);
+        if (inviteUid > 0) {
+            User agent = userService.getById(inviteUid);
+            if (ObjectUtil.isNotNull(agent)) {
+                Integer bossUid = ObjectUtil.defaultIfNull(agent.getChainParentId(), 0);
+                if (bossUid > 0) {
+                    tryUnlockHelp(bossUid);
+                }
+            }
+        }
+        Integer parentId = ObjectUtil.defaultIfNull(buyer.getChainParentId(), 0);
+        if (parentId > 0) {
+            tryUnlockHelp(parentId);
+        }
+    }
+
+    /**
+     * 老板留下的 N 个直推代理，各直推礼包单数 >= X 则解锁帮扶基金。
+     */
+    private void tryUnlockHelp(Integer bossUid) {
+        if (bossUid == null || bossUid <= 0) {
+            return;
+        }
+        User boss = userService.getById(bossUid);
+        if (ObjectUtil.isNull(boss)
+                || ObjectUtil.defaultIfNull(boss.getChainIdentity(), 0) < ChainConstants.IDENTITY_BOSS) {
+            return;
+        }
+        if (ObjectUtil.defaultIfNull(boss.getChainHelpUnlocked(), 0) == 1) {
+            return;
+        }
+        if (helpFreezeRatio().compareTo(BigDecimal.ZERO) <= 0) {
+            boss.setChainHelpUnlocked(1);
+            boss.setUpdateTime(DateUtil.date());
+            userService.updateById(boss);
+            return;
+        }
+        int needSeats = intCfg(ChainConstants.CONFIG_SLIDE_CAPACITY, 2);
+        int needOrders = intCfg(ChainConstants.CONFIG_HELP_UNLOCK_ORDERS, 1);
+        if (countHelpQualifiedSeats(bossUid) < needSeats) {
+            return;
+        }
+        // 再次确认座位人数够 N（不足 N 不能解锁）
+        if (listBossSeats(bossUid, needSeats).size() < needSeats) {
+            return;
+        }
+        boss.setChainHelpUnlocked(1);
+        boss.setUpdateTime(DateUtil.date());
+        userService.updateById(boss);
+        BigDecimal released = releaseHelpFund(bossUid);
+        chainPhase2Helper.pushNotify(bossUid, ChainConstants.NOTIFY_HELP, "帮扶已解锁",
+                "留下的" + needSeats + "个代理均已直推满" + needOrders + "单，帮扶基金"
+                        + released.setScale(2, RoundingMode.HALF_UP) + "元已解冻，后续见单不再冻结");
+    }
+
+    private int countHelpQualifiedSeats(Integer bossUid) {
+        int needSeats = intCfg(ChainConstants.CONFIG_SLIDE_CAPACITY, 2);
+        int needOrders = intCfg(ChainConstants.CONFIG_HELP_UNLOCK_ORDERS, 1);
+        List<User> seats = listBossSeats(bossUid, needSeats);
+        int ok = 0;
+        for (User seat : seats) {
+            if (countInviteGiftOrders(seat.getUid()) >= needOrders) {
+                ok++;
+            }
+        }
+        return ok;
+    }
+
+    /** 老板留下的前 N 个直推代理（按成为代理时间） */
+    private List<User> listBossSeats(Integer bossUid, int needSeats) {
+        List<User> directs = userService.list(Wrappers.<User>lambdaQuery()
+                .eq(User::getChainParentId, bossUid)
+                .ge(User::getChainIdentity, ChainConstants.IDENTITY_AGENT)
+                .orderByAsc(User::getUid));
+        if (CollUtil.isEmpty(directs)) {
+            return Collections.emptyList();
+        }
+        if (directs.size() <= needSeats) {
+            return directs;
+        }
+        return directs.subList(0, needSeats);
+    }
+
+    /** 某代理作为邀请人的礼包成交单数 */
+    private int countInviteGiftOrders(Integer agentUid) {
+        if (agentUid == null || agentUid <= 0) {
+            return 0;
+        }
+        List<User> invited = userService.list(Wrappers.<User>lambdaQuery()
+                .eq(User::getChainInviteUid, agentUid)
+                .select(User::getUid));
+        if (CollUtil.isEmpty(invited)) {
+            return 0;
+        }
+        List<Integer> uids = invited.stream().map(User::getUid).collect(Collectors.toList());
+        Integer cnt = storeOrderService.count(Wrappers.<StoreOrder>lambdaQuery()
+                .in(StoreOrder::getUid, uids)
+                .eq(StoreOrder::getPaid, true)
+                .like(StoreOrder::getRemark, "CHAIN_GIFT"));
+        return cnt == null ? 0 : cnt;
+    }
+
+    /** 解冻帮扶基金 → 写入佣金流水并可提现（按冻结天数） */
+    private BigDecimal releaseHelpFund(Integer bossUid) {
+        List<ChainCommission> funds = chainCommissionDao.selectList(Wrappers.<ChainCommission>lambdaQuery()
+                .eq(ChainCommission::getUserId, bossUid)
+                .eq(ChainCommission::getStatus, ChainConstants.COMMISSION_HELP_FUND));
+        if (CollUtil.isEmpty(funds)) {
+            return BigDecimal.ZERO;
+        }
+        int freezeDays = intCfg(ChainConstants.CONFIG_FREEZE_DAYS, 1);
+        boolean creditOnPay = true;
+        BigDecimal total = BigDecimal.ZERO;
+        for (ChainCommission fund : funds) {
+            BigDecimal amount = ObjectUtil.defaultIfNull(fund.getAmount(), BigDecimal.ZERO);
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                fund.setStatus(ChainConstants.COMMISSION_SETTLED);
+                fund.setUpdateTime(DateUtil.date());
+                chainCommissionDao.updateById(fund);
+                continue;
+            }
+            UserBrokerageRecord r = buildBrokerage(bossUid, amount, ChainConstants.BROKERAGE_LEVEL_SEE,
+                    ChainConstants.TITLE_SEE, freezeDays, creditOnPay,
+                    StrUtil.blankToDefault(fund.getMark(), "") + " | 帮扶解锁释放");
+            r.setLinkId(fund.getOrderId());
+            userBrokerageRecordService.save(r);
+            fund.setBrokerageRecordId(ObjectUtil.defaultIfNull(r.getId(), 0));
+            boolean settledNow = BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE.equals(r.getStatus());
+            fund.setStatus(settledNow ? ChainConstants.COMMISSION_SETTLED : ChainConstants.COMMISSION_PENDING);
+            fund.setUpdateTime(DateUtil.date());
+            chainCommissionDao.updateById(fund);
+            if (settledNow) {
+                User boss = userService.getById(bossUid);
+                if (ObjectUtil.isNotNull(boss)) {
+                    userService.operationBrokerage(bossUid, amount,
+                            ObjectUtil.defaultIfNull(boss.getBrokeragePrice(), BigDecimal.ZERO), "add");
+                }
+            }
+            total = total.add(amount);
+        }
+        return total;
     }
 
     private UserBrokerageRecord buildBrokerage(Integer uid, BigDecimal amount, int level, String title,
@@ -981,6 +1296,8 @@ public class ChainServiceImpl implements ChainService {
             return;
         }
         user.setChainIdentity(ChainConstants.IDENTITY_BOSS);
+        // 新晋老板：帮扶未解锁，见单按比例进帮扶基金
+        user.setChainHelpUnlocked(0);
         user.setUpdateTime(DateUtil.date());
         userService.updateById(user);
         ChainIdentity identity = new ChainIdentity();
@@ -992,10 +1309,13 @@ public class ChainServiceImpl implements ChainService {
         identity.setCreateTime(DateUtil.date());
         identity.setUpdateTime(DateUtil.date());
         chainIdentityDao.insert(identity);
+        int unlockX = intCfg(ChainConstants.CONFIG_HELP_UNLOCK_ORDERS, 1);
         chainPhase2Helper.pushNotify(uid, ChainConstants.NOTIFY_UPGRADE, "晋升老板",
-                "恭喜您直推有效代理已满，晋升为老板");
+                "恭喜晋升老板！留下的" + need + "个代理各再直推满" + unlockX + "单礼包后解锁帮扶，见单才不再冻结");
 
         completeHelpIfNeeded(uid);
+        // 若留下的代理此前已达标，当场尝试解锁
+        tryUnlockHelp(uid);
     }
 
     private void completeHelpIfNeeded(Integer targetUid) {
@@ -1202,21 +1522,116 @@ public class ChainServiceImpl implements ChainService {
     }
 
     private Set<Integer> giftProductIds() {
-        String raw = cfg(ChainConstants.CONFIG_GIFT_PRODUCT_IDS, "");
         Set<Integer> set = new HashSet<>();
-        if (StrUtil.isBlank(raw)) {
-            return set;
-        }
-        for (String p : raw.split(",")) {
-            if (StrUtil.isBlank(p)) {
-                continue;
+        String raw = cfg(ChainConstants.CONFIG_GIFT_PRODUCT_IDS, "");
+        if (StrUtil.isNotBlank(raw)) {
+            for (String p : raw.split(",")) {
+                if (StrUtil.isBlank(p)) {
+                    continue;
+                }
+                try {
+                    set.add(Integer.parseInt(p.trim()));
+                } catch (Exception ignore) {
+                }
             }
-            try {
-                set.add(Integer.parseInt(p.trim()));
-            } catch (Exception ignore) {
+        }
+        // 启用中的链动产品
+        List<ChainProduct> products = chainProductDao.selectList(Wrappers.<ChainProduct>lambdaQuery()
+                .eq(ChainProduct::getStatus, 1)
+                .select(ChainProduct::getProductId));
+        if (CollUtil.isNotEmpty(products)) {
+            for (ChainProduct p : products) {
+                if (ObjectUtil.isNotNull(p.getProductId())) {
+                    set.add(p.getProductId());
+                }
             }
         }
         return set;
+    }
+
+    private void fillProductInfo(ChainProduct p) {
+        if (ObjectUtil.isNull(p) || ObjectUtil.isNull(p.getProductId())) {
+            return;
+        }
+        StoreProduct sp = loadStoreProductBrief(p.getProductId());
+        if (ObjectUtil.isNull(sp)) {
+            return;
+        }
+        p.setStoreName(sp.getStoreName());
+        p.setImage(sp.getImage());
+        p.setPrice(sp.getPrice());
+    }
+
+    /** 只查必要字段，避免本地/旧库商品表缺列导致 getById 失败 */
+    private StoreProduct loadStoreProductBrief(Integer productId) {
+        if (ObjectUtil.isNull(productId)) {
+            return null;
+        }
+        return storeProductService.getOne(Wrappers.<StoreProduct>lambdaQuery()
+                .select(StoreProduct::getId, StoreProduct::getStoreName, StoreProduct::getImage, StoreProduct::getPrice)
+                .eq(StoreProduct::getId, productId)
+                .last("limit 1"));
+    }
+
+    private void syncGiftProductIdsConfig() {
+        List<ChainProduct> products = chainProductDao.selectList(Wrappers.<ChainProduct>lambdaQuery()
+                .eq(ChainProduct::getStatus, 1)
+                .select(ChainProduct::getProductId)
+                .orderByAsc(ChainProduct::getProductId));
+        String ids = CollUtil.isEmpty(products) ? "" : products.stream()
+                .map(ChainProduct::getProductId)
+                .filter(ObjectUtil::isNotNull)
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+        systemConfigService.updateOrSaveValueByName(ChainConstants.CONFIG_GIFT_PRODUCT_IDS, ids);
+    }
+
+    /** 订单中第一个启用的链动产品 */
+    private ChainProduct resolveOrderChainProduct(StoreOrder storeOrder) {
+        if (ObjectUtil.isNull(storeOrder)) {
+            return null;
+        }
+        List<StoreOrderInfo> infos = storeOrderInfoService.getListByOrderNo(storeOrder.getOrderId());
+        if (CollUtil.isEmpty(infos)) {
+            return null;
+        }
+        for (StoreOrderInfo info : infos) {
+            if (ObjectUtil.isNull(info.getProductId())) {
+                continue;
+            }
+            ChainProduct cp = chainProductDao.selectOne(Wrappers.<ChainProduct>lambdaQuery()
+                    .eq(ChainProduct::getProductId, info.getProductId())
+                    .eq(ChainProduct::getStatus, 1)
+                    .last("limit 1"));
+            if (ObjectUtil.isNotNull(cp)) {
+                return cp;
+            }
+        }
+        return null;
+    }
+
+    private BigDecimal resolveDirectAmount(ChainProduct product, BigDecimal payPrice) {
+        if (ObjectUtil.isNotNull(product) && ObjectUtil.isNotNull(product.getDirectAmount())
+                && product.getDirectAmount().compareTo(BigDecimal.ZERO) > 0) {
+            return product.getDirectAmount();
+        }
+        return ruleAmount(findRule(ChainConstants.REWARD_DIRECT, 1), payPrice);
+    }
+
+    private BigDecimal resolveSeeAmount(ChainProduct product, int gen, BigDecimal payPrice) {
+        if (ObjectUtil.isNotNull(product) && ObjectUtil.isNotNull(product.getSeeAmount())
+                && product.getSeeAmount().compareTo(BigDecimal.ZERO) > 0) {
+            return product.getSeeAmount();
+        }
+        return ruleAmount(findRule(ChainConstants.REWARD_SEE, gen), payPrice);
+    }
+
+    private BigDecimal resolvePeerRatio(ChainProduct product) {
+        if (ObjectUtil.isNotNull(product) && ObjectUtil.isNotNull(product.getPeerRatio())
+                && product.getPeerRatio().compareTo(BigDecimal.ZERO) > 0) {
+            return product.getPeerRatio();
+        }
+        return peerRatio();
     }
 
     private ChainRewardRule findRule(String type, int genLevel) {

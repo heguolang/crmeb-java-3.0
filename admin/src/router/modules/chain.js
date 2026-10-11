@@ -21,6 +21,12 @@ const chainRouter = {
       meta: { title: '链动看板', icon: '' },
     },
     {
+      path: 'product',
+      component: () => import('@/views/distribution/chainProduct/index'),
+      name: 'ChainProduct',
+      meta: { title: '链动产品', icon: '' },
+    },
+    {
       path: 'config',
       component: () => import('@/views/distribution/chainConfig/index'),
       name: 'ChainConfig',

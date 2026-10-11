@@ -127,6 +127,9 @@ public class User implements Serializable {
     @ApiModelProperty(value = "链动身份：0无 1代理 2老板")
     private Integer chainIdentity;
 
+    @ApiModelProperty(value = "老板帮扶是否解锁：0否 1是")
+    private Integer chainHelpUnlocked;
+
     @ApiModelProperty(value = "推广员关联时间")
     private Date spreadTime;
 

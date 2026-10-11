@@ -6,7 +6,7 @@
         <el-button style="float: right" type="primary" size="small" @click="save">保存</el-button>
       </div>
       <el-alert
-        title="默认：礼包商品ID配置后开启；有效代理时机可配；直推满2升老板；满员滑落；礼包单跳过普通分销避免叠佣。"
+        title="默认：礼包商品升代理；直推满N升老板；留下的N个代理各直推满X单解锁帮扶；未解锁见单按比例进帮扶基金；金额在下方奖励规则配置。"
         type="info"
         :closable="false"
         style="margin-bottom: 16px"
@@ -19,7 +19,8 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="代理礼包商品ID">
-          <el-input v-model="form.chain_gift_product_ids" placeholder="多个用英文逗号分隔，如 12,15" class="selWidth" />
+          <el-input v-model="form.chain_gift_product_ids" placeholder="多个用英文逗号分隔；优先用「链动产品」菜单配置" class="selWidth" />
+          <div style="color:#999;font-size:12px;margin-top:4px">推荐到「链动产品」里选商品并配置直推/见单/平级奖；保存产品后会自动同步到此处</div>
         </el-form-item>
         <el-form-item label="有效代理判定时机">
           <el-radio-group v-model="form.chain_effective_timing">
@@ -36,28 +37,21 @@
         <el-form-item label="冻结天数">
           <el-input-number v-model="form.chain_freeze_days" :min="0" :max="365" />
         </el-form-item>
-        <el-form-item label="滑落开关">
-          <el-radio-group v-model="form.chain_slide_enabled">
-            <el-radio label="1">开启</el-radio>
-            <el-radio label="0">关闭</el-radio>
-          </el-radio-group>
-        </el-form-item>
         <el-form-item label="直推位容量N">
           <el-input-number v-model="form.chain_slide_capacity" :min="1" :max="10" />
+          <span style="margin-left:8px;color:#999">2+1 的「2」：直推满 N 人升老板；满员后自动滑落</span>
         </el-form-item>
-        <el-form-item label="滑落深度">
-          <el-input-number v-model="form.chain_slide_depth" :min="1" :max="10" />
+        <el-form-item label="帮扶解锁单数X">
+          <el-input-number v-model="form.chain_help_unlock_orders" :min="1" :max="100" />
+          <span style="margin-left:8px;color:#999">升老板后，留下的 N 个代理各再直推满 X 单礼包才解锁</span>
         </el-form-item>
-        <el-form-item label="滑落方向">
-          <el-radio-group v-model="form.chain_slide_mode">
-            <el-radio label="min_team">最小团队优先</el-radio>
-            <el-radio label="left">向左</el-radio>
-            <el-radio label="right">向右</el-radio>
-          </el-radio-group>
+        <el-form-item label="见单帮扶冻结%">
+          <el-input-number v-model="form.chain_help_freeze_ratio" :min="0" :max="100" :precision="2" />
+          <span style="margin-left:8px;color:#999">未解锁时见单按此比例进帮扶基金；0=关闭该机制；解锁后解冻且以后不再冻</span>
         </el-form-item>
         <el-form-item label="帮扶超时天数">
           <el-input-number v-model="form.chain_help_timeout_days" :min="0" :max="365" />
-          <span style="margin-left:8px;color:#999">0=不超时</span>
+          <span style="margin-left:8px;color:#999">旧滑落帮扶超时释放，0=不超时</span>
         </el-form-item>
         <el-form-item label="见单奖代数">
           <el-input-number v-model="form.chain_see_generations" :min="1" :max="10" />
@@ -166,6 +160,8 @@ export default {
         chain_slide_capacity: 2,
         chain_slide_depth: 2,
         chain_slide_mode: 'min_team',
+        chain_help_unlock_orders: 1,
+        chain_help_freeze_ratio: 50,
         chain_help_timeout_days: 0,
         chain_see_generations: 3,
         chain_identity_downgrade: '0',
@@ -202,6 +198,8 @@ export default {
           this.form.chain_freeze_days = Number(data.chain_freeze_days || 1);
           this.form.chain_slide_capacity = Number(data.chain_slide_capacity || 2);
           this.form.chain_slide_depth = Number(data.chain_slide_depth || 2);
+          this.form.chain_help_unlock_orders = Number(data.chain_help_unlock_orders || 1);
+          this.form.chain_help_freeze_ratio = Number(data.chain_help_freeze_ratio || 50);
           this.form.chain_help_timeout_days = Number(data.chain_help_timeout_days || 0);
           this.form.chain_see_generations = Number(data.chain_see_generations || 3);
           this.form.chain_risk_window_minutes = Number(data.chain_risk_window_minutes || 60);
@@ -222,6 +220,8 @@ export default {
       payload.chain_freeze_days = String(this.form.chain_freeze_days);
       payload.chain_slide_capacity = String(this.form.chain_slide_capacity);
       payload.chain_slide_depth = String(this.form.chain_slide_depth);
+      payload.chain_help_unlock_orders = String(this.form.chain_help_unlock_orders);
+      payload.chain_help_freeze_ratio = String(this.form.chain_help_freeze_ratio);
       payload.chain_help_timeout_days = String(this.form.chain_help_timeout_days);
       payload.chain_see_generations = String(this.form.chain_see_generations);
       payload.chain_risk_window_minutes = String(this.form.chain_risk_window_minutes);

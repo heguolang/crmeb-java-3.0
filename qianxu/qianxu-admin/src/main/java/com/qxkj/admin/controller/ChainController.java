@@ -3,6 +3,7 @@ package com.qxkj.admin.controller;
 import com.qxkj.common.model.chain.ChainAuditLog;
 import com.qxkj.common.model.chain.ChainCommission;
 import com.qxkj.common.model.chain.ChainDividendRecord;
+import com.qxkj.common.model.chain.ChainProduct;
 import com.qxkj.common.model.chain.ChainRewardRule;
 import com.qxkj.common.model.chain.ChainRiskLog;
 import com.qxkj.common.model.chain.ChainSlideLog;
@@ -59,6 +60,32 @@ public class ChainController {
     @PutMapping("/rules")
     public CommonResult<String> saveRules(@RequestBody List<ChainRewardRule> rules) {
         chainService.saveRules(rules);
+        return CommonResult.success();
+    }
+
+    @PreAuthorize("hasAuthority('admin:chain:product')")
+    @ApiOperation("链动产品列表")
+    @GetMapping("/product/list")
+    public CommonResult<CommonPage<ChainProduct>> productList(
+            @RequestParam(value = "keywords", required = false) String keywords,
+            @RequestParam(value = "status", required = false) Integer status,
+            @Validated PageParamRequest pageParamRequest) {
+        return CommonResult.success(chainService.chainProductPage(keywords, status, pageParamRequest));
+    }
+
+    @PreAuthorize("hasAuthority('admin:chain:product')")
+    @ApiOperation("保存链动产品")
+    @PostMapping("/product/save")
+    public CommonResult<String> productSave(@RequestBody ChainProduct product) {
+        chainService.saveChainProduct(product);
+        return CommonResult.success();
+    }
+
+    @PreAuthorize("hasAuthority('admin:chain:product')")
+    @ApiOperation("删除链动产品")
+    @PostMapping("/product/delete")
+    public CommonResult<String> productDelete(@RequestParam Integer id) {
+        chainService.deleteChainProduct(id);
         return CommonResult.success();
     }
 

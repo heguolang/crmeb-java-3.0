@@ -26,6 +26,16 @@ public class ChainIdentityResponse implements Serializable {
     private Integer bossNeedCount;
     @ApiModelProperty("距离老板还差几人")
     private Integer bossRemainCount;
+    @ApiModelProperty("老板帮扶是否已解锁")
+    private Boolean helpUnlocked;
+    @ApiModelProperty("帮扶解锁所需：每位代理直推礼包单数X")
+    private Integer helpUnlockNeedOrders;
+    @ApiModelProperty("帮扶进度：已达标的直推代理位数")
+    private Integer helpUnlockedSeatCount;
+    @ApiModelProperty("帮扶进度：需要达标的直推代理位数N")
+    private Integer helpNeedSeatCount;
+    @ApiModelProperty("帮扶基金冻结金额（见单未解锁部分）")
+    private BigDecimal helpFundAmount;
     @ApiModelProperty("今日佣金")
     private BigDecimal todayAmount;
     @ApiModelProperty("累计佣金")

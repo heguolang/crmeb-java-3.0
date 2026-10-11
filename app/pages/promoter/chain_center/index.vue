@@ -4,6 +4,13 @@
 			<view class="title">当前身份：{{ info.identityName || '游客' }}</view>
 			<view class="progress">直推进度 {{ info.effectiveDirectCount || 0 }}/{{ info.bossNeedCount || 2 }}</view>
 			<view class="tip" v-if="(info.identity || 0) < 2">距离老板还差 {{ info.bossRemainCount || 0 }} 人</view>
+			<view class="tip" v-if="(info.identity || 0) >= 2">
+				帮扶{{ info.helpUnlocked ? '已解锁' : '未解锁' }}
+				（座位 {{ info.helpUnlockedSeatCount || 0 }}/{{ info.helpNeedSeatCount || 2 }}，每人需直推{{ info.helpUnlockNeedOrders || 1 }}单）
+			</view>
+			<view class="tip" v-if="(info.identity || 0) >= 2 && !info.helpUnlocked && (info.helpFundAmount || 0) > 0">
+				帮扶基金冻结 {{ info.helpFundAmount }} 元
+			</view>
 			<view class="money-row">
 				<view class="item"><text>今日</text><text class="n">{{ info.todayAmount || 0 }}</text></view>
 				<view class="item"><text>累计</text><text class="n">{{ info.totalAmount || 0 }}</text></view>
