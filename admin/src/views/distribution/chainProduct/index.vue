@@ -70,7 +70,12 @@
       />
     </el-card>
 
-    <el-dialog :title="form.id ? '编辑链动产品' : '添加链动产品'" :visible.sync="dialog" width="520px">
+    <el-dialog
+      :title="form.id ? '编辑链动产品' : '添加链动产品'"
+      :visible.sync="dialog"
+      width="520px"
+      append-to-body
+    >
       <el-form label-width="110px" size="small">
         <el-form-item label="选择商品" required>
           <div v-if="form.productId" class="goods pick">
@@ -158,9 +163,14 @@ export default {
         status: this.status,
       })
         .then((res) => {
-          const data = res.data || {};
+          // request 拦截器已解包 CommonResult.data
+          const data = res.data || res || {};
           this.list = data.list || [];
           this.total = data.total || 0;
+        })
+        .catch(() => {
+          this.list = [];
+          this.total = 0;
         })
         .finally(() => {
           this.loading = false;
@@ -188,15 +198,18 @@ export default {
     pickGoods() {
       const self = this;
       this.$modalGoodList(function (row) {
-        self.form.productId = row.id;
-        self.form.storeName = row.storeName || row.name || '';
-        self.form.image = row.image || '';
-        self.form.price = row.price;
+        if (!row || !row.id) {
+          return;
+        }
+        self.$set(self.form, 'productId', row.id);
+        self.$set(self.form, 'storeName', row.storeName || row.name || '');
+        self.$set(self.form, 'image', row.image || '');
+        self.$set(self.form, 'price', row.price);
       });
     },
     submit() {
       if (!this.form.productId) {
-        this.$message.warning('请选择商品');
+        this.$message.warning('请先从商品库选择商品，再保存');
         return;
       }
       this.saving = true;
@@ -214,6 +227,7 @@ export default {
           this.dialog = false;
           this.load();
         })
+        .catch(() => {})
         .finally(() => {
           this.saving = false;
         });

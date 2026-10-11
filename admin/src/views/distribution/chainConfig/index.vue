@@ -189,7 +189,8 @@ export default {
       this.loading = true;
       chainConfigGetApi()
         .then((res) => {
-          const data = res.data || {};
+          // request 拦截器已解包 CommonResult.data，配置对象在 res 上
+          const data = res.data || res || {};
           Object.keys(this.form).forEach((k) => {
             if (data[k] !== undefined && data[k] !== null) {
               this.form[k] = String(data[k]);
@@ -217,6 +218,7 @@ export default {
     },
     save() {
       const payload = { ...this.form };
+      payload.chain_func_status = String(this.form.chain_func_status);
       payload.chain_freeze_days = String(this.form.chain_freeze_days);
       payload.chain_slide_capacity = String(this.form.chain_slide_capacity);
       payload.chain_slide_depth = String(this.form.chain_slide_depth);

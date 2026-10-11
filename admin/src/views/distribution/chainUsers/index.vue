@@ -90,7 +90,7 @@ export default {
         identity: this.identity,
       })
         .then((res) => {
-          const data = res.data || {};
+          const data = res.data || res || {};
           this.list = data.list || [];
           this.total = data.total || 0;
         })

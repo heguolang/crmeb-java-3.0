@@ -35,7 +35,7 @@ export default {
       this.loading = true;
       chainAuditLogsApi({ page: this.page, limit: this.limit })
         .then((res) => {
-          const data = res.data || {};
+          const data = res.data || res || {};
           this.list = data.list || [];
           this.total = data.total || 0;
         })
