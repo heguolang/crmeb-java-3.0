@@ -1,0 +1,5 @@
+.env
+data/
+sql/init/*.sql
+!sql/init/.gitkeep
+!sql/init/README.md
