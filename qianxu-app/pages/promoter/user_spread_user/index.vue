@@ -95,6 +95,13 @@
 						<view class='item-title'>我的推荐人</view>
 						<view class='item-desc'>我的上级推荐关系</view>
 					</navigator>
+					<navigator url='/pages/promoter/chain_center/index' hover-class="none" class='tool-item'>
+						<view class='icon-wrap' :style="{backgroundColor: tintBg}">
+							<text class='iconfont icon-tuandui' :style="{color: bgColor}"></text>
+						</view>
+						<view class='item-title'>链动中心</view>
+						<view class='item-desc'>2+1 链动收益与团队</view>
+					</navigator>
 				</view>
 			</view>
 		</view>

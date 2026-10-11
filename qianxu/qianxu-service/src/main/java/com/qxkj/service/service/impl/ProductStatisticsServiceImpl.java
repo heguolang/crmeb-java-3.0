@@ -339,8 +339,13 @@ public class ProductStatisticsServiceImpl implements ProductStatisticsService {
             response.setSalesNum(record.getOrderProductNum());
             response.setSalesAmount(record.getOrderSuccessProductFee());
             response.setSort(sort);
-            response.setProName(product.getStoreName());
-            response.setImage(product.getImage());
+            // 商品可能已被删除，但日统计记录仍在，此处兜底避免 NPE 导致整个排行榜接口 500
+            if (product != null) {
+                response.setProName(product.getStoreName());
+                response.setImage(product.getImage());
+            } else {
+                response.setProName("商品已删除");
+            }
             list.add(response);
             sort ++;
         }

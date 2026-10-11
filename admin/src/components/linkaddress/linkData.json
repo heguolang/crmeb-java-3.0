@@ -374,6 +374,54 @@
         "add_time": 1626837579
       },
       {
+        "id": 54,
+        "cate_id": 5,
+        "type": 6,
+        "name": "链动中心",
+        "url": "/pages/promoter/chain_center/index",
+        "param": " ",
+        "example": "/pages/promoter/chain_center/index",
+        "status": 1,
+        "sort": 1,
+        "add_time": 1626837579
+      },
+      {
+        "id": 55,
+        "cate_id": 5,
+        "type": 6,
+        "name": "链动收益明细",
+        "url": "/pages/promoter/chain_commission/index",
+        "param": " ",
+        "example": "/pages/promoter/chain_commission/index",
+        "status": 1,
+        "sort": 1,
+        "add_time": 1626837579
+      },
+      {
+        "id": 56,
+        "cate_id": 5,
+        "type": 6,
+        "name": "链动我的团队",
+        "url": "/pages/promoter/chain_team/index",
+        "param": " ",
+        "example": "/pages/promoter/chain_team/index",
+        "status": 1,
+        "sort": 1,
+        "add_time": 1626837579
+      },
+      {
+        "id": 57,
+        "cate_id": 5,
+        "type": 6,
+        "name": "链动规则说明",
+        "url": "/pages/promoter/chain_rules/index",
+        "param": " ",
+        "example": "/pages/promoter/chain_rules/index",
+        "status": 1,
+        "sort": 1,
+        "add_time": 1626837579
+      },
+      {
         "id": 201,
         "cate_id": 5,
         "type": 1,

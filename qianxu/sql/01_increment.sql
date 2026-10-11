@@ -4411,13 +4411,17 @@ INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu
 SELECT m.id, '运营大数据', 's-data', '', '/market/screen/operation', 'C', 1, 1, 0
 FROM `eb_system_menu` m
 WHERE m.component = '/market/screen' AND m.menu_type = 'M' AND m.is_delte = 0
-  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/market/screen/operation' AND `is_delte` = 0);
+  -- ⚠️ 2026-10-02：守卫不能带 `is_delte = 0`。该行被 09-30 聚合页补丁软删后守卫即失配，
+  --    每次执行都会插入新行 → 两个独立栏目「复活」（现象：侧边栏又出现「运营大数据」）。
+  --    改为「只要该 component 存在任意一行（含已软删）就不插」，配合上面 2d 去重规则稳定收敛。
+  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/market/screen/operation');
 
 INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
 SELECT m.id, '市场大数据', 'data-board', '', '/market/screen/market', 'C', 2, 1, 0
 FROM `eb_system_menu` m
 WHERE m.component = '/market/screen' AND m.menu_type = 'M' AND m.is_delte = 0
-  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/market/screen/market' AND `is_delte` = 0);
+  -- ⚠️ 同上，去掉 `is_delte = 0`（2026-10-02）
+  AND NOT EXISTS (SELECT 1 FROM `eb_system_menu` WHERE `component` = '/market/screen/market');
 
 SELECT 'upgrade_20260928_data_screen done' AS result;
 -- ========== END: upgrade_20260928_data_screen.sql ==========
@@ -4953,6 +4957,25 @@ UPDATE `eb_system_menu`
 --    ⚠️ 按 component 判，不写死 id（同 728 的坑）
 UPDATE `eb_system_menu` SET `is_delte` = 1, `update_time` = NOW()
  WHERE `component` IN ('/market/screen/operation', '/market/screen/market') AND `is_delte` = 0;
+
+-- ============================================================
+-- 补丁：大屏「名称设置」按钮权限（2026-10-02）
+-- 背景：SystemConfigController 的 get/save bigdata screen setting 两个接口原先缺 @PreAuthorize，
+--       已补注解，需下发对应按钮权限，否则非超管角色调用会被拦（超管有旁路不受影响）。
+--       挂在「公共服务」目录下（与「获取主题色/保存主题色」同级），按 perms 幂等，不写死 id。
+-- ============================================================
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT p.`id`, '获取大屏名称设置', '', 'admin:system:config:bigdata:screen:get', '', 'A', 999, 1, 0
+FROM `eb_system_menu` p
+WHERE p.`menu_type` = 'M' AND p.`name` = '公共服务' AND p.`is_delte` = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `perms` = 'admin:system:config:bigdata:screen:get' AND `is_delte` = 0) t);
+
+INSERT INTO `eb_system_menu` (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`)
+SELECT p.`id`, '保存大屏名称设置', '', 'admin:system:config:bigdata:screen:save', '', 'A', 999, 1, 0
+FROM `eb_system_menu` p
+WHERE p.`menu_type` = 'M' AND p.`name` = '公共服务' AND p.`is_delte` = 0
+  AND NOT EXISTS (SELECT 1 FROM (SELECT `id` FROM `eb_system_menu` WHERE `perms` = 'admin:system:config:bigdata:screen:save' AND `is_delte` = 0) t);
+
 
 
 -- ============================================================

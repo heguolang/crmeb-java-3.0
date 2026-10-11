@@ -22,6 +22,7 @@ import storeRouter from './modules/store';
 import orderRouter from './modules/order';
 import userRouter from './modules/user';
 import distributionRouter from './modules/distribution';
+import chainRouter from './modules/chain';
 import dailiRouter from './modules/daili';
 import stockRouter from './modules/stock';
 import merchantStoreRouter from './modules/merchantStore';
@@ -72,6 +73,8 @@ export const constantRoutes = [
   userRouter,
   // 分销
   distributionRouter,
+  // 2+1链动（大市场）
+  chainRouter,
   // 代理
   dailiRouter,
   stockRouter,

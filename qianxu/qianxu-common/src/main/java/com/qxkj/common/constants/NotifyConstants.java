@@ -39,4 +39,13 @@ public class NotifyConstants {
     public static final String PLACE_AN_ORDER_ADMIN_MARK = "adminPlaceAnOrder";
     /** 用户发起退款(管理员)标记 */
     public static final String APPLY_ORDER_REFUND_ADMIN_MARK = "adminApplyOrderRefund";
+
+    /** 链动身份晋升 */
+    public static final String CHAIN_UPGRADE_MARK = "chainUpgrade";
+    /** 链动佣金 */
+    public static final String CHAIN_COMMISSION_MARK = "chainCommission";
+    /** 链动帮扶完成 */
+    public static final String CHAIN_HELP_MARK = "chainHelp";
+    /** 链动团队分红 */
+    public static final String CHAIN_DIVIDEND_MARK = "chainDividend";
 }

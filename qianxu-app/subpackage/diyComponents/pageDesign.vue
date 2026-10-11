@@ -711,6 +711,10 @@ export default {
         temp.sort((a, b) => a.timestamp - b.timestamp);
         this.styleConfig = temp;
       }
+      // 主题数据里没有 pageFoot 组件时，仍挂载底部导航组件，由组件内部走后台「底部导航」配置兜底
+      if (!this.footerConfigData && !this.microPage) {
+        this.footerConfigData = {};
+      }
     },
     bindSortId(item, data) {
       this.$emit("bindSortId", item, data);
