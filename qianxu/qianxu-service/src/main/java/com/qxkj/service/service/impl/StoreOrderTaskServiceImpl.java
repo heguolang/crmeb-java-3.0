@@ -159,6 +159,9 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
     @Autowired
     private AsyncService asyncService;
 
+    @Autowired
+    private ChainService chainService;
+
 
     /**
      * 用户取消订单
@@ -219,6 +222,16 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
         for (UserBrokerageRecord record : recordList) {
             if (record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_COMPLETE)
                     || record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_INVALIDATION)) {
+                continue;
+            }
+            // 链动佣金带冻结天数：订单完成不即时入账，交由冻结/解冻任务处理
+            Integer level = record.getBrokerageLevel();
+            boolean chainLevel = ObjectUtil.equal(level, ChainConstants.BROKERAGE_LEVEL_DIRECT)
+                    || ObjectUtil.equal(level, ChainConstants.BROKERAGE_LEVEL_SEE)
+                    || ObjectUtil.equal(level, ChainConstants.BROKERAGE_LEVEL_PEER)
+                    || ObjectUtil.equal(level, ChainConstants.BROKERAGE_LEVEL_HELP);
+            if (chainLevel && ObjectUtil.defaultIfNull(record.getFrozenTime(), 0) > 0
+                    && record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE)) {
                 continue;
             }
             if (record.getStatus().equals(BrokerageRecordConstants.BROKERAGE_RECORD_STATUS_CREATE)
@@ -297,6 +310,8 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
             distributorLevelService.processOnOrderComplete(storeOrder);
             // 区域代理奖励明细状态同步
             agentService.syncRewardStatus(storeOrder.getOrderId());
+            // 2+1 链动：订单完成（有效代理/补发佣金）
+            chainService.onOrderComplete(storeOrder);
             return Boolean.TRUE;
         });
         // 入账后剩余 CREATE 才会被 complete 节点冻结；通常已无 CREATE
@@ -536,6 +551,9 @@ public class StoreOrderTaskServiceImpl implements StoreOrderTaskService {
 
             // 分销商等级统计回退（只回退统计，不降级）
             distributorLevelService.rollbackOnRefund(storeOrder);
+
+            // 2+1 链动退款处理
+            chainService.onOrderRefund(storeOrder);
 
             // 回滚库存
             Boolean rollbackStock = rollbackStock(storeOrder);

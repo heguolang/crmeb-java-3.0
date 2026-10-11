@@ -164,6 +164,33 @@
               </div>
               <div class="user-info">
                 <div class="section">
+                  <div class="section-hd">链动信息</div>
+                  <div class="section-bd">
+                    <div class="item">
+                      <div>链动身份：</div>
+                      <div class="value">{{ chainDetail.identityName || '-' }}</div>
+                    </div>
+                    <div class="item">
+                      <div>安置上级：</div>
+                      <div class="value">{{ chainDetail.chainParentId || '-' }}</div>
+                    </div>
+                    <div class="item">
+                      <div>邀请人：</div>
+                      <div class="value">{{ chainDetail.chainInviteUid || '-' }}</div>
+                    </div>
+                    <div class="item">
+                      <div>有效直推：</div>
+                      <div class="value">{{ chainDetail.effectiveDirectCount != null ? chainDetail.effectiveDirectCount : '-' }}</div>
+                    </div>
+                    <div class="item">
+                      <div>累计链动佣金：</div>
+                      <div class="value">{{ (chainDetail.commissionSummary && chainDetail.commissionSummary.total) || 0 }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="user-info">
+                <div class="section">
                   <div class="section-hd">用户备注</div>
                   <div class="section-bd">
                     <div class="item">
@@ -263,6 +290,7 @@
 // +----------------------------------------------------------------------
 import { infobyconditionApi, topdetailApi } from '@/api/user';
 import { integralListApi } from '@/api/marketing';
+import { chainUserDetailApi } from '@/api/chain';
 export default {
   name: 'detailUser',
   props: {
@@ -276,6 +304,7 @@ export default {
       tableData: [],
       dialogUserDetail: false,
       userDetailData: {},
+      chainDetail: {},
       tabsVal: '0',
       paginationData: {
         page: 1,
@@ -335,6 +364,14 @@ export default {
       topdetailApi({ userId: id }).then((res) => {
         this.userDetailData = res.user;
       });
+      this.chainDetail = {};
+      chainUserDetailApi({ uid: id })
+        .then((res) => {
+          this.chainDetail = res.data || {};
+        })
+        .catch(() => {
+          this.chainDetail = {};
+        });
     },
   },
 };

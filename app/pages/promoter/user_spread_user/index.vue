@@ -74,6 +74,10 @@
 				<text class='iconfont icon-tuandui'></text>
 				<view>我的推荐人</view>
 			</navigator>
+			<navigator url='/pages/promoter/chain_center/index' hover-class="none" class='item acea-row row-center-wrapper row-column'>
+				<text class='iconfont icon-tuandui'></text>
+				<view>链动中心</view>
+			</navigator>
 			</view>
 		</view>
 	</view>

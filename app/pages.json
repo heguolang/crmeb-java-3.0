@@ -1053,6 +1053,71 @@
 							// #endif
 						}
 					}
+				},
+				{
+					"path": "chain_center/index",
+					"style": {
+						"navigationBarTitleText": "链动中心",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
+					"path": "chain_commission/index",
+					"style": {
+						"navigationBarTitleText": "收益明细",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
+					"path": "chain_team/index",
+					"style": {
+						"navigationBarTitleText": "我的团队",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
+					"path": "chain_rules/index",
+					"style": {
+						"navigationBarTitleText": "链动规则",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
+					"path": "chain_notify/index",
+					"style": {
+						"navigationBarTitleText": "链动通知",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
 				}
 			]
 		},

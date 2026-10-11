@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2+1链动 · 后台重构设计稿 V2（待确认）</title>
+<style>
+  :root{
+    --primary:#0256ff;--primary-light:#e8efff;--primary-lighter:#f4f8ff;
+    --text-1:#303133;--text-2:#606266;--text-3:#909399;
+    --border:#dcdfe6;--border-light:#ebeef5;--bg:#f5f7fa;
+    --success:#67c23a;--warning:#e6a23c;--danger:#f56c6c;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);
+    font-family:"思源黑体","Source Han Sans SC","Microsoft YaHei",-apple-system,"PingFang SC",sans-serif;
+    color:var(--text-1);font-size:14px;line-height:1.6;}
+  .wrap{max-width:1280px;margin:0 auto;padding:24px 20px 64px;}
+  .page-head{background:#fff;border-radius:6px;padding:20px 24px;margin-bottom:16px;border:1px solid var(--border-light);}
+  .page-head h1{margin:0 0 6px;font-size:20px;font-weight:600;}
+  .page-head p{margin:0;color:var(--text-3);font-size:13px;}
+  .tag-draft{display:inline-block;background:#fff7e6;color:#d46b08;border:1px solid #ffd591;border-radius:3px;font-size:12px;padding:1px 8px;margin-left:8px;vertical-align:middle;}
+  .sec{background:#fff;border-radius:6px;padding:20px 24px 24px;margin-bottom:16px;border:1px solid var(--border-light);}
+  .sec-title{font-size:16px;font-weight:600;margin:0 0 4px;padding-left:10px;border-left:3px solid var(--primary);line-height:1.2;}
+  .sec-desc{margin:0 0 18px 13px;color:var(--text-3);font-size:13px;}
+  .menu-cmp{display:grid;grid-template-columns:1fr 50px 1fr;gap:0;align-items:start;}
+  .menu-col h4{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--text-2);}
+  .menu-col.now h4{color:var(--danger);} .menu-col.new h4{color:var(--success);}
+  .menu-list{list-style:none;margin:0;padding:0;border:1px solid var(--border-light);border-radius:4px;overflow:hidden;}
+  .menu-list li{padding:9px 14px;border-bottom:1px solid var(--border-light);font-size:13px;display:flex;justify-content:space-between;align-items:center;}
+  .menu-list li:last-child{border-bottom:none;}
+  .menu-list li .ph{color:var(--text-3);font-size:12px;}
+  .menu-list li.rm{background:#fff5f5;color:#c45656;text-decoration:line-through;text-decoration-color:#e79a9a;}
+  .menu-list li.keep{background:#f0f9eb;}
+  .menu-list li.merge{background:#fff8e6;}
+  .menu-list li.new{background:#f4f8ff;}
+  .menu-list .dir{padding:9px 14px;background:#fafafa;font-weight:600;color:var(--text-2);border-bottom:1px solid var(--border-light);font-size:13px;}
+  .arrow-col{display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--text-3);padding-top:150px;}
+  .form-card{border:1px solid var(--border-light);border-radius:6px;margin-bottom:14px;overflow:hidden;}
+  .form-card-hd{padding:12px 18px;border-bottom:1px solid var(--border-light);background:#fafbfc;display:flex;align-items:center;gap:8px;}
+  .form-card-hd .t{font-size:15px;font-weight:600;}
+  .form-card-hd .badge{font-size:11px;padding:1px 7px;border-radius:9px;background:#eef2f7;color:var(--text-2);}
+  .form-card-bd{padding:16px 18px 6px;}
+  .row{display:grid;grid-template-columns:190px 1fr;gap:16px;align-items:start;padding:8px 0;}
+  .row > .lbl{text-align:right;color:var(--text-2);font-size:14px;padding-top:6px;line-height:1.5;}
+  .row > .lbl .req{color:var(--danger);margin-right:3px;}
+  .hint{color:var(--text-3);font-size:12px;margin-top:4px;line-height:1.5;}
+  .inp,.sel{height:32px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-size:14px;color:var(--text-1);background:#fff;outline:none;display:inline-flex;align-items:center;min-width:180px;}
+  .inp.unit{min-width:110px;} .unit-txt{margin-left:8px;color:var(--text-2);font-size:13px;}
+  .inp.ph{color:var(--text-3);}
+  .radio-grp{display:inline-flex;gap:20px;align-items:center;height:32px;}
+  .radio-grp label{display:inline-flex;align-items:center;gap:5px;font-size:14px;}
+  .dot{width:14px;height:14px;border-radius:50%;border:1px solid #c0c4cc;display:inline-block;position:relative;}
+  .dot.on{border-color:var(--primary);} .dot.on:after{content:"";position:absolute;inset:2px;border-radius:50%;background:var(--primary);}
+  .switch{width:40px;height:20px;border-radius:10px;background:var(--primary);display:inline-block;position:relative;vertical-align:middle;}
+  .switch:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;right:2px;}
+  .switch.off{background:#dcdfe6;} .switch.off:after{left:2px;right:auto;}
+  .goods-pick{border:1px dashed var(--border);border-radius:4px;padding:12px 14px;background:#fcfcfd;display:flex;align-items:center;gap:14px;max-width:600px;}
+  .goods-pick .thumb{width:44px;height:44px;border-radius:4px;background:#eef2f7;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:11px;}
+  .goods-pick .info{flex:1;} .goods-pick .nm{font-size:14px;} .goods-pick .sub{font-size:12px;color:var(--text-3);}
+  .btn-sm{height:32px;padding:0 15px;border-radius:4px;border:1px solid var(--border);background:#fff;color:var(--text-1);font-size:13px;cursor:default;}
+  .btn-primary{height:32px;padding:0 18px;border-radius:4px;border:1px solid var(--primary);background:var(--primary);color:#fff;font-size:13px;cursor:default;}
+  .btn-link{color:var(--primary);font-size:13px;cursor:default;}
+  .footer-bar{margin-top:8px;padding-top:16px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:10px;}
+  table.tb{width:100%;border-collapse:collapse;font-size:13px;}
+  table.tb th{background:#f5f7fa;font-weight:600;font-size:14px;text-align:left;padding:10px 12px;border:1px solid var(--border-light);white-space:nowrap;}
+  table.tb td{padding:9px 12px;border:1px solid var(--border-light);color:var(--text-2);vertical-align:top;}
+  table.tb td.k{color:var(--text-1);font-weight:500;}
+  .pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:9px;white-space:nowrap;}
+  .p-keep{background:#f0f9eb;color:#529b2e;} .p-merge{background:#fff8e6;color:#b88230;}
+  .p-del{background:#fff5f5;color:#c45656;} .p-new{background:#e8efff;color:var(--primary);}
+  .p-later{background:#f4f4f5;color:#909399;}
+  code{background:#f4f4f5;padding:1px 5px;border-radius:3px;font-size:12px;color:#c7254e;font-family:Consolas,Monaco,monospace;}
+  .notice{background:var(--primary-lighter);border:1px solid #d6e4ff;border-left:3px solid var(--primary);border-radius:4px;padding:12px 16px;font-size:13px;color:#2c4a8a;margin-bottom:16px;}
+  .notice.warn{background:#fffaf0;border-color:#ffe0b2;border-left-color:var(--warning);color:#8a5a1a;}
+  .decided{background:#f0f9eb;border:1px solid #d8ecc4;border-left:3px solid var(--success);border-radius:4px;padding:12px 16px;font-size:13px;color:#3f6b1e;margin-bottom:16px;}
+  .decided b{color:#2f5215;}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text-3);margin-bottom:14px;}
+  .fold{background:#fafbfc;border:1px dashed var(--border);border-radius:4px;padding:10px 14px;color:var(--text-2);font-size:13px;margin-bottom:14px;}
+  .fold b{color:var(--text-1);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="page-head">
+    <h1>2+1 链动 · 后台重构设计稿 <span style="font-weight:400;color:var(--text-3);font-size:15px">V2</span><span class="tag-draft">待确认</span></h1>
+    <p>已按你的反馈修订：<strong>团队分红保留 · 链动产品保留并增强 · 新增「级别名称」可改 · 结算逻辑一起对齐文档</strong>。<br>
+       本稿仍为设计预览，<strong>尚未修改任何代码</strong>。</p>
+  </div>
+
+  <div class="decided">
+    <b>已定下的 5 件事（定稿依据）</b><br>
+    ① 团队分红（菜单 + 配置 + 页面）<b>原样保留</b>；<br>
+    ② 链动产品<b>保留按商品配奖</b>，并<b>增强</b>为「选中商品 → 直接设置该商品的链动奖励」；<br>
+    ③ 新增<b>级别名称自定义</b>：代理 / 老板 的显示名可改（如「VIP代理」「合伙人」），后台与会员端统一生效；<br>
+    ④ 结算逻辑<b>按文档重写</b>：见点奖 1 代 + 走人留人 + 帮扶 30% / N·M；<br>
+    ⑤ <b>风控全部去掉</b>：6 项风控配置 + 「风控日志」菜单一并移除，防刷校验改为代码内置硬约束。
+  </div>
+
+  <div class="notice warn">
+    <b>本稿为定稿。</b>落地时所有删除<strong>先备份、可回滚</strong>；数据库只动菜单/配置行，不动物业数据。
+  </div>
+
+  <!-- ============ 1 菜单 ============ -->
+  <div class="sec">
+    <h2 class="sec-title">一、菜单结构</h2>
+    <p class="sec-desc">位置均在 <code>大市场 → 2+1链动</code>。黄色=改造/合并，绿色=保留，蓝色=改版，红色=建议去掉。</p>
+
+    <div class="menu-cmp">
+      <div class="menu-col now">
+        <h4>现状：9 个菜单</h4>
+        <ul class="menu-list">
+          <li class="keep">链动看板 <span class="ph">/chain/dashboard</span></li>
+          <li class="keep">链动产品 <span class="ph">/chain/product</span></li>
+          <li class="merge">链动配置 <span class="ph">/chain/config</span></li>
+          <li class="keep">链动用户 <span class="ph">/chain/users</span></li>
+          <li class="keep">链动佣金 <span class="ph">/chain/commission</span></li>
+          <li class="merge">滑落日志 <span class="ph">/chain/slide</span></li>
+          <li class="merge">关系审计 <span class="ph">/chain/audit</span></li>
+          <li class="rm">风控日志 <span class="ph">/chain/risk</span></li>
+          <li class="keep">团队分红 <span class="ph">/chain/dividend</span></li>
+        </ul>
+      </div>
+      <div class="arrow-col">➜</div>
+      <div class="menu-col new">
+        <h4>定稿：7 个菜单（合并 1 处、去掉 2 处）</h4>
+        <ul class="menu-list">
+          <li class="dir">大市场 / 2+1链动</li>
+          <li class="keep">链动看板 <span class="ph">/chain/dashboard</span></li>
+          <li class="new">链动产品 <span class="ph">/chain/product ｜ 增强</span></li>
+          <li class="merge">链动设置 <span class="ph">/chain/config ｜ 重排</span></li>
+          <li class="keep">链动会员 <span class="ph">/chain/users</span></li>
+          <li class="keep">佣金记录 <span class="ph">/chain/commission</span></li>
+          <li class="merge">关系变更 <span class="ph">/chain/relation ｜ 两页合一</span></li>
+          <li class="keep">团队分红 <span class="ph">/chain/dividend</span></li>
+          <li class="rm">风控日志 <span class="ph">→ 去掉</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="hint" style="margin-top:12px">
+      共动三处：<b>滑落日志 + 关系审计 → 关系变更</b>（两者本就是同一条关系链变动流水，分开看反而割裂）；
+      <b>风控日志</b>整个去掉；其余菜单全部原样保留，路径不变、书签不失效。
+    </div>
+  </div>
+
+  <!-- ============ 2 设置页 ============ -->
+  <div class="sec">
+    <h2 class="sec-title">二、「链动设置」页面样张（重排后）</h2>
+    <p class="sec-desc">原 26 项扁平表单 → 4 组主卡片 + 1 个折叠的高级区。字段顺序就是操作顺序：先开功能 → 再定身份与升级 → 然后定钱 → 最后定帮扶。</p>
+
+    <div class="legend">
+      <span><span class="pill p-keep">保留</span> 现有配置原样搬入</span>
+      <span><span class="pill p-new">新增</span> 文档要求 / 你的新需求</span>
+      <span><span class="pill p-merge">改造</span> 语义或默认值变更</span>
+      <span><span class="pill p-del">去掉</span> 从主界面移除</span>
+    </div>
+
+    <!-- 组1 -->
+    <div class="form-card">
+      <div class="form-card-hd"><span class="t">① 基础设置</span><span class="badge">开关 · 礼包 · 时效</span></div>
+      <div class="form-card-bd">
+        <div class="row">
+          <div class="lbl"><span class="req">*</span>链动功能开关</div>
+          <div class="ctl">
+            <span class="switch"></span> <span style="margin-left:8px;font-size:13px;color:var(--success)">已开启</span>
+            <div class="hint">关闭后所有链动入口不再生效（下单不升级、不发佣）。</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl"><span class="req">*</span>激活礼包商品</div>
+          <div class="ctl">
+            <div class="goods-pick">
+              <div class="thumb">图</div>
+              <div class="info">
+                <div class="nm">链动代理礼包（自测）</div>
+                <div class="sub">商品 ID 173 · 售价 ¥399 · 已启用 · 直推¥100 / 见点10% / 平级10%</div>
+              </div>
+              <button class="btn-sm">更换</button>
+            </div>
+            <div class="hint">
+              购买该礼包即成为代理。奖励按此处选中的商品走<b>「链动产品」里为该商品配的那套</b>；没单独配的商品回落下面的全局默认。
+              <span class="pill p-merge" style="margin-left:6px">改造</span>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">激活门槛价</div>
+          <div class="ctl"><span class="inp unit">399</span><span class="unit-txt">元</span>
+            <span class="pill p-new" style="margin-left:10px">新增</span>
+            <div class="hint">订单实付 ≥ 此金额才算「有效订单」。文档默认 399 元。</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">售后保护期</div>
+          <div class="ctl"><span class="inp unit">7</span><span class="unit-txt">天</span>
+            <span class="pill p-new" style="margin-left:10px">新增</span>
+            <div class="hint">支付满 N 天且无退款/仲裁，订单才计入链动。文档默认 7 天；填 0 = 支付即生效。</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">有效代理判定时机</div>
+          <div class="ctl">
+            <div class="radio-grp"><label><span class="dot on"></span>支付成功</label><label><span class="dot"></span>订单完成</label></div>
+            <span class="pill p-keep" style="margin-left:10px">保留</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">站内通知</div>
+          <div class="ctl">
+            <span class="switch"></span> <span style="margin-left:8px;font-size:13px;color:var(--success)">已开启</span>
+            <span class="pill p-keep" style="margin-left:10px">保留</span>
+            <div class="hint">升级、佣金到账时给会员发站内通知。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 组2 -->
+    <div class="form-card">
+      <div class="form-card-hd"><span class="t">② 身份与升级</span><span class="badge">普通用户 → 代理 → 老板</span></div>
+      <div class="form-card-bd">
+        <div class="row">
+          <div class="lbl">代理 · 显示名称</div>
+          <div class="ctl"><span class="inp" style="min-width:200px">代理</span>
+            <span class="pill p-new" style="margin-left:10px">新增</span>
+            <div class="hint">改这里的名字，后台列表、会员端页面全部跟着变（如填「VIP代理」）。</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">老板 · 显示名称</div>
+          <div class="ctl"><span class="inp" style="min-width:200px">老板</span>
+            <span class="pill p-new" style="margin-left:10px">新增</span>
+            <div class="hint">同上（如填「合伙人」「团队长」）。</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">直推位容量 N</div>
+          <div class="ctl"><span class="inp unit">2</span><span class="unit-txt">人</span>
+            <div class="hint">2+1 里的「2」：直推满 N 个有效代理即升老板。</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">走人留人机制</div>
+          <div class="ctl">
+            <span class="switch"></span> <span style="margin-left:8px;font-size:13px;color:var(--success)">已开启</span>
+            <span class="pill p-merge" style="margin-left:10px">改造</span>
+            <div class="hint">
+              升级时：本人脱离原上级团队；升级前的前 N 个直推「留给」原上级，第 N+1 个起归自己。<br>
+              <span style="color:#c45656">原「滑落开关 / 滑落深度 / 滑落方向」三项随之去掉</span>——文档讲的是走人留人，不是滑落。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 组3 -->
+    <div class="form-card">
+      <div class="form-card-hd"><span class="t">③ 奖励设置（全局默认值）</span><span class="badge">四类奖励</span></div>
+      <div class="form-card-bd">
+        <div class="row">
+          <div class="lbl">直推奖</div>
+          <div class="ctl"><span class="inp unit">100</span><span class="unit-txt">元 · 固定金额</span>
+            <div class="hint">直推的下级完成有效订单 → 上级得此固定金额。<b>仅 1 级。</b></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">见点奖</div>
+          <div class="ctl"><span class="inp unit">10</span><span class="unit-txt">% · 按订单实付</span>
+            <span class="pill p-merge" style="margin-left:10px">收敛为 1 代</span>
+            <div class="hint">
+              伞下团队新增有效订单 → 上级老板按比例得奖。<b>文档规定仅直属 1 级</b>（现有「见单奖代数」默认 3）。<br>
+              原「见单奖代数」配置项去掉，代码内固定为 1。
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">平级奖</div>
+          <div class="ctl"><span class="inp unit">10</span><span class="unit-txt">% · 按下级见点奖</span>
+            <div class="hint">下级老板产生见点奖时，其上级老板按此比例抽成。仅 1 级。</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">单笔分润封顶</div>
+          <div class="ctl"><span class="inp unit">50</span><span class="unit-txt">% · 订单实付</span>
+            <span class="pill p-new" style="margin-left:10px">新增</span>
+            <div class="hint">文档 8 号硬约束：单笔分润不超过订单实付的 50%，防拨比失控。</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">佣金到账时机</div>
+          <div class="ctl">
+            <div class="radio-grp"><label><span class="dot on"></span>支付成功</label><label><span class="dot"></span>订单完成</label></div>
+            <span class="pill p-keep" style="margin-left:10px">保留</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">礼包订单跳过普通分销</div>
+          <div class="ctl">
+            <div class="radio-grp"><label><span class="dot on"></span>是</label><label><span class="dot"></span>否</label></div>
+            <span class="pill p-keep" style="margin-left:10px">保留</span>
+            <div class="hint">设为「是」时，链动礼包单不再重复发普通分销/团队奖，避免叠佣。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 组4 -->
+    <div class="form-card">
+      <div class="form-card-hd"><span class="t">④ 帮扶基金</span><span class="badge">冻结 · 解冻</span></div>
+      <div class="form-card-bd">
+        <div class="row">
+          <div class="lbl">冻结比例</div>
+          <div class="ctl"><span class="inp unit">30</span><span class="unit-txt">%</span>
+            <span class="pill p-merge" style="margin-left:10px">默认 50 → 30</span>
+            <div class="hint">每笔见点/平级奖发放时按此比例冻结进帮扶池。文档默认 30%。</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">解冻条件 N</div>
+          <div class="ctl"><span class="inp unit">10</span><span class="unit-txt">单 · 每位留人代理的团队订单数</span>
+            <span class="pill p-new" style="margin-left:10px">新增</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">解冻条件 M</div>
+          <div class="ctl"><span class="inp unit">20</span><span class="unit-txt">单 · 自身团队订单数</span>
+            <span class="pill p-new" style="margin-left:10px">新增</span>
+            <div class="hint">
+              两项都达标才解冻。<span style="color:#c45656">原「帮扶解锁单数 X」「帮扶超时天数」两项去掉</span>——口径与文档不同。
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">解冻方式</div>
+          <div class="ctl">
+            <div class="radio-grp"><label><span class="dot on"></span>条件达成一次性解冻</label><label><span class="dot"></span>按订单完成比例逐笔释放</label></div>
+            <span class="pill p-new" style="margin-left:10px">新增</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">规则说明文案</div>
+          <div class="ctl"><span class="inp ph" style="min-width:520px;height:auto;padding:8px 10px">（留空则前端用默认文案）</span>
+            <div class="hint">会员端「链动规则」页展示。注意禁用「投资/躺赚/稳赚」等词。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bar"><button class="btn-sm">重置</button><button class="btn-primary">保存设置</button></div>
+  </div>
+
+  <!-- ============ 3 链动产品增强 ============ -->
+  <div class="sec">
+    <h2 class="sec-title">三、「链动产品」增强后的样子</h2>
+    <p class="sec-desc">保留按商品配奖，并把「选商品 + 配奖」做成一步完成。</p>
+
+    <div class="form-card">
+      <div class="form-card-hd"><span class="t">链动产品</span><span class="badge">按商品配链动奖励</span>
+        <span style="margin-left:auto"><button class="btn-primary">+ 添加链动产品</button></span>
+      </div>
+      <div class="form-card-bd">
+        <table class="tb">
+          <thead><tr><th>商品</th><th style="width:100px">直推奖</th><th style="width:100px">见点奖</th><th style="width:100px">平级奖</th><th style="width:90px">状态</th><th style="width:120px">操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="k">链动代理礼包（自测）<br><span style="color:var(--text-3);font-size:12px">ID 173 · 售价 ¥399</span></td>
+              <td>¥100</td><td>10%</td><td>10%</td>
+              <td><span class="pill p-keep">启用</span></td>
+              <td><span class="btn-link">编辑</span> &nbsp; <span class="btn-link" style="color:var(--danger)">删除</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:18px;border:1px solid var(--border-light);border-radius:6px;padding:16px 18px;background:#fcfcfd">
+          <div style="font-weight:600;margin-bottom:12px">新增链动产品（弹窗）</div>
+          <div class="row"><div class="lbl"><span class="req">*</span>选择商品</div>
+            <div class="ctl">
+              <div class="goods-pick"><div class="thumb">图</div>
+                <div class="info"><div class="nm">请选择礼包商品</div><div class="sub">点右侧按钮从商品库挑选</div></div>
+                <button class="btn-sm">选择商品</button></div>
+            </div>
+          </div>
+          <div class="row"><div class="lbl">直推奖</div><div class="ctl"><span class="inp unit">100</span><span class="unit-txt">元</span><div class="hint">留空 = 用「链动设置」里的全局默认</div></div></div>
+          <div class="row"><div class="lbl">见点奖</div><div class="ctl"><span class="inp unit">10</span><span class="unit-txt">%</span><div class="hint">留空 = 用全局默认</div></div></div>
+          <div class="row"><div class="lbl">平级奖</div><div class="ctl"><span class="inp unit">10</span><span class="unit-txt">%</span><div class="hint">留空 = 用全局默认</div></div></div>
+          <div class="row"><div class="lbl">状态</div><div class="ctl"><span class="switch"></span> <span style="margin-left:8px;font-size:13px;color:var(--success)">启用</span></div></div>
+          <div class="footer-bar"><button class="btn-sm">取消</button><button class="btn-primary">确定</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 4 处置清单 ============ -->
+  <div class="sec">
+    <h2 class="sec-title">四、逐项处置清单</h2>
+    <p class="sec-desc">左边是现有 26 项配置，每一项的去向都写清楚。</p>
+    <table class="tb">
+      <thead><tr><th style="width:30%">现有配置项</th><th style="width:16%">处置</th><th style="width:54%">说明 / 去向</th></tr></thead>
+      <tbody>
+        <tr><td class="k">chain_func_status 链动开关</td><td><span class="pill p-keep">保留</span></td><td>① 基础设置</td></tr>
+        <tr><td class="k">chain_gift_product_ids 礼包商品</td><td><span class="pill p-merge">改造</span></td><td>文本输入 → 商品选择器；① 基础设置</td></tr>
+        <tr><td class="k">chain_effective_timing 代理判定时机</td><td><span class="pill p-keep">保留</span></td><td>① 基础设置</td></tr>
+        <tr><td class="k">— 激活门槛价</td><td><span class="pill p-new">新增</span></td><td>① 基础设置，默认 399 元</td></tr>
+        <tr><td class="k">— 售后保护期</td><td><span class="pill p-new">新增</span></td><td>① 基础设置，默认 7 天</td></tr>
+        <tr><td class="k">— 代理/老板 级别名称</td><td><span class="pill p-new">新增</span></td><td>② 身份与升级</td></tr>
+        <tr><td class="k">chain_slide_capacity 直推位容量</td><td><span class="pill p-keep">保留</span></td><td>② 身份与升级，改名「直推位容量 N」</td></tr>
+        <tr><td class="k">chain_slide_enabled 滑落开关</td><td><span class="pill p-merge">改造</span></td><td>② 身份与升级 → 改为「走人留人机制」开关</td></tr>
+        <tr><td class="k">chain_slide_depth 滑落深度</td><td><span class="pill p-del">去掉</span></td><td>走人留人无此概念</td></tr>
+        <tr><td class="k">chain_slide_mode 滑落方向</td><td><span class="pill p-del">去掉</span></td><td>同上</td></tr>
+        <tr><td class="k">chain_see_generations 见单代数（3）</td><td><span class="pill p-del">去掉</span></td><td>代码固定 1 代（文档 3.3）</td></tr>
+        <tr><td class="k">chain_credit_timing 到账时机</td><td><span class="pill p-keep">保留</span></td><td>③ 奖励设置</td></tr>
+        <tr><td class="k">chain_skip_normal_brokerage 跳过普通分销</td><td><span class="pill p-keep">保留</span></td><td>③ 奖励设置</td></tr>
+        <tr><td class="k">— 单笔分润封顶 50%</td><td><span class="pill p-new">新增</span></td><td>③ 奖励设置</td></tr>
+        <tr><td class="k">chain_help_freeze_ratio 帮扶冻结（50）</td><td><span class="pill p-merge">改造</span></td><td>④ 帮扶基金，默认改 30</td></tr>
+        <tr><td class="k">chain_help_unlock_orders 解锁单数 X</td><td><span class="pill p-del">替换</span></td><td>换成 ④ 的「解冻条件 N / M」</td></tr>
+        <tr><td class="k">chain_help_timeout_days 帮扶超时</td><td><span class="pill p-del">去掉</span></td><td>文档无此概念</td></tr>
+        <tr><td class="k">— 解冻方式</td><td><span class="pill p-new">新增</span></td><td>④ 帮扶基金</td></tr>
+        <tr><td class="k">chain_rules_content 规则文案</td><td><span class="pill p-keep">保留</span></td><td>④ 帮扶基金底部</td></tr>
+        <tr><td class="k">chain_identity_downgrade 退款降级</td><td><span class="pill p-later">待定</span></td><td>文档称身份不可逆；但退款回收是合理诉求 → 建议保留并放进②组</td></tr>
+        <tr><td class="k">chain_risk_* 风控 6 项</td><td><span class="pill p-del">去掉</span></td><td>文档把风控定为写死的硬约束 → 配置项全删，防刷校验改为代码内置</td></tr>
+        <tr><td class="k">chain_notify_status 站内通知</td><td><span class="pill p-keep">保留</span></td><td>① 基础设置</td></tr>
+        <tr><td class="k">chain_dividend_* 分红 3 项</td><td><span class="pill p-keep">保留</span></td><td>按你的要求原样保留</td></tr>
+        <tr><td class="k">菜单：风控日志</td><td><span class="pill p-del">去掉</span></td><td>随风控配置一并移除</td></tr>
+        <tr><td class="k">菜单：滑落日志 + 关系审计</td><td><span class="pill p-merge">合并</span></td><td>→ 关系变更</td></tr>
+        <tr><td class="k">菜单：链动产品 / 团队分红</td><td><span class="pill p-keep">保留</span></td><td>按你的要求保留</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ 5 落地计划 ============ -->
+  <div class="sec">
+    <h2 class="sec-title">五、落地计划（确认后执行）</h2>
+    <table class="tb">
+      <thead><tr><th style="width:6%">#</th><th style="width:30%">动作</th><th style="width:64%">涉及文件 / 对象</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td class="k">重排设置页</td><td><code>admin/src/views/distribution/chainConfig/index.vue</code> 重写为 4 组卡片 + 折叠高级区</td></tr>
+        <tr><td>2</td><td class="k">合并关系页</td><td><code>chainSlide</code> + <code>chainAudit</code> → <code>chainRelation</code>；路由 <code>modules/chain.js</code></td></tr>
+        <tr><td>3</td><td class="k">级别名称落地</td><td>新增配置 <code>chain_level_agent_name</code> / <code>chain_level_boss_name</code>；后台列表 + 会员端统一取该名称</td></tr>
+        <tr><td>4</td><td class="k">新增配置项</td><td>激活门槛价 / 售后保护期 / 单笔封顶 / 解冻 N·M / 解冻方式 —— 数据库增量脚本 + 后台常量</td></tr>
+        <tr><td>5</td><td class="k">结算逻辑对齐文档</td><td><code>ChainServiceImpl</code>：见点奖收敛 1 代；「滑落」改「走人留人」；帮扶 30% + N/M 解冻。⚠️ 改动最大的一步</td></tr>
+        <tr><td>6</td><td class="k">清理无效配置与菜单</td><td>数据库删 11 项（滑落深度/方向、见单代数、帮扶 X、帮扶超时、风控 6 项）；删「风控日志」菜单；菜单改名 3 处</td></tr>
+        <tr><td>7</td><td class="k">验证</td><td>重跑 2+1 端到端测试数据，逐笔核对四类奖励金额与身份流转</td></tr>
+      </tbody>
+    </table>
+    <div class="notice" style="margin-top:16px">
+      所有删除<strong>先备份、可回滚</strong>；数据库只动菜单/配置行，不动物业数据。第 5 步（结算逻辑）会在动代码前单独把改动点列给你确认。
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

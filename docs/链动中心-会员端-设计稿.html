@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>链动中心（会员端）· 设计稿 V1 · 待确认</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background:#eef1f6; color:#1f2937; padding:28px 24px 80px; line-height:1.6;
+  }
+  .wrap { max-width:1480px; margin:0 auto; }
+
+  /* ---------- 头部 ---------- */
+  .hd { background:#fff; border-radius:16px; padding:26px 30px; box-shadow:0 4px 20px rgba(31,45,61,.07); margin-bottom:24px; }
+  .hd h1 { font-size:23px; font-weight:700; letter-spacing:.5px; }
+  .hd .sub { color:#6b7280; font-size:13px; margin-top:6px; }
+  .hd .tags { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; }
+  .tag { font-size:12px; padding:3px 12px; border-radius:999px; background:#eef3ff; color:#1f5fd6; border:1px solid #d3e0ff; }
+  .tag.warn { background:#fff7e6; color:#b45309; border-color:#ffe0a3; }
+  .tag.ok { background:#ecfdf5; color:#047857; border-color:#bbf7d0; }
+  .tag.gray { background:#f3f4f6; color:#4b5563; border-color:#e5e7eb; }
+
+  /* ---------- 分区 ---------- */
+  .sec { margin-bottom:34px; }
+  .sec-h { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .sec-h .no { width:26px; height:26px; border-radius:8px; background:linear-gradient(135deg,#16337c,#3a8df2); color:#fff;
+    font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .sec-h h2 { font-size:17px; font-weight:700; }
+  .sec-h .note { font-size:12.5px; color:#9ca3af; }
+
+  .row { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+
+  /* ---------- 手机框 ---------- */
+  .phone { width:375px; flex:0 0 auto; background:#fff; border-radius:34px; padding:10px;
+    box-shadow:0 12px 34px rgba(15,23,42,.16); position:relative; }
+  .phone .cap { position:absolute; top:-26px; left:2px; font-size:13px; font-weight:600; color:#374151; }
+  .phone .cap em { font-style:normal; color:#9ca3af; font-weight:400; font-size:12px; }
+  .screen { background:#f5f6fa; border-radius:26px; overflow:hidden; height:760px; overflow-y:auto; position:relative; }
+  .screen::-webkit-scrollbar { width:0; }
+  .sbar { height:26px; }
+  .nav { height:44px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:600;
+    color:#111827; position:relative; background:#f5f6fa; }
+  .nav .back { position:absolute; left:14px; font-size:17px; color:#374151; }
+
+  /* ---------- 通用卡片 ---------- */
+  .pad { padding:0 14px 20px; }
+  .card { background:#fff; border-radius:14px; padding:14px; margin-bottom:12px; box-shadow:0 2px 10px rgba(31,45,61,.05); }
+  .card-t { display:flex; align-items:center; gap:7px; font-size:14.5px; font-weight:600; margin-bottom:11px; }
+  .card-t::before { content:''; width:4px; height:14px; border-radius:2px; background:linear-gradient(180deg,#1f5fd6,#3a8df2); }
+  .card-t .more { margin-left:auto; font-size:12px; color:#9ca3af; font-weight:400; }
+
+  /* ---------- 链动身份大卡 ---------- */
+  .hero { position:relative; overflow:hidden; border-radius:18px; padding:18px 18px 16px; color:#fff;
+    background:linear-gradient(135deg,#16337c 0%,#1f5fd6 52%,#3a8df2 100%); box-shadow:0 10px 26px rgba(31,95,214,.30); margin-bottom:12px; }
+  .hero::before, .hero::after { content:''; position:absolute; border-radius:50%; background:rgba(255,255,255,.11); }
+  .hero::before { width:190px; height:190px; right:-64px; top:-80px; }
+  .hero::after { width:120px; height:120px; right:76px; bottom:-62px; }
+  .hero .lvl { display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.22);
+    border:1px solid rgba(255,255,255,.42); border-radius:999px; padding:2px 12px; font-size:11.5px; letter-spacing:1px; position:relative; z-index:1; }
+  .hero .lvl .crown { color:#f6d99d; }
+  .hero .who { margin-top:12px; font-size:13px; opacity:.86; position:relative; z-index:1; }
+  .hero .who b { font-weight:600; }
+  .hero .big { margin-top:2px; font-size:31px; font-weight:700; letter-spacing:.5px; position:relative; z-index:1; }
+  .hero .big small { font-size:13px; font-weight:500; opacity:.85; margin-left:3px; }
+  .hero .hr { height:1px; background:rgba(255,255,255,.26); margin:14px 0 12px; position:relative; z-index:1; }
+  .hero .stats { display:flex; position:relative; z-index:1; }
+  .hero .st { flex:1; text-align:center; }
+  .hero .st .n { font-size:15.5px; font-weight:600; }
+  .hero .st .l { font-size:11px; opacity:.78; margin-top:2px; }
+  .hero .st-div { width:1px; background:rgba(255,255,255,.24); }
+
+  /* ---------- 进度条 ---------- */
+  .prog { margin-top:12px; position:relative; z-index:1; }
+  .prog .pt { display:flex; justify-content:space-between; font-size:12px; opacity:.9; margin-bottom:5px; }
+  .prog .bar { height:6px; border-radius:999px; background:rgba(255,255,255,.25); overflow:hidden; }
+  .prog .bar i { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,#f6d99d,#ffe9b8); }
+  .prog .hint { margin-top:8px; font-size:11.5px; opacity:.88; }
+
+  /* ---------- 收益两行 ---------- */
+  .money { display:flex; background:#fff; border-radius:14px; padding:13px 0; margin-bottom:12px; box-shadow:0 2px 10px rgba(31,45,61,.05); }
+  .money .m { flex:1; text-align:center; }
+  .money .m .n { font-size:17px; font-weight:700; color:#111827; font-variant-numeric:tabular-nums; }
+  .money .m .n.up { color:#e93323; }
+  .money .m .l { font-size:11.5px; color:#8a94a6; margin-top:3px; }
+  .money .m-div { width:1px; background:#f1f3f7; }
+
+  /* ---------- 四宫格入口 ---------- */
+  .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .grid4 .g { background:#fff; border-radius:13px; padding:12px 4px 10px; text-align:center; box-shadow:0 2px 10px rgba(31,45,61,.05); }
+  .grid4 .g .ic { width:38px; height:38px; margin:0 auto 7px; border-radius:11px; display:flex; align-items:center;
+    justify-content:center; font-size:18px; }
+  .grid4 .g .t { font-size:12px; color:#374151; }
+  .ic.b1 { background:#eef3ff; color:#1f5fd6; }
+  .ic.b2 { background:#ecfdf5; color:#047857; }
+  .ic.b3 { background:#fff7e6; color:#b45309; }
+  .ic.b4 { background:#fdf2f8; color:#be185d; }
+
+  /* ---------- 列表行 ---------- */
+  .li { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid #f4f5f8; }
+  .li:last-child { border-bottom:0; }
+  .li .dot { width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:600; flex:0 0 auto; }
+  .li .body { flex:1; min-width:0; }
+  .li .body .t1 { font-size:13.5px; font-weight:500; }
+  .li .body .t2 { font-size:11.5px; color:#9ca3af; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .li .amt { font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .li .amt.up { color:#e93323; }
+  .li .amt.frozen { color:#b45309; }
+  .li .amt.down { color:#00b578; }
+  .li .tm { font-size:11px; color:#c3c8d2; text-align:right; }
+
+  .pill { font-size:10.5px; padding:2px 8px; border-radius:999px; }
+  .pill.blue { background:#eef3ff; color:#1f5fd6; }
+  .pill.gold { background:#fff7e6; color:#b45309; }
+  .pill.green { background:#ecfdf5; color:#047857; }
+  .pill.gray { background:#f3f4f6; color:#6b7280; }
+
+  /* ---------- tabs ---------- */
+  .tabs { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .tabs .tb { font-size:12px; padding:5px 13px; border-radius:999px; background:#f3f4f6; color:#6b7280; }
+  .tabs .tb.on { background:linear-gradient(135deg,#1f5fd6,#3a8df2); color:#fff; font-weight:500; }
+
+  /* ---------- 团队树 ---------- */
+  .tree { font-size:13px; }
+  .tn { display:flex; align-items:center; gap:7px; padding:8px 0; }
+  .tn .arw { font-size:9px; color:#9ca3af; width:9px; }
+  .tn .av { width:26px; height:26px; border-radius:50%; background:#eef3ff; color:#1f5fd6; font-size:11px;
+    display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .tn .nm { font-size:13px; }
+  .tn .id { font-size:11px; color:#b6bcc7; }
+  .tn .lv { margin-left:auto; }
+  .tn.l2 { padding-left:22px; }
+  .tn.l3 { padding-left:44px; }
+  .keep { font-size:10.5px; padding:1px 7px; border-radius:999px; background:#fff7e6; color:#b45309; }
+
+  /* ---------- 帮扶进度 ---------- */
+  .hrow { display:flex; align-items:center; gap:9px; padding:9px 0; }
+  .hrow .hi { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:600; flex:0 0 auto; }
+  .hi.done { background:#ecfdf5; color:#047857; }
+  .hi.wait { background:#f3f4f6; color:#9ca3af; }
+  .hrow .hb { flex:1; }
+  .hrow .hb .h1 { font-size:13px; }
+  .hrow .hb .h2 { font-size:11px; color:#9ca3af; margin-top:1px; }
+  .hrow .hv { font-size:12px; color:#6b7280; font-variant-numeric:tabular-nums; }
+  .hrow .hv.ok { color:#047857; font-weight:600; }
+
+  /* ---------- 按钮 ---------- */
+  .btn { display:block; text-align:center; height:46px; line-height:46px; border-radius:23px; font-size:15px; font-weight:600;
+    background:linear-gradient(135deg,#1f5fd6,#3a8df2); color:#fff; margin-top:12px; box-shadow:0 6px 16px rgba(31,95,214,.28); }
+  .btn.ghost { background:#fff; color:#1f5fd6; border:1px solid #bcd2ff; box-shadow:none; }
+  .btn-row { display:flex; gap:10px; }
+  .btn-row .btn { flex:1; }
+  .btn.gold { background:linear-gradient(135deg,#d9a441,#f0c96a); color:#4a3208; box-shadow:0 6px 16px rgba(217,164,65,.3); }
+
+  /* ---------- 会员中心改造示意 ---------- */
+  .mc-top { background:linear-gradient(135deg,#16337c,#1f5fd6 60%,#3a8df2); padding:16px 16px 46px; color:#fff; position:relative; }
+  .mc-top .u { display:flex; align-items:center; gap:11px; }
+  .mc-top .u .av { width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,.25); border:1px solid rgba(255,255,255,.45); }
+  .mc-top .u .nm { font-size:15px; font-weight:600; }
+  .mc-top .u .id { font-size:11.5px; opacity:.8; margin-top:2px; }
+  .mc-cards { margin:-34px 14px 12px; position:relative; }
+  .entry { display:flex; align-items:center; gap:11px; background:#fff; border-radius:14px; padding:13px 14px;
+    box-shadow:0 4px 16px rgba(31,45,61,.09); margin-bottom:11px; }
+  .entry .ic2 { width:42px; height:42px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+    font-size:19px; background:linear-gradient(135deg,#16337c,#3a8df2); color:#fff; flex:0 0 auto; }
+  .entry .tx { flex:1; }
+  .entry .tx .a { font-size:14.5px; font-weight:600; }
+  .entry .tx .b { font-size:11.5px; color:#9ca3af; margin-top:2px; }
+  .entry .go { font-size:12px; color:#1f5fd6; font-weight:500; }
+  .entry.goldline .ic2 { background:linear-gradient(135deg,#d9a441,#f0c96a); color:#4a3208; }
+  .mm { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; background:#fff; border-radius:14px; padding:14px 6px;
+    box-shadow:0 2px 10px rgba(31,45,61,.05); }
+  .mm .x { text-align:center; }
+  .mm .x .i { width:36px; height:36px; margin:0 auto 6px; border-radius:11px; background:#eef3ff; color:#1f5fd6;
+    display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .mm .x .i.new { background:linear-gradient(135deg,#16337c,#3a8df2); color:#fff; position:relative; }
+  .mm .x .i.new::after { content:'NEW'; position:absolute; top:-6px; right:-12px; font-size:8px; padding:1px 5px;
+    border-radius:999px; background:#e93323; color:#fff; font-weight:600; }
+  .mm .x .t { font-size:11.5px; color:#374151; }
+
+  /* ---------- 装修器示意 ---------- */
+  .diy { width:100%; background:#fff; border-radius:14px; padding:16px; box-shadow:0 4px 20px rgba(31,45,61,.07); }
+  .diy .dh { font-size:13px; font-weight:600; color:#374151; margin-bottom:10px; }
+  .diy .chk { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:9px; font-size:12.5px; color:#4b5563; background:#fafbfd; margin-bottom:6px; }
+  .diy .chk .bx { width:15px; height:15px; border-radius:4px; border:1.5px solid #cbd5e1; flex:0 0 auto; }
+  .diy .chk.on .bx { background:#1f5fd6; border-color:#1f5fd6; position:relative; }
+  .diy .chk.on .bx::after { content:'✓'; position:absolute; inset:0; color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; }
+  .diy .chk.on { background:#eef3ff; color:#1f5fd6; font-weight:600; }
+  .diy .chk .mini { margin-left:auto; font-size:11px; color:#9ca3af; }
+  .diy .hint2 { font-size:11.5px; color:#9ca3af; margin-top:10px; line-height:1.7; }
+
+  /* ---------- 表格 ---------- */
+  table { width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; font-size:12.5px; }
+  th, td { text-align:left; padding:9px 12px; border-bottom:1px solid #f1f3f7; vertical-align:top; }
+  th { background:#f7f9fc; color:#6b7280; font-weight:600; font-size:12px; white-space:nowrap; }
+  td code { background:#f3f4f6; padding:1px 5px; border-radius:4px; font-size:11.5px; color:#1f5fd6; }
+  tr:last-child td { border-bottom:0; }
+  .keeprow { background:#fffdf5; }
+
+  /* ---------- 待确认 ---------- */
+  .ask { background:#fff; border-radius:16px; padding:22px 26px; box-shadow:0 4px 20px rgba(31,45,61,.07); }
+  .ask h3 { font-size:16px; margin-bottom:14px; }
+  .ask ol { padding-left:20px; }
+  .ask li { font-size:13.5px; margin-bottom:11px; color:#374151; }
+  .ask li b { color:#111827; }
+  .ask li .opts { margin-top:5px; font-size:12.5px; color:#6b7280; }
+  .ask li .opts span { display:inline-block; border:1px solid #e5e7eb; border-radius:999px; padding:1px 10px; margin:3px 5px 0 0; }
+
+  .legend { display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:#6b7280; margin-top:10px; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hd">
+    <h1>链动中心（会员端）· 设计稿 V1 · <span style="color:#b45309">待确认</span></h1>
+    <div class="sub">
+      依据《2+1链动模式系统需求文档》口径 · 与「链动后台精简」配套 · 会员中心入口走装修器自选（同「代理中心」机制）
+    </div>
+    <div class="tags">
+      <span class="tag">走人留人</span>
+      <span class="tag">直推奖 / 见点奖 / 平级奖</span>
+      <span class="tag">帮扶基金 30% 冻结 · N=10 / M=20 解冻</span>
+      <span class="tag ok">风控已全部移除</span>
+      <span class="tag warn">U 仅为示意图，落地用真实接口数据</span>
+    </div>
+    <div class="legend">
+      <span><i style="background:linear-gradient(135deg,#16337c,#3a8df2)"></i>主色蓝渐变 #16337c → #1f5fd6 → #3a8df2</span>
+      <span><i style="background:linear-gradient(135deg,#d9a441,#f0c96a)"></i>金点缀 #d9a441 → #f0c96a</span>
+      <span><i style="background:#e93323"></i>增收 #e93323</span>
+      <span><i style="background:#00b578"></i>减/支出 #00b578</span>
+    </div>
+  </div>
+
+  <!-- ============ 1. 内容审核 ============ -->
+  <div class="sec">
+    <div class="sec-h"><div class="no">1</div><h2>内容审核：链动中心要展示什么</h2>
+      <div class="note">全部字段均来自现有接口，无新增接口</div></div>
+
+    <table>
+      <tr><th style="width:130px">板块</th><th style="width:230px">展示内容</th><th>数据来源（现有）</th><th style="width:190px">审核意见</th></tr>
+      <tr><td>① 身份卡</td>
+          <td>当前身份名（可配置）、会员ID、直推进度 <code>2/2</code>、距下一级还差 <code>N</code> 人</td>
+          <td><code>/chain/my-identity</code>：<code>identity / identityName / bossNeedCount / bossRemainCount / effectiveDirectCount</code></td>
+          <td class="keeprow">建议：身份名跟随后台「级别名称」配置，默认「代理 / 老板」</td></tr>
+      <tr><td>② 收益总览</td>
+          <td>今日 / 累计 / 可提现 / 冻结中</td>
+          <td><code>/chain/commission-summary</code>：<code>today / total / withdrawable / freeze</code></td>
+          <td class="keeprow">可提现取佣金钱包余额，点「去提现」跳现有提现页</td></tr>
+      <tr><td>③ 收益明细</td>
+          <td>按类型筛选：全部 / 直推奖 / 见点奖 / 平级奖 / 帮扶基金</td>
+          <td><code>/chain/commission-list</code>（<code>type=direct|see|peer</code>）</td>
+          <td class="keeprow">「帮扶基金」合并 see_help + peer_help 两类冻结记录</td></tr>
+      <tr><td>④ 帮扶基金</td>
+          <td>冻结金额 + 解锁三条件进度条（留人座位是否升老板、各自团队订单数、本人团队订单数）</td>
+          <td><code>helpFundAmount / helpUnlocked / helpUnlockedSeatCount / helpNeedSeatCount / helpUnlockNeedOrders</code></td>
+          <td class="keeprow"><b>本次新增板块</b>——文档 3.4 的解冻条件是会员最关心的进度</td></tr>
+      <tr><td>⑤ 我的团队</td>
+          <td>树状 3 层，标注身份；「留人座位」单独打标</td>
+          <td><code>/chain/my-team?depth=3</code></td>
+          <td class="keeprow">留人座位 = 升老板前的直推，仍挂在原上级名下</td></tr>
+      <tr><td>⑥ 推广工具</td>
+          <td>专属海报、复制邀请链接</td>
+          <td><code>/chain/promote-poster</code> + 现有海报页</td>
+          <td class="keeprow">沿用现有「去生成海报」</td></tr>
+      <tr><td>⑦ 规则说明</td>
+          <td>图文规则页，含走人留人、三类奖励比例、帮扶冻结与解冻、合规声明</td>
+          <td><code>/chain/rules-content</code>（后台可编辑）</td>
+          <td class="keeprow">默认文案改为按真实配置动态拼接（容量 N / 冻结比例 / N / M）</td></tr>
+      <tr><td>⑧ 消息通知</td>
+          <td>升级、佣金到账、帮扶基金解冻</td>
+          <td><code>/chain/notify/*</code></td>
+          <td class="keeprow">已去掉「风控」通知类型</td></tr>
+    </table>
+
+    <div style="margin-top:12px; font-size:12.5px; color:#6b7280;">
+      <b style="color:#111827">合规文案（文档第八章）</b>：全站禁用「投资 / 躺赚 / 稳赚」，统一表述为「推广佣金」「服务奖励」；称呼统一用「会员ID」（不出现 UID）。
+    </div>
+  </div>
+
+  <!-- ============ 2. 会员中心入口 ============ -->
+  <div class="sec">
+    <div class="sec-h"><div class="no">2</div><h2>会员中心里的入口位置</h2>
+      <div class="note">会员中心是装修器驱动的页面，「代理中心」也是在这里被选中才显示的</div></div>
+
+    <div class="row">
+
+      <!-- 方案A -->
+      <div class="phone" style="margin-top:30px">
+        <div class="cap">方案 A ｜ 独立「链动中心」卡片 <em>· 推荐</em></div>
+        <div class="screen">
+          <div class="sbar"></div>
+          <div class="mc-top">
+            <div class="u">
+              <div class="av"></div>
+              <div>
+                <div class="nm">张三</div>
+                <div class="id">ID: 10086</div>
+              </div>
+            </div>
+          </div>
+          <div class="mc-cards">
+            <div class="entry goldline">
+              <div class="ic2">⬢</div>
+              <div class="tx">
+                <div class="a">链动中心</div>
+                <div class="b">当前身份：老板 · 团队 6 人 · 今日收益 ¥128.60</div>
+              </div>
+              <div class="go">进入 ›</div>
+            </div>
+            <div class="mm">
+              <div class="x"><div class="i">◫</div><div class="t">我的订单</div></div>
+              <div class="x"><div class="i">◈</div><div class="t">积分</div></div>
+              <div class="x"><div class="i">◇</div><div class="t">优惠券</div></div>
+              <div class="x"><div class="i">▣</div><div class="t">地址管理</div></div>
+              <div class="x"><div class="i">◎</div><div class="t">个人资料</div></div>
+              <div class="x"><div class="i">▤</div><div class="t">我的账户</div></div>
+              <div class="x"><div class="i">◐</div><div class="t">推广中心</div></div>
+              <div class="x"><div class="i new">⬢</div><div class="t">链动中心</div></div>
+            </div>
+          </div>
+          <div class="pad">
+            <div class="card" style="text-align:center; color:#9ca3af; font-size:12.5px; padding:22px">
+              （其余装修组件：会员信息、订单中心、商品列表…）
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 方案B -->
+      <div class="phone" style="margin-top:30px">
+        <div class="cap">方案 B ｜ 只进「导航组」九宫格 <em>· 最省事</em></div>
+        <div class="screen">
+          <div class="sbar"></div>
+          <div class="mc-top">
+            <div class="u">
+              <div class="av"></div>
+              <div>
+                <div class="nm">张三</div>
+                <div class="id">ID: 10086</div>
+              </div>
+            </div>
+          </div>
+          <div class="mc-cards">
+            <div class="mm">
+              <div class="x"><div class="i">◫</div><div class="t">我的订单</div></div>
+              <div class="x"><div class="i">◈</div><div class="t">积分</div></div>
+              <div class="x"><div class="i">◇</div><div class="t">优惠券</div></div>
+              <div class="x"><div class="i">▣</div><div class="t">地址管理</div></div>
+              <div class="x"><div class="i">◎</div><div class="t">个人资料</div></div>
+              <div class="x"><div class="i">▤</div><div class="t">我的账户</div></div>
+              <div class="x"><div class="i">◐</div><div class="t">推广中心</div></div>
+              <div class="x"><div class="i new">⬢</div><div class="t">链动中心</div></div>
+            </div>
+          </div>
+          <div class="pad">
+            <div class="card" style="text-align:center; color:#9ca3af; font-size:12.5px; padding:22px">
+              （其余装修组件：会员信息、订单中心、商品列表…）
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 装修器面板 -->
+      <div style="flex:1; min-width:420px; margin-top:30px">
+        <div class="diy">
+          <div class="dh">装修器 › 导航组 › 内容设置（勾选展示的入口）</div>
+          <div class="chk"><div class="bx"></div>地址管理<span class="mini">/pages/users/user_address_list/index</span></div>
+          <div class="chk"><div class="bx"></div>我的收藏<span class="mini">/pages/users/user_goods_collection/index</span></div>
+          <div class="chk"><div class="bx"></div>领券中心<span class="mini">/pages/users/user_coupon/index</span></div>
+          <div class="chk"><div class="bx"></div>积分商城<span class="mini">/pages/users/user_integral/index</span></div>
+          <div class="chk"><div class="bx"></div>每日签到<span class="mini">/pages/users/user_sgin/index</span></div>
+          <div class="chk"><div class="bx"></div>个人资料<span class="mini">/pages/infos/user_info/index</span></div>
+          <div class="chk"><div class="bx"></div>我的账户<span class="mini">/pages/users/user_money/index</span></div>
+          <div class="chk"><div class="bx"></div>推广中心<span class="mini">/pages/promoter/user_spread_user/index</span></div>
+          <div class="chk on"><div class="bx"></div>链动中心<span class="mini">/pages/promoter/chain_center/index</span></div>
+          <div class="chk"><div class="bx"></div>进货中心<span class="mini">/pages/users/stock/index</span></div>
+          <div class="chk"><div class="bx"></div>代理中心<span class="mini">/pages/users/agent/index</span></div>
+          <div class="chk"><div class="bx"></div>门店中心<span class="mini">/pages/users/store/index</span></div>
+          <div class="hint2">
+            「代理中心」就是在这个列表里被勾中才出现在会员中心——<b>链动中心按同一机制加入</b>：<br>
+            · 由 chain 开关 <code>chain_func_status=1</code> 时才有意义（关闭则入口自动隐藏）<br>
+            · 未成为代理的会员进入后显示「购买礼包成为代理」引导，不报错
+          </div>
+        </div>
+
+        <div class="diy" style="margin-top:14px">
+          <div class="dh">配套改动（技术侧，非 UI）</div>
+          <div class="hint2" style="margin-top:0">
+            1. 主题种子数据 <code>eb_theme.home_data</code> 的「导航组」预设里补一条「链动中心」，并把 <code>show</code> 默认置 0（不打扰老用户，装修时自行勾选）。<br>
+            2. 后台「选择链接」选择器 <code>admin/src/components/linkaddress/linkData.json</code> 补录「链动中心」页面，方便手填链接。<br>
+            3. 方案 A 若采纳，另加一个「链动中心」装修组件（数据卡样式），字段：身份名 / 团队人数 / 今日收益。
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ 3. 链动中心主页 ============ -->
+  <div class="sec">
+    <div class="sec-h"><div class="no">3</div><h2>链动中心主页</h2>
+      <div class="note">身份卡 → 收益 → 帮扶进度 → 四宫格 → 团队预览 → 工具</div></div>
+
+    <div class="row">
+
+      <!-- 屏 1：老板视角 -->
+      <div class="phone" style="margin-top:30px">
+        <div class="cap">① 主页 · 老板视角 <em>· 已解锁帮扶</em></div>
+        <div class="screen">
+          <div class="sbar"></div>
+          <div class="nav"><span class="back">‹</span>链动中心</div>
+          <div class="pad">
+
+            <div class="hero">
+              <span class="lvl"><span class="crown">♛</span> 老板</span>
+              <div class="who">会员ID <b>10086</b> · 昵称 <b>张三</b></div>
+              <div class="big">¥ 1,286.60 <small>累计推广佣金</small></div>
+              <div class="hr"></div>
+              <div class="stats">
+                <div class="st"><div class="n">6</div><div class="l">团队人数</div></div>
+                <div class="st-div"></div>
+                <div class="st"><div class="n">4</div><div class="l">直推有效</div></div>
+                <div class="st-div"></div>
+                <div class="st"><div class="n">2</div><div class="l">已升老板</div></div>
+              </div>
+              <div class="prog">
+                <div class="pt"><span>帮扶基金</span><span style="color:#f6d99d;font-weight:600">已解锁</span></div>
+                <div class="bar"><i style="width:100%"></i></div>
+                <div class="hint">留人的 2 名代理均已晋升老板，各自团队与本人团队订单数达标</div>
+              </div>
+            </div>
+
+            <div class="money">
+              <div class="m"><div class="n up">¥128.60</div><div class="l">今日</div></div>
+              <div class="m-div"></div>
+              <div class="m"><div class="n">¥966.20</div><div class="l">可提现</div></div>
+              <div class="m-div"></div>
+              <div class="m"><div class="n">¥0.00</div><div class="l">冻结中</div></div>
+            </div>
+
+            <div class="grid4">
+              <div class="g"><div class="ic b1">◫</div><div class="t">收益明细</div></div>
+              <div class="g"><div class="ic b2">▤</div><div class="t">我的团队</div></div>
+              <div class="g"><div class="ic b3">◈</div><div class="t">帮扶基金</div></div>
+              <div class="g"><div class="ic b4">▣</div><div class="t">推广海报</div></div>
+            </div>
+
+            <div class="card">
+              <div class="card-t">最近收益<span class="more">全部 ›</span></div>
+              <div class="li">
+                <div class="dot pill blue" style="border-radius:9px">直推</div>
+                <div class="body"><div class="t1">直推奖</div><div class="t2">直推会员 10092 购买礼包</div></div>
+                <div style="text-align:right"><div class="amt up">+100.00</div><div class="tm">今天 14:32</div></div>
+              </div>
+              <div class="li">
+                <div class="dot pill green" style="border-radius:9px">见点</div>
+                <div class="body"><div class="t1">见点奖</div><div class="t2">团队新增有效订单</div></div>
+                <div style="text-align:right"><div class="amt up">+39.90</div><div class="tm">今天 11:08</div></div>
+              </div>
+              <div class="li">
+                <div class="dot pill gold" style="border-radius:9px">帮扶</div>
+                <div class="body"><div class="t1">帮扶基金解冻</div><div class="t2">留人代理均已晋老板 · 条件达标</div></div>
+                <div style="text-align:right"><div class="amt up">+118.20</div><div class="tm">昨天 20:15</div></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-t">我的直推位<span class="more">走人留人</span></div>
+              <div class="li">
+                <div class="dot" style="background:#fff7e6;color:#b45309">1</div>
+                <div class="body"><div class="t1">李四 <span class="keep">留人座位</span></div><div class="t2">已升老板 · 团队 12 单</div></div>
+                <div class="amt" style="color:#047857">达标</div>
+              </div>
+              <div class="li">
+                <div class="dot" style="background:#fff7e6;color:#b45309">2</div>
+                <div class="body"><div class="t1">王五 <span class="keep">留人座位</span></div><div class="t2">已升老板 · 团队 15 单</div></div>
+                <div class="amt" style="color:#047857">达标</div>
+              </div>
+              <div class="li">
+                <div class="dot" style="background:#eef3ff;color:#1f5fd6">3</div>
+                <div class="body"><div class="t1">赵六</div><div class="t2">随本人独立发展 · 团队 3 单</div></div>
+                <div class="amt" style="color:#9ca3af">—</div>
+              </div>
+            </div>
+
+            <div class="btn-row">
+              <div class="btn gold">生成推广海报</div>
+              <div class="btn ghost">规则说明</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 屏 2：代理视角 -->
+      <div class="phone" style="margin-top:30px">
+        <div class="cap">② 主页 · 代理视角 <em>· 未升老板</em></div>
+        <div class="screen">
+          <div class="sbar"></div>
+          <div class="nav"><span class="back">‹</span>链动中心</div>
+          <div class="pad">
+
+            <div class="hero">
+              <span class="lvl">代理</span>
+              <div class="who">会员ID <b>10092</b> · 昵称 <b>李四</b></div>
+              <div class="big">¥ 286.00 <small>累计推广佣金</small></div>
+              <div class="hr"></div>
+              <div class="stats">
+                <div class="st"><div class="n">2</div><div class="l">团队人数</div></div>
+                <div class="st-div"></div>
+                <div class="st"><div class="n">1</div><div class="l">直推有效</div></div>
+                <div class="st-div"></div>
+                <div class="st"><div class="n">—</div><div class="l">已升老板</div></div>
+              </div>
+              <div class="prog">
+                <div class="pt"><span>直推进度</span><span style="color:#f6d99d;font-weight:600">1 / 2</span></div>
+                <div class="bar"><i style="width:50%"></i></div>
+                <div class="hint">再直推 <b>1</b> 名有效代理即可晋升老板，解锁见点奖 + 平级奖</div>
+              </div>
+            </div>
+
+            <div class="money">
+              <div class="m"><div class="n up">¥100.00</div><div class="l">今日</div></div>
+              <div class="m-div"></div>
+              <div class="m"><div class="n">¥286.00</div><div class="l">可提现</div></div>
+              <div class="m-div"></div>
+              <div class="m"><div class="n">¥0.00</div><div class="l">冻结中</div></div>
+            </div>
+
+            <div class="card">
+              <div class="card-t">晋升老板后可获得</div>
+              <div class="li">
+                <div class="dot" style="background:#ecfdf5;color:#047857">见点</div>
+                <div class="body"><div class="t1">见点奖</div><div class="t2">团队每笔有效订单 · 实付 × 10%</div></div>
+              </div>
+              <div class="li">
+                <div class="dot" style="background:#eef3ff;color:#1f5fd6">平级</div>
+                <div class="body"><div class="t1">平级奖</div><div class="t2">下级老板的见点奖 × 10%</div></div>
+              </div>
+              <div class="li">
+                <div class="dot" style="background:#fff7e6;color:#b45309">帮扶</div>
+                <div class="body"><div class="t1">帮扶基金</div><div class="t2">见点/平级奖的 30% 先冻结，条件达标后解冻</div></div>
+              </div>
+            </div>
+
+            <div class="grid4">
+              <div class="g"><div class="ic b1">◫</div><div class="t">收益明细</div></div>
+              <div class="g"><div class="ic b2">▤</div><div class="t">我的团队</div></div>
+              <div class="g"><div class="ic b3">◈</div><div class="t">帮扶基金</div></div>
+              <div class="g"><div class="ic b4">▣</div><div class="t">推广海报</div></div>
+            </div>
+
+            <div class="card" style="background:#fffdf5; border:1px dashed #f0dbb0;">
+              <div class="card-t" style="margin-bottom:8px">如何成为代理</div>
+              <div style="font-size:12.5px;color:#8a6d3b;line-height:1.75">
+                购买链动礼包（实付 ≥ ¥399）并过售后保护期（7 天）后，自动成为代理并开始计佣。<br>
+                已是代理则忽略本条。
+              </div>
+              <div class="btn" style="height:40px;line-height:40px;font-size:14px">去选购礼包</div>
+            </div>
+
+            <div class="btn-row">
+              <div class="btn gold">生成推广海报</div>
+              <div class="btn ghost">规则说明</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 屏 3：游客 / 未激活 -->
+      <div class="phone" style="margin-top:30px">
+        <div class="cap">③ 主页 · 未激活会员 <em>· 空态</em></div>
+        <div class="screen">
+          <div class="sbar"></div>
+          <div class="nav"><span class="back">‹</span>链动中心</div>
+          <div class="pad">
+            <div class="hero" style="background:linear-gradient(135deg,#4b5563,#6b7280);box-shadow:0 10px 26px rgba(75,85,99,.25)">
+              <span class="lvl">未激活</span>
+              <div class="who">会员ID <b>10120</b></div>
+              <div class="big">¥ 0.00 <small>累计推广佣金</small></div>
+              <div class="hr"></div>
+              <div class="prog">
+                <div class="pt"><span>激活进度</span><span>未开始</span></div>
+                <div class="bar"><i style="width:0%"></i></div>
+                <div class="hint">购买链动礼包即可成为代理，解锁直推奖</div>
+              </div>
+            </div>
+
+            <div class="card" style="text-align:center; padding:26px 14px;">
+              <div style="font-size:34px; color:#d9dee8; margin-bottom:10px">⬢</div>
+              <div style="font-size:14px;font-weight:600;margin-bottom:6px">还没有链动身份</div>
+              <div style="font-size:12.5px;color:#9ca3af;line-height:1.7">
+                购买链动礼包（实付 ≥ ¥399）后自动成为代理<br>才能查看团队与收益
+              </div>
+              <div class="btn" style="width:180px;margin:16px auto 0;height:42px;line-height:42px;font-size:14px">去选购礼包</div>
+            </div>
+
+            <div class="card">
+              <div class="card-t">链动玩法（示意）</div>
+              <div style="font-size:12.5px;color:#4b5563;line-height:2">
+                ① 购买礼包 → 成为<b>代理</b>，享受<b>直推奖</b><br>
+                ② 直推满 <b>2</b> 名有效代理 → 晋升<b>老板</b><br>
+                ③ 老板享<b>直推奖 + 见点奖 + 平级奖</b><br>
+                ④ 见点/平级奖的 <b>30%</b> 进帮扶基金，达标后解冻
+              </div>
+            </div>
+
+            <div class="btn ghost">查看完整规则</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ 4. 收益明细 + 团队 ============ -->
+  <div class="sec">
+    <div class="sec-h"><div class="no">4</div><h2>收益明细 &amp; 我的团队</h2>
+      <div class="note">可作为主页 tab，也可独立页；暂按主页内嵌（少一次跳转）</div></div>
+
+    <div class="row">
+
+      <div class="phone" style="margin-top:30px">
+        <div class="cap">④ 收益明细</div>
+        <div class="screen">
+          <div class="sbar"></div>
+          <div class="nav"><span class="back">‹</span>收益明细</div>
+          <div class="pad">
+            <div class="card" style="display:flex;padding:0;overflow:hidden">
+              <div style="flex:1;text-align:center;padding:13px 0;border-right:1px solid #f1f3f7">
+                <div style="font-size:11.5px;color:#8a94a6">累计收益</div>
+                <div style="font-size:18px;font-weight:700;margin-top:3px">¥1,286.60</div>
+              </div>
+              <div style="flex:1;text-align:center;padding:13px 0">
+                <div style="font-size:11.5px;color:#8a94a6">待解冻</div>
+                <div style="font-size:18px;font-weight:700;margin-top:3px;color:#b45309">¥118.20</div>
+              </div>
+            </div>
+
+            <div class="tabs">
+              <div class="tb on">全部</div><div class="tb">直推奖</div><div class="tb">见点奖</div><div class="tb">平级奖</div><div class="tb">帮扶基金</div>
+            </div>
+
+            <div class="card">
+              <div class="li">
+                <div class="dot pill blue" style="border-radius:9px">直推</div>
+                <div class="body"><div class="t1">直推奖</div><div class="t2">直推会员 ID 10092 购买礼包</div></div>
+                <div style="text-align:right"><div class="amt up">+100.00</div><div class="tm">今天 14:32</div></div>
+              </div>
+              <div class="li">
+                <div class="dot pill green" style="border-radius:9px">见点</div>
+                <div class="body"><div class="t1">见点奖</div><div class="t2">团队会员 ID 10108 下单 · 实付 ¥399</div></div>
+                <div style="text-align:right"><div class="amt up">+27.93</div><div class="tm">今天 11:08</div></div>
+              </div>
+              <div class="li">
+                <div class="dot pill gold" style="border-radius:9px">冻结</div>
+                <div class="body"><div class="t1">见点奖 · 帮扶冻结 30%</div><div class="t2">进入帮扶基金 · 达标后自动解冻</div></div>
+                <div style="text-align:right"><div class="amt frozen">+11.97</div><div class="tm">今天 11:08</div></div>
+              </div>
+              <div class="li">
+                <div class="dot pill blue" style="border-radius:9px">平级</div>
+                <div class="body"><div class="t1">平级奖</div><div class="t2">下级老板 ID 10095 产生见点奖</div></div>
+                <div style="text-align:right"><div class="amt up">+2.79</div><div class="tm">昨天 19:40</div></div>
+              </div>
+              <div class="li">
+                <div class="dot pill gold" style="border-radius:9px">解冻</div>
+                <div class="body"><div class="t1">帮扶基金解冻</div><div class="t2">条件达标 · 转入可提现佣金</div></div>
+                <div style="text-align:right"><div class="amt up">+118.20</div><div class="tm">昨天 20:15</div></div>
+              </div>
+              <div class="li">
+                <div class="dot pill gray" style="border-radius:9px">失效</div>
+                <div class="body"><div class="t1">见点奖 · 已失效</div><div class="t2">订单退款，佣金已追回</div></div>
+                <div style="text-align:right"><div class="amt down">-27.93</div><div class="tm">10-08</div></div>
+              </div>
+            </div>
+            <div style="text-align:center;font-size:12px;color:#c3c8d2;padding:6px 0">— 没有更多了 —</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone" style="margin-top:30px">
+        <div class="cap">⑤ 我的团队</div>
+        <div class="screen">
+          <div class="sbar"></div>
+          <div class="nav"><span class="back">‹</span>我的团队</div>
+          <div class="pad">
+            <div class="money" style="padding:12px 0">
+              <div class="m"><div class="n">6</div><div class="l">团队总人数</div></div>
+              <div class="m-div"></div>
+              <div class="m"><div class="n">4</div><div class="l">直推人数</div></div>
+              <div class="m-div"></div>
+              <div class="m"><div class="n">2</div><div class="l">已升老板</div></div>
+            </div>
+
+            <div class="card">
+              <div class="card-t">团队结构<span class="more">展开全部 ▾</span></div>
+              <div class="tree">
+                <div class="tn"><span class="arw">▾</span><span class="av">张</span><span class="nm">张三</span><span class="id">ID 10086</span><span class="lv pill blue">老板</span></div>
+                <div class="tn l2"><span class="arw">▾</span><span class="av">李</span><span class="nm">李四</span><span class="id">ID 10092</span><span class="lv keep">留人座位</span><span class="lv pill green">老板</span></div>
+                <div class="tn l3"><span class="arw"></span><span class="av">赵</span><span class="nm">赵六</span><span class="id">ID 10108</span><span class="lv pill gray">代理</span></div>
+                <div class="tn l2"><span class="arw">▸</span><span class="av">王</span><span class="nm">王五</span><span class="id">ID 10095</span><span class="lv keep">留人座位</span><span class="lv pill green">老板</span></div>
+                <div class="tn l2"><span class="arw">▾</span><span class="av">孙</span><span class="nm">孙七</span><span class="id">ID 10111</span><span class="lv pill blue">代理</span></div>
+                <div class="tn l3"><span class="arw"></span><span class="av">周</span><span class="nm">周八</span><span class="id">ID 10120</span><span class="lv pill gray">未激活</span></div>
+              </div>
+              <div style="margin-top:10px;font-size:11.5px;color:#9ca3af;line-height:1.7">
+                「留人座位」= 本人晋升老板前已产生的直推，仍留在原上级名下继续贡献见点奖；<br>
+                第 3 名及以后的直推随本人独立发展。
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-t">帮扶基金 · 解锁进度<span class="more">全部 ›</span></div>
+              <div style="font-size:11.5px;color:#8a94a6;margin:-4px 0 8px">冻结中 <b style="color:#b45309">¥118.20</b></div>
+              <div class="hrow"><div class="hi done">✓</div>
+                <div class="hb"><div class="h1">留人座位均晋升老板</div><div class="h2">李四、王五</div></div>
+                <div class="hv ok">2 / 2</div></div>
+              <div class="hrow"><div class="hi done">✓</div>
+                <div class="hb"><div class="h1">各自团队有效订单数 ≥ 10</div><div class="h2">李四 12 单 · 王五 15 单</div></div>
+                <div class="hv ok">达标</div></div>
+              <div class="hrow"><div class="hi done">✓</div>
+                <div class="hb"><div class="h1">本人团队有效订单数 ≥ 20</div><div class="h2">当前 34 单</div></div>
+                <div class="hv ok">34 / 20</div></div>
+              <div style="margin-top:8px;padding:9px 11px;border-radius:10px;background:#ecfdf5;color:#047857;font-size:12px">
+                三项条件全部满足，帮扶基金已自动解冻并入可提现佣金。
+              </div>
+            </div>
+
+            <div class="card" style="padding:12px 14px">
+              <div style="font-size:11.5px;color:#9ca3af;line-height:1.7">
+                未解锁时该区块显示三项进度条 + 一句「达成后自动解冻，无需申请」。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone" style="margin-top:30px">
+        <div class="cap">⑥ 规则说明 <em>· 后台可编辑，文案动态拼配置</em></div>
+        <div class="screen">
+          <div class="sbar"></div>
+          <div class="nav"><span class="back">‹</span>链动规则</div>
+          <div class="pad">
+            <div class="card">
+              <div class="card-t">一、身份与升级</div>
+              <div style="font-size:12.5px;color:#4b5563;line-height:1.95">
+                · 购买链动礼包（实付 ≥ <b>¥399</b>）并通过售后保护期（<b>7 天</b>）→ 成为<b>代理</b><br>
+                · 直推满 <b>2</b> 名有效代理 → 自动晋升<b>老板</b><br>
+                · 老板身份<b>不可降级</b>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-t">二、走人留人</div>
+              <div style="font-size:12.5px;color:#4b5563;line-height:1.95">
+                · 晋升老板后，本人<b>脱离</b>原上级团队、独立发展<br>
+                · 升级前的直推中，前 <b>2</b> 名继续留在原上级名下<br>
+                · 第 <b>3</b> 名及以后的直推随本人走
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-t">三、奖励规则</div>
+              <div style="font-size:12.5px;color:#4b5563;line-height:1.95">
+                · <b>直推奖</b>：直推会员购买礼包，固定 <b>¥100</b>／单（1 级）<br>
+                · <b>见点奖</b>：团队有效订单实付 × <b>10%</b>（仅直属上级老板，1 级）<br>
+                · <b>平级奖</b>：下级老板的见点奖 × <b>10%</b>（仅上级老板，1 级）<br>
+                · 单笔订单链动分润合计不超过实付的 <b>50%</b>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-t">四、帮扶基金</div>
+              <div style="font-size:12.5px;color:#4b5563;line-height:1.95">
+                · 每笔见点奖 / 平级奖的 <b>30%</b> 进入帮扶基金冻结<br>
+                · 解冻条件：留人座位均晋升老板 + 各自团队订单 ≥ <b>10</b> + 本人团队订单 ≥ <b>20</b><br>
+                · 全部满足后<b>自动解冻</b>，无需申请
+              </div>
+            </div>
+            <div class="card" style="background:#fafbfd">
+              <div style="font-size:11.5px;color:#8a94a6;line-height:1.85">
+                <b>合规声明</b>：本机制奖励为「推广佣金 / 服务奖励」，基于真实商品交易产生，不构成投资建议，不承诺收益。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ 5. 待确认 ============ -->
+  <div class="sec">
+    <div class="sec-h"><div class="no">5</div><h2>待你确认（回一句就开工）</h2></div>
+    <div class="ask">
+      <h3>请逐条给个方向</h3>
+      <ol>
+        <li><b>入口方案</b>：会员中心里用「方案 A 独立链动中心卡片（带身份+团队+今日收益）」还是「方案 B 只进导航组九宫格」？还是两个都做、装修时都可用？
+          <div class="opts"><span>A（推荐）</span><span>B</span><span>AB 都做</span></div></li>
+        <li><b>页面结构</b>：收益明细 / 我的团队 是<b>并进主页</b>（少跳转）还是<b>各自独立页</b>（页面更清爽）？
+          <div class="opts"><span>并进主页（推荐）</span><span>各自独立页</span></div></li>
+        <li><b>「我的直推位」板块</b>（第 3 屏那组「留人座位 / 随本人走」）是<b>保留</b>还是<b>去掉</b>？这是文档「走人留人」最直观的可视化，但会让主页变长。
+          <div class="opts"><span>保留</span><span>去掉</span><span>并进「我的团队」里标注（推荐）</span></div></li>
+        <li><b>视觉基调</b>：主色用<b>项目约定的蓝渐变</b>（本稿），还是沿用「代理中心」那套<b>紫渐变</b>保持一致？
+          <div class="opts"><span>蓝渐变（推荐）</span><span>紫渐变同代理中心</span></div></li>
+        <li><b>门槛与保护期是否按文档默认值上线</b>：激活门槛 ¥399、售后保护期 7 天、见点 10%、平级 10%、帮扶冻结 30%、N=10 / M=20、走人留人开启 —— 是否照此设默认值？
+          <div class="opts"><span>照文档默认（推荐）</span><span>我另给一组数</span></div></li>
+      </ol>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f1f3f7;font-size:12.5px;color:#9ca3af">
+        确认后：先落会员端页面与装修器入口 → 再回到后台页面重做（Task 13）与联调验证。
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

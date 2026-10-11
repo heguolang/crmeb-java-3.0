@@ -24,7 +24,9 @@ case "${1:-}" in
 esac
 
 JAVA="D:/env/java/jdk8u504-b01/bin/java.exe"
-NODE_DIR="/c/Users/Administrator/.workbuddy/binaries/node/versions/22.22.2-3"
+# 自动挑最新的 node 版本目录（原写死 22.22.2-3，机器升级后失效）
+NODE_DIR="$(ls -d /c/Users/Administrator/.workbuddy/binaries/node/versions/*/ 2>/dev/null | sort -V | tail -1)"
+NODE_DIR="${NODE_DIR%/}"
 PROJ=/d/qianxu-java-3.0
 LOGS=$PROJ/local-dev/logs
 mkdir -p "$LOGS"

@@ -44,6 +44,7 @@ import com.qxkj.common.response.*;
 import com.qxkj.common.utils.QianxuUtil;
 import com.qxkj.common.utils.QianxuDateUtil;
 import com.qxkj.common.utils.RedisUtil;
+import com.qxkj.common.utils.RequestUtil;
 import com.qxkj.common.vo.*;
 import com.qxkj.service.delete.OrderUtils;
 import com.qxkj.service.service.*;
@@ -146,6 +147,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private StoreProductService storeProductService;
+
+    @Autowired
+    private ChainService chainService;
 
     @Autowired
     private StoreProductGroupService storeProductGroupService;
