@@ -56,7 +56,7 @@ DB_NAME = os.environ.get("CRM_DB_NAME", "qianxu_java3")
 ONLINE_ADMIN = "/www/wwwroot/api.qianxutec.com"        # admin/front jar 所在
 ONLINE_WEB = "/www/wwwroot/admin.qianxutec.com"        # 后台前端 dist 所在
 
-LOCAL = "D:/qianxu-java-3.0"
+LOCAL = "D:/WorkBuddy/qianxu-java5.0"
 ART = {
     "admin_jar": LOCAL + "/qianxu/qianxu-admin/target/Qianxu-admin.jar",
     "front_jar": LOCAL + "/qianxu/qianxu-front/target/Qianxu-front.jar",

@@ -10,7 +10,7 @@ https://cdn1.dcloud.net.cn/.../img/shadow-grey.png。
 
 用法：
   python mp_postbuild_localize.py [产物目录]
-默认产物目录：D:/qianxu-java-3.0/app/unpackage/dist/build/mp-weixin
+默认产物目录：D:/WorkBuddy/qianxu-java5.0/app/unpackage/dist/build/mp-weixin
 """
 import base64
 import io
@@ -20,7 +20,7 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_DIST = r"D:/qianxu-java-3.0/app/unpackage/dist/build/mp-weixin"
+DEFAULT_DIST = r"D:/WorkBuddy/qianxu-java5.0/app/unpackage/dist/build/mp-weixin"
 
 dist = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_DIST
 wxss = os.path.join(dist, "common", "main.wxss")

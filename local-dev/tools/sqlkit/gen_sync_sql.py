@@ -13,8 +13,8 @@
 """
 import re, os, datetime
 
-TMP = r'D:\qianxu-java-3.0\local-dev\tmp'
-SQLDIR = r'D:\qianxu-java-3.0\qianxu\sql'
+TMP = r'D:\WorkBuddy\qianxu-java5.0\local-dev\tmp'
+SQLDIR = r'D:\WorkBuddy\qianxu-java5.0\qianxu\sql'
 BASE_SQL = os.path.join(SQLDIR, 'Qianxu_v3.0.sql')
 
 PROD_API = 'http://api.qianxutec.com'

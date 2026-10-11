@@ -10,7 +10,7 @@ REM ==================================================================
 setlocal
 
 set "JAVA_HOME=D:\env\java\jdk8u504-b01"
-set "PROJ=D:\qianxu-java-3.0"
+set "PROJ=D:\WorkBuddy\qianxu-java5.0"
 set "NODE_DIR=C:\Users\Administrator\.workbuddy\binaries\node\versions\22.22.2-3"
 set "LOGS=%PROJ%\local-dev\logs"
 set "JAVA_OPTS=-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8"

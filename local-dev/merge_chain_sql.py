@@ -3,8 +3,8 @@
 import io
 import os
 
-BASE = 'D:/qianxu-java-3.0/qianxu/sql/migration'
-DST = 'D:/qianxu-java-3.0/qianxu/sql/upgrade_20261011_chain_2plus1.sql'
+BASE = 'D:/WorkBuddy/qianxu-java5.0/qianxu/sql/migration'
+DST = 'D:/WorkBuddy/qianxu-java5.0/qianxu/sql/upgrade_20261011_chain_2plus1.sql'
 
 ORDER = [
     'chain_2plus1_20261011.sql',

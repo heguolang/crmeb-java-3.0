@@ -14,7 +14,7 @@
 """
 import os, re, sys
 
-ROOT = r'D:\qianxu-java-3.0'
+ROOT = r'D:\WorkBuddy\qianxu-java5.0'
 TMP = os.path.join(ROOT, 'local-dev', 'tmp')
 OUT = os.path.join(ROOT, 'qianxu', 'sql', 'table_comments_20260923.sql')
 

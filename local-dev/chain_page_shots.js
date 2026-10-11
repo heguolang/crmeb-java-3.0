@@ -6,7 +6,7 @@ const http = require('http');
 
 const EXE = 'C:/Users/Administrator/AppData/Local/ms-playwright/chromium-1243/chrome-win64/chrome.exe';
 const BASE = 'http://127.0.0.1:8090';
-const OUT = 'D:/qianxu-java-3.0/docs/链动中心-页面验证';
+const OUT = 'D:/WorkBuddy/qianxu-java5.0/docs/链动中心-页面验证';
 
 function apiLogin() {
   return new Promise((resolve, reject) => {

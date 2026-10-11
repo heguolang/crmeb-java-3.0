@@ -4,11 +4,11 @@ REM  QIANXU Java 3.0  -  Windows local dev launcher
 REM  Starts: MySQL 8.0(3306) -> Redis(6379) -> Admin API(8080)
 REM          -> Front API(8081) -> Admin Web(9527)
 REM  DB     : Windows service "MySQL80" (auto-start), root/123456, db qianxu
-REM  Logs   : D:\qianxu-java-3.0\local-dev\logs
+REM  Logs   : D:\WorkBuddy\qianxu-java5.0\local-dev\logs
 REM ============================================================
 setlocal
 set "JAVA_HOME=D:\env\java\jdk8u504-b01"
-set "PROJ=D:\qianxu-java-3.0"
+set "PROJ=D:\WorkBuddy\qianxu-java5.0"
 set "LOGS=%PROJ%\local-dev\logs"
 REM MySQL 8.0 runs as a Windows service; we only need "net start" when it is down.
 set "MYSQL_SVC=MySQL80"

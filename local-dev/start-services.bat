@@ -2,7 +2,7 @@
 REM Launch Redis + Admin API(8080) + Front API(8081) for local dev
 setlocal
 set "JAVA_HOME=D:\env\java\jdk8u504-b01"
-set "PROJ=D:\qianxu-java-3.0"
+set "PROJ=D:\WorkBuddy\qianxu-java5.0"
 set "LOGS=%PROJ%\local-dev\logs"
 set "SERVER_PORT="
 if not exist "%LOGS%" mkdir "%LOGS%"
