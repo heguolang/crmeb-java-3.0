@@ -146,6 +146,9 @@ public class OrderPayServiceImpl implements OrderPayService {
     private AgentService agentService;
 
     @Autowired
+    private ChainService chainService;
+
+    @Autowired
     private SystemUserLevelService systemUserLevelService;
 
     @Autowired
@@ -369,18 +372,26 @@ public class OrderPayServiceImpl implements OrderPayService {
 
         /**
          * 计算佣金，生成佣金记录（自购比例取自购买者等级；一级/二级比例取自各级上级自己的会员等级返佣配置）
+         * 链动礼包订单可跳过普通分销/团队奖，避免叠佣。
          */
-        List<UserBrokerageRecord> recordList = assignCommission(storeOrder);
-        recordList.addAll(assignSelfBrokerage(storeOrder, user, brokerageLevelId, matchedBrokerageLevel));
-        recordList.addAll(teamBrokerageService.assignTeamBrokerage(storeOrder));
+        boolean skipNormalForChain = chainService.shouldSkipNormalBrokerage(storeOrder);
+        List<UserBrokerageRecord> recordList = CollUtil.newArrayList();
+        if (!skipNormalForChain) {
+            recordList.addAll(assignCommission(storeOrder));
+            recordList.addAll(assignSelfBrokerage(storeOrder, user, brokerageLevelId, matchedBrokerageLevel));
+            recordList.addAll(teamBrokerageService.assignTeamBrokerage(storeOrder));
+        }
         // 区域代理奖励
         recordList.addAll(agentService.assignAgentBrokerage(storeOrder));
+        // 2+1 链动
+        recordList.addAll(chainService.onOrderPaid(storeOrder));
 
         // 到账方式：1-支付到账，2-订单完成到账
         boolean integralOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_INTEGRAL_CREDIT_TIMING);
         boolean brokerageOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_BROKERAGE_CREDIT_TIMING);
         boolean teamOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_TEAM_BROKERAGE_CREDIT_TIMING);
         boolean agentOnPay = isPayCreditTiming(SysConfigConstants.CONFIG_KEY_AGENT_CREDIT_TIMING);
+        boolean chainOnPay = isPayCreditTiming(ChainConstants.CONFIG_CREDIT_TIMING);
 
         // 按配置决定积分是否支付即到账（3.0 积分为 Integer）
         final Integer integralBeforeCredit = ObjectUtil.defaultIfNull(user.getIntegral(), 0);
@@ -411,7 +422,8 @@ public class OrderPayServiceImpl implements OrderPayService {
             for (UserBrokerageRecord brokerageRecord : recordList) {
                 boolean isTeam = isTeamBrokerageRecord(brokerageRecord);
                 boolean isAgent = isAgentBrokerageRecord(brokerageRecord);
-                boolean onPay = isAgent ? agentOnPay : (isTeam ? teamOnPay : brokerageOnPay);
+                boolean isChain = isChainBrokerageRecord(brokerageRecord);
+                boolean onPay = isChain ? chainOnPay : (isAgent ? agentOnPay : (isTeam ? teamOnPay : brokerageOnPay));
                 if (!onPay) {
                     continue;
                 }
@@ -566,7 +578,8 @@ public class OrderPayServiceImpl implements OrderPayService {
                 autoSendCoupons(storeOrder);
 
                 // 到账方式为「完成到账」时保留 CREATE 记录，支付节点不冻结；支付到账记录已为 COMPLETE，冻结无影响
-                if (brokerageOnPay && teamOnPay) {
+                // 链动礼包单即使分销未开支付到账，也需触发冻结（链动冻结天数）
+                if ((brokerageOnPay && teamOnPay) || chainService.isChainGiftOrder(storeOrder)) {
                     asyncService.brokerageFreezeByNode(storeOrder.getOrderId(), "pay");
                 }
 
@@ -1655,6 +1668,14 @@ public class OrderPayServiceImpl implements OrderPayService {
         return BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT.equals(level)
                 || BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT_PEER.equals(level)
                 || BrokerageRecordConstants.BROKERAGE_LEVEL_AGENT_LEAP.equals(level);
+    }
+
+    private boolean isChainBrokerageRecord(UserBrokerageRecord record) {
+        Integer level = record.getBrokerageLevel();
+        return ObjectUtil.equal(level, ChainConstants.BROKERAGE_LEVEL_DIRECT)
+                || ObjectUtil.equal(level, ChainConstants.BROKERAGE_LEVEL_SEE)
+                || ObjectUtil.equal(level, ChainConstants.BROKERAGE_LEVEL_PEER)
+                || ObjectUtil.equal(level, ChainConstants.BROKERAGE_LEVEL_HELP);
     }
 
     /**

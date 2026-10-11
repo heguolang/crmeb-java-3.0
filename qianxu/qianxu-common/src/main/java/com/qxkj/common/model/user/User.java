@@ -118,6 +118,15 @@ public class User implements Serializable {
     @ApiModelProperty(value = "推广人id")
     private Integer spreadUid;
 
+    @ApiModelProperty(value = "链动安置上级UID")
+    private Integer chainParentId;
+
+    @ApiModelProperty(value = "链动邀请人UID")
+    private Integer chainInviteUid;
+
+    @ApiModelProperty(value = "链动身份：0无 1代理 2老板")
+    private Integer chainIdentity;
+
     @ApiModelProperty(value = "推广员关联时间")
     private Date spreadTime;
 

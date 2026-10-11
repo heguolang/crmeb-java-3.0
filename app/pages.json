@@ -1053,6 +1053,45 @@
 							// #endif
 						}
 					}
+				},
+				{
+					"path": "chain_center/index",
+					"style": {
+						"navigationBarTitleText": "链动中心",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
+					"path": "chain_rules/index",
+					"style": {
+						"navigationBarTitleText": "链动规则",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
+				},
+				{
+					"path": "chain_notify/index",
+					"style": {
+						"navigationBarTitleText": "链动通知",
+						"app-plus": {
+							// #ifdef APP-PLUS
+							"titleNView": {
+								"type": "default"
+							}
+							// #endif
+						}
+					}
 				}
 			]
 		},

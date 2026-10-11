@@ -16,6 +16,7 @@ import com.qxkj.common.utils.QianxuUtil;
 import com.qxkj.common.utils.QianxuDateUtil;
 import com.qxkj.common.utils.RedisUtil;
 import com.qxkj.front.service.LoginService;
+import com.qxkj.service.service.ChainService;
 import com.qxkj.service.service.SystemConfigService;
 import com.qxkj.service.service.UserService;
 import org.slf4j.Logger;
@@ -57,6 +58,9 @@ public class LoginServiceImpl implements LoginService {
     private FrontTokenComponent tokenComponent;
     @Autowired
     private SystemConfigService systemConfigService;
+
+    @Autowired
+    private ChainService chainService;
 
     /**
      * 账号密码登录
@@ -158,6 +162,13 @@ public class LoginServiceImpl implements LoginService {
             logger.error("注册设置密码失败, uid = " + user.getUid());
             throw new QianxuException("注册失败，请稍后重试");
         }
+        if (spreadPid > 0) {
+            try {
+                chainService.bindParent(user.getUid(), spreadPid);
+            } catch (Exception ex) {
+                logger.warn(StrUtil.format("注册后链动绑定失败 uid={}, invite={}", user.getUid(), spreadPid), ex);
+            }
+        }
 
         // 直接返回登录态，前端注册后免登录进入
         LoginResponse loginResponse = new LoginResponse();
@@ -184,6 +195,13 @@ public class LoginServiceImpl implements LoginService {
         User user = userService.getByPhone(loginRequest.getPhone());
         if (ObjectUtil.isNull(user)) {// 此用户不存在，走新用户注册流程
             user = userService.registerPhone(loginRequest.getPhone(), spreadPid);
+            if (spreadPid > 0 && ObjectUtil.isNotNull(user)) {
+                try {
+                    chainService.bindParent(user.getUid(), spreadPid);
+                } catch (Exception ex) {
+                    logger.warn(StrUtil.format("手机登录注册后链动绑定失败 uid={}, invite={}", user.getUid(), spreadPid), ex);
+                }
+            }
         } else {
             if (!user.getStatus()) {
                 throw new QianxuException("当前账户已禁用，请联系管理员！");
@@ -258,6 +276,12 @@ public class LoginServiceImpl implements LoginService {
         });
         if (!execute) {
             logger.error(StrUtil.format("绑定推广人时出错，userUid = {}, spreadUid = {}", user.getUid(), spreadUid));
+        } else {
+            try {
+                chainService.bindParent(user.getUid(), spreadUid);
+            } catch (Exception ex) {
+                logger.warn(StrUtil.format("链动绑定上级失败 uid={}, invite={}", user.getUid(), spreadUid), ex);
+            }
         }
         return execute;
     }

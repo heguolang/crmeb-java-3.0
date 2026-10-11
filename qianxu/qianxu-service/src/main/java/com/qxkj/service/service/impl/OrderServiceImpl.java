@@ -44,6 +44,7 @@ import com.qxkj.common.response.*;
 import com.qxkj.common.utils.QianxuUtil;
 import com.qxkj.common.utils.QianxuDateUtil;
 import com.qxkj.common.utils.RedisUtil;
+import com.qxkj.common.utils.RequestUtil;
 import com.qxkj.common.vo.*;
 import com.qxkj.service.delete.OrderUtils;
 import com.qxkj.service.service.*;
@@ -146,6 +147,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private StoreProductService storeProductService;
+
+    @Autowired
+    private ChainService chainService;
 
     @Autowired
     private StoreProductGroupService storeProductGroupService;
@@ -1023,6 +1027,30 @@ public class OrderServiceImpl implements OrderService {
 
         // 校验商品库存
         List<MyRecord> skuRecordList = validateProductStock(orderInfoVo, user);
+
+        // 链动礼包风控（同用户/手机/IP/设备短时超量下单拦截）
+        try {
+            List<Integer> productIds = orderInfoVo.getOrderDetailList().stream()
+                    .map(d -> d.getProductId()).collect(Collectors.toList());
+            String clientIp = "";
+            String deviceId = "na";
+            try {
+                javax.servlet.http.HttpServletRequest httpReq = RequestUtil.getRequest();
+                if (httpReq != null) {
+                    clientIp = QianxuUtil.getClientIp(httpReq);
+                    String headerDevice = httpReq.getHeader("X-Device-Id");
+                    if (StrUtil.isNotBlank(headerDevice)) {
+                        deviceId = headerDevice;
+                    }
+                }
+            } catch (Exception ignore) {
+            }
+            chainService.assertOrderRisk(user, clientIp, deviceId, productIds);
+        } catch (QianxuException e) {
+            throw e;
+        } catch (Exception e) {
+            // 风控异常不阻断非链动场景
+        }
 
         // 校验收货信息
         String verifyCode = "";
