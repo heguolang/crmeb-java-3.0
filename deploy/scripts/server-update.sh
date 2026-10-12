@@ -7,8 +7,9 @@
 #   ./deploy/scripts/server-update.sh 3.0.1        # 指定版本号
 #   ./deploy/scripts/server-update.sh --skip-pull  # 不拉 git（仅本地已有代码）
 #   ./deploy/scripts/server-update.sh --official   # 用官方基础镜像（默认国内 DaoCloud）
+#   ./deploy/scripts/server-update.sh --skip-sql   # 不自动执行 deploy/sql/migrate/*.sql
 #
-# 更新范围：Java admin/front + 后台 Vue（admin-web）
+# 更新范围：Java admin/front + 后台 Vue（admin-web）+ 增量 SQL（migrate 目录）
 # 不含：H5/小程序（qianxu-app，仍需单独发到 /www/wwwroot/app...）
 
 set -euo pipefail
@@ -18,14 +19,16 @@ DEPLOY="$ROOT/deploy"
 TAG=""
 DO_PULL=1
 USE_CHINA=1
+DO_SQL=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-pull) DO_PULL=0; shift ;;
+    --skip-sql)  DO_SQL=0; shift ;;
     --official)  USE_CHINA=0; shift ;;
     --china)     USE_CHINA=1; shift ;;
     -h|--help)
-      sed -n '2,14p' "$0"
+      sed -n '2,16p' "$0"
       exit 0
       ;;
     -*)
@@ -52,7 +55,7 @@ if [[ -f "$DEPLOY/docker-compose.baota.yml" ]]; then
   echo "[info] 使用宝塔端口映射: docker-compose.baota.yml"
 fi
 
-echo "========== 1/5 Git =========="
+echo "========== 1/6 Git =========="
 if [[ "$DO_PULL" -eq 1 ]]; then
   git fetch --all --prune
   BRANCH="$(git rev-parse --abbrev-ref HEAD)"
@@ -68,7 +71,7 @@ if [[ -z "$TAG" ]]; then
 fi
 echo "镜像 TAG: $TAG  (commit $SHORT_SHA)"
 
-echo "========== 2/5 Maven 打包 =========="
+echo "========== 2/6 Maven 打包 =========="
 # 尝试本机 JDK（宝塔常见路径）
 if [[ -z "${JAVA_HOME:-}" ]]; then
   for d in /usr/lib/jvm/java-1.8.0-openjdk /usr/lib/jvm/java-8-openjdk \
@@ -126,7 +129,7 @@ test -f "$ROOT/qianxu/qianxu-admin/target/Qianxu-admin.jar" \
 test -f "$ROOT/qianxu/qianxu-front/target/Qianxu-front.jar" \
   || { echo "缺少 Qianxu-front.jar，打包失败" >&2; exit 1; }
 
-echo "========== 3/5 构建 Docker 镜像 =========="
+echo "========== 3/6 构建 Docker 镜像 =========="
 if [[ "$USE_CHINA" -eq 1 ]]; then
   echo "基础镜像: 国内加速 (*.china Dockerfile)"
   docker build -f deploy/docker/Dockerfile.admin.china -t "qianxu-admin:${TAG}" .
@@ -143,7 +146,15 @@ docker tag "qianxu-admin:${TAG}" qianxu-admin:latest
 docker tag "qianxu-front:${TAG}" qianxu-front:latest
 docker tag "qianxu-admin-web:${TAG}" qianxu-admin-web:latest
 
-echo "========== 4/5 写入 .env IMAGE_TAG =========="
+echo "========== 4/6 增量 SQL =========="
+if [[ "$DO_SQL" -eq 1 ]]; then
+  chmod +x "$ROOT/deploy/scripts/apply-sql-migrations.sh" 2>/dev/null || true
+  "$ROOT/deploy/scripts/apply-sql-migrations.sh"
+else
+  echo "跳过 SQL (--skip-sql)"
+fi
+
+echo "========== 5/6 写入 .env IMAGE_TAG =========="
 if grep -q '^IMAGE_TAG=' "$DEPLOY/.env"; then
   sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${TAG}/" "$DEPLOY/.env"
 else
@@ -151,14 +162,14 @@ else
 fi
 grep '^IMAGE_TAG=' "$DEPLOY/.env"
 
-echo "========== 5/5 重启容器 =========="
+echo "========== 6/6 重启容器 =========="
 cd "$DEPLOY"
 "${COMPOSE[@]}" up -d
 echo
 "${COMPOSE[@]}" ps
 echo
 echo "等待 admin 启动..."
-sleep 25
+sleep 45
 "${COMPOSE[@]}" logs --tail=25 admin || true
 echo
 echo "自检:"
@@ -167,5 +178,5 @@ curl -s -o /dev/null -w "  front :21710 -> %{http_code}\n" http://127.0.0.1:2171
 curl -s -o /dev/null -w "  nginx :18080 -> %{http_code}\n" http://127.0.0.1:18080/ || true
 echo
 echo "完成。版本 IMAGE_TAG=${TAG}"
-echo "若有 SQL 升级，请另行导入后再执行: ${COMPOSE[*]} restart admin front"
+echo "增量 SQL 目录: deploy/sql/migrate/ （见该目录 README）"
 echo "H5 未包含在此脚本内，需单独发布到站点目录。"
