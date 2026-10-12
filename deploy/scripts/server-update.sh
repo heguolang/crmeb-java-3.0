@@ -131,11 +131,12 @@ if [[ "$USE_CHINA" -eq 1 ]]; then
   echo "基础镜像: 国内加速 (*.china Dockerfile)"
   docker build -f deploy/docker/Dockerfile.admin.china -t "qianxu-admin:${TAG}" .
   docker build -f deploy/docker/Dockerfile.front.china -t "qianxu-front:${TAG}" .
+  docker build -f deploy/docker/Dockerfile.admin-web.china -t "qianxu-admin-web:${TAG}" .
 else
   docker build -f deploy/docker/Dockerfile.admin -t "qianxu-admin:${TAG}" .
   docker build -f deploy/docker/Dockerfile.front -t "qianxu-front:${TAG}" .
+  docker build -f deploy/docker/Dockerfile.admin-web -t "qianxu-admin-web:${TAG}" .
 fi
-docker build -f deploy/docker/Dockerfile.admin-web -t "qianxu-admin-web:${TAG}" .
 
 # 同时打 latest，方便排查
 docker tag "qianxu-admin:${TAG}" qianxu-admin:latest

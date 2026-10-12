@@ -1,0 +1,16 @@
+# 国内构建：经 DaoCloud 代理拉 node/nginx
+# 构建上下文：仓库根目录
+FROM docker.m.daocloud.io/library/node:16-bullseye AS builder
+WORKDIR /src
+COPY admin/package.json admin/package-lock.json* ./
+RUN npm install --registry=https://registry.npmmirror.com
+COPY admin/ ./
+ENV NODE_OPTIONS=--openssl-legacy-provider \
+    VUE_APP_BASE_API=
+RUN npm run build:prod
+
+FROM docker.m.daocloud.io/library/nginx:1.25-alpine
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+COPY deploy/docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /src/dist /usr/share/nginx/html
+EXPOSE 80
