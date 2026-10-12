@@ -8,8 +8,17 @@
 // | Author: 贵州黔序科技有限公司
 // +----------------------------------------------------------------------
 
-// 请求接口地址 如果没有配置自动获取当前网址路径
-const VUE_APP_API_URL = process.env.VUE_APP_BASE_API || `${location.origin}/api/`;
+// 请求接口地址：有环境变量用环境变量；浏览器里用当前域名；Node 构建（vue.config 引用）回退 /api/
+function resolveApiBaseURL() {
+  if (process.env.VUE_APP_BASE_API) {
+    return process.env.VUE_APP_BASE_API;
+  }
+  if (typeof location !== 'undefined' && location.origin) {
+    return `${location.origin}/api/`;
+  }
+  return '/api/';
+}
+const VUE_APP_API_URL = resolveApiBaseURL();
 module.exports = {
   // 接口请求地址
   apiBaseURL: VUE_APP_API_URL,
