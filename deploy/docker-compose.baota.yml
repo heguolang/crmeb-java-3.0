@@ -1,0 +1,12 @@
+# 宝塔同机切流：把 admin/front 绑到原 JAR 端口（仅本机）
+# 用法：
+#   docker compose -f docker-compose.yml -f docker-compose.baota.yml up -d
+# 切流前务必先停掉占用 21700/21710 的 JAR
+
+services:
+  admin:
+    ports:
+      - "127.0.0.1:21700:8080"
+  front:
+    ports:
+      - "127.0.0.1:21710:8081"
