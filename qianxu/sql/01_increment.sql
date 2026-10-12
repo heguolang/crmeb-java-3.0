@@ -6276,3 +6276,19 @@ INSERT INTO `eb_system_config` (`name`, `title`, `value`, `status`)
 SELECT 'rec_tip', '投递页提示文案', '提交后我们会在 1-3 个工作日内与你联系，请保持电话畅通', 0
 WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_tip') x);
 -- ========== END: upgrade_20261007_recruit.sql ==========
+
+-- ========== BEGIN: menu_dedupe_guard_20261012.sql ==========
+-- 菜单防重护栏（幂等）：同 component 的 C/M 菜单只保留 id 最小一条，其余软删。
+-- 背景：多个历史补丁各自插入「大数据中心」，2026-10-12 线上实测同屏出现两条。
+UPDATE `eb_system_menu` m
+  JOIN (
+    SELECT `component`, MIN(`id`) AS keep_id
+      FROM `eb_system_menu`
+     WHERE `menu_type` IN ('C','M') AND `is_delte` = 0
+       AND `component` IS NOT NULL AND `component` <> ''
+     GROUP BY `component`
+    HAVING COUNT(*) > 1
+  ) d ON m.`component` = d.`component` AND m.`id` > d.`keep_id`
+   SET m.`is_delte` = 1, m.`update_time` = NOW()
+ WHERE m.`is_delte` = 0;
+-- ========== END: menu_dedupe_guard_20261012.sql ==========

@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `eb_chain_product` (
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='链动礼包产品及分佣配置';
 
--- 菜单：大市场 → 2+1链动 → 链动产品
+-- 菜单：大市场 → N+1链动 → 链动产品
 SET @chainDirId := (
   SELECT `id` FROM `eb_system_menu`
    WHERE `component` = '/chain' AND `is_delte` = 0

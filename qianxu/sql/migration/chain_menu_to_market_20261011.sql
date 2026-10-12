@@ -1,9 +1,9 @@
 -- ============================================================
--- 2+1链动菜单：从「分销商」独立到「大市场」下
+-- N+1链动菜单：从「分销商」独立到「大市场」下
 --
 -- 目标结构：
 --   大市场                  ← 一级（优先复用已有「大市场」或 /yunying）
---     └─ 2+1链动 (/chain)  ← 二级目录
+--     └─ N+1链动 (/chain)  ← 二级目录
 --          ├─ 链动看板 /chain/dashboard
 --          ├─ 链动配置 /chain/config
 --          ├─ 链动用户 /chain/users
@@ -45,10 +45,10 @@ UPDATE `eb_system_menu`
    SET `name` = '大市场', `is_show` = 1
  WHERE `id` = @marketId;
 
--- 2) 2+1链动二级目录
+-- 2) N+1链动二级目录
 INSERT INTO `eb_system_menu`
   (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`)
-SELECT @marketId, '2+1链动', NULL, NULL, '/chain', 'M', 110, 1, 0, NOW(), NOW()
+SELECT @marketId, 'N+1链动', NULL, NULL, '/chain', 'M', 110, 1, 0, NOW(), NOW()
   FROM DUAL
  WHERE @marketId IS NOT NULL
    AND NOT EXISTS (
@@ -57,7 +57,7 @@ SELECT @marketId, '2+1链动', NULL, NULL, '/chain', 'M', 110, 1, 0, NOW(), NOW(
        );
 
 UPDATE `eb_system_menu`
-   SET `pid` = @marketId, `name` = '2+1链动', `is_show` = 1, `sort` = 110, `menu_type` = 'M'
+   SET `pid` = @marketId, `name` = 'N+1链动', `is_show` = 1, `sort` = 110, `menu_type` = 'M'
  WHERE `component` = '/chain' AND `is_delte` = 0 AND @marketId IS NOT NULL;
 
 SET @chainDirId := (
@@ -66,7 +66,7 @@ SET @chainDirId := (
    ORDER BY `id` LIMIT 1
 );
 
--- 3) 旧 /distribution/chain* → /chain/*，并挂到 2+1链动下
+-- 3) 旧 /distribution/chain* → /chain/*，并挂到 N+1链动下
 UPDATE `eb_system_menu`
    SET `component` = '/chain/dashboard', `pid` = @chainDirId, `name` = '链动看板', `sort` = 80, `is_show` = 1
  WHERE `is_delte` = 0 AND @chainDirId IS NOT NULL
