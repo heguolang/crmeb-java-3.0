@@ -65,6 +65,14 @@
         <section class="qx-main">
           <!-- ---------- 左栏 ---------- -->
           <div class="qx-col qx-col-l">
+            <div class="qx-hero" :class="{ 'is-focus': focusKey === 'kpi' }">
+              <div class="qx-hero-label">今日销售额 <span class="qx-tag">今日</span></div>
+              <div class="qx-hero-num">￥{{ heroSales.value }}</div>
+              <div class="qx-hero-foot">
+                <span v-if="heroSales.ratio" :class="heroSales.ratioClass">{{ heroSales.ratio }}</span>
+                <span class="qx-hero-dim">{{ heroSales.foot }}</span>
+              </div>
+            </div>
             <div class="qx-kpi-grid">
               <div
                 v-for="(item, i) in kpiList"
@@ -294,19 +302,20 @@ export default {
         { label: '页面访问', value: this.int(k.pageviews) + ' 次', tone: 'dim' },
       ];
     },
-    /* KPI 指标卡（2×2） */
+    /* 今日销售额 hero 锚点（左栏顶部大字） */
+    heroSales() {
+      const k = this.kpi || {};
+      return {
+        value: this.money(this.numShown.sales),
+        ratio: this.ratioText(k.sales, k.yesterdaySales),
+        ratioClass: this.ratioClass(k.sales, k.yesterdaySales),
+        foot: `昨日 ￥${this.money(k.yesterdaySales)}`,
+      };
+    },
+    /* KPI 指标卡（2 张：支付订单 / 新增用户） */
     kpiList() {
       const k = this.kpi || {};
       return [
-        {
-          label: '今日销售额',
-          tag: '今日',
-          prefix: '￥',
-          value: this.money(this.numShown.sales),
-          ratio: this.ratioText(k.sales, k.yesterdaySales),
-          ratioClass: this.ratioClass(k.sales, k.yesterdaySales),
-          foot: `昨日 ￥${this.money(k.yesterdaySales)}`,
-        },
         {
           label: '支付订单量',
           tag: '今日',
@@ -322,13 +331,6 @@ export default {
           ratio: this.ratioText(k.newUserNum, k.yesterdayNewUserNum),
           ratioClass: this.ratioClass(k.newUserNum, k.yesterdayNewUserNum),
           foot: `昨日 ${this.int(k.yesterdayNewUserNum)} 人`,
-        },
-        {
-          label: '累计会员',
-          tag: '总量',
-          value: this.int(this.numShown.memberNum),
-          color: CYAN,
-          foot: `充值会员 ${this.int(this.userTotal.rechargePeopleNum)} 人`,
         },
       ];
     },
@@ -414,11 +416,11 @@ export default {
     this.timers.push(setInterval(this.loadStat, 30000));
     // 面板焦点轮播：依次点亮，引导视线
     this.startFocusLoop();
-    // 页脚板块依次点亮：8 秒一轮
+    // 页脚板块依次点亮：慢速一轮，弱引导不抢戏
     this.timers.push(
       setInterval(() => {
         this.bizLitIndex = (this.bizLitIndex + 1) % this.moduleList.length;
-      }, 1300)
+      }, 2600)
     );
     window.addEventListener('resize', this.onResize);
     document.addEventListener('fullscreenchange', this.onFullChange);
@@ -1398,7 +1400,74 @@ $num-font: 'DIN Alternate', 'Bebas Neue', Consolas, 'Courier New', monospace;
   min-height: 0;
 }
 
-/* ---------- KPI 2×2 ---------- */
+/* ---------- 今日销售额 hero 锚点 ---------- */
+.qx-hero {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  padding: 18px 22px 16px;
+  border: 2px solid $panel-border;
+  border-radius: 14px;
+  background: linear-gradient(120deg, rgba(0, 120, 220, 0.3), rgba(11, 27, 58, 0.85));
+  box-shadow: 0 0 24px rgba(0, 196, 255, 0.1), inset 0 0 40px rgba(0, 196, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  transition: border-color 0.6s ease, box-shadow 0.6s ease;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.95), transparent);
+    animation: qxSheen 4.5s linear infinite;
+  }
+  &.is-focus {
+    border-color: rgba(0, 229, 255, 0.8);
+    box-shadow: 0 0 34px rgba(0, 229, 255, 0.3), inset 0 0 46px rgba(0, 229, 255, 0.08);
+  }
+}
+.qx-hero-label {
+  font-size: 19px;
+  color: $dim;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.qx-hero-num {
+  font-family: $num-font;
+  font-size: 54px;
+  font-weight: 800;
+  line-height: 1.05;
+  background: linear-gradient(180deg, #ffffff 35%, #8fd0ff 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  white-space: nowrap;
+  text-shadow: 0 0 26px rgba(0, 229, 255, 0.3);
+}
+.qx-hero-foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 16px;
+  .is-up {
+    color: $red;
+    font-weight: 600;
+  }
+  .is-down {
+    color: $green;
+    font-weight: 600;
+  }
+}
+.qx-hero-dim {
+  color: $faint;
+}
+
+/* ---------- KPI 卡（2 张） ---------- */
 .qx-kpi-grid {
   flex: none;
   display: grid;
@@ -1854,14 +1923,14 @@ $num-font: 'DIN Alternate', 'Bebas Neue', Consolas, 'Courier New', monospace;
     transform-origin: left center;
     transition: transform 0.6s ease, opacity 0.6s ease;
   }
-  /* 板块追光：依次点亮 */
+  /* 板块追光：依次点亮（收敛版：弱高亮、不抢主体） */
   &.is-lit {
     border-color: var(--bc);
-    background: rgba(11, 27, 58, 0.95);
-    box-shadow: 0 0 36px rgba(0, 229, 255, 0.24), inset 0 0 44px rgba(0, 229, 255, 0.07);
+    background: rgba(11, 27, 58, 0.9);
+    box-shadow: 0 0 18px rgba(0, 229, 255, 0.12);
     .qx-biz-bar {
       transform: scaleX(1);
-      opacity: 0.95;
+      opacity: 0.7;
     }
   }
 }

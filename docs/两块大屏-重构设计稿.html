@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>两块大屏 · 重构设计稿（待确认）</title>
+<style>
+  :root{
+    --bg-0:#04070f; --ink:#e8f1ff; --ink-dim:#8fa6c8; --ink-faint:#5c718f;
+    --cyan:#00e5ff; --blue:#2f7bff; --gold:#ffc84a; --green:#2fe0a2; --red:#ff5c6c; --purple:#a06bff;
+    --num:'DIN Alternate','Bahnschrift',Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,'Microsoft YaHei','PingFang SC',sans-serif;background:#0a1120;color:var(--ink);padding:0 0 60px}
+  .page{max-width:1280px;margin:0 auto;padding:30px 22px}
+  h1.doc{font-size:24px;letter-spacing:1px;margin-bottom:6px}
+  .doc-sub{color:var(--ink-dim);font-size:13.5px;margin-bottom:22px}
+  .sec{margin:34px 0 16px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:10px}
+  .sec::before{content:'';width:5px;height:18px;border-radius:3px;background:linear-gradient(180deg,var(--cyan),var(--blue))}
+  .note{background:rgba(20,34,60,.6);border:1px solid rgba(96,158,255,.2);border-radius:12px;padding:16px 18px;font-size:13px;line-height:1.9;color:var(--ink-dim)}
+  .note b{color:var(--ink)} .note .k{color:var(--gold)}
+  .tabs{display:flex;gap:10px;margin:8px 0 18px}
+  .tab{padding:9px 18px;border-radius:10px;font-size:13.5px;cursor:pointer;background:rgba(20,34,60,.6);border:1px solid rgba(96,158,255,.2);color:var(--ink-dim)}
+  .tab.on{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#03121f;font-weight:600;border-color:transparent}
+  .swatches{display:inline-flex;gap:8px;vertical-align:middle}
+  .sw{width:16px;height:16px;border-radius:5px;display:inline-block;box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+
+  /* ============ LED 16:9 预览容器（等比缩放示意）============ */
+  .led-box{width:100%;overflow:hidden;border-radius:12px;border:1px solid rgba(96,158,255,.22);position:relative}
+  .led{width:1920px;height:1080px;transform-origin:top left;position:relative;color:#eaf6ff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden}
+  .cap{position:absolute;top:8px;left:12px;z-index:20;font-size:12px;letter-spacing:1px;color:#8fa6c8;background:rgba(4,10,24,.7);border:1px solid rgba(96,158,255,.25);padding:3px 10px;border-radius:20px}
+
+  /* ---- 共享大屏骨架令牌：统一两块屏的背景/面板/页头语言 ---- */
+  .led{background:
+      radial-gradient(1150px 560px at 12% -8%, rgba(47,123,255,.20), transparent 60%),
+      radial-gradient(950px 500px at 90% -4%, var(--accent-soft, rgba(0,229,255,.12)), transparent 56%),
+      radial-gradient(900px 640px at 62% 120%, rgba(120,90,220,.10), transparent 60%),
+      linear-gradient(180deg,#07142b 0%,#04070f 100%);}
+  .led .gridbg{position:absolute;inset:0;background-image:linear-gradient(rgba(0,196,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,196,255,.05) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
+  .panel{position:relative;border:1px solid var(--accent-line, rgba(0,196,255,.32));border-radius:14px;
+    background:linear-gradient(180deg,rgba(12,28,58,.82),rgba(9,20,42,.6));
+    box-shadow:0 0 26px rgba(0,150,255,.08), inset 0 0 40px rgba(0,150,255,.04)}
+  /* 角标（统一角括号语言，从市场屏借过来给两屏共用） */
+  .c{position:absolute;width:15px;height:15px;border-color:var(--accent,#00e5ff);border-style:solid;border-width:0;opacity:.85}
+  .c.tl{top:-1px;left:-1px;border-top-width:2px;border-left-width:2px;border-top-left-radius:10px}
+  .c.tr{top:-1px;right:-1px;border-top-width:2px;border-right-width:2px;border-top-right-radius:10px}
+  .c.bl{bottom:-1px;left:-1px;border-bottom-width:2px;border-left-width:2px;border-bottom-left-radius:10px}
+  .c.br{bottom:-1px;right:-1px;border-bottom-width:2px;border-right-width:2px;border-bottom-right-radius:10px}
+  .ph-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0}
+  .ph-title{font-size:24px;font-weight:700;letter-spacing:2px;display:flex;align-items:center;gap:10px}
+  .ph-title::before{content:'';width:5px;height:22px;border-radius:3px;background:linear-gradient(180deg,var(--accent,#00e5ff),var(--blue))}
+  .ph-sub{font-size:15px;color:#5d7dad}
+  .num{font-family:var(--num)}
+
+  /* ---------- 页头（两屏统一结构：左品牌 / 中主标题 / 右状态+时钟）---------- */
+  .scr-hd{position:relative;z-index:2;height:92px;display:flex;align-items:center;justify-content:space-between;padding:0 30px}
+  .brand{display:flex;align-items:center;gap:16px}
+  .logo{width:52px;height:52px;border-radius:13px;display:grid;place-items:center;font-family:var(--num);font-weight:700;font-size:21px;color:#03121f;background:linear-gradient(135deg,var(--accent,#00e5ff),var(--blue));box-shadow:0 0 20px var(--accent-glow,rgba(0,229,255,.5))}
+  .scr-hd h1{font-size:34px;font-weight:800;letter-spacing:6px;background:linear-gradient(90deg,#eaf6ff,#8fd0ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .scr-hd .en{font-size:12px;letter-spacing:4px;color:#4a6a9c;margin-top:5px}
+  .hd-r{display:flex;align-items:center;gap:22px}
+  .live{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:99px;font-size:15px;color:var(--green);border:1px solid rgba(47,224,162,.4);background:rgba(47,224,162,.1)}
+  .live i{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+  .clock{font-family:var(--num);font-size:30px;color:var(--accent,#00e5ff);text-shadow:0 0 16px var(--accent-glow,rgba(0,229,255,.5));letter-spacing:2px}
+  .clock small{display:block;font-size:13px;color:#5d7dad;letter-spacing:1px;text-align:right;text-shadow:none;font-family:inherit}
+
+  /* ================= 运营大屏布局 ================= */
+  .op-ticker{position:relative;z-index:2;height:46px;margin:0 24px;border:1px solid rgba(0,229,255,.22);border-radius:8px;background:rgba(5,15,35,.85);display:flex;align-items:center;overflow:hidden}
+  .op-ticker .tr{display:flex;gap:52px;white-space:nowrap;padding-left:24px;animation:mq 30s linear infinite}
+  @keyframes mq{to{transform:translateX(-50%)}}
+  .tk{font-size:19px;color:#8fa7c9;display:inline-flex;gap:10px}
+  .tk b{font-family:var(--num);font-size:22px;color:var(--cyan)}
+  .tk.gold b{color:var(--gold)}.tk.green b{color:var(--green)}.tk.red b{color:var(--red)}
+  .op-main{position:relative;z-index:2;flex:1;display:flex;gap:20px;padding:18px 24px}
+  .op-col{display:flex;flex-direction:column;gap:20px;min-width:0}
+  .col-l{flex:none;width:400px}.col-c{flex:1}.col-r{flex:none;width:440px}
+
+  .hero{flex:none;padding:18px 22px;height:186px;display:flex;flex-direction:column;justify-content:center;gap:6px;
+    background:linear-gradient(120deg,rgba(0,120,220,.28),rgba(12,28,58,.7))}
+  .hero .hl{font-size:17px;color:#a9c6ee;letter-spacing:1px}
+  .hero .hn{font-family:var(--num);font-size:66px;font-weight:800;line-height:1;background:linear-gradient(180deg,#fff,#8fd0ff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px rgba(0,229,255,.3)}
+  .hero .hn small{font-size:26px;-webkit-text-fill-color:#8fd0ff}
+  .hero .hr{display:flex;gap:20px;margin-top:6px;font-size:15px;color:#5d7dad}
+  .hero .hr .up{color:var(--red);font-weight:600}.hero .hr .down{color:var(--green);font-weight:600}
+  .kpi2{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .kpi{height:120px;padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between}
+  .kpi .kl{font-size:17px;color:#8fa7c9;display:flex;justify-content:space-between}.kpi .kl .tag{color:var(--cyan);border:1px solid rgba(0,229,255,.4);border-radius:4px;padding:0 8px;font-size:13px}
+  .kpi .kn{font-family:var(--num);font-size:34px;font-weight:700}.kpi .kn small{font-size:18px}
+  .kpi .kf{font-size:14px;color:#4a6a9c}.kpi .kf .up{color:var(--red)}.kpi .kf .down{color:var(--green)}
+  .chart{flex:1;min-height:0;position:relative;padding:0 12px 12px}
+  .chart svg{width:100%;height:100%;display:block}
+  .legend{position:absolute;top:14px;right:18px;font-size:15px;color:#8fa7c9;display:flex;gap:16px}
+  .legend i{display:inline-block;width:16px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+
+  .order-cap{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 8px}
+  .order-list{flex:1;padding:0 16px 14px;display:flex;flex-direction:column;gap:9px;overflow:hidden}
+  .ord{padding:9px 16px;border-radius:10px;border:1px solid rgba(0,196,255,.16);background:linear-gradient(90deg,rgba(20,44,88,.5),rgba(20,44,88,.24));display:flex;align-items:center;gap:14px}
+  .ord .no{font-family:var(--num);color:#4a6a9c;width:34px;font-size:18px}
+  .ord .us{width:150px;font-size:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ord .gd{flex:1;font-size:16px;color:#9db6d8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ord .amt{font-family:var(--num);font-size:21px;color:var(--gold);width:130px;text-align:right}
+  .ord .st{width:76px;text-align:center;font-size:15px;padding:2px 0;border-radius:5px;border:1px solid}
+  .ord .tm{font-family:var(--num);font-size:15px;color:#4a6a9c;width:70px;text-align:right}
+  .todo-row{flex:none;display:flex;gap:16px;padding:0 16px 16px}
+  .tc{flex:1;padding:12px 16px;border-radius:10px;border:1px solid var(--tc-c);background:rgba(0,0,0,.2)}
+  .tc .l{font-size:15px;color:var(--tc-c)}.tc .n{font-family:var(--num);font-size:28px;font-weight:700;color:var(--tc-c)}
+  .prog{flex:1.4;padding:10px 16px;border-radius:10px;border:1px solid rgba(0,196,255,.2);background:rgba(0,0,0,.2);display:flex;flex-direction:column;justify-content:center;gap:8px}
+  .prog .pt{display:flex;justify-content:space-between;font-size:15px;color:#8fa7c9}.prog .pt b{font-family:var(--num);font-size:19px;color:#eaf6ff}
+  .rail{height:10px;border-radius:6px;background:rgba(20,44,88,.85);position:relative}
+  .fill{position:absolute;inset:0 auto 0 0;border-radius:6px;background:linear-gradient(90deg,var(--cyan),var(--blue));box-shadow:0 0 14px rgba(0,229,255,.6)}
+  .fill::after{content:'';position:absolute;right:-7px;top:50%;width:16px;height:16px;margin-top:-8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 16px var(--cyan)}
+
+  .donut-wrap{flex:1;display:flex;align-items:center;gap:6px;padding:0 8px}
+  .bars2{flex:none;height:230px;padding:0 18px 16px;display:flex;flex-direction:column;gap:9px}
+  .bar-row{display:flex;align-items:center;gap:10px;font-size:16px;color:#9db6d8}
+  .bar-row .bl{width:66px;flex:none}.bar-row .bl2{flex:1;height:16px;border-radius:8px;background:rgba(20,44,88,.8);position:relative;overflow:hidden}
+  .bar-row .bl2 i{position:absolute;inset:0 auto 0 0;border-radius:8px}
+  .bar-row .bn{width:48px;text-align:right;font-family:var(--num);color:#eaf6ff}
+  .op-foot{position:relative;z-index:2;flex:none;height:110px;display:flex;gap:16px;padding:0 24px 22px}
+  .biz{flex:1;min-width:0;border-radius:12px;border:1px solid var(--accent-line,rgba(0,196,255,.32));background:linear-gradient(180deg,rgba(12,28,58,.82),rgba(9,20,42,.6));display:flex;flex-direction:column;justify-content:center;gap:8px;padding:0 18px;position:relative;overflow:hidden}
+  .biz .bl{font-size:16px;color:#8fa7c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .biz .bn{font-family:var(--num);font-size:30px;font-weight:700;color:var(--bc)}
+  .biz::after{content:'';position:absolute;left:0;bottom:0;width:100%;height:3px;background:var(--bc);opacity:.5;transform:scaleX(.4);transform-origin:left}
+
+  /* ================= 市场大屏布局 ================= */
+  .mk-main{position:relative;z-index:2;flex:1;display:flex;gap:16px;padding:14px 22px 20px}
+  .mk-l{flex:2;display:flex;flex-direction:column;gap:16px;min-width:0}
+  .mk-r{flex:1;display:flex;flex-direction:column;gap:16px;min-width:0}
+  .mk-trade{flex:none;height:190px;display:flex;align-items:center;gap:56px;padding:0 34px;background:linear-gradient(120deg,rgba(30,80,160,.32),rgba(12,28,58,.7))}
+  .mk-trade .lbl{font-size:18px;color:#a9c6ee}.mk-trade .lbl small{margin-left:14px;font-size:13px;color:#5d7dad}
+  .mk-trade .big{margin-top:8px;font-family:var(--num);font-size:78px;font-weight:800;letter-spacing:1px;background:linear-gradient(180deg,#fff,#8fd0ff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px rgba(0,180,255,.3)}
+  .mk-trade .sub{margin-left:auto;display:flex;gap:64px}
+  .mk-trade .si .l{font-size:15px;color:#8fa7c9}.mk-trade .si .n{margin-top:8px;font-family:var(--num);font-size:38px;font-weight:700}
+  .gauges{flex:none;height:230px;display:flex;align-items:center;gap:12px;padding:0 20px}
+  .gauges .gh{min-width:210px;display:flex;align-items:center;gap:12px}
+  .gauges .gh .sh{font-size:44px;color:var(--green)}.gauges .gh .t{font-size:19px;font-weight:700;color:#cfe0ff}.gauges .gh .s{font-size:13px;color:#5d7dad;margin-top:5px}
+  .g{flex:1;text-align:center}.g .gn{font-size:14px;color:#8fa7c9;margin-bottom:4px}
+  .g .gauge{width:150px;height:88px;margin:0 auto;position:relative}
+  .g .gv{position:absolute;left:0;right:0;bottom:6px;font-family:var(--num);font-size:22px;font-weight:700}
+  .map-panel{flex:1;min-height:0;display:flex;flex-direction:column}
+  .map-wrap{flex:1;display:flex;min-height:0}
+  .map-svg{flex:1;position:relative;padding:0 8px}
+  .map-stats{width:196px;display:flex;flex-direction:column;justify-content:center;gap:12px;padding-right:16px}
+  .ms{padding:10px 14px;border-radius:8px;border:1px solid var(--accent-line);background:rgba(20,40,80,.35)}
+  .ms .n{font-family:var(--num);font-size:26px;font-weight:700}.ms .l{font-size:12.5px;color:#8fa7c9;margin-top:3px}
+  .mk-order,.mk-team{display:flex;flex-direction:column;min-height:0}
+  .mk-order{flex:none}.mk-team{flex:1}
+  .ord2-list{flex:1;overflow:hidden;padding:8px 14px 12px;display:flex;flex-direction:column;gap:9px}
+  .o2{padding:9px 12px;border-radius:9px;border:1px solid var(--accent-line);background:rgba(20,40,80,.4);display:flex;align-items:center;gap:10px}
+  .o2 .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#03121f;background:linear-gradient(135deg,#8fd0ff,#2f7bff);flex:none}
+  .o2 .in{flex:1;min-width:0}.o2 .in .nm{font-size:15px;font-weight:600;color:#eaf1ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .o2 .in .mt{font-size:12px;color:#6f8bb0;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .o2 .pr{font-family:var(--num);font-size:19px;color:var(--gold)}.o2 .tm{font-size:11.5px;color:#5d7dad;margin-top:2px;text-align:right}
+  .team-list{flex:1;overflow:hidden;padding:8px 14px 12px;display:flex;flex-direction:column;gap:8px}
+  .tm2{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;border:1px solid var(--accent-line);background:rgba(20,40,80,.4)}
+  .tm2 .rk{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:var(--num);font-size:13px;font-weight:700;color:#03121f;background:#8fa7c9}
+  .tm2 .rk.r1{background:linear-gradient(135deg,#ffe08a,#f7b500)}.tm2 .rk.r2{background:linear-gradient(135deg,#e8e8ef,#c4c8d4)}.tm2 .rk.r3{background:linear-gradient(135deg,#ffc89c,#e89a5f)}
+  .tm2 .ti{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;color:#03121f;font-weight:700;background:linear-gradient(135deg,#a9c6ee,#5d8bc4)}
+  .tm2 .tn{flex:1;min-width:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tm2 .tj{font-family:var(--num);font-size:16px;color:var(--cyan)}
+  .mk-foot-hint{position:absolute;bottom:8px;left:22px;font-size:12px;color:#5d7dad;z-index:5}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="doc">两块大屏 · 重构设计稿（深空统一语言版）</h1>
+  <p class="doc-sub">对应 <b>screen/index.vue（运营大数据）</b> 与 <b>bigdata/index.vue（市场大数据）</b> · 均为待确认稿，你点头后才改 .vue</p>
+
+  <div class="sec">一、核心重构主张</div>
+  <div class="note">
+    <b>1. 统一视觉基因</b>（最大改动）：两块屏现在一个是青蓝、一个是紫色，像两个产品。重构后共用<b>同一套深空多层底 + 同一面板语言（角括号 + 顶部追光 + 玻璃描边）+ 同一数字字体 DIN + 同一页头结构</b>；只用<b>强调色</b>区分：<span class="swatches"><span class="sw" style="background:#00e5ff"></span>运营=青蓝</span>，<span class="swatches"><span class="sw" style="background:#b18cff"></span>市场=紫（保留）或<span class="sw" style="background:#00e5ff"></span>青（并入）——见下方可切换对比</span>。<br />
+    <b>2. 建立视觉锚点</b>：每屏一个 <span class="k">hero 大字指标</span>（运营=今日销售额、市场=今日交易额），其余指标降一级，会议室/挂屏 3 秒抓到重点。<br />
+    <b>3. 去噪</b>：市场屏订单行删掉<span class="k">订单编号、运费</span>这类观众不读的细节，只留头像/昵称/商品/金额/时间。<br />
+    <b>4. 假数据标注</b>：市场屏"实时分享地图"现在是硬编码 12 城飞贵阳、非真实数据。重构稿保留视觉但<span class="k">明确标"省级真实分享"接数据</span>；若无真实分享接口，建议降级为"全国会员分布(按注册省)"。<br />
+    <b>5. 层级收敛</b>：运营屏页脚 6 卡追光轮播从"抢戏"降为"均匀微亮"，主体三栏不再被底部干扰。
+  </div>
+
+  <div class="sec">二、运营大数据（重构稿）</div>
+  <div class="led-box" id="opbox"><span class="cap">1920×1080 · 等比缩放示意</span>
+    <div class="led" style="--accent:#00e5ff;--accent-line:rgba(0,229,255,.32);--accent-soft:rgba(0,229,255,.14);--accent-glow:rgba(0,229,255,.5)">
+      <div class="gridbg"></div>
+      <div class="scr-hd">
+        <div class="brand"><div class="logo">QX</div><div><h1>黔序数据指挥中心</h1><div class="en">QIANXU OPERATION COMMAND CENTER</div></div></div>
+        <div class="hd-r"><span class="live"><i></i>实时同步中</span><span class="clock">09:24:36<small>2026-10-13 星期二</small></span></div>
+      </div>
+      <div class="op-ticker"><div class="tr">
+        <span class="tk">本月销售额 <b>￥1,286,540</b></span><span class="tk dim">本月订单 <b>8,412</b></span>
+        <span class="tk gold">累计消费额 <b>￥9,880,230</b></span><span class="tk">累计会员 <b>42,180</b></span>
+        <span class="tk red">库存预警 <b>6</b></span><span class="tk green">账户充值 <b>￥2,340,000</b></span>
+        <span class="tk">本月销售额 <b>￥1,286,540</b></span><span class="tk dim">本月订单 <b>8,412</b></span>
+        <span class="tk gold">累计消费额 <b>￥9,880,230</b></span><span class="tk">累计会员 <b>42,180</b></span>
+      </div></div>
+      <div class="op-main">
+        <!-- 左 -->
+        <div class="op-col col-l">
+          <div class="hero panel"><span class="c tl"></span><span class="c br"></span>
+            <div class="hl">今日销售额 · 今日</div>
+            <div class="hn"><small>￥</small>128,460.00</div>
+            <div class="hr"><span class="up">▲ 较昨日 18.6%</span><span>昨日 ￥108,300</span></div>
+          </div>
+          <div class="kpi2">
+            <div class="kpi panel"><div class="kl">支付订单<small class="tag">今日</small></div><div class="kn">1,286</div><div class="kf"><span class="up">▲ 12%</span> 昨日 1,148</div></div>
+            <div class="kpi panel"><div class="kl">新增用户<small class="tag">今日</small></div><div class="kn">342</div><div class="kf"><span class="down">▼ 5%</span> 昨日 360</div></div>
+          </div>
+        </div>
+        <!-- 中 -->
+        <div class="op-col col-c">
+          <div class="panel" style="flex:1.2;min-height:0;display:flex;flex-direction:column">
+            <div class="ph-head"><span class="ph-title">销售趋势</span><span class="ph-sub">近 30 天 · 销售额 / 订单量</span></div>
+            <div class="chart">
+              <div class="legend"><span><i style="background:#00e5ff"></i>销售额</span><span><i style="background:#ffc84a"></i>订单量</span></div>
+              <svg viewBox="0 0 640 240" preserveAspectRatio="none">
+                <g fill="rgba(255,200,74,.5)">
+                  <rect x="20" y="150" width="14" height="70"/><rect x="70" y="120" width="14" height="100"/><rect x="120" y="160" width="14" height="60"/><rect x="170" y="90" width="14" height="130"/><rect x="220" y="130" width="14" height="90"/><rect x="270" y="70" width="14" height="150"/><rect x="320" y="110" width="14" height="110"/><rect x="370" y="60" width="14" height="160"/><rect x="420" y="100" width="14" height="120"/><rect x="470" y="48" width="14" height="172"/><rect x="520" y="86" width="14" height="134"/><rect x="570" y="40" width="14" height="180"/>
+                </g>
+                <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(0,229,255,.45)"/><stop offset="1" stop-color="rgba(0,229,255,0)"/></linearGradient></defs>
+                <polygon points="20,180 70,150 120,165 170,120 220,140 270,95 320,120 370,80 420,110 470,60 520,90 570,50 570,220 20,220" fill="url(#ag)"/>
+                <polyline points="20,180 70,150 120,165 170,120 220,140 270,95 320,120 370,80 420,110 470,60 520,90 570,50" fill="none" stroke="#00e5ff" stroke-width="3" style="filter:drop-shadow(0 0 8px rgba(0,229,255,.8))"/>
+              </svg>
+            </div>
+          </div>
+          <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="order-cap"><span class="ph-title">实时订单流</span><span class="ph-sub"><span style="color:#2fe0a2">●</span> 每 10 秒刷新 · 滚动轮播</span></div>
+            <div class="order-list">
+              <div class="ord"><span class="no">01</span><span class="us">王**</span><span class="gd">黔序高山绿茶礼盒 250g ×2</span><span class="amt">￥398.00</span><span class="st" style="color:#2fe0a2;border-color:rgba(47,224,162,.5)">已完成</span><span class="tm">09:24:11</span></div>
+              <div class="ord"><span class="no">02</span><span class="us">李**</span><span class="gd">有机山茶油 5L 家庭装</span><span class="amt">￥560.00</span><span class="st" style="color:#ffc84a;border-color:rgba(255,200,74,.5)">待发货</span><span class="tm">09:23:48</span></div>
+              <div class="ord"><span class="no">03</span><span class="us">张**</span><span class="gd">刺梨原浆 300ml ×6</span><span class="amt">￥268.00</span><span class="st" style="color:#00e5ff;border-color:rgba(0,229,255,.5)">待核销</span><span class="tm">09:22:30</span></div>
+              <div class="ord"><span class="no">04</span><span class="us">陈**</span><span class="gd">苗家酸汤底料 组合装</span><span class="amt">￥126.00</span><span class="st" style="color:#2fe0a2;border-color:rgba(47,224,162,.5)">已完成</span><span class="tm">09:21:05</span></div>
+              <div class="ord"><span class="no">05</span><span class="us">刘**</span><span class="gd">都匀毛尖明前茶 100g</span><span class="amt">￥880.00</span><span class="st" style="color:#8fa7c9;border-color:rgba(143,167,201,.5)">待付款</span><span class="tm">09:19:40</span></div>
+              <div class="ord"><span class="no">06</span><span class="us">赵**</span><span class="gd">生态大米 10kg</span><span class="amt">￥210.00</span><span class="st" style="color:#ff5c6c;border-color:rgba(255,92,108,.5)">退款中</span><span class="tm">09:18:22</span></div>
+            </div>
+            <div class="todo-row">
+              <div class="tc" style="--tc-c:#ffc84a"><div class="l">待发货</div><div class="n">38 单</div></div>
+              <div class="tc" style="--tc-c:#00e5ff"><div class="l">待核销</div><div class="n">12 单</div></div>
+              <div class="tc" style="--tc-c:#ff5c6c"><div class="l">退款中</div><div class="n">3 单</div></div>
+              <div class="prog"><div class="pt"><span>累计已完成订单</span><b>6,842 单</b></div><div class="rail"><div class="fill" style="width:78%"></div></div><div class="pt" style="font-size:13px;color:#4a6a9c"><span>订单完成率</span><b style="color:#00e5ff">78%</b></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- 右 -->
+        <div class="op-col col-r">
+          <div class="panel" style="flex:1.1;min-height:0;display:flex;flex-direction:column">
+            <div class="ph-head"><span class="ph-title">用户渠道分布</span><span class="ph-sub">累计 42,180 人</span></div>
+            <div class="donut-wrap">
+              <svg viewBox="0 0 200 200" style="width:196px;height:196px;flex:none">
+                <circle cx="100" cy="100" r="66" fill="none" stroke="rgba(20,44,88,.8)" stroke-width="30"/>
+                <g transform="rotate(-90 100 100)" fill="none" stroke-width="30">
+                  <circle cx="100" cy="100" r="66" stroke="#00e5ff" stroke-dasharray="180 415"/>
+                  <circle cx="100" cy="100" r="66" stroke="#2f7bff" stroke-dasharray="96 415" stroke-dashoffset="-180"/>
+                  <circle cx="100" cy="100" r="66" stroke="#ffc84a" stroke-dasharray="78 415" stroke-dashoffset="-276"/>
+                  <circle cx="100" cy="100" r="66" stroke="#a06bff" stroke-dasharray="61 415" stroke-dashoffset="-354"/>
+                </g>
+                <text x="100" y="96" text-anchor="middle" fill="#eaf6ff" style="font:700 26px var(--num)">42,180</text>
+                <text x="100" y="118" text-anchor="middle" fill="#7fa3d8" style="font-size:13px">累计会员</text>
+              </svg>
+              <div style="display:flex;flex-direction:column;gap:12px;font-size:15px;color:#c6dcff">
+                <div><i style="display:inline-block;width:12px;height:12px;background:#00e5ff;border-radius:2px;margin-right:8px"></i>小程序 43%</div>
+                <div><i style="display:inline-block;width:12px;height:12px;background:#2f7bff;border-radius:2px;margin-right:8px"></i>H5 商城 23%</div>
+                <div><i style="display:inline-block;width:12px;height:12px;background:#ffc84a;border-radius:2px;margin-right:8px"></i>APP 19%</div>
+                <div><i style="display:inline-block;width:12px;height:12px;background:#a06bff;border-radius:2px;margin-right:8px"></i>公众号 15%</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel bars2">
+            <div class="ph-head" style="padding-top:16px"><span class="ph-title">订单状态分布</span></div>
+            <div class="bar-row"><span class="bl">待付款</span><span class="bl2"><i style="width:22%;background:#8fa7c9"></i></span><span class="bn">842</span></div>
+            <div class="bar-row"><span class="bl">待发货</span><span class="bl2"><i style="width:46%;background:#ffc84a"></i></span><span class="bn">1,760</span></div>
+            <div class="bar-row"><span class="bl">待核销</span><span class="bl2"><i style="width:18%;background:#00e5ff"></i></span><span class="bn">690</span></div>
+            <div class="bar-row"><span class="bl">已完成</span><span class="bl2"><i style="width:90%;background:#2fe0a2"></i></span><span class="bn">6,842</span></div>
+            <div class="bar-row"><span class="bl">退款中</span><span class="bl2"><i style="width:8%;background:#ff5c6c"></i></span><span class="bn">96</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="op-foot">
+        <div class="biz" style="--bc:#00e5ff"><span class="bl">库存代理商</span><span class="bn">126 家</span></div>
+        <div class="biz" style="--bc:#2f7bff"><span class="bl">区域代理</span><span class="bn">348 家</span></div>
+        <div class="biz" style="--bc:#ffc84a"><span class="bl">代理待审核</span><span class="bn">7 家</span></div>
+        <div class="biz" style="--bc:#a06bff"><span class="bl">拼购活动</span><span class="bn">14 场</span></div>
+        <div class="biz" style="--bc:#2fe0a2"><span class="bl">拼购团</span><span class="bn">263 个</span></div>
+        <div class="biz" style="--bc:#ffc84a"><span class="bl">上期分红基数</span><span class="bn">￥528,000</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">三、市场大数据（重构稿 · 可切换配色）</div>
+  <div class="tabs">
+    <span class="tab on" id="tabA">方案 A：并入青蓝主色系（两屏同款）</span>
+    <span class="tab" id="tabB">方案 B：保留紫色做区分（统一骨架）</span>
+  </div>
+  <div class="led-box" id="mkbox"><span class="cap">1920×1080 · 等比缩放示意</span>
+    <div class="led" id="mkled" style="--accent:#00e5ff;--accent-line:rgba(0,229,255,.32);--accent-soft:rgba(0,229,255,.14);--accent-glow:rgba(0,229,255,.5)">
+      <div class="gridbg"></div>
+      <div class="scr-hd">
+        <div class="brand"><div class="logo">市</div><div><h1 id="mktitle">市场大数据中心</h1><div class="en">QIANXU MARKET DATA CENTER</div></div></div>
+        <div class="hd-r"><span class="live"><i></i>数据实时同步</span><span class="clock">09:24:36<small>2026年10月13日 星期二</small></span></div>
+      </div>
+      <div class="mk-main">
+        <div class="mk-l">
+          <div class="mk-trade panel"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+            <div><div class="lbl">今日交易额 <small>2026年10月13日 09:24:36</small></div><div class="big">¥ 128,460.00</div></div>
+            <div class="sub">
+              <div class="si"><div class="l">昨日交易额</div><div class="n">¥ 108,300</div></div>
+              <div class="si"><div class="l">昨日交易笔数</div><div class="n">1,148</div></div>
+            </div>
+          </div>
+          <div class="gauges panel"><span class="c tl"></span><span class="c br"></span>
+            <div class="gh"><span class="sh">✓</span><div><div class="t">本月经营健康度</div><div class="s">全量订单 9,336 单 · 实时计算</div></div></div>
+            <div class="g"><div class="gn">支付完成率</div><div class="gauge"><svg viewBox="0 0 150 88"><path d="M12 80 A63 63 0 0 1 138 80" fill="none" stroke="rgba(20,44,88,.9)" stroke-width="11" stroke-linecap="round"/><path d="M12 80 A63 63 0 0 1 138 80" fill="none" stroke="#2fe0a2" stroke-width="11" stroke-linecap="round" stroke-dasharray="124 198"/></svg><div class="gv" style="color:#2fe0a2">62.6%</div></div></div>
+            <div class="g"><div class="gn">发货完成率</div><div class="gauge"><svg viewBox="0 0 150 88"><path d="M12 80 A63 63 0 0 1 138 80" fill="none" stroke="rgba(20,44,88,.9)" stroke-width="11" stroke-linecap="round"/><path d="M12 80 A63 63 0 0 1 138 80" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round" stroke-dasharray="150 198"/></svg><div class="gv" style="color:#00e5ff">75.8%</div></div></div>
+            <div class="g"><div class="gn">退款率</div><div class="gauge"><svg viewBox="0 0 150 88"><path d="M12 80 A63 63 0 0 1 138 80" fill="none" stroke="rgba(20,44,88,.9)" stroke-width="11" stroke-linecap="round"/><path d="M12 80 A63 63 0 0 1 138 80" fill="none" stroke="#ff5c6c" stroke-width="11" stroke-linecap="round" stroke-dasharray="16 198"/></svg><div class="gv" style="color:#ff5c6c">1.0%</div></div></div>
+          </div>
+          <div class="map-panel panel"><span class="c tr"></span><span class="c bl"></span>
+            <div class="ph-head"><span class="ph-title">全国分享分布</span><span class="ph-sub">按省级真实分享数据（重构后接入）</span></div>
+            <div class="map-wrap">
+              <div class="map-svg">
+                <svg viewBox="0 0 420 300" style="width:100%;height:100%">
+                  <g fill="rgba(40,70,130,.4)" stroke="var(--accent)" stroke-opacity=".5" stroke-width="1">
+                    <polygon points="120,60 180,48 210,80 175,120 128,110"/>
+                    <polygon points="175,120 220,110 250,150 205,175 165,158"/>
+                    <polygon points="250,150 300,140 320,185 275,210 235,190"/>
+                    <polygon points="205,175 235,190 220,235 180,225 175,195"/>
+                    <polygon points="120,140 165,158 150,205 108,190 108,160"/>
+                    <polygon points="275,80 320,95 310,140 270,130 262,100"/>
+                  </g>
+                  <g fill="#2fe0a2">
+                    <circle cx="160" cy="150" r="4" style="filter:drop-shadow(0 0 6px #2fe0a2)"/><circle cx="150" cy="120" r="3"/><circle cx="210" cy="130" r="3"/><circle cx="290" cy="110" r="3"/><circle cx="250" cy="170" r="3"/><circle cx="190" cy="205" r="3"/>
+                  </g>
+                  <g stroke="var(--accent)" stroke-width="1.4" fill="none" opacity=".7">
+                    <path d="M290 110 Q225 90 160 150" stroke-dasharray="4 8"><animate attributeName="stroke-dashoffset" from="0" to="-120" dur="2.6s" repeatCount="indefinite"/></path>
+                    <path d="M210 130 Q185 128 160 150" stroke-dasharray="4 8"><animate attributeName="stroke-dashoffset" from="0" to="-120" dur="2.2s" repeatCount="indefinite"/></path>
+                    <path d="M250 170 Q205 165 160 150" stroke-dasharray="4 8"><animate attributeName="stroke-dashoffset" from="0" to="-120" dur="3s" repeatCount="indefinite"/></path>
+                  </g>
+                </svg>
+              </div>
+              <div class="map-stats">
+                <div class="ms"><div class="n" style="color:#c9b6ff">42,180</div><div class="l">会员总数</div></div>
+                <div class="ms"><div class="n" style="color:#7ef0c8">342</div><div class="l">今日新增</div></div>
+                <div class="ms"><div class="n" style="color:#ffd479">8,412</div><div class="l">本月订单</div></div>
+                <div class="ms"><div class="n" style="color:#8fc7ff">¥ 1,286,540</div><div class="l">本月销售额</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mk-r">
+          <div class="mk-order panel"><span class="c tl"></span><span class="c br"></span>
+            <div class="ph-head"><span class="ph-title">最近下单</span><span class="ph-sub">滚动</span></div>
+            <div class="ord2-list">
+              <div class="o2"><span class="av">王</span><div class="in"><div class="nm">王**</div><div class="mt">高山绿茶礼盒 ×2</div></div><div style="text-align:right"><div class="pr">￥398</div><div class="tm">09:24:11</div></div></div>
+              <div class="o2"><span class="av">李</span><div class="in"><div class="nm">李**</div><div class="mt">有机山茶油 5L</div></div><div style="text-align:right"><div class="pr">￥560</div><div class="tm">09:23:48</div></div></div>
+              <div class="o2"><span class="av">张</span><div class="in"><div class="nm">张**</div><div class="mt">刺梨原浆 ×6</div></div><div style="text-align:right"><div class="pr">￥268</div><div class="tm">09:22:30</div></div></div>
+              <div class="o2"><span class="av">陈</span><div class="in"><div class="nm">陈**</div><div class="mt">酸汤底料组合装</div></div><div style="text-align:right"><div class="pr">￥126</div><div class="tm">09:21:05</div></div></div>
+              <div class="o2"><span class="av">刘</span><div class="in"><div class="nm">刘**</div><div class="mt">都匀毛尖 100g</div></div><div style="text-align:right"><div class="pr">￥880</div><div class="tm">09:19:40</div></div></div>
+            </div>
+          </div>
+          <div class="mk-team panel"><span class="c tl"></span><span class="c br"></span>
+            <div class="ph-head"><span class="ph-title">优秀团队</span><span class="ph-sub">按成团人数</span></div>
+            <div class="team-list">
+              <div class="tm2"><span class="rk r1">1</span><span class="ti">黔</span><div class="tn">贵阳优选拼购团</div><span class="tj">128 人</span></div>
+              <div class="tm2"><span class="rk r2">2</span><span class="ti">遵</span><div class="tn">遵义山茶先锋队</div><span class="tj">96 人</span></div>
+              <div class="tm2"><span class="rk r3">3</span><span class="ti">安</span><div class="tn">安顺刺梨联盟</div><span class="tj">74 人</span></div>
+              <div class="tm2"><span class="rk">4</span><span class="ti">铜</span><div class="tn">铜仁生态团队</div><span class="tj">52 人</span></div>
+              <div class="tm2"><span class="rk">5</span><span class="ti">毕</span><div class="tn">毕节高山好物团</div><span class="tj">41 人</span></div>
+              <div class="tm2"><span class="rk">6</span><span class="ti">凯</span><div class="tn">黔东南苗品团</div><span class="tj">33 人</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mk-foot-hint">重构去噪：订单行已删「订单编号 / 运费」，仅保留观众可读的昵称 · 商品 · 金额 · 时间</div>
+    </div>
+  </div>
+
+  <div class="sec">四、待你拍板的点</div>
+  <div class="note">
+    ① 市场屏配色走 <b>方案 A（并入青蓝，两屏完全同款）</b> 还是 <b>方案 B（保留紫，但背景/面板/字体骨架统一）</b>？点上面两个 Tab 直接对比。<br />
+    ② hero 大字锚点（今日销售额 / 今日交易额）这个"主指标放大、其余降级"的做法要不要？<br />
+    ③ 市场屏"实时分享地图"——你有真实的省级分享数据接口吗？没有的话我按<span class="k">"全国会员分布(按注册省)"</span>重命名，避免挂羊头。<br />
+    ④ 确认方向后我再落地两个 .vue 并本地编译校验；git 提交 / 上线仍单独问你。
+  </div>
+</div>
+
+<script>
+  function fit(id,s){document.getElementById(id).querySelector('.led').style.transform='scale('+s+')';document.getElementById(id).style.height=(1080*s)+'px';}
+  var r=window.innerWidth;fit('opbox',Math.min(1,(r-60)/1920));fit('mkbox',Math.min(1,(r-60)/1920));
+  window.addEventListener('resize',function(){var w=window.innerWidth;fit('opbox',Math.min(1,(w-60)/1920));fit('mkbox',Math.min(1,(w-60)/1920));});
+  var A=document.getElementById('tabA'),B=document.getElementById('tabB'),led=document.getElementById('mkled');
+  function setA(){A.classList.add('on');B.classList.remove('on');led.style.cssText='--accent:#00e5ff;--accent-line:rgba(0,229,255,.32);--accent-soft:rgba(0,229,255,.14);--accent-glow:rgba(0,229,255,.5)';}
+  function setB(){B.classList.add('on');A.classList.remove('on');led.style.cssText='--accent:#b18cff;--accent-line:rgba(154,120,255,.4);--accent-soft:rgba(160,107,255,.16);--accent-glow:rgba(160,107,255,.5)';}
+  A.onclick=setA;B.onclick=setB;
+</script>
+</body>
+</html>

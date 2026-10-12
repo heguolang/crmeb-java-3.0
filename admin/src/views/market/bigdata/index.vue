@@ -74,7 +74,7 @@
           <div class="bd-panel bd-panel-map">
             <div class="bd-corner tl"></div><div class="bd-corner tr"></div>
             <div class="bd-corner bl"></div><div class="bd-corner br"></div>
-            <div class="bd-panel-cap">实时分享数据</div>
+            <div class="bd-panel-cap">全国会员分布</div>
             <div class="bd-map-wrap">
               <div class="bd-map-echart" ref="mapChart"></div>
               <div class="bd-map-side">
@@ -96,25 +96,14 @@
             <div class="bd-panel-cap">最近下单</div>
             <div class="bd-order-list">
               <div class="bd-order" v-for="(o, i) in orders" :key="o.orderId + '_' + i">
-                <div class="bd-order-user">
-                  <span class="bd-avatar">{{ (o.nickname || '客')[0] }}</span>
-                  <div class="bd-ou-info">
-                    <div class="bd-ou-name">{{ maskName(o.nickname || o.realName) }}</div>
-                    <div class="bd-ou-meta">{{ o.payTypeStr || '线上支付' }}</div>
-                  </div>
-                  <div class="bd-ou-time">{{ shortTime(o.createTime) }}</div>
+                <span class="bd-avatar">{{ (o.nickname || '客')[0] }}</span>
+                <div class="bd-ou-info">
+                  <div class="bd-ou-name">{{ maskName(o.nickname || o.realName) }}</div>
+                  <div class="bd-ou-meta">{{ o.payTypeStr || '线上支付' }}</div>
                 </div>
-                <div class="bd-order-card">
-                  <div class="bd-oc-row">
-                    <span class="bd-oc-name">会员订单</span>
-                    <span class="bd-oc-price">价格: <b>¥{{ o.payPrice }}</b></span>
-                    <span class="bd-oc-num">数量: {{ o.totalNum || 1 }}</span>
-                    <span class="bd-oc-postage">运费: {{ Number(o.payPostage || 0) > 0 ? '¥' + o.payPostage : '免运费' }}</span>
-                  </div>
-                  <div class="bd-oc-row sub">
-                    <span class="bd-oc-orderid">订单编号: {{ o.orderId }}</span>
-                    <span class="bd-oc-tag" :class="o.paid ? 'ok' : 'wait'">{{ o.paid ? '常规发货' : '待支付' }}</span>
-                  </div>
+                <div class="bd-ou-right">
+                  <div class="bd-ou-amt">¥{{ o.payPrice }}</div>
+                  <div class="bd-ou-time">{{ shortTime(o.createTime) }}</div>
                 </div>
               </div>
               <div v-if="!orders.length" class="bd-empty">暂无订单数据</div>
@@ -232,7 +221,7 @@ export default {
     },
     mapStats() {
       return [
-        { label: '会员总数', value: this.userNum, color: '#c9b6ff' },
+        { label: '会员总数', value: this.userNum, color: '#8fc7ff' },
         { label: '今日新增', value: this.newUserNum, color: '#7ef0c8' },
         { label: '本月订单', value: this.monthOrderNum, color: '#ffd479' },
         { label: '本月销售额', value: '¥' + this.formatMoney(this.monthOrderSales), color: '#8fc7ff' },
@@ -373,14 +362,14 @@ export default {
             pointer: {
               length: '58%',
               width: 4,
-              itemStyle: { color: '#e8dcff' },
+              itemStyle: { color: '#cfe6ff' },
             },
             axisTick: { show: false },
             splitLine: { show: false },
             axisLabel: { show: false },
             detail: {
               formatter: '{value}%',
-              color: color || '#e8dcff',
+              color: color || '#cfe6ff',
               fontSize: 18,
               offsetCenter: [0, '62%'],
             },
@@ -421,10 +410,10 @@ export default {
           bottom: '4%',
           label: { show: false },
           itemStyle: {
-            areaColor: 'rgba(66,34,126,.55)',
-            borderColor: 'rgba(154,120,255,.85)',
+            areaColor: 'rgba(24,58,120,.55)',
+            borderColor: 'rgba(0,229,255,.7)',
             borderWidth: 1,
-            shadowColor: 'rgba(124,92,255,.45)',
+            shadowColor: 'rgba(0,180,255,.45)',
             shadowBlur: 14,
           },
           emphasis: { disabled: true },
@@ -443,8 +432,8 @@ export default {
             type: 'lines',
             coordinateSystem: 'geo',
             zlevel: 2,
-            effect: { show: true, period: 5, trailLength: 0.55, symbol: 'arrow', symbolSize: 5, color: '#b18cff' },
-            lineStyle: { color: '#7c5cff', width: 1, opacity: 0.28, curveness: 0.28 },
+            effect: { show: true, period: 5, trailLength: 0.6, symbol: 'arrow', symbolSize: 5, color: '#7fc0ff' },
+            lineStyle: { color: '#2f7bff', width: 1, opacity: 0.32, curveness: 0.28 },
             // 各点飞向贵阳（运营中心）
             data: pts.slice(1).map((p) => ({ coords: [p.value.slice(0, 2), MAP_POINTS[0].value] })),
           },
@@ -460,7 +449,7 @@ export default {
   position: fixed;
   inset: 0;
   z-index: 3000;
-  background: #0d0524;
+  background: #04070f;
   overflow: hidden;
 }
 .bigdata-stage {
@@ -472,9 +461,9 @@ export default {
   margin-top: -540px;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(1200px 700px at 18% 8%, #2c1358 0%, rgba(44, 19, 88, 0) 60%),
-    radial-gradient(1000px 620px at 85% 90%, #241040 0%, rgba(36, 16, 64, 0) 55%),
-    linear-gradient(160deg, #1b0b3b 0%, #140829 55%, #190b33 100%);
+  background: radial-gradient(1200px 700px at 18% 8%, #123a6e 0%, rgba(18, 58, 110, 0) 60%),
+    radial-gradient(1000px 620px at 85% 90%, #0e2c58 0%, rgba(14, 44, 88, 0) 55%),
+    linear-gradient(160deg, #07142b 0%, #040a18 55%, #06152e 100%);
   color: #fff;
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
@@ -489,14 +478,14 @@ export default {
 .bd-bg-grid {
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(rgba(154, 120, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(154, 120, 255, 0.05) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(0, 196, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 196, 255, 0.05) 1px, transparent 1px);
   background-size: 64px 64px;
 }
 .bd-bokeh {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(177, 140, 255, 0.32) 0%, rgba(177, 140, 255, 0) 70%);
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.28) 0%, rgba(0, 229, 255, 0) 70%);
   animation: bdFloat 9s ease-in-out infinite alternate;
 }
 @for $i from 1 through 14 {
@@ -527,8 +516,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(180deg, rgba(64, 30, 130, 0.55), rgba(64, 30, 130, 0));
-  border-bottom: 1px solid rgba(154, 120, 255, 0.35);
+  background: linear-gradient(180deg, rgba(20, 60, 130, 0.55), rgba(20, 60, 130, 0));
+  border-bottom: 1px solid rgba(0, 229, 255, 0.35);
   z-index: 2;
 }
 .bd-hd-left {
@@ -536,15 +525,15 @@ export default {
 }
 .bd-hd-date {
   font-size: 15px;
-  color: #b7a3e6;
+  color: #8fa6c8;
   letter-spacing: 1px;
 }
 .bd-hd-clock {
   font-size: 30px;
   font-weight: 700;
   letter-spacing: 3px;
-  color: #e8dcff;
-  text-shadow: 0 0 14px rgba(177, 140, 255, 0.8);
+  color: #cfe6ff;
+  text-shadow: 0 0 14px rgba(0, 229, 255, 0.8);
 }
 .bd-hd-title {
   display: flex;
@@ -555,17 +544,17 @@ export default {
     font-size: 40px;
     font-weight: 800;
     letter-spacing: 10px;
-    background: linear-gradient(180deg, #ffffff 30%, #c9b0ff 75%);
+    background: linear-gradient(180deg, #ffffff 30%, #8fd0ff 75%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 26px rgba(124, 92, 255, 0.55);
+    text-shadow: 0 0 26px rgba(0, 180, 255, 0.55);
   }
 }
 .bd-hd-wing {
   width: 190px;
   height: 12px;
-  background: linear-gradient(90deg, rgba(177, 140, 255, 0), #b18cff);
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0), #00e5ff);
   clip-path: polygon(0 45%, 100% 0, 100% 100%, 0 55%);
   &.flip {
     transform: scaleX(-1);
@@ -605,13 +594,13 @@ export default {
 .bd-hd-fs {
   padding: 7px 14px;
   font-size: 14px;
-  color: #e8dcff;
-  border: 1px solid rgba(177, 140, 255, 0.55);
+  color: #cfe6ff;
+  border: 1px solid rgba(0, 229, 255, 0.55);
   border-radius: 999px;
   cursor: pointer;
-  background: rgba(124, 92, 255, 0.14);
+  background: rgba(0, 150, 255, 0.14);
   &:hover {
-    background: rgba(124, 92, 255, 0.34);
+    background: rgba(0, 150, 255, 0.34);
   }
 }
 
@@ -643,16 +632,16 @@ export default {
 /* 面板通用 */
 .bd-panel {
   position: relative;
-  background: linear-gradient(180deg, rgba(58, 30, 116, 0.5), rgba(38, 18, 78, 0.62));
-  border: 1px solid rgba(154, 120, 255, 0.4);
+  background: linear-gradient(180deg, rgba(12, 30, 62, 0.72), rgba(9, 22, 46, 0.62));
+  border: 1px solid rgba(0, 229, 255, 0.32);
   border-radius: 10px;
-  box-shadow: 0 0 22px rgba(94, 58, 196, 0.28) inset;
+  box-shadow: 0 0 22px rgba(0, 150, 255, 0.12) inset;
 }
 .bd-corner {
   position: absolute;
   width: 14px;
   height: 14px;
-  border-color: #b18cff;
+  border-color: #00e5ff;
   border-style: solid;
   border-width: 0;
   &.tl { top: -1px; left: -1px; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 8px; }
@@ -665,7 +654,7 @@ export default {
   font-size: 19px;
   font-weight: 700;
   letter-spacing: 3px;
-  color: #d9c9ff;
+  color: #8fd0ff;
 }
 
 /* 今日交易额 */
@@ -675,15 +664,15 @@ export default {
   align-items: center;
   padding: 0 34px;
   gap: 60px;
-  background: linear-gradient(120deg, rgba(96, 50, 190, 0.5), rgba(58, 30, 116, 0.55));
+  background: linear-gradient(120deg, rgba(20, 70, 150, 0.5), rgba(12, 30, 62, 0.55));
 }
 .bd-trade-label {
   font-size: 18px;
-  color: #cbb8f5;
+  color: #a9c6ee;
   .bd-trade-time {
     margin-left: 16px;
     font-size: 13px;
-    color: #9c86d4;
+    color: #6f8bb0;
     letter-spacing: 1px;
   }
 }
@@ -693,11 +682,11 @@ export default {
   font-weight: 800;
   font-family: 'DIN Alternate', 'Consolas', monospace;
   letter-spacing: 2px;
-  background: linear-gradient(180deg, #ffffff 35%, #d9c9ff 80%);
+  background: linear-gradient(180deg, #ffffff 35%, #8fd0ff 80%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 30px rgba(177, 140, 255, 0.45);
+  text-shadow: 0 0 30px rgba(0, 229, 255, 0.45);
 }
 .bd-trade-sub {
   display: flex;
@@ -707,7 +696,7 @@ export default {
 }
 .bd-ti-label {
   font-size: 16px;
-  color: #b7a3e6;
+  color: #8fa6c8;
 }
 .bd-ti-num {
   margin-top: 8px;
@@ -715,7 +704,7 @@ export default {
   font-weight: 700;
   font-family: 'DIN Alternate', 'Consolas', monospace;
   color: #fff;
-  text-shadow: 0 0 16px rgba(177, 140, 255, 0.5);
+  text-shadow: 0 0 16px rgba(0, 229, 255, 0.5);
 }
 
 /* 健康度仪表盘 */
@@ -740,13 +729,13 @@ export default {
   .bd-gauge-title {
     font-size: 20px;
     font-weight: 700;
-    color: #d9c9ff;
+    color: #8fd0ff;
     letter-spacing: 2px;
   }
   .bd-gauge-sub {
     margin-top: 6px;
     font-size: 13px;
-    color: #9c86d4;
+    color: #6f8bb0;
   }
 }
 .bd-gauges {
@@ -759,7 +748,7 @@ export default {
 }
 .bd-gauge-name {
   font-size: 15px;
-  color: #b7a3e6;
+  color: #8fa6c8;
 }
 .bd-gauge-wrap {
   height: 160px;
@@ -797,8 +786,8 @@ export default {
 .bd-ms-item {
   padding: 12px 16px;
   border-radius: 8px;
-  background: rgba(96, 50, 190, 0.22);
-  border: 1px solid rgba(154, 120, 255, 0.35);
+  background: rgba(20, 60, 130, 0.3);
+  border: 1px solid rgba(0, 229, 255, 0.35);
 }
 .bd-ms-num {
   font-size: 28px;
@@ -808,7 +797,7 @@ export default {
 .bd-ms-label {
   margin-top: 4px;
   font-size: 13px;
-  color: #b7a3e6;
+  color: #8fa6c8;
 }
 
 /* 最近下单 */
@@ -829,10 +818,13 @@ export default {
   gap: 10px;
 }
 .bd-order {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 10px 12px;
   border-radius: 8px;
-  background: rgba(24, 10, 52, 0.55);
-  border: 1px solid rgba(154, 120, 255, 0.28);
+  background: rgba(12, 28, 58, 0.6);
+  border: 1px solid rgba(0, 229, 255, 0.28);
   animation: bdSlideIn 0.6s ease both;
 }
 @keyframes bdSlideIn {
@@ -859,8 +851,8 @@ export default {
   justify-content: center;
   font-size: 17px;
   font-weight: 700;
-  color: #241040;
-  background: linear-gradient(135deg, #c9b0ff, #8f6fff);
+  color: #04122a;
+  background: linear-gradient(135deg, #8fd0ff, #2f7bff);
   flex-shrink: 0;
 }
 .bd-ou-info {
@@ -870,7 +862,7 @@ export default {
 .bd-ou-name {
   font-size: 15px;
   font-weight: 600;
-  color: #efe6ff;
+  color: #eaf1ff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -878,11 +870,25 @@ export default {
 .bd-ou-meta {
   margin-top: 2px;
   font-size: 12px;
-  color: #9c86d4;
+  color: #6f8bb0;
+}
+.bd-ou-right {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+.bd-ou-amt {
+  font-family: 'DIN Alternate', 'Consolas', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffd479;
+  text-shadow: 0 0 14px rgba(255, 200, 74, 0.4);
 }
 .bd-ou-time {
   font-size: 12px;
-  color: #9c86d4;
+  color: #6f8bb0;
 }
 .bd-order-card {
   margin-top: 8px;
@@ -896,7 +902,7 @@ export default {
   align-items: center;
   gap: 12px;
   font-size: 13px;
-  color: #cbb8f5;
+  color: #a9c6ee;
   b {
     color: #ffd479;
     font-family: 'DIN Alternate', 'Consolas', monospace;
@@ -912,7 +918,7 @@ export default {
 }
 .bd-oc-orderid {
   font-size: 12px;
-  color: #9c86d4;
+  color: #6f8bb0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -956,15 +962,15 @@ export default {
   gap: 12px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(24, 10, 52, 0.55);
-  border: 1px solid rgba(154, 120, 255, 0.28);
+  background: rgba(12, 28, 58, 0.6);
+  border: 1px solid rgba(0, 229, 255, 0.28);
 }
 .bd-team-img {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid rgba(177, 140, 255, 0.6);
+  border: 1px solid rgba(0, 229, 255, 0.6);
   flex-shrink: 0;
   &.ph {
     display: flex;
@@ -973,7 +979,7 @@ export default {
     font-size: 16px;
     font-weight: 700;
     color: #fff;
-    background: linear-gradient(135deg, #8f6fff, #5e3ac4);
+    background: linear-gradient(135deg, #2f7bff, #1e4a8f);
   }
 }
 .bd-team-info {
@@ -983,7 +989,7 @@ export default {
 .bd-team-name {
   font-size: 15px;
   font-weight: 600;
-  color: #efe6ff;
+  color: #eaf1ff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -993,7 +999,7 @@ export default {
   display: flex;
   gap: 12px;
   font-size: 12px;
-  color: #9c86d4;
+  color: #6f8bb0;
 }
 .bd-team-rank {
   width: 26px;
@@ -1004,8 +1010,8 @@ export default {
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
-  color: #241040;
-  background: #c9b0ff;
+  color: #04122a;
+  background: #8fd0ff;
   &.rk1 { background: linear-gradient(135deg, #ffe08a, #f7b500); }
   &.rk2 { background: linear-gradient(135deg, #e8e8ef, #b9bcd0); }
   &.rk3 { background: linear-gradient(135deg, #ffc79c, #e89a5f); }
@@ -1016,7 +1022,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #7c6bb0;
+  color: #5c718f;
   font-size: 14px;
 }
 </style>
