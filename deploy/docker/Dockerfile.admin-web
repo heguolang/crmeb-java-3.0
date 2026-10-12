@@ -5,10 +5,9 @@ WORKDIR /src
 COPY admin/package.json admin/package-lock.json* ./
 RUN npm install --registry=https://registry.npmmirror.com
 COPY admin/ ./
-# 空 BASE_API → 运行时用 location.origin，配合 Nginx 同域反代
-ENV NODE_OPTIONS=--openssl-legacy-provider \
-    VUE_APP_BASE_API=
-RUN npm run build:prod
+# 空 BASE_API → 运行时用 location.origin；legacy 放命令行（不可进 NODE_OPTIONS）
+ENV VUE_APP_BASE_API=
+RUN node --openssl-legacy-provider ./node_modules/@vue/cli-service/bin/vue-cli-service.js build
 
 FROM nginx:1.25-alpine
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
