@@ -5,9 +5,11 @@ WORKDIR /src
 COPY admin/package.json admin/package-lock.json* ./
 RUN npm install --registry=https://registry.npmmirror.com
 COPY admin/ ./
-# 空 BASE_API → 运行时用 location.origin，配合 Nginx 同域反代
-ENV NODE_OPTIONS=--openssl-legacy-provider \
-    VUE_APP_BASE_API=
+# CI=false：避免 BuildKit 默认 CI=true 把 webpack 警告当错误
+# 空 BASE_API → 运行时用 location.origin
+ENV CI=false \
+    VUE_APP_BASE_API= \
+    NODE_OPTIONS=--max-old-space-size=3072
 RUN npm run build:prod
 
 FROM nginx:1.25-alpine
