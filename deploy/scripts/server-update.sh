@@ -69,15 +69,62 @@ fi
 echo "镜像 TAG: $TAG  (commit $SHORT_SHA)"
 
 echo "========== 2/5 Maven 打包 =========="
-if command -v mvn >/dev/null 2>&1; then
-  MVN=(mvn)
-elif [[ -x "$ROOT/qianxu/mvnw" ]]; then
-  MVN=("$ROOT/qianxu/mvnw")
-else
-  echo "未找到 mvn / mvnw" >&2
-  exit 1
+# 尝试本机 JDK（宝塔常见路径）
+if [[ -z "${JAVA_HOME:-}" ]]; then
+  for d in /usr/lib/jvm/java-1.8.0-openjdk /usr/lib/jvm/java-8-openjdk \
+           /www/server/java/jdk1.8.0_* /www/server/java/jdk-8* \
+           /usr/java/jdk1.8.0_* /opt/java/jdk8; do
+    for resolved in $d; do
+      if [[ -x "$resolved/bin/javac" ]]; then
+        export JAVA_HOME="$resolved"
+        export PATH="$JAVA_HOME/bin:$PATH"
+        echo "[info] JAVA_HOME=$JAVA_HOME"
+        break 2
+      fi
+    done
+  done
 fi
-"${MVN[@]}" -f qianxu/pom.xml -pl qianxu-admin,qianxu-front -am -DskipTests package
+
+maven_package_host() {
+  if command -v mvn >/dev/null 2>&1; then
+    mvn -f qianxu/pom.xml -pl qianxu-admin,qianxu-front -am -DskipTests package
+    return $?
+  fi
+  if [[ -x "$ROOT/qianxu/mvnw" ]]; then
+    (cd "$ROOT/qianxu" && ./mvnw -pl qianxu-admin,qianxu-front -am -DskipTests package)
+    return $?
+  fi
+  return 1
+}
+
+maven_package_docker() {
+  # 无本机 JDK/Maven 时，用容器编译（只需 Docker）
+  local MAVEN_IMG
+  if [[ "$USE_CHINA" -eq 1 ]]; then
+    MAVEN_IMG="docker.m.daocloud.io/library/maven:3.9.6-eclipse-temurin-8"
+  else
+    MAVEN_IMG="maven:3.9.6-eclipse-temurin-8"
+  fi
+  echo "[info] 本机无可用 JDK/Maven，改用 Docker 编译: $MAVEN_IMG"
+  docker pull "$MAVEN_IMG"
+  docker run --rm \
+    -v "$ROOT/qianxu:/src" \
+    -v qianxu_m2_cache:/root/.m2 \
+    -w /src \
+    "$MAVEN_IMG" \
+    mvn -pl qianxu-admin,qianxu-front -am -DskipTests package
+}
+
+if command -v javac >/dev/null 2>&1 && maven_package_host; then
+  echo "[info] 本机 Maven 打包完成"
+else
+  maven_package_docker
+fi
+
+test -f "$ROOT/qianxu/qianxu-admin/target/Qianxu-admin.jar" \
+  || { echo "缺少 Qianxu-admin.jar，打包失败" >&2; exit 1; }
+test -f "$ROOT/qianxu/qianxu-front/target/Qianxu-front.jar" \
+  || { echo "缺少 Qianxu-front.jar，打包失败" >&2; exit 1; }
 
 echo "========== 3/5 构建 Docker 镜像 =========="
 if [[ "$USE_CHINA" -eq 1 ]]; then
