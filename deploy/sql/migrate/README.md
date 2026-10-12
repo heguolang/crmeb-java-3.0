@@ -1,35 +1,12 @@
 # 增量 SQL（一键更新自动执行）
 
-把**已有库**的升级补丁放到本目录，文件名建议：
+**写补丁前请先读（给人或 AI）：**
 
-```text
-YYYYMMDD_简短说明.sql
-例如：20261012_add_xxx_column.sql
-```
+👉 [../SQL_PATCH_STANDARD.md](../SQL_PATCH_STANDARD.md)
 
-`./deploy/scripts/server-update.sh` 会在重启容器前：
+对 AI 可直接说：
 
-1. 读取 `deploy/.env` 里的库名/密码  
-2. 按文件名排序执行**尚未执行过**的 `.sql`  
-3. 记入表 `qx_sql_migration`（避免重复执行）
+> 按 `deploy/sql/SQL_PATCH_STANDARD.md` 生成 SQL
 
-## 写法要求（必须幂等）
-
-- `CREATE TABLE IF NOT EXISTS ...`
-- 加列用 `information_schema` 判断后再 `ALTER`
-- `INSERT ... WHERE NOT EXISTS` / `INSERT IGNORE`
-
-**不要**把 `00_full_install.sql`（会 DROP 表）放进本目录。
-
-## 手工只跑 SQL（不构建镜像）
-
-```bash
-cd /opt/qianxu-docker/crmeb-java-3.0
-./deploy/scripts/apply-sql-migrations.sh
-```
-
-## 跳过 SQL
-
-```bash
-./deploy/scripts/server-update.sh --skip-sql
-```
+本目录只放 `YYYYMMDD_说明.sql`。  
+`./deploy/scripts/server-update.sh` 会自动执行尚未跑过的文件（记录在 `qx_sql_migration`）。
