@@ -5,9 +5,9 @@ WORKDIR /src
 COPY admin/package.json admin/package-lock.json* ./
 RUN npm install --registry=https://registry.npmmirror.com
 COPY admin/ ./
-# 空 BASE_API → 运行时用 location.origin；legacy 放命令行（不可进 NODE_OPTIONS）
+# 空 BASE_API → 运行时用 location.origin（Node 16 / OpenSSL 1.1 无需 legacy 参数）
 ENV VUE_APP_BASE_API=
-RUN node --openssl-legacy-provider ./node_modules/@vue/cli-service/bin/vue-cli-service.js build
+RUN npm run build:prod
 
 FROM docker.m.daocloud.io/library/nginx:1.25-alpine
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
