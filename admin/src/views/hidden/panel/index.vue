@@ -43,6 +43,23 @@
         </el-row>
       </div>
 
+      <!-- 功能开关：大市场 -->
+      <div class="panel-section">
+        <div class="panel-section-title">功能开关 · 大市场</div>
+        <el-row :gutter="16">
+          <el-col :span="8" v-for="item in marketSwitchItems" :key="item.key">
+            <div class="switch-cell">
+              <span>{{ item.name }}</span>
+              <el-switch
+                v-model="marketSwitches[item.key]"
+                :active-text="marketSwitches[item.key] ? '已开启' : '已关闭'"
+                @change="onSwitchChange(item, marketSwitches)"
+              />
+            </div>
+          </el-col>
+        </el-row>
+      </div>
+
       <!-- 数据清除 -->
       <div class="panel-section">
         <div class="panel-section-title">数据清除（每次操作需输入确认串 DELETE）</div>
@@ -162,6 +179,20 @@ export default {
         { key: 'sys_switch_combination', name: '拼团管理' },
         { key: 'sys_switch_coupon', name: '优惠券' },
       ],
+      marketSwitches: {
+        sys_switch_chain: false,
+        sys_switch_dividend: false,
+        sys_switch_enterprise: false,
+        sys_switch_recruit: false,
+        sys_switch_screen: false,
+      },
+      marketSwitchItems: [
+        { key: 'sys_switch_chain', name: 'N+1链动' },
+        { key: 'sys_switch_dividend', name: '全球分红' },
+        { key: 'sys_switch_enterprise', name: '企业管理' },
+        { key: 'sys_switch_recruit', name: '招聘系统' },
+        { key: 'sys_switch_screen', name: '数据中心大屏' },
+      ],
       counts: {},
       // 清空商品：页签范围
       productClearType: 'productSelling',
@@ -213,6 +244,7 @@ export default {
           this.counts = (res && res.counts) || {};
           this.switches = (res && res.switches) || this.switches;
           this.marketingSwitches = (res && res.marketingSwitches) || this.marketingSwitches;
+          this.marketSwitches = (res && res.marketSwitches) || this.marketSwitches;
           this.loaded = true;
         })
         .catch(() => {

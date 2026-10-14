@@ -56,6 +56,16 @@ public class HiddenController {
         MARKETING_SWITCH_KEYS.put("sys_switch_coupon", "优惠券");
     }
 
+    /** 大市场子模块开关配置键（顺序即展示顺序） */
+    private static final Map<String, String> MARKET_SWITCH_KEYS = new LinkedHashMap<>();
+    static {
+        MARKET_SWITCH_KEYS.put("sys_switch_chain", "N+1链动");
+        MARKET_SWITCH_KEYS.put("sys_switch_dividend", "全球分红");
+        MARKET_SWITCH_KEYS.put("sys_switch_enterprise", "企业管理");
+        MARKET_SWITCH_KEYS.put("sys_switch_recruit", "招聘系统");
+        MARKET_SWITCH_KEYS.put("sys_switch_screen", "数据中心大屏");
+    }
+
     /** 会员及关联业务表（清会员时全量清空，最后清 eb_user） */
     private static final String[] USER_RELATED_TABLES = {
             "eb_user_bill", "eb_user_address", "eb_user_brokerage_record", "eb_user_integral_record",
@@ -176,6 +186,13 @@ public class HiddenController {
             marketingSwitches.put(entry.getKey(), "1".equals(v));
         }
         result.put("marketingSwitches", marketingSwitches);
+
+        Map<String, Object> marketSwitches = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : MARKET_SWITCH_KEYS.entrySet()) {
+            String v = systemConfigService.getValueByKey(entry.getKey());
+            marketSwitches.put(entry.getKey(), "1".equals(v));
+        }
+        result.put("marketSwitches", marketSwitches);
         return result;
     }
 
@@ -368,8 +385,13 @@ public class HiddenController {
         for (Map.Entry<String, String> entry : MARKETING_SWITCH_KEYS.entrySet()) {
             marketing.put(entry.getKey(), "1".equals(systemConfigService.getValueByKey(entry.getKey())));
         }
+        Map<String, Object> market = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : MARKET_SWITCH_KEYS.entrySet()) {
+            market.put(entry.getKey(), "1".equals(systemConfigService.getValueByKey(entry.getKey())));
+        }
         result.put("mode", mode);
         result.put("marketing", marketing);
+        result.put("market", market);
         return result;
     }
 
@@ -401,7 +423,7 @@ public class HiddenController {
             response.setStatus(404);
             return null;
         }
-        if ((!SWITCH_KEYS.containsKey(key) && !MARKETING_SWITCH_KEYS.containsKey(key)) || value == null) {
+        if ((!SWITCH_KEYS.containsKey(key) && !MARKETING_SWITCH_KEYS.containsKey(key) && !MARKET_SWITCH_KEYS.containsKey(key)) || value == null) {
             throw new com.qxkj.common.exception.QianxuException("参数错误");
         }
         String account = currentAccount();

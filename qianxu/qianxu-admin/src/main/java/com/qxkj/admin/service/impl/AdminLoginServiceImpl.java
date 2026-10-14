@@ -274,6 +274,12 @@ public class AdminLoginServiceImpl implements AdminLoginService {
         moduleMenuSwitch.put("/distribution", "sys_switch_spread");
         moduleMenuSwitch.put("/tuandui", "sys_switch_team_reward");
         moduleMenuSwitch.put("/market", "sys_switch_pingou");
+        // 大市场子模块开关（运维面板）
+        moduleMenuSwitch.put("/chain", "sys_switch_chain");
+        moduleMenuSwitch.put("/market/dividend", "sys_switch_dividend");
+        moduleMenuSwitch.put("/market/enterprise", "sys_switch_enterprise");
+        moduleMenuSwitch.put("/market/recruit", "sys_switch_recruit");
+        moduleMenuSwitch.put("/market/screen", "sys_switch_screen");
         // 营销模块开关（营销下的二级分组，任意层级按 component 匹配）
         moduleMenuSwitch.put("/marketing/coupon", "sys_switch_coupon");
         moduleMenuSwitch.put("/marketing/integral", "sys_switch_integral");
