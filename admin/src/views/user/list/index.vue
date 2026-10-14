@@ -139,7 +139,7 @@
                 <el-option :value="3" label="保密"></el-option>
               </el-select>
             </el-form-item>
-            <el-form-item label="拼购等级">
+            <el-form-item v-if="showPingou" label="拼购等级">
               <el-select
                 v-model="userFrom.pingouLevelId"
                 @visible-change="userSearchs"
@@ -312,7 +312,7 @@
               <div class="kv"><span class="kv__k">手机号：</span><span class="kv__v kv__v--num">{{ item.phone | filterEmpty }}</span></div>
               <div class="kv"><span class="kv__k">注册时间：</span><span class="kv__v kv__v--num">{{ item.createTime | filterEmpty }}</span></div>
               <div v-if="showDividend" class="kv"><span class="kv__k">分红等级：</span><span class="kv__v">{{ item.dividendLevelNames || '—' }}</span></div>
-              <div class="kv"><span class="kv__k">拼购等级：</span><span class="kv__v">{{ item.pingouLevelName || '—' }}</span></div>
+              <div v-if="showPingou" class="kv"><span class="kv__k">拼购等级：</span><span class="kv__v">{{ item.pingouLevelName || '—' }}</span></div>
               <div class="kv"><span class="kv__k">备注：</span><span class="kv__v">{{ item.mark | filterEmpty }}</span></div>
             </div>
 
@@ -361,7 +361,7 @@
                     <el-dropdown-item @click.native="onLevel(item.uid, item.level)">修改用户等级</el-dropdown-item>
                     <el-dropdown-item @click.native="onTeamLevel(item.uid, item.teamLevel)">修改团队等级</el-dropdown-item>
                     <el-dropdown-item v-if="showDividend" @click.native="onDividendLevel(item)">修改分红等级</el-dropdown-item>
-                    <el-dropdown-item @click.native="onPingouLevel(item)">修改拼购等级</el-dropdown-item>
+                    <el-dropdown-item v-if="showPingou" @click.native="onPingouLevel(item)">修改拼购等级</el-dropdown-item>
                   </el-dropdown-menu>
                 </el-dropdown>
                 <!-- 资金：账户资金类操作（2026-09-28 从「更多」拆出） -->
@@ -606,8 +606,9 @@
         :dividendLevelList="dividendLevelList"
       ></dividend-level-edit>
     </el-dialog>
-    <!-- 用户拼购等级（人工指定） -->
+    <!-- 用户拼购等级（人工指定；拼购开关关闭时不渲染） -->
     <el-dialog
+      v-if="showPingou"
       title="修改拼购等级"
       :visible.sync="pingouLevelVisible"
       width="540px"
@@ -800,6 +801,10 @@ export default {
     showDividend() {
       return this.hasMenuUrl('/market/dividend');
     },
+    // 拼购开关联动：后端 getMenus 关闭时不下发 /market/pingou 菜单
+    showPingou() {
+      return this.hasMenuUrl('/market/pingou');
+    },
     // 是否注销
     isRedFont() {
       return (info) => {
@@ -823,7 +828,7 @@ export default {
     this.teamLevelLists();
     this.distributorLevelLists();
     if (this.showDividend) this.dividendLevelLists();
-    this.pingouLevelLists();
+    if (this.showPingou) this.pingouLevelLists();
     this.getTagList();
     if (checkPermi(['admin:system:city:list:tree'])) this.getCityList();
   },
