@@ -6289,7 +6289,9 @@ UPDATE `eb_system_menu` m
      GROUP BY `component`
     HAVING COUNT(*) > 1
   ) d ON m.`component` = d.`component` AND m.`id` > d.`keep_id`
-   SET m.`is_delte` = 1, m.`update_time` = NOW()
+   SET m.`is_delte` = 1, m.`update_time` = NOW();
+-- ========== END: menu_dedupe_guard_20261012.sql ==========
+
 -- ========== BEGIN: 20261014_market_module_switches.sql ==========
 -- ============================================================
 -- 20261014_market_module_switches.sql
