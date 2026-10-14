@@ -113,7 +113,7 @@
                 <el-option :value="3" label="时间段未访问"></el-option>
               </el-select>
             </el-form-item>
-            <el-form-item label="分红等级">
+            <el-form-item v-if="showDividend" label="分红等级">
               <el-select
                 v-model="userFrom.dividendLevelId"
                 @visible-change="userSearchs"
@@ -311,7 +311,7 @@
               </div>
               <div class="kv"><span class="kv__k">手机号：</span><span class="kv__v kv__v--num">{{ item.phone | filterEmpty }}</span></div>
               <div class="kv"><span class="kv__k">注册时间：</span><span class="kv__v kv__v--num">{{ item.createTime | filterEmpty }}</span></div>
-              <div class="kv"><span class="kv__k">分红等级：</span><span class="kv__v">{{ item.dividendLevelNames || '—' }}</span></div>
+              <div v-if="showDividend" class="kv"><span class="kv__k">分红等级：</span><span class="kv__v">{{ item.dividendLevelNames || '—' }}</span></div>
               <div class="kv"><span class="kv__k">拼购等级：</span><span class="kv__v">{{ item.pingouLevelName || '—' }}</span></div>
               <div class="kv"><span class="kv__k">备注：</span><span class="kv__v">{{ item.mark | filterEmpty }}</span></div>
             </div>
@@ -360,7 +360,7 @@
                   <el-dropdown-menu slot="dropdown">
                     <el-dropdown-item @click.native="onLevel(item.uid, item.level)">修改用户等级</el-dropdown-item>
                     <el-dropdown-item @click.native="onTeamLevel(item.uid, item.teamLevel)">修改团队等级</el-dropdown-item>
-                    <el-dropdown-item @click.native="onDividendLevel(item)">修改分红等级</el-dropdown-item>
+                    <el-dropdown-item v-if="showDividend" @click.native="onDividendLevel(item)">修改分红等级</el-dropdown-item>
                     <el-dropdown-item @click.native="onPingouLevel(item)">修改拼购等级</el-dropdown-item>
                   </el-dropdown-menu>
                 </el-dropdown>
@@ -593,8 +593,9 @@
     <el-dialog title="修改用户团队等级" :visible.sync="teamLevelVisible" width="540px" :before-close="CloseTeamLevel">
       <team-level-edit :teamLevelInfo="teamLevelInfo" :teamLevelList="teamLevelList"></team-level-edit>
     </el-dialog>
-    <!-- 用户分红等级（人工指定） -->
+    <!-- 用户分红等级（人工指定；全球分红开关关闭时不渲染） -->
     <el-dialog
+      v-if="showDividend"
       title="修改分红等级"
       :visible.sync="dividendLevelVisible"
       width="540px"
@@ -795,6 +796,10 @@ export default {
     };
   },
   computed: {
+    // 全球分红开关联动：后端 getMenus 关闭时不下发 /market/dividend 菜单
+    showDividend() {
+      return this.hasMenuUrl('/market/dividend');
+    },
     // 是否注销
     isRedFont() {
       return (info) => {
@@ -817,13 +822,22 @@ export default {
     this.levelLists();
     this.teamLevelLists();
     this.distributorLevelLists();
-    this.dividendLevelLists();
+    if (this.showDividend) this.dividendLevelLists();
     this.pingouLevelLists();
     this.getTagList();
     if (checkPermi(['admin:system:city:list:tree'])) this.getCityList();
   },
   methods: {
     checkPermi,
+    // 递归查后端下发的菜单树（permission_routes）里是否存在指定 component 路径
+    hasMenuUrl(url, list) {
+      const tree = list || this.$store.getters.permission_routes || [];
+      for (const node of tree) {
+        if (node && (node.url === url || node.path === url)) return true;
+        if (node && node.child && node.child.length && this.hasMenuUrl(url, node.child)) return true;
+      }
+      return false;
+    },
     // 一键复制：优先 Clipboard API，非 https 或旧浏览器降级到 execCommand
     copyText(text) {
       const value = String(text);
