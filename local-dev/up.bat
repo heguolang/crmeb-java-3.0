@@ -64,7 +64,9 @@ if /I "%~1"=="web" (
   echo [+] Admin Web 9527 ...
   netstat -ano | findstr /C:":9527 " | findstr LISTENING >nul
   if errorlevel 1 (
-    start "qianxu-admin-web" "%NODE_DIR%\node.exe" --openssl-legacy-provider "%PROJ%\admin\node_modules\@vue\cli-service\bin\vue-cli-service.js" serve --port 9527 >> "%LOGS%\admin-web.log" 2>&1
+    pushd "%PROJ%\admin"
+    start "qianxu-admin-web" /MIN "%NODE_DIR%\node.exe" --openssl-legacy-provider "node_modules\@vue\cli-service\bin\vue-cli-service.js" serve --port 9527 >> "%LOGS%\admin-web.log" 2>&1
+    popd
     echo       starting... ^(first run 1-2 min^)
   ) else ( echo       already running )
 )
