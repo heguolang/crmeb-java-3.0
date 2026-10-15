@@ -6277,20 +6277,23 @@ SELECT 'rec_tip', '投递页提示文案', '提交后我们会在 1-3 个工作�
 WHERE NOT EXISTS (SELECT 1 FROM (SELECT id FROM `eb_system_config` WHERE `name` = 'rec_tip') x);
 -- ========== END: upgrade_20261007_recruit.sql ==========
 
--- ========== BEGIN: menu_dedupe_guard_20261012.sql ==========
--- 菜单防重护栏（幂等）：同 component 的 C/M 菜单只保留 id 最小一条，其余软删。
--- 背景：多个历史补丁各自插入「大数据中心」，2026-10-12 线上实测同屏出现两条。
+-- ========== BEGIN: 20261012_menu_dedupe_guard.sql ==========
+-- 菜单防重护栏（幂等）：同一父级(pid)下、同 component 的 C/M 菜单只保留 id 最小一条，其余软删。
+-- 背景：多个历史补丁各自插入「大数据中心」(/market/screen/hub)，2026-10-12 线上实测同屏出现两条。
+-- ⚠️ 去重维度必须是 (pid, component)，不能只用 component：
+--    「首页(M, /dashboard, pid=0)」与「控制台(C, /dashboard, pid=首页)」是合法父子菜单，
+--    同 component 但 pid 不同，只用 component 去重会把「控制台」误删（2026-10-15 实测）。
 UPDATE `eb_system_menu` m
   JOIN (
-    SELECT `component`, MIN(`id`) AS keep_id
+    SELECT `pid`, `component`, MIN(`id`) AS keep_id
       FROM `eb_system_menu`
      WHERE `menu_type` IN ('C','M') AND `is_delte` = 0
        AND `component` IS NOT NULL AND `component` <> ''
-     GROUP BY `component`
+     GROUP BY `pid`, `component`
     HAVING COUNT(*) > 1
-  ) d ON m.`component` = d.`component` AND m.`id` > d.`keep_id`
+  ) d ON m.`pid` = d.`pid` AND m.`component` = d.`component` AND m.`id` > d.`keep_id`
    SET m.`is_delte` = 1, m.`update_time` = NOW();
--- ========== END: menu_dedupe_guard_20261012.sql ==========
+-- ========== END: 20261012_menu_dedupe_guard.sql ==========
 
 -- ========== BEGIN: 20261014_market_module_switches.sql ==========
 -- ============================================================
