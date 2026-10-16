@@ -10,7 +10,7 @@
           </div>
         </div>
         <div ref="scrollBox" class="ai-panel-bd">
-          <div v-if="!messages.length" class="ai-empty">问我经营、订单或后台使用问题吧</div>
+          <div v-if="!messages.length" class="ai-empty">试试问：今日成交金额、待发货多少</div>
           <div v-for="(item, idx) in messages" :key="idx" class="ai-row" :class="item.role">
             <pre class="ai-content">{{ item.content }}</pre>
           </div>

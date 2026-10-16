@@ -4,7 +4,7 @@
       <div slot="header" class="ai-header">
         <div>
           <div class="ai-title">AI 助手</div>
-          <div class="ai-sub">基于 DeepSeek，可咨询经营、订单、商品与后台使用问题（当前不直连店铺数据）</div>
+          <div class="ai-sub">基于 DeepSeek，可直接查询今日销售额、订单量、待发货等经营数据，也可咨询后台使用问题</div>
         </div>
         <el-button size="small" @click="clearChat">清空对话</el-button>
       </div>
@@ -56,9 +56,9 @@ export default {
       loading: false,
       messages: [],
       tips: [
-        '新商家入驻后，后台一般先配置哪些内容？',
-        '订单一直待发货，可能是什么原因？',
-        '如何理解分销佣金和团队奖的区别？',
+        '今日成交金额',
+        '今天有多少订单？待发货多少？',
+        '本月GMV和客单价是多少？',
       ],
     };
   },
