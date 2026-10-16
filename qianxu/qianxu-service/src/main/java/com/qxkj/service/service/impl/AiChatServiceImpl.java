@@ -7,6 +7,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qxkj.common.config.DeepSeekConfig;
+import com.qxkj.common.constants.SysConfigConstants;
 import com.qxkj.common.exception.QianxuException;
 import com.qxkj.common.request.AiChatMessageRequest;
 import com.qxkj.common.request.AiChatRequest;
@@ -15,6 +16,7 @@ import com.qxkj.common.response.HomeOperatingDataResponse;
 import com.qxkj.common.response.HomeRateResponse;
 import com.qxkj.service.service.AiChatService;
 import com.qxkj.service.service.HomeService;
+import com.qxkj.service.service.SystemConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import java.util.List;
 
 /**
  * DeepSeek 对话实现（支持工具调用，可读取首页经营数据）
+ * API Key 等优先读「设置 → 第三方接口 → AI配置」，未配置时回退 application.yml
  */
 @Slf4j
 @Service
@@ -42,13 +45,17 @@ public class AiChatServiceImpl implements AiChatService {
     @Autowired
     private HomeService homeService;
 
+    @Autowired
+    private SystemConfigService systemConfigService;
+
     @Override
     public AiChatResponse chat(AiChatRequest request) {
-        if (!deepSeekConfig.isEnabled()) {
-            throw new QianxuException("AI助手未启用");
+        RuntimeAiConfig cfg = resolveRuntimeConfig();
+        if (!cfg.enabled) {
+            throw new QianxuException("AI助手未启用，请在「设置 → 第三方接口设置 → AI配置」中开启");
         }
-        if (StrUtil.isBlank(deepSeekConfig.getApiKey())) {
-            throw new QianxuException("未配置 DeepSeek API Key");
+        if (StrUtil.isBlank(cfg.apiKey)) {
+            throw new QianxuException("未配置 DeepSeek API Key，请在「设置 → 第三方接口设置 → AI配置」中填写");
         }
         String message = StrUtil.trim(request.getMessage());
         if (StrUtil.isBlank(message)) {
@@ -61,7 +68,7 @@ public class AiChatServiceImpl implements AiChatService {
         JSONArray messages = buildMessages(request.getHistory(), message);
         try {
             for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
-                JSONObject msg = callDeepSeek(messages, true);
+                JSONObject msg = callDeepSeek(messages, true, cfg);
                 JSONArray toolCalls = msg.getJSONArray("tool_calls");
                 if (toolCalls == null || toolCalls.isEmpty()) {
                     String reply = msg.getString("content");
@@ -90,7 +97,7 @@ public class AiChatServiceImpl implements AiChatService {
             }
 
             // 工具轮次用尽后，再要一次纯文本回答
-            JSONObject finalMsg = callDeepSeek(messages, false);
+            JSONObject finalMsg = callDeepSeek(messages, false, cfg);
             String reply = finalMsg.getString("content");
             if (StrUtil.isBlank(reply)) {
                 throw new QianxuException("DeepSeek 回复为空");
@@ -104,9 +111,46 @@ public class AiChatServiceImpl implements AiChatService {
         }
     }
 
-    private JSONObject callDeepSeek(JSONArray messages, boolean withTools) {
+    /**
+     * 后台配置优先，yml 兜底
+     */
+    private RuntimeAiConfig resolveRuntimeConfig() {
+        RuntimeAiConfig cfg = new RuntimeAiConfig();
+        String enabled = systemConfigService.getValueByKey(SysConfigConstants.DEEPSEEK_ENABLED);
+        if (StrUtil.isNotBlank(enabled)) {
+            cfg.enabled = !"0".equals(enabled.trim()) && !"false".equalsIgnoreCase(enabled.trim());
+        } else {
+            cfg.enabled = deepSeekConfig.isEnabled();
+        }
+        cfg.apiKey = firstNonBlank(
+                systemConfigService.getValueByKey(SysConfigConstants.DEEPSEEK_API_KEY),
+                deepSeekConfig.getApiKey());
+        cfg.model = firstNonBlank(
+                systemConfigService.getValueByKey(SysConfigConstants.DEEPSEEK_MODEL),
+                deepSeekConfig.getModel(),
+                "deepseek-chat");
+        cfg.apiUrl = firstNonBlank(
+                systemConfigService.getValueByKey(SysConfigConstants.DEEPSEEK_API_URL),
+                deepSeekConfig.getApiUrl(),
+                "https://api.deepseek.com/chat/completions");
+        return cfg;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String v : values) {
+            if (StrUtil.isNotBlank(v)) {
+                return v.trim();
+            }
+        }
+        return "";
+    }
+
+    private JSONObject callDeepSeek(JSONArray messages, boolean withTools, RuntimeAiConfig cfg) {
         JSONObject body = new JSONObject();
-        body.put("model", deepSeekConfig.getModel());
+        body.put("model", cfg.model);
         body.put("messages", messages);
         body.put("stream", false);
         body.put("temperature", 0.3);
@@ -115,8 +159,8 @@ public class AiChatServiceImpl implements AiChatService {
             body.put("tool_choice", "auto");
         }
 
-        HttpResponse response = HttpRequest.post(deepSeekConfig.getApiUrl())
-                .header("Authorization", "Bearer " + deepSeekConfig.getApiKey())
+        HttpResponse response = HttpRequest.post(cfg.apiUrl)
+                .header("Authorization", "Bearer " + cfg.apiKey)
                 .header("Content-Type", "application/json")
                 .body(body.toJSONString())
                 .timeout(deepSeekConfig.getTimeoutMs())
@@ -289,5 +333,12 @@ public class AiChatServiceImpl implements AiChatService {
             // ignore
         }
         return "DeepSeek 调用失败，请检查 API Key 或网络";
+    }
+
+    private static class RuntimeAiConfig {
+        private boolean enabled;
+        private String apiKey;
+        private String model;
+        private String apiUrl;
     }
 }

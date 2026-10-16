@@ -326,6 +326,15 @@ public class SysConfigConstants {
     /** 默认好评内容 */
     public static final String CONFIG_AUTO_REPLY_CONTENT = "auto_reply_content";
 
+    /** DeepSeek AI 开关：1开启 0关闭 */
+    public static final String DEEPSEEK_ENABLED = "deepseek_enabled";
+    /** DeepSeek API Key */
+    public static final String DEEPSEEK_API_KEY = "deepseek_api_key";
+    /** DeepSeek 模型名 */
+    public static final String DEEPSEEK_MODEL = "deepseek_model";
+    /** DeepSeek 接口地址 */
+    public static final String DEEPSEEK_API_URL = "deepseek_api_url";
+
 
 
 
