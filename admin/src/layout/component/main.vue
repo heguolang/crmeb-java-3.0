@@ -8,7 +8,8 @@
       <LayoutParentView />
       <Footers v-if="getThemeConfig.isFooter && !isFullScreen" />
     </el-scrollbar>
-    <AiAssistantFloat />
+    <!-- AI 全屏页不挂载浮标，避免挡住「发送」 -->
+    <AiAssistantFloat v-if="!isAiAssistantPage" />
   </el-main>
 </template>
 <script>
@@ -38,6 +39,11 @@ export default {
     },
     isFullScreen() {
       return this.$route.meta.fullScreen;
+    },
+    isAiAssistantPage() {
+      const route = this.$route || {};
+      const path = route.path || '';
+      return route.name === 'AiAssistant' || path.indexOf('/ai/assistant') !== -1;
     },
   },
   mounted() {

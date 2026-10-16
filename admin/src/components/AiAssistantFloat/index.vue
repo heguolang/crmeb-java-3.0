@@ -89,9 +89,14 @@ export default {
       return this.name || 'default';
     },
     hidden() {
-      const p = this.$route.path || '';
+      const route = this.$route || {};
+      const p = route.path || '';
+      const n = route.name || '';
       // 登录页、AI 全屏页不显示浮标，避免挡住发送按钮
-      return p === '/login' || p === '/ai/assistant' || p.startsWith('/ai/assistant/');
+      if (p === '/login' || n === 'Login') return true;
+      if (n === 'AiAssistant') return true;
+      if (p.indexOf('/ai/assistant') !== -1) return true;
+      return false;
     },
     sessions() {
       return (this.store && this.store.sessions) || [];
@@ -201,9 +206,10 @@ export default {
 <style scoped lang="scss">
 .ai-float {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 3000;
+  /* 靠右但略抬高，减少与页面右下角操作按钮重叠 */
+  right: 28px;
+  bottom: 96px;
+  z-index: 2000;
 }
 .ai-fab {
   width: 52px;
