@@ -54,11 +54,16 @@ WHERE @thirdPid IS NOT NULL
   );
 
 -- 若此前已插入但 extra 为空/错误，纠正表单关联
+-- 用数值比较，避免 utf8mb4_general_ci / utf8mb4_0900_ai_ci 混用报错
 UPDATE `eb_category`
-   SET `extra` = CAST(@aiFormId AS CHAR), `update_time` = NOW()
+   SET `extra` = CAST(@aiFormId AS CHAR CHARSET utf8mb4) COLLATE utf8mb4_general_ci,
+       `update_time` = NOW()
  WHERE `type` = 6 AND `name` = 'AI配置' AND `url` = 'ai_deepseek'
    AND @aiFormId IS NOT NULL
-   AND (`extra` IS NULL OR `extra` = '' OR `extra` <> CAST(@aiFormId AS CHAR));
+   AND (
+     `extra` IS NULL OR `extra` = ''
+     OR CAST(`extra` AS UNSIGNED) <> @aiFormId
+   );
 
 -- 3) 配置项
 INSERT INTO `eb_system_config` (`name`, `title`, `form_id`, `value`, `status`, `create_time`, `update_time`)

@@ -6404,10 +6404,14 @@ WHERE @thirdPid IS NOT NULL
   );
 
 UPDATE `eb_category`
-   SET `extra` = CAST(@aiFormId AS CHAR), `update_time` = NOW()
+   SET `extra` = CAST(@aiFormId AS CHAR CHARSET utf8mb4) COLLATE utf8mb4_general_ci,
+       `update_time` = NOW()
  WHERE `type` = 6 AND `name` = 'AI配置' AND `url` = 'ai_deepseek'
    AND @aiFormId IS NOT NULL
-   AND (`extra` IS NULL OR `extra` = '' OR `extra` <> CAST(@aiFormId AS CHAR));
+   AND (
+     `extra` IS NULL OR `extra` = ''
+     OR CAST(`extra` AS UNSIGNED) <> @aiFormId
+   );
 
 INSERT INTO `eb_system_config` (`name`, `title`, `form_id`, `value`, `status`, `create_time`, `update_time`)
 SELECT 'deepseek_enabled', '启用AI助手', @aiFormId, '1', 0, NOW(), NOW()
