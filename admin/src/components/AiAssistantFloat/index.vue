@@ -1,5 +1,5 @@
 <template>
-  <div class="ai-float" v-if="!hiddenOnLogin">
+  <div class="ai-float" v-if="!hidden">
     <transition name="el-fade-in">
       <div v-show="visible" class="ai-panel">
         <div class="ai-panel-hd">
@@ -88,8 +88,10 @@ export default {
     account() {
       return this.name || 'default';
     },
-    hiddenOnLogin() {
-      return this.$route.path === '/login';
+    hidden() {
+      const p = this.$route.path || '';
+      // 登录页、AI 全屏页不显示浮标，避免挡住发送按钮
+      return p === '/login' || p === '/ai/assistant' || p.startsWith('/ai/assistant/');
     },
     sessions() {
       return (this.store && this.store.sessions) || [];
@@ -107,6 +109,11 @@ export default {
       if (val) {
         this.bootstrap();
         this.$nextTick(this.scrollBottom);
+      }
+    },
+    '$route.path'(path) {
+      if (path === '/ai/assistant' || (path && path.startsWith('/ai/assistant/'))) {
+        this.visible = false;
       }
     },
   },
