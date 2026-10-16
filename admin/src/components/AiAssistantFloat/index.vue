@@ -5,9 +5,30 @@
         <div class="ai-panel-hd">
           <span>AI 助手</span>
           <div>
+            <el-button type="text" size="mini" @click="newChat">新对话</el-button>
             <el-button type="text" size="mini" @click="goPage">全屏</el-button>
             <el-button type="text" size="mini" @click="visible = false">关闭</el-button>
           </div>
+        </div>
+        <div class="ai-panel-history">
+          <el-dropdown trigger="click" @command="onHistoryCommand">
+            <span class="ai-history-trigger">
+              历史：{{ currentTitle }}
+              <i class="el-icon-arrow-down el-icon--right" />
+            </span>
+            <el-dropdown-menu slot="dropdown" class="ai-history-dropdown">
+              <el-dropdown-item
+                v-for="item in sessions"
+                :key="item.id"
+                :command="'switch:' + item.id"
+                :class="{ 'is-active': item.id === currentId }"
+              >
+                <span class="drop-title">{{ item.title || '新对话' }}</span>
+                <span class="drop-time">{{ formatTime(item.updatedAt) }}</span>
+              </el-dropdown-item>
+              <el-dropdown-item divided command="clear">清空本对话</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
         </div>
         <div ref="scrollBox" class="ai-panel-bd">
           <div v-if="!messages.length" class="ai-empty">试试问：今日成交金额、待发货多少</div>
@@ -28,12 +49,22 @@
         </div>
       </div>
     </transition>
-    <el-button class="ai-fab" type="primary" circle icon="el-icon-chat-dot-round" @click="visible = !visible" />
+    <el-button class="ai-fab" type="primary" circle icon="el-icon-chat-dot-round" @click="toggle" />
   </div>
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { aiChat } from '@/api/ai';
+import {
+  loadAiChatStore,
+  saveAiChatStore,
+  getCurrentSession,
+  createAiSession,
+  switchAiSession,
+  persistCurrentMessages,
+  formatSessionTime,
+} from '@/utils/aiChatHistory';
 
 export default {
   name: 'AiAssistantFloat',
@@ -43,14 +74,75 @@ export default {
       input: '',
       loading: false,
       messages: [],
+      store: null,
     };
   },
   computed: {
+    ...mapGetters(['name']),
+    account() {
+      return this.name || 'default';
+    },
     hiddenOnLogin() {
       return this.$route.path === '/login';
     },
+    sessions() {
+      return (this.store && this.store.sessions) || [];
+    },
+    currentId() {
+      return (this.store && this.store.currentId) || '';
+    },
+    currentTitle() {
+      const cur = getCurrentSession(this.store);
+      return (cur && cur.title) || '新对话';
+    },
+  },
+  watch: {
+    visible(val) {
+      if (val) {
+        this.bootstrap();
+        this.$nextTick(this.scrollBottom);
+      }
+    },
   },
   methods: {
+    formatTime: formatSessionTime,
+    toggle() {
+      this.visible = !this.visible;
+    },
+    bootstrap() {
+      this.store = loadAiChatStore(this.account);
+      const cur = getCurrentSession(this.store);
+      this.messages = cur && cur.messages ? [...cur.messages] : [];
+    },
+    persist() {
+      if (!this.store) return;
+      persistCurrentMessages(this.store, this.messages);
+      saveAiChatStore(this.account, this.store);
+      this.store = { ...this.store, sessions: [...this.store.sessions] };
+    },
+    newChat() {
+      if (!this.store) this.bootstrap();
+      createAiSession(this.store);
+      this.messages = [];
+      this.persist();
+    },
+    onHistoryCommand(cmd) {
+      if (cmd === 'clear') {
+        this.messages = [];
+        this.persist();
+        return;
+      }
+      if (String(cmd).startsWith('switch:')) {
+        const id = String(cmd).slice(7);
+        if (!this.store || id === this.currentId) return;
+        persistCurrentMessages(this.store, this.messages);
+        switchAiSession(this.store, id);
+        const cur = getCurrentSession(this.store);
+        this.messages = cur && cur.messages ? [...cur.messages] : [];
+        saveAiChatStore(this.account, this.store);
+        this.$nextTick(this.scrollBottom);
+      }
+    },
     goPage() {
       this.visible = false;
       if (this.$route.path !== '/ai/assistant') {
@@ -66,9 +158,11 @@ export default {
     async send() {
       const text = (this.input || '').trim();
       if (!text || this.loading) return;
+      if (!this.store) this.bootstrap();
       const history = this.messages.map((m) => ({ role: m.role, content: m.content }));
       this.messages.push({ role: 'user', content: text });
       this.input = '';
+      this.persist();
       this.loading = true;
       this.$nextTick(this.scrollBottom);
       try {
@@ -78,6 +172,7 @@ export default {
         this.messages.push({ role: 'assistant', content: '请求失败，请稍后重试。' });
       } finally {
         this.loading = false;
+        this.persist();
         this.$nextTick(this.scrollBottom);
       }
     },
@@ -106,7 +201,7 @@ export default {
   right: 0;
   bottom: 64px;
   width: 360px;
-  height: 480px;
+  height: 520px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
@@ -121,6 +216,25 @@ export default {
   padding: 10px 12px;
   border-bottom: 1px solid #ebeef5;
   font-weight: 600;
+}
+.ai-panel-history {
+  padding: 6px 12px;
+  border-bottom: 1px solid #f0f2f5;
+  background: #fafafa;
+}
+.ai-history-trigger {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  font-size: 12px;
+  color: #606266;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  &:hover {
+    color: #409eff;
+  }
 }
 .ai-panel-bd {
   flex: 1;
@@ -161,5 +275,35 @@ export default {
   display: flex;
   gap: 8px;
   align-items: flex-end;
+}
+</style>
+
+<style lang="scss">
+.ai-history-dropdown {
+  max-width: 280px;
+  max-height: 320px;
+  overflow-y: auto;
+  .el-dropdown-menu__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    line-height: 1.4;
+    &.is-active {
+      color: #409eff;
+      background: #ecf5ff;
+    }
+  }
+  .drop-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .drop-time {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #909399;
+  }
 }
 </style>
