@@ -1,5 +1,6 @@
-# 国内构建：经 DaoCloud 代理拉 temurin
-FROM docker.m.daocloud.io/library/eclipse-temurin:8-jre-jammy
+# 国内构建：DaoCloud 推荐前缀（旧 docker.m.daocloud.io/library 偶发 502）
+# 若仍失败：./deploy/scripts/server-update.sh --official
+FROM m.daocloud.io/docker.io/library/eclipse-temurin:8-jre-jammy
 
 WORKDIR /app
 RUN mkdir -p /data/qianxu /app/logs \

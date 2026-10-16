@@ -6,8 +6,9 @@
 #   ./deploy/scripts/server-update.sh              # 自动生成版本号
 #   ./deploy/scripts/server-update.sh 3.0.1        # 指定版本号
 #   ./deploy/scripts/server-update.sh --skip-pull  # 不拉 git（仅本地已有代码）
-#   ./deploy/scripts/server-update.sh --official   # 用官方基础镜像（默认国内 DaoCloud）
+#   ./deploy/scripts/server-update.sh --official   # 用 Docker Hub 官方基础镜像（国内源 502 时用这个）
 #   ./deploy/scripts/server-update.sh --skip-sql   # 不自动执行 deploy/sql/migrate/*.sql
+# 默认国内 DaoCloud；china Dockerfile 构建失败会自动回退官方 Dockerfile
 #
 # 更新范围：Java admin/front + 后台 Vue（admin-web）+ 增量 SQL（migrate 目录）
 # 不含：H5/小程序（qianxu-app，仍需单独发到 /www/wwwroot/app...）
@@ -104,7 +105,7 @@ maven_package_docker() {
   # 无本机 JDK/Maven 时，用容器编译（只需 Docker）
   local MAVEN_IMG
   if [[ "$USE_CHINA" -eq 1 ]]; then
-    MAVEN_IMG="docker.m.daocloud.io/library/maven:3.9.6-eclipse-temurin-8"
+    MAVEN_IMG="m.daocloud.io/docker.io/library/maven:3.9.6-eclipse-temurin-8"
   else
     MAVEN_IMG="maven:3.9.6-eclipse-temurin-8"
   fi
@@ -130,12 +131,35 @@ test -f "$ROOT/qianxu/qianxu-front/target/Qianxu-front.jar" \
   || { echo "缺少 Qianxu-front.jar，打包失败" >&2; exit 1; }
 
 echo "========== 3/6 构建 Docker 镜像 =========="
+build_one() {
+  local df="$1" img="$2"
+  if docker build -f "$df" -t "$img" .; then
+    return 0
+  fi
+  # 国内源 502/拉取失败时，自动回退官方 Dockerfile（需能访问 docker.io）
+  if [[ "$USE_CHINA" -eq 1 ]]; then
+    local fallback=""
+    case "$df" in
+      *Dockerfile.admin.china) fallback="deploy/docker/Dockerfile.admin" ;;
+      *Dockerfile.front.china) fallback="deploy/docker/Dockerfile.front" ;;
+      *Dockerfile.admin-web.china) fallback="deploy/docker/Dockerfile.admin-web" ;;
+    esac
+    if [[ -n "$fallback" ]]; then
+      echo "[warn] $df 构建失败，回退官方镜像: $fallback" >&2
+      docker build -f "$fallback" -t "$img" .
+      return $?
+    fi
+  fi
+  return 1
+}
+
 if [[ "$USE_CHINA" -eq 1 ]]; then
-  echo "基础镜像: 国内加速 (*.china Dockerfile)"
-  docker build -f deploy/docker/Dockerfile.admin.china -t "qianxu-admin:${TAG}" .
-  docker build -f deploy/docker/Dockerfile.front.china -t "qianxu-front:${TAG}" .
-  docker build -f deploy/docker/Dockerfile.admin-web.china -t "qianxu-admin-web:${TAG}" .
+  echo "基础镜像: 国内加速 (*.china Dockerfile)，失败自动回退 --official"
+  build_one deploy/docker/Dockerfile.admin.china "qianxu-admin:${TAG}"
+  build_one deploy/docker/Dockerfile.front.china "qianxu-front:${TAG}"
+  build_one deploy/docker/Dockerfile.admin-web.china "qianxu-admin-web:${TAG}"
 else
+  echo "基础镜像: Docker Hub 官方"
   docker build -f deploy/docker/Dockerfile.admin -t "qianxu-admin:${TAG}" .
   docker build -f deploy/docker/Dockerfile.front -t "qianxu-front:${TAG}" .
   docker build -f deploy/docker/Dockerfile.admin-web -t "qianxu-admin-web:${TAG}" .
