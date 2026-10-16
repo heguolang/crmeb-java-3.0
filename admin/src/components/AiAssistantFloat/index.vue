@@ -33,7 +33,12 @@
         <div ref="scrollBox" class="ai-panel-bd">
           <div v-if="!messages.length" class="ai-empty">试试问：今日成交金额、待发货多少</div>
           <div v-for="(item, idx) in messages" :key="idx" class="ai-row" :class="item.role">
-            <pre class="ai-content">{{ item.content }}</pre>
+            <div
+              v-if="item.role === 'assistant'"
+              class="ai-content ai-md"
+              v-html="renderMd(item.content)"
+            />
+            <pre v-else class="ai-content">{{ item.content }}</pre>
           </div>
         </div>
         <div class="ai-panel-ft">
@@ -56,6 +61,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import { aiChat } from '@/api/ai';
+import { renderAiMarkdown } from '@/utils/aiMarkdown';
 import {
   loadAiChatStore,
   saveAiChatStore,
@@ -106,6 +112,7 @@ export default {
   },
   methods: {
     formatTime: formatSessionTime,
+    renderMd: renderAiMarkdown,
     toggle() {
       this.visible = !this.visible;
     },
@@ -259,6 +266,9 @@ export default {
     font-size: 13px;
     line-height: 1.55;
   }
+  .ai-md {
+    white-space: normal;
+  }
   &.user .ai-content {
     background: #ecf5ff;
     margin-left: 28px;
@@ -268,6 +278,12 @@ export default {
     border: 1px solid #ebeef5;
     margin-right: 28px;
   }
+}
+.ai-md ::v-deep strong {
+  font-weight: 600;
+}
+.ai-md ::v-deep .ai-md-li {
+  margin: 3px 0;
 }
 .ai-panel-ft {
   padding: 10px;

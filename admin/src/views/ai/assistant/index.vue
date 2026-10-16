@@ -49,7 +49,12 @@
             <div v-for="(item, idx) in messages" :key="idx" class="ai-row" :class="item.role">
               <div class="ai-bubble">
                 <div class="ai-role">{{ item.role === 'user' ? '我' : 'AI' }}</div>
-                <pre class="ai-content">{{ item.content }}</pre>
+                <div
+                  v-if="item.role === 'assistant'"
+                  class="ai-content ai-md"
+                  v-html="renderMd(item.content)"
+                />
+                <pre v-else class="ai-content">{{ item.content }}</pre>
               </div>
             </div>
           </div>
@@ -75,6 +80,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import { aiChat } from '@/api/ai';
+import { renderAiMarkdown } from '@/utils/aiMarkdown';
 import {
   loadAiChatStore,
   saveAiChatStore,
@@ -114,6 +120,7 @@ export default {
   },
   methods: {
     formatTime: formatSessionTime,
+    renderMd: renderAiMarkdown,
     bootstrap() {
       this.store = loadAiChatStore(this.account);
       const cur = getCurrentSession(this.store);
@@ -351,6 +358,38 @@ export default {
   font-size: 14px;
   line-height: 1.6;
   color: #303133;
+}
+.ai-md {
+  white-space: normal;
+  ::v-deep strong {
+    font-weight: 600;
+    color: #303133;
+  }
+  ::v-deep .ai-md-li {
+    margin: 4px 0;
+    line-height: 1.6;
+  }
+  ::v-deep .ai-md-h1,
+  ::v-deep .ai-md-h2,
+  ::v-deep .ai-md-h3 {
+    font-weight: 600;
+    margin: 8px 0 4px;
+  }
+  ::v-deep .ai-md-inline {
+    padding: 0 4px;
+    background: #f0f2f5;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+  ::v-deep .ai-md-code {
+    margin: 8px 0;
+    padding: 8px 10px;
+    background: #f0f2f5;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 12px;
+    white-space: pre-wrap;
+  }
 }
 .ai-input {
   margin-top: 14px;
