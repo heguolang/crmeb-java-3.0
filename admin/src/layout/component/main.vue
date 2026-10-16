@@ -8,6 +8,7 @@
       <LayoutParentView />
       <Footers v-if="getThemeConfig.isFooter && !isFullScreen" />
     </el-scrollbar>
+    <AiAssistantFloat />
   </el-main>
 </template>
 <script>
@@ -19,9 +20,10 @@ import LayoutParentView from '@/layout/routerView/parent.vue';
 import Footers from '@/layout/footer/index.vue';
 import Links from '@/layout/routerView/link.vue';
 import Iframes from '@/layout/routerView/iframes.vue';
+import AiAssistantFloat from '@/components/AiAssistantFloat/index.vue';
 export default {
   name: 'layoutMain',
-  components: { LayoutParentView, Footers, Links, Iframes },
+  components: { LayoutParentView, Footers, Links, Iframes, AiAssistantFloat },
   data() {
     return {
       headerHeight: '',

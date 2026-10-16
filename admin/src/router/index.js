@@ -145,6 +145,12 @@ export const constantRoutes = [
         name: 'Dashboard',
         meta: { title: '主页', icon: 'dashboard', isAffix: true },
       },
+      {
+        path: '/ai/assistant',
+        component: () => import('@/views/ai/assistant/index'),
+        name: 'AiAssistant',
+        meta: { title: 'AI助手', icon: 'service', noCache: true },
+      },
     ],
   },
   {

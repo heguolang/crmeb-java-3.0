@@ -6327,3 +6327,28 @@ INSERT INTO `eb_system_config` (`name`, `title`, `form_id`, `value`, `status`, `
 SELECT 'sys_switch_screen', '隐藏面板-数据中心大屏开关', 0, '1', 0, NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM (SELECT name FROM `eb_system_config`) x WHERE x.name = 'sys_switch_screen');
 -- ========== END: 20261014_market_module_switches.sql ==========
+
+-- ========== BEGIN: 20261016_ai_assistant_menu.sql ==========
+-- AI 助手菜单（DeepSeek 问答页），幂等
+SET NAMES utf8mb4;
+
+INSERT INTO `eb_system_menu`
+  (`pid`, `name`, `icon`, `perms`, `component`, `menu_type`, `sort`, `is_show`, `is_delte`, `create_time`, `update_time`)
+SELECT 0, 'AI助手', 'service', 'admin:ai:chat', '/ai/assistant', 'C', 2, 1, 0, NOW(), NOW()
+  FROM DUAL
+ WHERE NOT EXISTS (
+   SELECT 1 FROM `eb_system_menu`
+    WHERE `component` = '/ai/assistant' AND `is_delte` = 0
+ );
+
+INSERT INTO `eb_system_role_menu` (`rid`, `menu_id`)
+SELECT r.`id`, m.`id`
+  FROM `eb_system_role` r
+  CROSS JOIN `eb_system_menu` m
+ WHERE m.`component` = '/ai/assistant'
+   AND m.`is_delte` = 0
+   AND NOT EXISTS (
+     SELECT 1 FROM `eb_system_role_menu` x
+      WHERE x.`rid` = r.`id` AND x.`menu_id` = m.`id`
+   );
+-- ========== END: 20261016_ai_assistant_menu.sql ==========

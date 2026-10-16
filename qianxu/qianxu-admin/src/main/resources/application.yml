@@ -10,6 +10,14 @@ qianxu:
   imagePath: D:/WorkBuddy/qianxu-java5.0/qianxu/ # 服务器图片路径配置 斜杠结尾（qianxuimage 的上级目录）
   demoSite: false # 是否演示站点 所有手机号码都会掩码
   activityStyleCachedTime: 10 #活动边框缓存周期 秒为单位，生产环境适当5-10分钟即可
+  # DeepSeek AI 助手（Key 仅服务端使用；若已泄露请到 DeepSeek 控制台轮换）
+  deepseek:
+    enabled: true
+    api-key: sk-8bc95dc1f79a46dfb30336c8a516e14a
+    api-url: https://api.deepseek.com/chat/completions
+    model: deepseek-chat
+    timeout-ms: 120000
+    system-prompt: 你是黔序商城后台的AI助手，帮助管理员解答经营、订单、商品、营销和系统使用问题。回答简洁、可执行。当前版本不直接查询店铺数据库，涉及具体数据时请引导用户到对应后台菜单查看。回答使用中文。
   ignored: #安全路径白名单
     - swagger-ui/
     - swagger-resources/**
