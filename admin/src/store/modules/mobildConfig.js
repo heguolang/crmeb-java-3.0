@@ -130,13 +130,23 @@ const pageFooter = {
   },
   navConfig: {
     title: '导航类型',
-    tabVal: 0,
+    tabVal: 1,
     tabList: [{ name: '底部固定' }, { name: '底部悬浮' }],
   },
   navStyleConfig: {
     title: '导航样式',
     tabVal: 0,
-    tabList: [{ name: '图片+文字' }, { name: '文字' }, { name: '图片' }],
+    tabList: [{ name: '图片+文字' }, { name: '文字' }, { name: '图片' }, { name: '图文横排' }],
+  },
+  activeStyleConfig: {
+    title: '选中样式',
+    tabVal: 1,
+    tabList: [{ name: '仅变色' }, { name: '胶囊高亮' }],
+  },
+  glassConfig: {
+    title: '毛玻璃',
+    tabVal: 1,
+    tabList: [{ name: '关闭' }, { name: '开启' }],
   },
   toneConfig: {
     title: '色调',
@@ -146,7 +156,7 @@ const pageFooter = {
   topConfig: { title: '上边距', val: 0, min: 0 },
   bottomConfig: { title: '下边距', val: 0, min: 0 },
   prConfig: { title: '左右边距', val: 10, min: 0 },
-  mbConfig: { title: '页面下间距', val: 25, min: 0 },
+  mbConfig: { title: '页面下间距', val: 12, min: 0 },
   fillet: {
     title: '背景圆角',
     type: 0,
@@ -402,7 +412,18 @@ export default {
      * @param {string} data
      */
     footPageUpdata(state, data) {
-      state.pageFooter = data;
+      // 旧主题数据里没有后加的配置项（选中样式 / 毛玻璃 / 横排样式），
+      // 用默认值补齐，避免配置面板拿到 undefined
+      const defaults = JSON.parse(JSON.stringify(pageFooter));
+      const merged = Object.assign({}, defaults, data || {});
+      Object.keys(defaults).forEach((key) => {
+        if (merged[key] === undefined || merged[key] === null) merged[key] = defaults[key];
+      });
+      merged.navStyleConfig = Object.assign({}, defaults.navStyleConfig, merged.navStyleConfig || {});
+      merged.navStyleConfig.tabList = defaults.navStyleConfig.tabList;
+      merged.activeStyleConfig = Object.assign({}, defaults.activeStyleConfig, merged.activeStyleConfig || {});
+      merged.glassConfig = Object.assign({}, defaults.glassConfig, merged.glassConfig || {});
+      state.pageFooter = merged;
     },
     bottomMenuUpdata(state, data) {
       state.bottomMenu = data;

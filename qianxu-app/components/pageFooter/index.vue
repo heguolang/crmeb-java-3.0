@@ -6,8 +6,12 @@
         <view
           class="page-footer"
           :class="{
-            'page-footer2': newData.navStyleConfig && newData.navStyleConfig.tabVal == 1,
-            'page-footer3': newData.navStyleConfig && newData.navStyleConfig.tabVal == 2,
+            'page-footer2': navStyle == 1,
+            'page-footer3': navStyle == 2,
+            'page-footer--h': navStyle == 3,
+            'page-footer--float': isFloat,
+            'page-footer--glass': isGlass,
+            'page-footer--hl': showHighlight,
           }"
           id="target"
           :style="[componentStyle]"
@@ -16,8 +20,15 @@
             class="foot-item"
             v-for="(item, index) in menuList"
             :key="index"
+            :class="{ 'is-active': isActive(item) }"
             @click="goRouter(item)"
           >
+            <!-- 选中高亮胶囊（支付宝样式） -->
+            <view
+              v-if="showHighlight && isActive(item)"
+              class="foot-hl"
+              :style="{ background: hlColor }"
+            ></view>
             <template v-if="isActive(item)">
               <image v-if="navStyle != 1" :src="getMenuImage(item, true)"></image>
               <view v-if="navStyle != 2" class="txt active" :style="[txtActiveColor]">
@@ -38,6 +49,8 @@
       </view>
     </view>
     <view :style="{ height: `${footerHeight}px` }"></view>
+    <!-- 悬浮胶囊模式：给页面兜底留出导航条占位，避免内容被遮挡 -->
+    <view v-if="isFloat" :style="{ height: spacerHeight }"></view>
     <view class="safe-area-inset-bottom"></view>
   </view>
 </template>
@@ -103,9 +116,36 @@ export default {
     navStyle() {
       return this.newData.navStyleConfig ? this.newData.navStyleConfig.tabVal : 0;
     },
+    // 悬浮胶囊模式（DIY：导航类型=底部悬浮）
+    isFloat() {
+      return !!(this.newData.navConfig && this.newData.navConfig.tabVal);
+    },
+    // 毛玻璃模糊（DIY：毛玻璃效果，仅悬浮模式生效）
+    isGlass() {
+      if (!this.isFloat) return false;
+      return !!(this.newData.glassConfig && this.newData.glassConfig.tabVal);
+    },
+    // 选中项胶囊高亮（DIY：选中样式=胶囊高亮）
+    showHighlight() {
+      return !!(this.newData.activeStyleConfig && this.newData.activeStyleConfig.tabVal);
+    },
+    // 高亮胶囊颜色：跟随主题或自定义选中色
+    hlColor() {
+      if (this.newData.toneConfig && this.newData.toneConfig.tabVal) {
+        return this.getColor(this.newData.activeTxtColor, "var(--view-theme)");
+      }
+      return "var(--view-theme)";
+    },
+    // 悬浮模式下页面底部占位高度（导航条 96rpx + 悬浮下间距）
+    spacerHeight() {
+      const mb = this.getVal(this.newData.mbConfig);
+      return `${96 + mb * 2}rpx`;
+    },
     txtActiveColor() {
       let styleObject = {};
-      if (this.newData.toneConfig && this.newData.toneConfig.tabVal) {
+      if (this.showHighlight) {
+        styleObject.color = "#ffffff";
+      } else if (this.newData.toneConfig && this.newData.toneConfig.tabVal) {
         styleObject.color = this.getColor(this.newData.activeTxtColor);
       }
       return styleObject;
@@ -382,6 +422,7 @@ export default {
   position: absolute;
   top: 0;
   left: 50%;
+  z-index: 2;
   min-width: 30rpx;
   height: 30rpx;
   padding: 0 8rpx;
@@ -410,5 +451,74 @@ export default {
 .page-footer2.float .foot-item:first-child::before,
 .page-footer3.float .foot-item:first-child::before {
   display: none;
+}
+
+/* ================= 悬浮胶囊 + 毛玻璃（参考支付宝移动端） ================= */
+.page-footer--glass {
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.12), inset 0 0 0 1rpx rgba(255, 255, 255, 0.55);
+}
+
+/* 选中项胶囊高亮 */
+.foot-hl {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: background 0.2s ease;
+}
+
+.page-footer--hl .foot-item image,
+.page-footer--hl .foot-item .txt {
+  position: relative;
+  z-index: 1;
+}
+
+/* 高亮块为深色/主题色时，选中图标反白 */
+.page-footer--hl .foot-item.is-active image {
+  filter: brightness(0) invert(1);
+}
+
+/* 纯文字模式：高亮块改成文字胶囊 */
+.page-footer2 .foot-hl {
+  width: auto;
+  min-width: 96rpx;
+  height: 64rpx;
+  padding: 0 20rpx;
+  border-radius: 32rpx;
+  box-sizing: border-box;
+}
+
+/* 图文横排模式（支付宝同款）：图标在左、文字在右 */
+.page-footer.page-footer--h .foot-item {
+  flex-direction: row;
+}
+
+.page-footer.page-footer--h .foot-item image {
+  width: 40rpx;
+  height: 40rpx;
+  margin: 0 10rpx 0 0;
+}
+
+.page-footer.page-footer--h .foot-item .txt {
+  margin-top: 0;
+  font-size: 24rpx;
+  line-height: 32rpx;
+}
+
+.page-footer.page-footer--h .foot-hl {
+  width: calc(100% - 10rpx);
+  height: 76rpx;
+  border-radius: 38rpx;
+}
+
+.page-footer--h .cart-badge {
+  top: 8rpx;
+  transform: translateX(24rpx);
 }
 </style>

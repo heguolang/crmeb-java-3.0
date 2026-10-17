@@ -98,6 +98,16 @@ export default {
           configNme: 'fillet',
         },
       ],
+      highlightStyle: [
+        {
+          components: toolCom.c_radio,
+          configNme: 'activeStyleConfig',
+        },
+        {
+          components: toolCom.c_radio,
+          configNme: 'glassConfig',
+        },
+      ],
       setUp: 0,
       type: 0,
       type2: 0,
@@ -128,6 +138,10 @@ export default {
             {
               components: toolCom.c_radio,
               configNme: 'navStyleConfig',
+            },
+            {
+              components: toolCom.c_radio,
+              configNme: 'activeStyleConfig',
             },
             {
               components: toolCom.c_title,
@@ -204,7 +218,7 @@ export default {
         }
       } else {
         if (type2 == 2) {
-          this.rCom = [...arr, ...this.currencyTitle2, ...this.currencyStyle, ...this.currencyStyle2];
+          this.rCom = [...arr, ...this.currencyTitle2, ...this.currencyStyle, ...this.currencyStyle2, ...this.highlightStyle];
         } else {
           if (type3 == 0) {
             this.rCom = [
@@ -213,6 +227,7 @@ export default {
               ...this.currencyTitle2,
               ...this.currencyStyle,
               ...this.currencyStyle2,
+              ...this.highlightStyle,
             ];
           } else {
             this.rCom = [
@@ -222,6 +237,7 @@ export default {
               ...this.currencyTitle2,
               ...this.currencyStyle,
               ...this.currencyStyle2,
+              ...this.highlightStyle,
             ];
           }
         }
